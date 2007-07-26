@@ -15,6 +15,17 @@ x (succ y) = succ (add x y)
 
 }
 
+fun add' : Nat -> Nat -> Nat
+{
+zero = \ (y : Nat) -> y ;
+(succ x) = \ (y : Nat) -> succ (add' x y)
+}
+
+const plus1 : Nat -> Nat = add' one
+const one'  : Nat = plus1 zero
+const zero' : Nat = add' zero zero
+const three : Nat = add' one two
+
 fun mult : Nat -> Nat -> Nat
 {
 x zero = zero ;
