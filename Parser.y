@@ -15,7 +15,7 @@ import qualified Abstract as A
 id      { T.Id $$ _ }
 data    { T.Data _ }
 fun     { T.Fun _ }
-def     { T.Def _ }
+const   { T.Const _ }
 mutual  { T.Mutual _ }
 set     { T.Set _ }
 
@@ -57,7 +57,7 @@ Definitions : Definition { let (ts,d) = $1 in ([ts],[d]) }
 Definition :: { (A.TypeSig,A.Definition) }
 Definition : Data { $1 }
            | Fun { $1 }
-           | Def { $1 }
+           | Const { $1 }
 
 Data :: { (A.TypeSig,A.Definition) }
 Data : data Id Telescope ':' Expr '{' Constructors '}' 
@@ -66,10 +66,8 @@ Data : data Id Telescope ':' Expr '{' Constructors '}'
 Fun :: { (A.TypeSig,A.Definition) }
 Fun : fun TypeSig '{' Clauses '}' { ($2 , A.FunDef (reverse $4)) }
 
--- translated to fun def
-Def :: { (A.TypeSig,A.Definition) }
-Def : def TypeSig '=' Expr { ($2,A.FunDef  [A.Clause (A.LHS []) (A.RHS $4)]) } 
-
+Const :: { (A.TypeSig,A.Definition) }
+Const : const TypeSig '=' Expr { ($2,A.ConstDef $4) } 
 
 
 Id :: { A.Name }
@@ -131,7 +129,7 @@ Pattern : '_' { A.WildP }
         | Id { A.IdentP $1 }
 
 ConP :: { A.Pattern }
-ConP : '(' Id Patterns ')' { A.ConP $2 $3 }
+ConP : '(' Id Patterns ')' { A.ConP $2 (reverse $3) }
      | '(' succ Pattern ')' { A.SuccP $3 }
 
 RHS :: { A.RHS }

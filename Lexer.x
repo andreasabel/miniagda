@@ -17,7 +17,7 @@ $white+				;
 
 data				{ tok (\p s -> Data p) }
 fun				{ tok (\p s -> Fun p) }
-def				{ tok (\p s -> Def p) }
+const				{ tok (\p s -> Const p) }
 mutual				{ tok (\p s -> Mutual p) }
 
 Set				{ tok (\p s -> Set p) }
@@ -44,7 +44,7 @@ $alpha [$alpha $digit \_ \']*		{ tok (\p s -> (Id s p )) }
 data Token = Id String AlexPosn
            | Data AlexPosn
            | Fun AlexPosn
-           | Def AlexPosn
+           | Const AlexPosn
            | Mutual AlexPosn
            | Set AlexPosn 
            -- size type
@@ -71,7 +71,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     (Id s p) -> (show s,p)
     Data p -> ("data",p)
     Fun p -> ("fun",p)
-    Def p -> ("def",p)
+    Const p -> ("const",p)
     Mutual p -> ("mutual",p)
     Set p -> ("set",p)
     Size p -> ("Size",p)

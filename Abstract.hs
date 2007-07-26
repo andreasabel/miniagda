@@ -12,6 +12,7 @@ data Expr = Set
           | Var Name
           | Con Name
           | Def Name
+          | Const Name
           | App Expr [Expr]
           | Lam TBind Expr
           | Pi TBind Expr
@@ -23,7 +24,8 @@ data Declaration = Declaration [TypeSig] [Definition] -- lists because of mutual
                    deriving (Eq,Show)
 
 data Definition = DataDef Telescope [Constructor]
-                | FunDef [Clause] -- also used for constant defintions, def t : T = e as a nullary function 
+                | FunDef [Clause] 
+                | ConstDef Expr
                   deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type

@@ -22,7 +22,7 @@ sizeCheckDefinition (TypeSig n t,DataDef tel cl) =
       _ -> -- not a sized type 
            withoutSize t && withoutSizeTelescope tel  
 sizeCheckDefinition (TypeSig n t,FunDef cl) = sizeCheckFunType t
-
+sizeCheckDefinition (TypeSig n t,ConstDef e) = sizeCheckFunType t
 
 
 

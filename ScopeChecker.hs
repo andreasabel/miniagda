@@ -9,8 +9,8 @@ import Control.Monad.State
 --scope checker
 -- check if all identifiers are "in scope"
 -- and
--- replaces Ident with Con, Def or Var  
--- replaces IndenP with ConP or VarP in patterns
+-- replaces Ident with Con, Def , Const or Var  
+-- replaces IdentP with ConP or VarP in patterns
 
 --------------------
 
@@ -34,7 +34,7 @@ addCtxs nl ctx = ctx ++ nl
 
 --global signature
 
-data Kind = ConK | DefK 
+data Kind = DataK | ConK | FunK | ConstK
 
 type Sig = [(Name,Kind)] -- we record if a name is a constructor name or something else
 
@@ -66,17 +66,21 @@ scopeCheckDecls :: [Declaration] -> ScopeCheck [Declaration]
 scopeCheckDecls = mapM scopeCheckDeclaration 
 
 scopeCheckDeclaration :: Declaration -> ScopeCheck Declaration
-scopeCheckDeclaration (Declaration tsl dl) = do tsl' <- mapM scopeCheckTypeSig tsl
+scopeCheckDeclaration (Declaration tsl dl) = do tsl' <- mapM scopeCheckTypeSig (zip tsl dl)
                                                 dl' <- mapM scopeCheckDefinition dl  
                                                 return $ Declaration tsl' dl'
 
-scopeCheckTypeSig :: TypeSig -> ScopeCheck TypeSig 
-scopeCheckTypeSig a@(TypeSig n e) = do sig <- get
-                                       case (lookupSig n sig) of
-                                         Just _ -> errorAlreadyInSignature  a n  
-                                         Nothing -> do e' <- scopeCheckExpr e 
-                                                       put (addSig n DefK sig)
-                                                       return $ TypeSig n e'      
+scopeCheckTypeSig :: (TypeSig,Definition) -> ScopeCheck TypeSig 
+scopeCheckTypeSig (a@(TypeSig n e),def) = do sig <- get
+                                             case (lookupSig n sig) of
+                                               Just _ -> errorAlreadyInSignature  a n  
+                                               Nothing -> do e' <- scopeCheckExpr e 
+                                                             put (addSig n kind sig)
+                                                             return $ TypeSig n e'
+    where kind = case def of 
+                   (DataDef _ _) -> DataK
+                   (FunDef _) -> FunK
+                   (ConstDef _) -> ConstK
 
                            
 
@@ -87,6 +91,8 @@ scopeCheckDefinition (DataDef tl cs) = do tl' <- scopeCheckTelescope tl
                                           return $ DataDef tl' cs'
 scopeCheckDefinition (FunDef cls) = do cls' <- mapM scopeCheckClause cls
                                        return $ FunDef cls'
+scopeCheckDefinition (ConstDef e) = do e' <- scopeCheckExpr e
+                                       return $ ConstDef e'
 
 collectTelescopeNames :: Telescope -> [Name]
 collectTelescopeNames = map ( \(TBind n e) -> n )
@@ -153,7 +159,8 @@ scopeCheckExpr e =
                     case (lookupSig n sig) of
                       Just k -> case k of
                                   ConK -> return $ Con n
-                                  DefK -> return $ Def n
+                                  ConstK -> return $ Const n
+                                  _ -> return $ Def n
                       Nothing -> case (lookupCtx n ctx) of
                                    True -> return $ (Var n)
                                    False -> errorIdentifierUndefined n 
@@ -183,7 +190,7 @@ scopeCheckPattern p =
                      ctx <- ask
                      case (lookupSig n sig) of
                        (Just ConK) -> return $ ConP n [] -- assumed to be a nullary constructor
-                       (Just DefK) -> errorPatternNotConstructor n
+                       (Just _) -> errorPatternNotConstructor n
                        Nothing -> return $ VarP n
       SuccP p -> do p' <- scopeCheckPattern p
                     return $ SuccP p'
@@ -193,7 +200,7 @@ scopeCheckPattern p =
                       case (lookupSig n sig) of
                         (Just ConK) -> do pl' <- mapM scopeCheckPattern pl 
                                           return $ ConP n pl'
-                        (Just DefK) -> errorPatternNotConstructor n 
+                        (Just _) -> errorPatternNotConstructor n 
                         Nothing -> errorPatternNotConstructor n 
 
 scopeCheckRHS :: RHS -> ScopeCheck RHS

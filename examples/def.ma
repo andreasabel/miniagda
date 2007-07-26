@@ -1,1 +1,1 @@
-def f : add x y z 
+const f : add x y z 

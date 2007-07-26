@@ -1,3 +1,10 @@
+data Enum : Set
+{
+	aa : Enum ;
+	bb : Enum ; 
+	cc : Enum 
+}
+
 data SList ( A : Set ) : Size -> Set 
 {
 
@@ -5,6 +12,8 @@ nil : (i : Size ) -> SList A (s i) ;
 cons : (i : Size ) -> A -> SList A i -> SList A (s i)
 
 }
+
+const list : SList Enum = cons infty aa (cons infty bb (cons infty cc (nil infty))) 
 
 fun weakList : ( i : Size ) -> ( A : Set ) -> SList A i -> SList A (s i)
 {
@@ -44,3 +53,5 @@ mutual
 	}
 
 }
+
+const revlist : SList infty = rev infty Enum list

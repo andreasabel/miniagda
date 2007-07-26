@@ -1,1 +1,1 @@
-def f : f = Set
+const f : f = Set
