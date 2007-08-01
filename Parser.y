@@ -87,7 +87,7 @@ Id : id { $1 }
 Expr :: { A.Expr }
 Expr : 
          TArrow Expr { A.Pi $1 $2 } 
-       | '\\' TBind '->' Expr { A.Lam $2 $4 }
+       | '\\' Id '->' Expr { A.Lam $2 $4 }
        | Expr1 '->' Expr { A.Fun $1 $3}
        | Expr1 { $1 }
 

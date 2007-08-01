@@ -56,7 +56,7 @@ withoutSize e =
     case e of
       Size -> False
       App e1 el -> withoutSize e1 && all withoutSize el
-      Lam (TBind n e1) e2 -> withoutSize e1 && withoutSize e2
+      Lam n e2 -> withoutSize e2
       Fun e1 e2 -> withoutSize e1 && withoutSize e2
       Pi (TBind n e1) e2 -> withoutSize e1 && withoutSize e2
       _ -> True

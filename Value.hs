@@ -2,32 +2,32 @@ module Value where
 
 import Abstract
 
-data Val = VGen Int
-           | VSet
+data Val =   VSet
            | VSize
            | VInfty
            | VSucc Val
            | VApp Val [Val]
-           | VClos Env Expr
            | VCon Name
            | VDef Name
+           | VGen Int
+           | VLam Name Env Expr
+           | VPi  Name Val Env Expr
              deriving (Show)
 
 prettyVal :: Val -> String
 prettyVal VSet = "Set"
 prettyVal VSize = "Size"
 prettyVal (VSucc v) = "(s " ++ prettyVal v ++ ")" 
-prettyVal (VApp v vl) = "(" ++ prettyVal v ++ prettyVals vl ++ ")"
+prettyVal (VApp v vl) = "(" ++ prettyVal v ++ " " ++ prettyVals vl ++ ")"
 prettyVal (VCon n) = n
 prettyVal (VDef n) = n
 prettyVal x = show x
 
 prettyVals :: [Val] -> String
 prettyVals [] = ""
-prettyVals (v:vs) = " " ++ prettyVal v ++ prettyVals vs
+prettyVals (v:vs) = prettyVal v ++ (if null vs then "" else " " ++ prettyVals vs)
 
 ----
-
 
 type Env = [(Name,Val)]
 

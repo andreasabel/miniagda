@@ -145,15 +145,14 @@ scopeCheckExpr e =
                                              False -> do t' <- scopeCheckExpr t
                                                          e1' <- local (addCtx n) (scopeCheckExpr e1)
                                                          return $ Pi (TBind n t') e1'
-      Lam (TBind n t) e1 -> do ctx <- ask
-                               sig <- get
-                               case (lookupSig n sig) of
-                                 Just _ ->  errorAlreadyInSignature e n
-                                 Nothing -> case (lookupCtx n ctx) of 
-                                              True  -> errorAlreadyInContext e n
-                                              False -> do t' <- scopeCheckExpr t
-                                                          e1' <- local (addCtx n) (scopeCheckExpr e1)
-                                                          return $ Lam (TBind n t') e1'
+      Lam n e1 -> do ctx <- ask
+                     sig <- get
+                     case (lookupSig n sig) of
+                       Just _ ->  errorAlreadyInSignature e n
+                       Nothing -> case (lookupCtx n ctx) of 
+                                    True  -> errorAlreadyInContext e n
+                                    False -> do e1' <- local (addCtx n) (scopeCheckExpr e1)
+                                                return $ Lam n e1'
       Ident n -> do ctx <- ask
                     sig <- get
                     case (lookupSig n sig) of

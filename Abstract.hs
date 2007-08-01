@@ -18,7 +18,7 @@ data Expr = Set
           | Def Name
           | Const Name
           | App Expr [Expr]
-          | Lam TBind Expr
+          | Lam Name Expr
           | Pi TBind Expr
           | Fun Expr Expr
           | Ident Name -- not used after scope checking
