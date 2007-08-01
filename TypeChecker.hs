@@ -241,9 +241,9 @@ inferExpr sig k rho gamma e =
       Size -> VSet
       Infty -> VSize
       App e1 [e2] -> case (inferExpr sig k rho gamma e1) of
-                          VPi n w env e3 -> -- if (checkExpr sig k rho gamma e2 w) then
+                          VPi n w env e3 ->  if (checkExpr sig k rho gamma e2 w) then
                                                 (fapp sig env n (eval sig rho e2) e3 []) 
-                                             -- else error "inferExpr : app error"
+                                             else error "inferExpr : app error"
                           _ -> error "inferExp : expected Pi" 
       App e1 (e2:el) -> inferExpr sig k rho gamma (App (App e1 [e2]) el) -- hack ?  
       (Def n) -> case (lookupSig n sig) of
