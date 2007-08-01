@@ -155,10 +155,28 @@ fapp :: Signature -> Env -> Name -> Val -> Expr -> [Val] -> Val
 fapp sig env x v e vl = app sig (eval sig (update env x v) e) vl
 
 app :: Signature -> Val -> [Val] -> Val
-app sig u v = case u of
-            VClos env (Lam (TBind x _) e) -> eval sig (update env x (head v)) e
-            VDef n -> matchDef sig [] n v
+
+app sig u v = case (u,v) of
+            (VApp u2 v2,_) -> app sig u2 (v2 ++ v)
+            (_,[]) -> u
+            (VLam x env e,(v:vl)) -> fapp sig env x v e vl
+            (VPi  x _ env e,(v:vl)) -> fapp sig env x v e vl
+            (VDef n,_) -> appDef sig [] n v
+
             _ -> VApp u v
+
+
+appDef :: Signature -> Env -> Name -> [Val] -> Val
+appDef sig env n vl = 
+    case lookupSig n sig of
+      (FunSig Ind   t arity cl) | arity     <= (length vl) -> matchClauses n sig env cl vl  
+      (FunSig CoInd t arity cl) | arity + 1 <= (length vl) -> matchClauses n sig env cl vl  
+      _ -> VApp (VDef n) vl   
+
+
+vsucc :: Val -> Val
+vsucc VInfty = VInfty
+vsucc x = VSucc x
 
 eval :: Signature -> Env -> Expr -> Val
 eval sig env e = case e of

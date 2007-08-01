@@ -1,4 +1,4 @@
-data Acc (A : Set) (Lt : A -> A -> Set) : Size -> A -> Set
+data Acc (A : Set) (Lt : A -> A -> Set) : Size -> Set -- fixme A not in scope : A -> Set
 {
   acc : (i : Size) -> (b : A) ->
         ((a : A) -> Lt a b -> Acc A Lt i a) 
@@ -20,27 +20,27 @@ data Lt : Nat -> Nat -> Set
 fun ltcase  : (P : Nat -> Set) -> (x : Nat) -> (y : Nat) -> 
               Lt x (succ y) -> ((x' : Nat) -> Lt x' y -> P x') -> P y -> P x
 {
-  P 0 0 (ltzero 0) hx' hy = hy ;
-  P 0 (succ y) (ltzero (succ y)) hx' hy = hx' 0 (ltzero y) ;
-  P (succ x) (succ y) (ltsucc x y p) hx' hy =  ??? ;
+ltcase  P zero zero (ltzero zero) hx' hy = hy ;
+ltcase  P zero (succ y) (ltzero (succ y2)) hx' hy = hx' zero (ltzero y) ;
+ltcase  P (succ x) (succ y) (ltsucc x2 y2 p) hx' hy =  x -- ??? ;
 }
 
 fun notLt0 : (x : Nat) -> Lt x zero -> (C : Set) -> C
 {
-  x () C 
+notLt0 x  () C 
 }
 
 fun accWk : (i : Size) -> (x : Nat) -> (y : Nat) -> 
             Lt x y -> Acc Nat Lt (s i) x -> Acc Nat Lt i y
 {
-  i x y p (acc i x pacc) = pacc y p 
+accWk  i x y p (acc i2 x2 pacc) = pacc y p 
 } 
 
 fun accLt : (x : Nat) -> Acc Nat Lt infty x
 {
-  zero = acc infty zero 
-             (\ (a : Nat) -> \ (p : Lt a zero) -> notLt0 a p (Acc Nat Lt infty a)) ;
-  (succ x) = acc infty (succ x) (\ (a : Nat) -> \ (p : Lt a (succ x)) ->
+accLt zero = acc infty zero 
+             (\ a -> \ p -> notLt0 a p (Acc Nat Lt infty a)) ;
+accLt (succ x) = acc infty (succ x) (\ a -> \ p ->
                                  ltcase
                                     (Acc Nat Lt infty) a (succ x) p 
                                     (accWk infty a x p (accLt x))

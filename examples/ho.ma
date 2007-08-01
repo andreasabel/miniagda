@@ -17,5 +17,5 @@ neg	ff = tt
 
 const f : Bool = apply neg tt
 
-const t : Bool = apply (\(x:Bool) -> tt) ff
+const t : Bool = apply (\ x  -> tt) ff
 
