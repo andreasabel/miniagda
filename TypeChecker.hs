@@ -122,34 +122,50 @@ matchDef sig env n vl =
       _ -> VApp (VDef n) vl   
 
 matchClauses :: Name -> Signature -> Env -> [Clause] -> [Val] -> Val
-matchClauses n sig env [] vl = error $ n ++ ": no function clause matches " ++ show vl 
-matchClauses n sig env (c:cl) vl = case c of 
-                           (Clause (LHS pl) rhs) -> case matchClause sig env pl rhs vl of
-                                                      Nothing -> matchClauses n sig env cl vl
-                                                      Just v -> v
+matchClauses n sig env cl vl = loop cl
+    where loop [] = error $ n ++ ": no function clause matches " ++ show vl
+                    ++ "\n Clauses: " ++ show cl 
+{-
+                    ++ "\n Environment: " ++ show env
+                    ++ "\n Signature: " ++ show sig 
+ -}
+          loop  ((Clause (LHS pl) rhs) : cl) = 
+              case matchClause n sig env pl rhs vl of
+                Nothing -> loop cl
+                Just v -> v
 
-matchClause :: Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
-matchClause sig env [] (RHS e) [] = Just (eval sig env e)
-matchClause sig env (p:pl) rhs (v:vl) = if (matches p v) then 
-                                        matchClause sig (upPattern env p v) pl rhs vl
-                                    else
-                                        Nothing 
-matchClause sig env pl (RHS e) vl = error $ "matchClause " ++ (show pl) ++ "\n" ++ (show vl)
+matchClause :: Name -> Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
+matchClause n sig env [] (RHS e) vl = Just (app sig (eval sig env e) vl)
+matchClause n sig env (p:pl) rhs (v:vl) = 
+    if (matches p v) then 
+        matchClause n sig (upPattern env p v) pl rhs vl
+    else
+        Nothing 
+matchClause n sig env pl _ [] = error $ "matchClause " ++ n 
+-- ++ (show pl) ++ "\n" ++ (show vl) 
+  ++ " (too few arguments) "
+
 
 --- Interpreter
 
 
 app :: Signature -> Val -> [Val] -> Val
-app sig u v = case u of
-            VClos env (Lam (TBind x _) e) -> eval sig (update env x (head v)) e
-            VDef n -> matchDef sig [] n v
+app sig u v = case (u,v) of
+            (VApp u2 v2,_) -> app sig u2 (v2 ++ v)
+            (_,[]) -> u
+            (VClos env (Lam (TBind x _) e),(v:vl)) -> app sig (eval sig (update env x v) e) vl
+            (VDef n,_) -> matchDef sig [] n v
             _ -> VApp u v
+
+vsucc :: Val -> Val
+vsucc VInfty = VInfty
+vsucc v = VSucc v
 
 eval :: Signature -> Env -> Expr -> Val
 eval sig env e = case e of
                Set -> VSet
                Infty -> VInfty
-               Succ e -> VSucc (eval sig env e)
+               Succ e -> vsucc (eval sig env e)
                Size -> VSize
                Con n -> VCon n
                App e1 e2 -> app sig (eval sig env e1) (map (eval sig env) e2)
