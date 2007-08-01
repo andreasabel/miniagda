@@ -14,7 +14,9 @@ import qualified Abstract as A
 
 id      { T.Id $$ _ }
 data    { T.Data _ }
+codata  { T.CoData _ }
 fun     { T.Fun _ }
+cofun   { T.CoFun _ } 
 const   { T.Const _ }
 mutual  { T.Mutual _ }
 set     { T.Set _ }
@@ -56,15 +58,24 @@ Definitions : Definition { let (ts,d) = $1 in ([ts],[d]) }
 
 Definition :: { (A.TypeSig,A.Definition) }
 Definition : Data { $1 }
+           | CoData { $1 }
            | Fun { $1 }
+           | CoFun { $1 }
            | Const { $1 }
 
 Data :: { (A.TypeSig,A.Definition) }
 Data : data Id Telescope ':' Expr '{' Constructors '}' 
-       { (A.TypeSig $2 $5,A.DataDef $3 (reverse $7)) }
+       { (A.TypeSig $2 $5,A.DataDef A.Ind $3 (reverse $7)) }
+
+CoData :: { (A.TypeSig,A.Definition) }
+CoData : codata Id Telescope ':' Expr '{' Constructors '}' 
+       { (A.TypeSig $2 $5,A.DataDef A.CoInd $3 (reverse $7)) }
 
 Fun :: { (A.TypeSig,A.Definition) }
-Fun : fun TypeSig '{' Clauses '}' { ($2 , A.FunDef (reverse $4)) }
+Fun : fun TypeSig '{' Clauses '}' { ($2 , A.FunDef A.Ind (reverse $4)) }
+
+CoFun :: { (A.TypeSig,A.Definition) }
+CoFun : cofun TypeSig '{' Clauses '}' { ($2 , A.FunDef A.CoInd (reverse $4)) }
 
 Const :: { (A.TypeSig,A.Definition) }
 Const : const TypeSig '=' Expr { ($2,A.ConstDef $4) } 
@@ -113,7 +124,7 @@ Constructors : {- empty -} { [] }
 
 
 Clause :: { A.Clause }
-Clause : LHS RHS { A.Clause $1 $2 }
+Clause : Id LHS RHS { A.Clause $2 $3 }
 
 LHS :: { A.LHS }
 LHS : Patterns { A.LHS (reverse $1) }

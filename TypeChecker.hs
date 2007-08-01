@@ -31,24 +31,42 @@ typeCheckTypeSig :: (TypeSig,Definition) -> TypeCheck ()
 typeCheckTypeSig (a@(TypeSig n t),def) = do sig <- get
                                             put (addSig sig n sigdef)
                                             return ()
-    where sigdef = case def of 
-                   (DataDef tel _) -> DataSig tel t
-                   (FunDef cl) -> FunSig t cl
-                   (ConstDef e) -> ConstSig t e
+    where sigdef = let a = arity t in 
+                   case def of 
+                     (DataDef co tel _ ) -> DataSig co tel t a
+                     (FunDef co cl) -> FunSig co t a cl 
+                     (ConstDef e) -> ConstSig t a e 
 
                          
 typeCheckDefinition :: Definition -> TypeCheck ()
-typeCheckDefinition (DataDef tl cs) = do mapM typeCheckConstructor cs
-                                         return ()
+typeCheckDefinition (DataDef co tl cs) = do mapM typeCheckConstructor cs
+                                            return ()
 
-typeCheckDefinition (FunDef cls) = return ()
+typeCheckDefinition (FunDef co cls) = return ()
 typeCheckDefinition (ConstDef e) = return ()
 
 typeCheckConstructor :: Constructor -> TypeCheck ()
 typeCheckConstructor (TypeSig n e) = do sig <- get
-                                        put (addSig sig n (ConSig e)) 
+                                        put (addSig sig n (ConSig e (arity e))) 
                                         return ()
-                            
+
+----
+
+arity :: Type -> Int
+arity t = case t of 
+            (Fun e1 e2) -> 1 + arity e2
+            (Pi t e2) -> 1 + arity e2
+            _ -> 0
+
+-- check that patterns have the same length, return length
+checkClauses :: Name -> [Clause] -> Int
+checkClauses n [] = error $ "no clauses in " ++ n 
+checkClauses n ((Clause (LHS pl) rhs):cl) = checkLength (length pl) cl 
+    where 
+      checkLength i [] = i
+      checkLength i ((Clause (LHS pl) rhs):xs) = if (length pl) == i then checkLength i xs else error $ "checkClause " ++ n ++ " size of patterns differ" 
+                                        
+              
 ---- Pattern Matching ----
 
 matches :: Pattern -> Val -> Bool
@@ -99,58 +117,44 @@ upPatterns env (p:pl) (v:vl) = let env' = upPattern env p v in
 matchDef :: Signature -> Env -> Name -> [Val] -> Val
 matchDef sig env n vl = 
     case lookupSig sig n of
-      (FunSig t cl) -> matchClauses n sig env cl vl 
+      (FunSig Ind   t arity cl) | arity     <= (length vl) -> matchClauses n sig env cl vl  
+      (FunSig CoInd t arity cl) | arity + 1 <= (length vl) -> matchClauses n sig env cl vl  
       _ -> VApp (VDef n) vl   
 
 matchClauses :: Name -> Signature -> Env -> [Clause] -> [Val] -> Val
-matchClauses n sig env cl vl = loop cl
-    where loop [] = error $ n ++ ": no function clause matches " ++ show vl
-                    ++ "\n Clauses: " ++ show cl 
-{-
-                    ++ "\n Environment: " ++ show env
-                    ++ "\n Signature: " ++ show sig 
- -}
-          loop  ((Clause (LHS pl) rhs) : cl) = 
-              case matchClause n sig env pl rhs vl of
-                Nothing -> loop cl
-                Just v -> v
+matchClauses n sig env [] vl = error $ n ++ ": no function clause matches " ++ show vl 
+matchClauses n sig env (c:cl) vl = case c of 
+                           (Clause (LHS pl) rhs) -> case matchClause sig env pl rhs vl of
+                                                      Nothing -> matchClauses n sig env cl vl
+                                                      Just v -> v
 
-matchClause :: Name -> Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
-matchClause n sig env [] (RHS e) vl = Just (app sig (eval sig env e) vl)
-matchClause n sig env (p:pl) rhs (v:vl) = 
-    if (matches p v) then 
-        matchClause n sig (upPattern env p v) pl rhs vl
-    else
-        Nothing 
-matchClause n sig env pl _ [] = error $ "matchClause " ++ n 
--- ++ (show pl) ++ "\n" ++ (show vl) 
-  ++ " (too few arguments) "
+matchClause :: Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
+matchClause sig env [] (RHS e) [] = Just (eval sig env e)
+matchClause sig env (p:pl) rhs (v:vl) = if (matches p v) then 
+                                        matchClause sig (upPattern env p v) pl rhs vl
+                                    else
+                                        Nothing 
+matchClause sig env pl (RHS e) vl = error $ "matchClause " ++ (show pl) ++ "\n" ++ (show vl)
 
 --- Interpreter
 
 
 app :: Signature -> Val -> [Val] -> Val
-app sig u v = case (u,v) of
-            (_,[]) -> u
-            (VClos env (Lam (TBind x _) e), v0:vs) -> 
-                app sig (eval sig (update env x v0) e) vs
-            (VDef n,_) -> matchDef sig [] n v
+app sig u v = case u of
+            VClos env (Lam (TBind x _) e) -> eval sig (update env x (head v)) e
+            VDef n -> matchDef sig [] n v
             _ -> VApp u v
-
-vsucc :: Val -> Val
-vsucc VInfty = VInfty
-vsucc v = VSucc v
 
 eval :: Signature -> Env -> Expr -> Val
 eval sig env e = case e of
                Set -> VSet
                Infty -> VInfty
-               Succ e -> vsucc (eval sig env e)
+               Succ e -> VSucc (eval sig env e)
                Size -> VSize
                Con n -> VCon n
                App e1 e2 -> app sig (eval sig env e1) (map (eval sig env) e2)
                Def n -> VDef n
-               Const n -> let (ConstSig t e) = lookupSig sig n in eval sig env e 
+               Const n -> let (ConstSig t a e) = lookupSig sig n in eval sig env e 
                Var y -> lookupEnv env y
                _ -> VClos env e
 
@@ -211,8 +215,8 @@ checkDecl sig decl = True
 
 
 checkDefinition :: Signature -> Definition -> Bool
-checkDefinition sig (DataDef tel cl) = True
-checkDefinition sig (FunDef cl) = True
+checkDefinition sig (DataDef co tel cl) = True
+checkDefinition sig (FunDef co cl) = True
 checkDefinition sig (ConstDef e) = True
  
 

@@ -12,13 +12,13 @@ data Pair : Set
 fun left : Pair -> Bool
 {
 
-(pp x y) = x
+left (pp x y) = x
 
 }
 
 fun right : Pair -> Bool
 {
-(pp x y) = y
+right (pp x y) = y
 }
 
 const a : Pair = pp ff tt 

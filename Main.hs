@@ -36,7 +36,7 @@ main = do
 evalAll :: Signature -> Signature -> [(Name,Val)]
 evalAll sig [] = []
 evalAll sig ((n,def):xs) = case def of
-                        (ConstSig t e) -> (n,eval sig emptyEnv e):(evalAll sig xs)
+                        (ConstSig t a e) -> (n,eval sig emptyEnv e):(evalAll sig xs)
                         _ -> evalAll sig xs 
 
 

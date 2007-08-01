@@ -3,6 +3,10 @@ module Abstract where
 
 type Name = String
 
+data Co = Ind 
+        | CoInd
+          deriving (Eq,Show)
+
 data Expr = Set
           -- size type
           | Size 
@@ -23,8 +27,8 @@ data Expr = Set
 data Declaration = Declaration [TypeSig] [Definition] -- lists because of mutual definitons 
                    deriving (Eq,Show)
 
-data Definition = DataDef Telescope [Constructor]
-                | FunDef [Clause] 
+data Definition = DataDef Co Telescope [Constructor]
+                | FunDef Co [Clause] 
                 | ConstDef Expr
                   deriving (Eq,Show)
 

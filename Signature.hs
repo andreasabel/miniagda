@@ -4,11 +4,11 @@ import Abstract
 
 type Signature = [(Name,SigDef)] 
 
-data SigDef = FunSig Type [Clause]
-         | ConstSig Type Expr
-         | ConSig Type
-         | DataSig Telescope Type
-           deriving (Show)
+data SigDef = FunSig Co Type Int [Clause] --type , co , arity , clauses
+            | ConstSig Type Int Expr -- type , arity 
+            | ConSig Type Int -- type , arity  
+            | DataSig Co Telescope Type Int -- parameters, co , type , arity 
+              deriving (Show)
 
 emptySig = []
 

@@ -78,19 +78,19 @@ scopeCheckTypeSig (a@(TypeSig n e),def) = do sig <- get
                                                              put (addSig n kind sig)
                                                              return $ TypeSig n e'
     where kind = case def of 
-                   (DataDef _ _) -> DataK
-                   (FunDef _) -> FunK
+                   (DataDef _ _ _) -> DataK
+                   (FunDef _ _) -> FunK
                    (ConstDef _) -> ConstK
 
                            
 
 scopeCheckDefinition :: Definition -> ScopeCheck Definition
-scopeCheckDefinition (DataDef tl cs) = do tl' <- scopeCheckTelescope tl
-                                          let names = collectTelescopeNames tl' 
-                                          cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs) 
-                                          return $ DataDef tl' cs'
-scopeCheckDefinition (FunDef cls) = do cls' <- mapM scopeCheckClause cls
-                                       return $ FunDef cls'
+scopeCheckDefinition (DataDef co tl cs) = do tl' <- scopeCheckTelescope tl
+                                             let names = collectTelescopeNames tl' 
+                                             cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs) 
+                                             return $ DataDef co tl' cs'
+scopeCheckDefinition (FunDef co cls) = do cls' <- mapM scopeCheckClause cls
+                                          return $ FunDef co cls'
 scopeCheckDefinition (ConstDef e) = do e' <- scopeCheckExpr e
                                        return $ ConstDef e'
 
@@ -170,18 +170,23 @@ scopeCheckExpr e =
 scopeCheckClause :: Clause -> ScopeCheck Clause
 scopeCheckClause (Clause (LHS pl) rhs) = 
     do pl' <- mapM scopeCheckPattern pl
-       let names = collectVarPNames pl' --  need to be unique ? 
+       let names = collectVarPNames pl'
        rhs' <- local (addCtxs names) (scopeCheckRHS rhs)
        return $ Clause (LHS pl') rhs'
 
+-- collect all variable names, checks if pattern is linear
 collectVarPNames :: [Pattern] -> [Name]
-collectVarPNames = concatMap nl where
-    nl p = case p of
-           WildP -> []
-           AbsurdP -> []
-           SuccP p -> collectVarPNames [p]
-           ConP n pl -> collectVarPNames pl
-           VarP n -> [n]
+collectVarPNames pl = cvp pl [] where
+    cvp [] acc = acc
+    cvp (p:pl) acc = case p of
+                       WildP -> acc
+                       AbsurdP -> acc
+                       SuccP p2 -> cvp (p2:pl) acc
+                       ConP n pl2 -> cvp (pl2++pl) acc
+                       VarP n -> if (elem n acc) then 
+                                     error $ "not a linear pattern: " ++ n ++ " already used"
+                                 else 
+                                     cvp pl (n:acc)
 
 scopeCheckPattern :: Pattern -> ScopeCheck Pattern
 scopeCheckPattern p = 

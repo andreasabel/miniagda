@@ -6,13 +6,13 @@ data Bool : Set
 
 fun apply : (Bool -> Bool) -> Bool -> Bool
 {
-   f b = f b 
+apply f b = f b 
 }
 
 fun neg : Bool -> Bool
 {
-	tt = ff;
-	ff = tt	
+neg	tt = ff;
+neg	ff = tt	
 }
 
 const f : Bool = apply neg tt

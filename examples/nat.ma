@@ -10,8 +10,8 @@ const two : Nat = succ one
 fun add : Nat -> Nat -> Nat 
 {
 
-x zero = x ;
-x (succ y) = succ (add x y)
+add x zero = x ;
+add x (succ y) = succ (add x y)
 
 }
 
@@ -26,10 +26,14 @@ const one'  : Nat = plus1 zero
 const zero' : Nat = add' zero zero
 const three : Nat = add' one two
 
+const plus1 : Nat -> Nat = add one
+
+const three : Nat = plus1 two
+
 fun mult : Nat -> Nat -> Nat
 {
-x zero = zero ;
-x (succ y) = add x (mult x y)
+mult x zero = zero ;
+mult x (succ y) = add x (mult x y)
 }
 
 const four : Nat = add two two
@@ -38,8 +42,8 @@ const eight : Nat = mult four two
 
 fun fak : Nat -> Nat
 {
-zero = one;
-(succ x) = mult (succ x) (fak x)
+fak zero = one;
+fak (succ x) = mult (succ x) (fak x)
 }
 
 const fak4 : Nat = fak four 

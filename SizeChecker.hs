@@ -14,14 +14,14 @@ sizeCheckDeclaration :: Declaration -> Bool
 sizeCheckDeclaration (Declaration tsl dl)  = all sizeCheckDefinition (zip tsl dl)
 
 sizeCheckDefinition :: (TypeSig,Definition) -> Bool
-sizeCheckDefinition (TypeSig n t,DataDef tel cl) = 
+sizeCheckDefinition (TypeSig n t,DataDef _ tel cl) = 
     case t of
       (Fun Size e2) -> -- is a sized type
            withoutSize e2 && withoutSizeTelescope tel 
                           && all (sizeCheckConstructor (length tel) n) cl
       _ -> -- not a sized type 
            withoutSize t && withoutSizeTelescope tel  
-sizeCheckDefinition (TypeSig n t,FunDef cl) = sizeCheckFunType t
+sizeCheckDefinition (TypeSig n t,FunDef _ cl) = sizeCheckFunType t
 sizeCheckDefinition (TypeSig n t,ConstDef e) = sizeCheckFunType t
 
 

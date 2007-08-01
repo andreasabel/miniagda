@@ -1,4 +1,4 @@
 fun f : Set 
 {
-	x = \( x : Set ) ->  x 
+f	x = \( x : Set ) ->  x 
 }

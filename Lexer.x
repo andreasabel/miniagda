@@ -16,7 +16,9 @@ $white+				;
 
 
 data				{ tok (\p s -> Data p) }
+codata				{ tok (\p s -> CoData p) }
 fun				{ tok (\p s -> Fun p) }
+cofun				{ tok (\p s -> CoFun p) }
 const				{ tok (\p s -> Const p) }
 mutual				{ tok (\p s -> Mutual p) }
 
@@ -43,7 +45,9 @@ $alpha [$alpha $digit \_ \']*		{ tok (\p s -> (Id s p )) }
 {
 data Token = Id String AlexPosn
            | Data AlexPosn
+	   | CoData AlexPosn
            | Fun AlexPosn
+           | CoFun AlexPosn
            | Const AlexPosn
            | Mutual AlexPosn
            | Set AlexPosn 
