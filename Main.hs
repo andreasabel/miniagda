@@ -26,13 +26,14 @@ main = do
   --putStrLn $ show ast
   --putStrLn $ show ast2
   --putStrLn $ show b
-  putStrLn "Signature:"
-  putStrLn $ show sig
+  --putStrLn "Signature:"
+  --putStrLn $ show sig
   putStrLn "evaluating all constants:" 
   showAll sig
 
 
 --evaluate all constants
+
 evalAll :: Signature -> Signature -> [(Name,Val)]
 evalAll sig [] = []
 evalAll sig ((n,def):xs) = case def of

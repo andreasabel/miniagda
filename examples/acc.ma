@@ -1,4 +1,4 @@
-data Acc (A : Set) (Lt : A -> A -> Set) : Size -> Set -- fixme A not in scope : A -> Set
+data Acc (A : Set) (Lt : A -> A -> Set) : Size -> A -> Set
 {
   acc : (i : Size) -> (b : A) ->
         ((a : A) -> Lt a b -> Acc A Lt i a) 

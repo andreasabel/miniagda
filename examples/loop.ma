@@ -55,7 +55,7 @@ fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
 
 loop (s i) (zero a) f = loop_case i f (f (zero a));
-loop (s i) (succ a n) f = loop i n (\(x:Nat) -> shift i f x)
+loop (s i) (succ a n) f = loop i n (shift i f)
 
 }
 

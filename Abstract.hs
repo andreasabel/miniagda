@@ -24,13 +24,10 @@ data Expr = Set
           | Ident Name -- not used after scope checking
           deriving (Eq,Show)
 
-data Declaration = Declaration [TypeSig] [Definition] -- lists because of mutual definitons 
+data Declaration = DataDecl Name Co Telescope Type [Constructor]
+                 | FunDecl Co [(TypeSig,[Clause])] -- may be mutually recursive
+                 | ConstDecl TypeSig Expr
                    deriving (Eq,Show)
-
-data Definition = DataDef Co Telescope [Constructor]
-                | FunDef Co [Clause] 
-                | ConstDef Expr
-                  deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type
              deriving (Eq,Show)
@@ -62,3 +59,21 @@ data Pattern = VarP Name
              | IdentP Name -- not used after scope checking
                deriving (Eq,Show)
 
+teleToType :: Telescope -> Type -> Type
+teleToType [] t = t
+teleToType (tb:tel) t = Pi tb (teleToType tel t)
+
+typeToTele :: Type -> (Telescope, Type)
+typeToTele t = ttt t []
+    where 
+      ttt :: Type -> Telescope -> (Telescope,Type)
+      ttt (Pi tb t2) tel = ttt t2 (tel ++ [tb])
+      ttt x tel = (tel,x)                          
+
+----
+
+arity :: Type -> Int
+arity t = case t of 
+            (Fun e1 e2) -> 1 + arity e2
+            (Pi t e2) -> 1 + arity e2
+            _ -> 0

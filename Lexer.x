@@ -21,7 +21,6 @@ fun				{ tok (\p s -> Fun p) }
 cofun				{ tok (\p s -> CoFun p) }
 const				{ tok (\p s -> Const p) }
 mutual				{ tok (\p s -> Mutual p) }
-
 Set				{ tok (\p s -> Set p) }
 
 Size				{ tok (\p s -> Size p) }
@@ -46,10 +45,10 @@ $alpha [$alpha $digit \_ \']*		{ tok (\p s -> (Id s p )) }
 data Token = Id String AlexPosn
            | Data AlexPosn
 	   | CoData AlexPosn
+	   | Mutual AlexPosn
            | Fun AlexPosn
            | CoFun AlexPosn
            | Const AlexPosn
-           | Mutual AlexPosn
            | Set AlexPosn 
            -- size type
            | Size AlexPosn
@@ -74,9 +73,11 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
   (tk,pos) = case c of 
     (Id s p) -> (show s,p)
     Data p -> ("data",p)
-    Fun p -> ("fun",p)
-    Const p -> ("const",p)
+    CoData p -> ("codata",p)
     Mutual p -> ("mutual",p)
+    Fun p -> ("fun",p)
+    CoFun p -> ("cofun",p)
+    Const p -> ("const",p)
     Set p -> ("set",p)
     Size p -> ("Size",p)
     Infty p -> ("Infty",p)

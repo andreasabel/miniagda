@@ -15,12 +15,11 @@ import qualified Abstract as A
 id      { T.Id $$ _ }
 data    { T.Data _ }
 codata  { T.CoData _ }
+mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
 const   { T.Const _ }
-mutual  { T.Mutual _ }
 set     { T.Set _ }
-
 size    { T.Size _ }
 infty   { T.Infty _ }
 succ    { T.Succ _ }
@@ -41,44 +40,54 @@ succ    { T.Succ _ }
 TopLevel :: { [A.Declaration] }
 TopLevel : Declarations { reverse $1}
 
-Declaration :: { A.Declaration }
-Declaration : Definition { let (tsl,dl) = $1 in A.Declaration [tsl] [dl]  }
-              | mutual '{' Definitions '}' { let (tsl,dl) = $3 in A.Declaration (reverse tsl) (reverse dl) }
-
-
 
 Declarations :: { [A.Declaration] }
 Declarations : {- empty -} { [] }
              | Declarations Declaration { $2 : $1 }
 
-
-Definitions :: { ([A.TypeSig],[A.Definition]) }
-Definitions : Definition { let (ts,d) = $1 in ([ts],[d]) }
-            | Definitions Definition { let (tsl,dl) = $1 in let (ts,d) = $2 in (ts:tsl,d:dl) }
-
-Definition :: { (A.TypeSig,A.Definition) }
-Definition : Data { $1 }
+Declaration :: { A.Declaration }
+Declaration : Data { $1 }
            | CoData { $1 }
-           | Fun { $1 }
-           | CoFun { $1 }
+           | mFun { $1 }
+           | mCoFun { $1 }
            | Const { $1 }
 
-Data :: { (A.TypeSig,A.Definition) }
+Data :: { A.Declaration }
 Data : data Id Telescope ':' Expr '{' Constructors '}' 
-       { (A.TypeSig $2 $5,A.DataDef A.Ind $3 (reverse $7)) }
+       { A.DataDecl $2 A.Ind $3 $5 (reverse $7) }
 
-CoData :: { (A.TypeSig,A.Definition) }
+CoData :: { A.Declaration }
 CoData : codata Id Telescope ':' Expr '{' Constructors '}' 
-       { (A.TypeSig $2 $5,A.DataDef A.CoInd $3 (reverse $7)) }
+       { A.DataDecl $2 A.CoInd $3 $5 (reverse $7) }
 
-Fun :: { (A.TypeSig,A.Definition) }
-Fun : fun TypeSig '{' Clauses '}' { ($2 , A.FunDef A.Ind (reverse $4)) }
+Fun :: { (A.TypeSig,[A.Clause]) }
+Fun : fun TypeSig '{' Clauses '}' { ($2,(reverse $4)) }
 
-CoFun :: { (A.TypeSig,A.Definition) }
-CoFun : cofun TypeSig '{' Clauses '}' { ($2 , A.FunDef A.CoInd (reverse $4)) }
+Funs :: { [(A.TypeSig,[A.Clause])] }
+Funs : Fun { [$1] }
+     | Fun Funs { $1 : $2 }
 
-Const :: { (A.TypeSig,A.Definition) }
-Const : const TypeSig '=' Expr { ($2,A.ConstDef $4) } 
+mFun :: { A.Declaration }
+mFun : mutual '{' Funs '}' { A.FunDecl A.Ind $3 }
+     | Fun { A.FunDecl A.Ind [$1] }
+ 
+
+CoFun :: { (A.TypeSig,[A.Clause]) }
+CoFun : cofun TypeSig '{' Clauses '}' { ($2,(reverse $4)) }
+
+CoFuns :: { [(A.TypeSig,[A.Clause])] }
+CoFuns : CoFun { [$1] }
+       | CoFun CoFuns { $1 : $2 }
+
+mCoFun :: { A.Declaration }
+mCoFun : mutual '{' CoFuns '}' { A.FunDecl A.CoInd $3 }
+       | CoFun { A.FunDecl A.CoInd [$1] }
+ 
+
+
+
+Const :: { A.Declaration }
+Const : const TypeSig '=' Expr { A.ConstDecl $2 $4 } 
 
 
 Id :: { A.Name }

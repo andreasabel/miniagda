@@ -17,8 +17,8 @@ add x (succ y) = succ (add x y)
 
 fun add' : Nat -> Nat -> Nat
 {
-zero = \ (y : Nat) -> y ;
-(succ x) = \ (y : Nat) -> succ (add' x y)
+add' zero = \ y -> y;
+add' (succ x) = \y -> (add' x y)
 }
 
 const plus1 : Nat -> Nat = add' one
@@ -26,9 +26,6 @@ const one'  : Nat = plus1 zero
 const zero' : Nat = add' zero zero
 const three : Nat = add' one two
 
-const plus1 : Nat -> Nat = add one
-
-const three : Nat = plus1 two
 
 fun mult : Nat -> Nat -> Nat
 {

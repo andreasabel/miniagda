@@ -63,36 +63,32 @@ scopeCheck dl = fst (runScopeCheck emptyCtx emptySig (scopeCheckDecls dl))
 
 
 scopeCheckDecls :: [Declaration] -> ScopeCheck [Declaration]
-scopeCheckDecls = mapM scopeCheckDeclaration 
-
+scopeCheckDecls = mapM scopeCheckDeclaration
+               
 scopeCheckDeclaration :: Declaration -> ScopeCheck Declaration
-scopeCheckDeclaration (Declaration tsl dl) = do tsl' <- mapM scopeCheckTypeSig (zip tsl dl)
-                                                dl' <- mapM scopeCheckDefinition dl  
-                                                return $ Declaration tsl' dl'
+scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
+                                                    (TypeSig _ tt') <- scopeCheckTypeSig DataK (TypeSig n tt)
+                                                    let (tel',t') = typeToTele tt'
+                                                    let names = collectTelescopeNames tel
+                                                    cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs)
+                                                    return $ DataDecl n co tel' t' cs'
+scopeCheckDeclaration (FunDecl co funs) = do tsl' <- mapM (scopeCheckTypeSig FunK . fst ) funs  
+                                             cll' <- mapM ((mapM scopeCheckClause) . snd ) funs
+                                             return $ FunDecl co (zip tsl' cll') 
+scopeCheckDeclaration (ConstDecl ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
+                                             e' <- scopeCheckExpr e
+                                             return $ ConstDecl ts' e'
 
-scopeCheckTypeSig :: (TypeSig,Definition) -> ScopeCheck TypeSig 
-scopeCheckTypeSig (a@(TypeSig n e),def) = do sig <- get
-                                             case (lookupSig n sig) of
-                                               Just _ -> errorAlreadyInSignature  a n  
-                                               Nothing -> do e' <- scopeCheckExpr e 
-                                                             put (addSig n kind sig)
-                                                             return $ TypeSig n e'
-    where kind = case def of 
-                   (DataDef _ _ _) -> DataK
-                   (FunDef _ _) -> FunK
-                   (ConstDef _) -> ConstK
 
-                           
 
-scopeCheckDefinition :: Definition -> ScopeCheck Definition
-scopeCheckDefinition (DataDef co tl cs) = do tl' <- scopeCheckTelescope tl
-                                             let names = collectTelescopeNames tl' 
-                                             cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs) 
-                                             return $ DataDef co tl' cs'
-scopeCheckDefinition (FunDef co cls) = do cls' <- mapM scopeCheckClause cls
-                                          return $ FunDef co cls'
-scopeCheckDefinition (ConstDef e) = do e' <- scopeCheckExpr e
-                                       return $ ConstDef e'
+scopeCheckTypeSig :: Kind -> TypeSig -> ScopeCheck TypeSig 
+scopeCheckTypeSig kind a@(TypeSig n e) = 
+    do sig <- get
+       case (lookupSig n sig) of
+         Just _ -> errorAlreadyInSignature a n
+         Nothing -> do e' <- scopeCheckExpr e 
+                       put (addSig n kind sig)
+                       return $ TypeSig n e'         
 
 collectTelescopeNames :: Telescope -> [Name]
 collectTelescopeNames = map ( \(TBind n e) -> n )

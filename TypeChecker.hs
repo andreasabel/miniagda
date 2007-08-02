@@ -24,47 +24,33 @@ typeCheckDecls (d:ds) = do typeCheckDeclaration d
                            return ()
 
 typeCheckDeclaration :: Declaration -> TypeCheck ()
-typeCheckDeclaration (Declaration tsl dl) = do  mapM typeCheckTypeSig (zip tsl dl)
-                                                mapM typeCheckDefinition dl  
-                                                return ()
-typeCheckTypeSig :: (TypeSig,Definition) -> TypeCheck () 
-typeCheckTypeSig (a@(TypeSig n t),def) = do sig <- get
-                                            put (addSig sig n sigdef)
-                                            return ()
-    where sigdef = case def of 
-                     (DataDef co tel _ ) -> let dt = (teleType tel t) 
-                                            in DataSig co dt (arity dt)
-                     (FunDef co cl) -> FunSig co t (arity t) cl 
-                     (ConstDef e) -> ConstSig t (arity t) e 
+typeCheckDeclaration (DataDecl n co tel t cs) = 
+    do sig <- get
+       let dt = (teleToType tel t)
+       put (addSig sig n (DataSig co dt (arity dt)))
+typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
+typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
+    do sig <- get
+       put (addSig sig n (ConstSig t (arity t) e))
 
+typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
+typeCheckFuns co [] = return ()
+typeCheckFuns co ((TypeSig n t,cl):rest) = 
+    do sig <- get
+       put (addSig sig n (FunSig co t (arity t) cl))
+       typeCheckFuns co rest
                          
-typeCheckDefinition :: Definition -> TypeCheck ()
-typeCheckDefinition (DataDef co tel cs) = do mapM (typeCheckConstructor tel) cs
-                                             return ()
-
-typeCheckDefinition (FunDef co cls) = return ()
-typeCheckDefinition (ConstDef e) = return ()
 
 typeCheckConstructor :: Telescope -> Constructor -> TypeCheck ()
 typeCheckConstructor tel (TypeSig n t) = do sig <- get
-                                            let tt = teleType tel t  
+                                            let tt = teleToType tel t  
                                             put (addSig sig n (ConSig tt (arity tt))) 
                                             return ()
 
 
 ---
 
-teleType :: Telescope -> Type -> Type
-teleType [] t = t
-teleType (tb:tel) t = Pi tb (teleType tel t)
 
-----
-
-arity :: Type -> Int
-arity t = case t of 
-            (Fun e1 e2) -> 1 + arity e2
-            (Pi t e2) -> 1 + arity e2
-            _ -> 0
 
 -- check that patterns have the same length, return length
 checkClauses :: Name -> [Clause] -> Int
