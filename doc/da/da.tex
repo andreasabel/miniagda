@@ -1,12 +1,15 @@
-\documentclass{book}
+\documentclass[a4paper,11pt]{report}
 \usepackage[latin1]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
 
+\newcommand{\vsp}{\;\vert\;}
+
 \begin{document}
 \begin{titlepage}
 \begin{center}
+
 
 \vspace*{-2cm}
 
@@ -48,7 +51,26 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 \title{Termination Checking and Dependent Types}
 \author{Karl Mehltretter}
 \date{today}
- 
+
+\begin{abstract}
+This thesis deals with the problem of termination checking for theorem provers bases on dependend types.
+
+With the well-known \emph{Curry Howard isomorphism}, proofs and propositions can be thought of as terms and types of
+functional languages. 
+Proof checking then becomes type checking of functions.
+Simple termination checkers rely on strucural orderings to show that funcions are terminating (i.e the proof is a real one). 
+But quite a lot of proofs are rejected by these simple termination checkers.
+
+Some authors have suggested \emph{sized types}: using data types that are annotated with a size index and to ensure termination
+through the type sytem. As dependend types already offer annotations through the notion of inductive families, the question is how the concept of sized types could be integrated into a theorem prover based on depentend types.
+Sized types play to their strength with higher order data types.
+Types like infinitly branchings trees, which are often needed in theorem proving, can be handeled by sized types.
+
+To this end, a prototype theorem prover loosly based based on the theorem prover Agda was implemented.
+
+As termination is to inductive functions, productivity is wanted for coinductive functions.
+The implementation was extended to handle coinducitve data types and functions.
+\end{abstract}
 
 \tableofcontents
 
@@ -56,6 +78,7 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 \input{prelim}
 \input{main}
 \input{concl}
+\input{appendix}
 \input{bibl}
 
 \end{document}

@@ -1,8 +1,17 @@
 \chapter{MiniAgda}
 \section{Syntax}
-a
+
+\[ e := \lambda x . e \vsp \Pi x : e . e \vsp e \; e \vsp \ Set \vsp C \vsp c \vsp f \]
+
+\[ d := data \; n \; tel \; \vsp fun \; n \; e \; cl \vsp con \; n \; e \; e  \]
+
+
 \section{Examples}
-a
+
+the type of natural numbers is given by the declaration:
+
+\[ data \; Nat \; : \; Set \{ zero \; : \; Nat \vsp succ \; : \; Nat \rightarrow Nat \} \]
+
 \section{Bidirectional Type Checking}
 a
 \section{Pattern matching}
