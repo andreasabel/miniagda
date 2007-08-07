@@ -251,6 +251,44 @@ checkType sig k rho gamma e = checkExpr sig k rho gamma e VSet
 typecheck :: Signature -> Expr -> Expr -> Bool
 typecheck sig e t = checkExpr sig 0 emptyEnv emptyEnv e (eval sig emptyEnv t)
 
+
+-- type check a funtion
+
+checkFun :: Signature -> Type -> [Clause] -> Bool
+checkFun sig t cll = True
+
+checkClause :: Signature -> Type -> Clause -> Bool
+checkClause sig t (Clause (LHS pl) rhs) = 
+                       -- getClauseNumPatterns
+                       -- splittype
+            let (k,rho,gamma) = checkLHS sig [] pl
+                in checkRHS sig k rho gamma rhs VSet
+checkLHS :: Signature -> [TBind] -> [Pattern] -> (Int,Env,Env)
+checkLHS sig tbl pl = (0,[],[])
+
+checkRHS :: Signature -> Int -> Env -> Env -> RHS -> Val -> Bool
+checkRHS sig k rho gamma rhs v =
+    case rhs of 
+      (AbsurdRHS) -> True
+      (RHS e) -> checkExpr sig k rho gamma e v  
+      
+
+splittype :: Type -> Int -> ([TBind],Type)
+splittype t 0 = ([],t)
+splittype (Fun t1 t2) k | k > 0 = let (l,t) = splittype t2 (k - 1) in (TBind "" t1:l,t) 
+splittype (Pi tb t2) k | k > 0 = let (l,t) = splittype t2 (k - 1) in (tb:l,t) 
+
+-- check that all clauses have equal number of patterns in left hand side
+getClauseNumPatterns :: [Clause] -> Int
+getClauseNumPatterns [] = error $ "typecheck error : empty clauses"
+getClauseNumPatterns ((Clause (LHS pl) rhs) : xs) =
+    let k = length pl 
+    in checkNumPatterns k xs
+       where 
+         checkNumPatterns k [] = k
+         checkNumPatterns k ((Clause (LHS pl) rhs):xs) = if length pl == k then checkNumPatterns k xs else error $
+                                                         "pattern number mismatch"
+
 -----
 -- test
 

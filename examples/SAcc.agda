@@ -3,6 +3,7 @@ module SAcc where
 data Size : Set where
   s : Size -> Size 
 
+
 data Acc ( A : Set ) ( Lt : A -> A -> Set) : Size -> A -> Set where
   acc :   (i : Size) ->  ( b : A ) 
         -> ( ( a : A ) -> Lt a b  ->  Acc A Lt i a )
