@@ -33,10 +33,10 @@ typeCheckDeclaration (DataDecl n co tel t cs) =
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
 typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
     do sig <- get
-       _ <- if (typecheck sig e t ) then
-                put (addSig sig n (ConstSig t (arity t) e))
-            else 
-                error $ "typecheck error const " ++ n
+--       _ <- if (typecheck sig e t ) then
+       put (addSig sig n (ConstSig t (arity t) e))
+  --          else 
+    --            error $ "typecheck error const " ++ n
        return ()
 typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
 typeCheckFuns co [] = return ()
@@ -130,7 +130,9 @@ matchClauses n sig env cl vl = loop cl
 
 matchClause :: Name -> Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
 matchClause n sig env [] (RHS e) vl = Just (app sig (eval sig env e) vl)
-matchClause n sig env (p:pl) rhs (v:vl) = 
+matchClause n sig env (p:pl) rhs (v0:vl) =
+  let v = force sig v0
+  in 
     if (matches p v) then 
         matchClause n sig (upPattern env p v) pl rhs vl
     else
@@ -152,16 +154,23 @@ app sig u v = case (u,v) of
             (_,[]) -> u
             (VLam x env e,(v:vl)) -> fapp sig env x v e vl
             (VPi  x _ env e,(v:vl)) -> fapp sig env x v e vl
-            (VDef n,_) -> appDef sig [] n v
+            (VDef n,_) -> appDef sig n v
 
             _ -> VApp u v
 
-
-appDef :: Signature -> Env -> Name -> [Val] -> Val
-appDef sig env n vl = 
+-- unroll a corecursive object once
+force :: Signature -> Val -> Val
+force sig v@(VApp (VDef n) vl) = 
     case lookupSig n sig of
-      (FunSig Ind   t arity cl) | arity     <= (length vl) -> matchClauses n sig env cl vl  
-      (FunSig CoInd t arity cl) | arity + 1 <= (length vl) -> matchClauses n sig env cl vl  
+      (FunSig CoInd t arity cl) | arity <= (length vl) -> matchClauses n sig [] cl vl  
+      _ -> v
+force sig v = v
+
+appDef :: Signature -> Name -> [Val] -> Val
+appDef sig n vl = 
+    case lookupSig n sig of
+      (FunSig Ind   t arity cl) | arity     <= (length vl) -> matchClauses n sig [] cl vl  
+      (FunSig CoInd t arity cl) | arity + 1 <= (length vl) -> matchClauses n sig [] cl vl  
       _ -> VApp (VDef n) vl   
 
 
