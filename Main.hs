@@ -26,8 +26,8 @@ main = do
   --putStrLn $ show ast
   --putStrLn $ show ast2
   --putStrLn $ show b
-  --putStrLn "Signature:"
-  --putStrLn $ show sig
+  putStrLn "Signature:"
+  putStrLn $ show sig
   putStrLn "evaluating all constants:" 
   showAll sig
 

@@ -28,11 +28,16 @@ typeCheckDeclaration (DataDecl n co tel t cs) =
     do sig <- get
        let dt = (teleToType tel t)
        put (addSig sig n (DataSig co dt (arity dt)))
+       mapM (typeCheckConstructor tel) cs
+       return ()
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
 typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
     do sig <- get
-       put (addSig sig n (ConstSig t (arity t) e))
-
+       _ <- if (typecheck sig e t ) then
+                put (addSig sig n (ConstSig t (arity t) e))
+            else 
+                error $ "typecheck error const " ++ n
+       return ()
 typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
 typeCheckFuns co [] = return ()
 typeCheckFuns co ((TypeSig n t,cl):rest) = 
@@ -255,16 +260,27 @@ typecheck sig e t = checkExpr sig 0 emptyEnv emptyEnv e (eval sig emptyEnv t)
 -- type check a funtion
 
 checkFun :: Signature -> Type -> [Clause] -> Bool
-checkFun sig t cll = True
+checkFun sig t cll =
+    let i = getClauseNumPatterns cll
+        (tel,rhstype) = splittype t i
+    in all (checkClause sig tel rhstype) cll
 
-checkClause :: Signature -> Type -> Clause -> Bool
-checkClause sig t (Clause (LHS pl) rhs) = 
-                       -- getClauseNumPatterns
-                       -- splittype
-            let (k,rho,gamma) = checkLHS sig [] pl
-                in checkRHS sig k rho gamma rhs VSet
+checkClause :: Signature -> [TBind] -> Type -> Clause -> Bool
+checkClause sig tel t (Clause (LHS pl) rhs) = 
+    let (k,rho,gamma) = checkLHS sig tel pl
+    in checkRHS sig k rho gamma rhs (eval sig rho t) 
+
 checkLHS :: Signature -> [TBind] -> [Pattern] -> (Int,Env,Env)
-checkLHS sig tbl pl = (0,[],[])
+checkLHS sig tel pl = loop 0 [] [] tel pl 
+  where
+    loop k env1 env2 [] [] = (k,env1,env2)
+    loop k env1 env2 (tb:tel') (p:pl') = 
+        let (k',env1',env2') = checkPattern sig k env1 env2 tb p 
+        in
+          loop k' env1' env2' tel' pl'
+
+checkPattern :: Signature -> Int -> Env -> Env -> TBind -> Pattern -> (Int,Env,Env)
+checkPattern sig k env1 env2 tb p = (k,env1,env2)
 
 checkRHS :: Signature -> Int -> Env -> Env -> RHS -> Val -> Bool
 checkRHS sig k rho gamma rhs v =
@@ -323,13 +339,26 @@ bla = DataSig Ind (Fun (Def "Nat") Set) 1
 
 blub = ConstSig (Pi (TBind"x" (Def "Nat")) Set) 1 (Def "Bla") 
 
-f = FunSig Ind (Fun (Def "Bool") Set) 1 
-    [(Clause (LHS [ConP "tt" []]) (RHS (Def "Nat"))),
-     (Clause (LHS [ConP "ff" []]) (RHS (Def "Bool")))]
+ftype :: Type
+ftype = (Fun (Def "Bool") Set)
 
-f2 = FunSig Ind (Pi (TBind "x" (Def "Bool")) (App (Def "f") [Def "x"])) 1 
-     [(Clause (LHS [ConP "tt" []]) (RHS (Con "zero"))),
-      (Clause (LHS [ConP "ff" []]) (RHS (Con "tt")))]
+fcl1 :: Clause
+fcl1 = (Clause (LHS [ConP "tt" []]) (RHS (Def "Nat")))
+
+fcl2 = (Clause (LHS [ConP "ff" []]) (RHS (Def "Bool")))
+
+f = FunSig Ind ftype 1 [fcl1,fcl2]
+
+
+f2type :: Type
+f2type = (Pi (TBind "x" (Def "Bool")) (App (Def "f") [Def "x"]))
+
+f2cl1 = (Clause (LHS [ConP "tt" []]) (RHS (Con "zero"))) 
+
+f2cl2 = (Clause (LHS [ConP "ff" []]) (RHS (Con "tt")))
+
+f2 = FunSig Ind  f2type 1 [f2cl1,f2cl2]
+      
 
 signatur1 :: Signature
 signatur1 = [("Nat",natSigdef),("zero",zeroSigdef),("succ",succSigdef)
@@ -346,6 +375,10 @@ t5 = Fun (Def "Nat") (Def "Nat")
 
 e6 = (App (Def "succ") [e4])
 t6 = Def "Nat"
+
+
+
+
 
 test :: Bool
 test = typecheck signatur1 e6 t6
