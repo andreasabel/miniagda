@@ -26,34 +26,50 @@ typeCheckDecls (d:ds) = do typeCheckDeclaration d
 typeCheckDeclaration :: Declaration -> TypeCheck ()
 typeCheckDeclaration (DataDecl n co tel t cs) = 
     do sig <- get
-       let dt = (teleToType tel t)
-       put (addSig sig n (DataSig co dt (arity dt)))
-       mapM (typeCheckConstructor tel) cs
+       let dt = (teleToType tel t) 
+       _ <- if (checkType sig 0 [] [] dt) then
+              do put (addSig sig n (DataSig co dt (arity dt)))
+                 mapM (typeCheckConstructor tel) cs
+            else 
+                error $ "typecheck error data " ++ n
        return ()
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
 typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
     do sig <- get
---       _ <- if (typecheck sig e t ) then
-       put (addSig sig n (ConstSig t (arity t) e))
-  --          else 
-    --            error $ "typecheck error const " ++ n
+       _ <- if (typecheck sig e t ) then
+                put (addSig sig n (ConstSig t (arity t) e))
+            else 
+                error $ "typecheck error const " ++ n
        return ()
-typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
-typeCheckFuns co [] = return ()
-typeCheckFuns co ((TypeSig n t,cl):rest) = 
-    do sig <- get
-       put (addSig sig n (FunSig co t (arity t) cl))
-       typeCheckFuns co rest
-                         
+
+typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck()
+typeCheckFuns co funs = do typeCheckFunSig funs
+                           typeCheckFunClause funs
+  where
+    typeCheckFunSig :: [(TypeSig,[Clause])] -> TypeCheck ()
+    typeCheckFunSig [] = return ()
+    typeCheckFunSig ((TypeSig n t,cl):rest) = 
+        do sig <- get
+           put (addSig sig n (FunSig co t (arity t) cl))
+           typeCheckFunSig rest
+    typeCheckFunClause :: [(TypeSig,[Clause])] -> TypeCheck ()
+    typeCheckFunClause [] = return ()
+    typeCheckFunClause ((TypeSig n t,cl):rest) =
+        do sig <- get
+           _ <- if (checkFun sig t cl) then 
+                    typeCheckFunClause rest         
+                else 
+                    error $ " typecheck error fun " ++ n
+           return ()
 
 typeCheckConstructor :: Telescope -> Constructor -> TypeCheck ()
 typeCheckConstructor tel (TypeSig n t) = do sig <- get
-                                            let tt = teleToType tel t  
-                                            put (addSig sig n (ConSig tt (arity tt))) 
+                                            let tt = teleToType tel t
+                                            _ <- if (checkType sig 0 [] [] tt) then
+                                                     put (addSig sig n (ConSig tt (arity tt))) -- TODO check target
+                                                 else
+                                                     error $ " typecheck error constructor " ++ n
                                             return ()
-
-
----
 
 
 
@@ -75,6 +91,7 @@ matches p v = case (p,v) of
                 (ConP x pl,VApp (VCon y) vl) -> x == y && matchesList pl vl
                 (WildP ,_) -> True
                 (SuccP _,_) -> matchesSucc p v
+                (DotP _,_) -> True
                 _ -> False
                 
 
@@ -100,6 +117,7 @@ upPattern env p v = case (p,v) of
                       (ConP x pl,VApp (VCon y) vl) -> upPatterns env pl vl
                       (WildP,_) -> env
                       (SuccP _,_) -> upSuccPattern env p v
+                      (DotP _,_) -> env
 
 upSuccPattern :: Env -> Pattern -> Val -> Env
 upSuccPattern env p v = case (p,v) of
@@ -142,6 +160,14 @@ matchClause n sig env pl _ [] = error $ "matchClause " ++ n
   ++ " (too few arguments) "
 
 
+patternToExpr :: Pattern -> Expr
+patternToExpr p =
+    case p of
+      VarP n -> Var n
+      ConP n pl -> App (Con n) (map patternToExpr pl)
+      SuccP p -> Succ (patternToExpr p)
+      DotP e -> e
+      _ -> error $ "Pat to expr " ++ show p
 --- Interpreter
 
 fapp :: Signature -> Env -> Name -> Val -> Expr -> [Val] -> Val
@@ -192,7 +218,7 @@ eval sig env e = case e of
                Lam n e2 -> VLam n env e2
                Pi (TBind n t) t2 -> VPi n (eval sig env t) env t2
                Fun t1 t2 -> VPi "" (eval sig env t1) env t2
-
+               _ -> error $ "eval " ++ show e
 ----
 
 eqVal :: Signature -> Int -> Val -> Val -> Bool
@@ -211,6 +237,7 @@ eqVal sig k u1 u2 =
           let v = VGen k 
           in eqVal sig (k+1) (fapp sig env1 x1 v b1 []) (fapp sig env2 x2 v b2 [])
       (VDef x,VDef y) -> x == y || (error $ "eqVal VDef " ++ show x ++ " " ++ show y)
+      (VCon n1,VCon n2) -> n1 == n2 || (error $ "eqVal VCon " ++ show n1 ++ " " ++ show n2)
       _ -> error $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
 
 eqVals :: Signature -> Int -> [Val] -> [Val] -> Bool
@@ -244,16 +271,17 @@ inferExpr sig k rho gamma e =
                           VPi n w env e3 ->  if (checkExpr sig k rho gamma e2 w) then
                                                 (fapp sig env n (eval sig rho e2) e3 []) 
                                              else error "inferExpr : app error"
-                          _ -> error "inferExp : expected Pi" 
+                          _ -> error $ "inferExp : expected Pi with expression : " ++ show e1 
       App e1 (e2:el) -> inferExpr sig k rho gamma (App (App e1 [e2]) el) -- hack ?  
       (Def n) -> case (lookupSig n sig) of
-                   (DataSig co t a) -> eval sig rho t
-                   (ConstSig t e a) -> eval sig rho t
-                   (ConSig t a ) -> eval sig rho t
+                   (DataSig _ t _) -> eval sig rho t
+                   (FunSig _ t _ _) -> eval sig rho t
                    _ -> error $ "bla" ++ show n
       (Con n) -> case (lookupSig n sig) of
                    (ConSig t a) -> eval sig rho t
                    _ -> error $ "imposibble " 
+      (Const n) -> case (lookupSig n sig) of
+                     (ConstSig t a e) -> eval sig rho t
       _ -> error $ "cannot infer type " ++ show e
 
       
@@ -268,28 +296,55 @@ typecheck sig e t = checkExpr sig 0 emptyEnv emptyEnv e (eval sig emptyEnv t)
 
 -- type check a funtion
 
+
 checkFun :: Signature -> Type -> [Clause] -> Bool
 checkFun sig t cll =
-    let i = getClauseNumPatterns cll
-        (tel,rhstype) = splittype t i
-    in all (checkClause sig tel rhstype) cll
+    all (checkClause sig t) cll 
 
-checkClause :: Signature -> [TBind] -> Type -> Clause -> Bool
-checkClause sig tel t (Clause (LHS pl) rhs) = 
-    let (k,rho,gamma) = checkLHS sig tel pl
-    in checkRHS sig k rho gamma rhs (eval sig rho t) 
+checkClause :: Signature -> Type -> Clause -> Bool
+checkClause sig t (Clause (LHS pl) rhs) = 
+    let (k,rho,gamma,vt2) = checkPatterns sig 0 [] [] (eval sig [] t) pl
+    in checkRHS sig k rho gamma rhs vt2 
 
-checkLHS :: Signature -> [TBind] -> [Pattern] -> (Int,Env,Env)
-checkLHS sig tel pl = loop 0 [] [] tel pl 
-  where
-    loop k env1 env2 [] [] = (k,env1,env2)
-    loop k env1 env2 (tb:tel') (p:pl') = 
-        let (k',env1',env2') = checkPattern sig k env1 env2 tb p 
-        in
-          loop k' env1' env2' tel' pl'
+checkPatterns :: Signature -> Int -> Env -> Env -> Val -> [Pattern] -> (Int,Env,Env,Val)
+checkPatterns sig k env1 env2 v pl = 
+    case pl of
+      [] -> (k,env1,env2,v)
+      (p:pl') -> let (k',env1',env2',v') = checkPattern sig k env1 env2 v p 
+                 in checkPatterns sig k' env1' env2' v' pl' 
+       
+          
 
-checkPattern :: Signature -> Int -> Env -> Env -> TBind -> Pattern -> (Int,Env,Env)
-checkPattern sig k env1 env2 tb p = (k,env1,env2)
+checkPattern :: Signature -> Int -> Env -> Env -> Val -> Pattern -> (Int,Env,Env,Val)
+checkPattern sig k rho gamma v p = 
+    case (p,v) of
+      (VarP x,VPi y v2 env b) ->  (k+1
+                                  ,update rho x (VGen k)
+                                  ,update gamma x v2
+                                  ,eval sig (update env y (VGen k)) b
+                                  )
+      (ConP n pl,VPi y v2 env b) -> let (ConSig t a) = (lookupSig n sig)
+                                        vt = eval sig [] t
+                                        (k',rho',gamma',v') = checkPatterns sig k rho gamma vt pl
+                                        pv = eval sig rho' (patternToExpr p)
+                                    in
+                                      if (eqVal sig k' v2 v') then
+                                          (k,rho',gamma',eval sig (update env y pv) b)
+                                      else error $ "checkPattern Con " ++ n ++ " " ++ show vt
+      (SuccP p2,VPi y v2 env b) -> let (k',rho',gamma',v') = checkPattern sig k rho gamma (VPi "" VSize [] Size) p2
+                                       pv = eval sig rho' (patternToExpr p)
+                                   in 
+                                     if (eqVal sig k' v2 v') then
+                                         (k',rho',gamma',eval sig (update env y pv) b)
+                                     else
+                                         error $ "checkPattern Vsucc"
+      (WildP,VPi y v2 env b) -> (k+1,rho,gamma,eval sig (update env y (VGen k)) b) 
+      (DotP e,VPi y v2 env b) -> if (checkExpr sig k rho gamma e v2) then
+                                     let v' = eval sig rho e
+                                     in 
+                                       (k+1,rho,gamma,eval sig (update env y v') b)
+                                 else error $ "checkPattern DotP"
+      _ -> error $ "checkpattern " ++ show (p,v)
 
 checkRHS :: Signature -> Int -> Env -> Env -> RHS -> Val -> Bool
 checkRHS sig k rho gamma rhs v =
@@ -297,11 +352,6 @@ checkRHS sig k rho gamma rhs v =
       (AbsurdRHS) -> True
       (RHS e) -> checkExpr sig k rho gamma e v  
       
-
-splittype :: Type -> Int -> ([TBind],Type)
-splittype t 0 = ([],t)
-splittype (Fun t1 t2) k | k > 0 = let (l,t) = splittype t2 (k - 1) in (TBind "" t1:l,t) 
-splittype (Pi tb t2) k | k > 0 = let (l,t) = splittype t2 (k - 1) in (tb:l,t) 
 
 -- check that all clauses have equal number of patterns in left hand side
 getClauseNumPatterns :: [Clause] -> Int

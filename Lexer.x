@@ -33,6 +33,7 @@ s				{ tok (\p s -> Succ p) }
 \)				{ tok (\p s -> PrClose p) }
 \;				{ tok (\p s -> Sem p) }
 \:				{ tok (\p s -> Col p) }
+\.				{ tok (\p s -> Dot p) }
 "->"				{ tok (\p s -> Arrow p)  }
 =				{ tok (\p s -> Eq p) }
 \\				{ tok (\p s -> Lam p) }
@@ -61,6 +62,7 @@ data Token = Id String AlexPosn
            | PrClose AlexPosn
            | Sem AlexPosn
            | Col AlexPosn
+	   | Dot AlexPosn
            | Arrow AlexPosn
            | Eq AlexPosn
            | Lam AlexPosn
@@ -88,6 +90,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     PrClose p -> (")",p)
     Sem p -> (";",p)
     Col p -> (":",p)
+    Dot p -> (".",p)
     Arrow p -> ("->",p)
     Eq p -> ("=",p)
     Lam p -> ("\\",p)

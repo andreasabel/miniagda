@@ -30,6 +30,7 @@ succ    { T.Succ _ }
 ')'     { T.PrClose _ }
 ';'     { T.Sem _ }
 ':'     { T.Col _ }
+'.'     { T.Dot _ }
 '->'    { T.Arrow _ }
 '='     { T.Eq _ }
 '\\'     { T.Lam _ }
@@ -147,6 +148,7 @@ Pattern : '_' { A.WildP }
         | '(' ')' { A.AbsurdP }
         | ConP { $1 }
         | Id { A.IdentP $1 }
+        | '.' Expr3 { A.DotP $2 }
 
 ConP :: { A.Pattern }
 ConP : '(' Id Patterns ')' { A.ConP $2 (reverse $3) }

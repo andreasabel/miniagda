@@ -1,4 +1,4 @@
-data SNat : Set
+data SNat : Size -> Set
 {
 	zero : (i : Size ) -> SNat (s i);
 	succ : (i : Size) -> SNat i -> SNat (s i)
@@ -12,26 +12,38 @@ data Maybe (A : Set) : Set
 
 const Nat : Set = SNat infty
 
-fun shift_case : Maybe Nat -> Maybe Nat
+fun wkSNat : (i : Size ) -> SNat i -> SNat (s i)
 {
-shift_case nothing = nothing ;
-shift_case (just (zero a)) = nothing ;
-shift_case (just (succ a x)) = just x
+wkSNat (s i) (zero .i) = zero (s i);
+wkSNat (s i) (succ .i x) = succ (s i) (wkSNat i x) 
 }
 
-fun shift : (i : Size) -> (Nat -> Maybe (SNat (succ i))) -> Nat -> Maybe (SNat i)
+fun wkNatInfty : (i : Size) -> SNat i -> SNat infty
+{
+wkNatInfty (s i) (zero .i) = zero infty;
+wkNatInfty (s i) (succ .i n) = succ infty (wkNatInfty i n)
+}
+
+fun shift_case : (i : Size) -> Maybe (SNat (s i)) -> Maybe (SNat i)
 {
 
-shift i f n = shift_case (f (succ (s i) n))
+shift_case i (nothing .(SNat (s i))) = nothing (SNat i);
+shift_case i (just .(SNat (s i)) (zero .i)) = nothing (SNat i);
+shift_case i (just .(SNat (s i)) (succ .i x)) = just (SNat i) x
+
+}
+
+fun shift : (i : Size) -> (Nat -> Maybe (SNat (s i))) -> Nat -> Maybe (SNat i)
+{
+
+shift i f n = shift_case i (f (succ infty n))
 
 }
 
 fun inc : Nat -> Maybe Nat
 {
 
-
-inc n = just (succ infty n)
-
+inc n = just Nat (succ infty n)
 }
 
 data Unit : Set
@@ -39,23 +51,24 @@ data Unit : Set
 	unit : Unit
 }
 
+
 mutual 
 {
 
 fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 {
 
-loop_case i f nothing = unit;
-loop_case i f (just (zero a)) = unit;
-loop_case i f (just (succ a y)) = loop i y (shift i f) 
+loop_case i f (nothing .(SNat i)) = unit;
+loop_case (s i) f (just .(SNat (s i)) (zero .i)) = unit;
+loop_case (s i) f (just .(SNat (s i)) (succ .i y)) = loop i y (shift i f) 
 
 }
 
 fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
 
-loop (s i) (zero a) f = loop_case i f (f (zero a));
-loop (s i) (succ a n) f = loop i n (shift i f)
+loop (s i) (zero .i) f = loop_case (s i) f (f (wkNatInfty (s i) (zero i)));
+loop (s i) (succ .i n) f = loop i n (shift i f)
 
 }
 

@@ -161,27 +161,29 @@ scopeCheckExpr e =
                                    False -> errorIdentifierUndefined n 
 
 -- first check the Patterns (replacing IdentP with VarP or ConP)
--- and then check the RHS with all the VarP names in the context
+-- and then check the dot patterns and RHS with all the VarP names in the context
 scopeCheckClause :: Clause -> ScopeCheck Clause
 scopeCheckClause (Clause (LHS pl) rhs) = 
     do pl' <- mapM scopeCheckPattern pl
        let names = collectVarPNames pl'
+       pl'' <- local (addCtxs names) (mapM scopeCheckDotPattern pl') 
        rhs' <- local (addCtxs names) (scopeCheckRHS rhs)
-       return $ Clause (LHS pl') rhs'
+       return $ Clause (LHS pl'') rhs'
 
 -- collect all variable names, checks if pattern is linear
 collectVarPNames :: [Pattern] -> [Name]
 collectVarPNames pl = cvp pl [] where
     cvp [] acc = acc
     cvp (p:pl) acc = case p of
-                       WildP -> acc
-                       AbsurdP -> acc
+                       WildP -> cvp pl acc
+                       AbsurdP -> cvp pl acc
                        SuccP p2 -> cvp (p2:pl) acc
                        ConP n pl2 -> cvp (pl2++pl) acc
-                       VarP n -> if (elem n acc) then 
+                       VarP n ->  if (elem n acc) then 
                                      error $ "not a linear pattern: " ++ n ++ " already used"
-                                 else 
-                                     cvp pl (n:acc)
+                                  else 
+                                 cvp pl (n:acc)
+                       DotP p -> cvp pl acc
 
 scopeCheckPattern :: Pattern -> ScopeCheck Pattern
 scopeCheckPattern p = 
@@ -194,14 +196,25 @@ scopeCheckPattern p =
                        Nothing -> return $ VarP n
       SuccP p -> do p' <- scopeCheckPattern p
                     return $ SuccP p'
-      WildP -> return WildP
-      AbsurdP -> return AbsurdP
       ConP n pl -> do sig <- get
                       case (lookupSig n sig) of
                         (Just ConK) -> do pl' <- mapM scopeCheckPattern pl 
                                           return $ ConP n pl'
                         (Just _) -> errorPatternNotConstructor n 
                         Nothing -> errorPatternNotConstructor n 
+      _ -> return $ p -- dot pattern checked later 
+
+
+scopeCheckDotPattern :: Pattern -> ScopeCheck Pattern
+scopeCheckDotPattern p  = 
+    case p of 
+      DotP e -> do e' <- scopeCheckExpr e
+                   return $ DotP e'
+      SuccP p2 -> do p2' <- scopeCheckDotPattern p2
+                     return $ SuccP p2'
+      (ConP n pl) -> do pl' <- mapM scopeCheckDotPattern pl
+                        return $ ConP n pl'
+      _ -> return p 
 
 scopeCheckRHS :: RHS -> ScopeCheck RHS
 scopeCheckRHS AbsurdRHS = return $ AbsurdRHS

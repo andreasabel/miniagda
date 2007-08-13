@@ -21,11 +21,11 @@ main = do
   let t = alexScanTokens file 
   let ast = parse t
   let ast2 = scopeCheck ast
-  let b = sizeCheck ast2
+  -- let b = sizeCheck ast2
   let sig = typeCheck ast2
-  --putStrLn $ show ast
-  --putStrLn $ show ast2
-  --putStrLn $ show b
+  -- putStrLn $ show ast
+  -- putStrLn $ show ast2
+  -- putStrLn $ show b
   putStrLn "Signature:"
   putStrLn $ show sig
   putStrLn "evaluating all constants:" 

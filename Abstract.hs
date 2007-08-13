@@ -57,6 +57,7 @@ data Pattern = VarP Name
              | WildP
              | AbsurdP
              | IdentP Name -- not used after scope checking
+             | DotP Expr
                deriving (Eq,Show)
 
 teleToType :: Telescope -> Type -> Type

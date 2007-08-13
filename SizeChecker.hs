@@ -17,8 +17,8 @@ sizeCheckDeclaration (DataDecl n co tel t cl) =
            withoutSize e2 && all (sizeCheckConstructor (length tel) n) cl
       _ -> -- not a sized type 
            withoutSize t  
-sizeCheckDefinition (FunDecl co funs) = all (\(TypeSig _ t,_)-> sizeCheckFunType t) funs
-sizeCheckDefinition (ConstDecl (TypeSig _ t) _ ) = sizeCheckFunType t
+sizeCheckDeclaration (FunDecl co funs) = all (\(TypeSig _ t,_)-> sizeCheckFunType t) funs
+sizeCheckDeclaration (ConstDecl (TypeSig _ t) _ ) = sizeCheckFunType t
 
 
 -------------
