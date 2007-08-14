@@ -14,6 +14,8 @@ fun id : Bool -> Bool
 id x = x 
 }
 
+const bla : Bool = id tt
+
 fun  F : Bool -> Set
 {
 F tt = Unit;

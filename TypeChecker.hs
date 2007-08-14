@@ -8,7 +8,7 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
 
--- reader monad for local environment
+-- reader monad for local environment (not used right now)
 -- state monad for global signature
 type TypeCheck a = ReaderT Env (StateT Signature Identity) a
 
@@ -27,19 +27,17 @@ typeCheckDeclaration :: Declaration -> TypeCheck ()
 typeCheckDeclaration (DataDecl n co tel t cs) = 
     do sig <- get
        let dt = (teleToType tel t) 
-       _ <- if (checkType sig 0 [] [] dt) then
-              do put (addSig sig n (DataSig co dt (arity dt)))
-                 mapM (typeCheckConstructor tel) cs
-            else 
-                error $ "typecheck error data " ++ n
+       checkType 0 [] [] dt 
+       put (addSig sig n (DataSig co dt (arity dt)))
+       mapM (typeCheckConstructor tel) cs
        return ()
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
 typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
     do sig <- get
-       _ <- if (typecheck sig e t ) then
-                put (addSig sig n (ConstSig t (arity t) e))
-            else 
-                error $ "typecheck error const " ++ n
+       checkType 0 [] [] t 
+       vt <- eval [] t
+       checkExpr 0 [] [] e vt
+       put (addSig sig n (ConstSig t (arity t) e))
        return ()
 
 typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck()
@@ -56,19 +54,14 @@ typeCheckFuns co funs = do typeCheckFunSig funs
     typeCheckFunClause [] = return ()
     typeCheckFunClause ((TypeSig n t,cl):rest) =
         do sig <- get
-           _ <- if (checkFun sig t cl) then 
-                    typeCheckFunClause rest         
-                else 
-                    error $ " typecheck error fun " ++ n
-           return ()
-
+           checkFun t cl 
+           typeCheckFunClause rest         
+                
 typeCheckConstructor :: Telescope -> Constructor -> TypeCheck ()
 typeCheckConstructor tel (TypeSig n t) = do sig <- get
                                             let tt = teleToType tel t
-                                            _ <- if (checkType sig 0 [] [] tt) then
-                                                     put (addSig sig n (ConSig tt (arity tt))) -- TODO check target
-                                                 else
-                                                     error $ " typecheck error constructor " ++ n
+                                            checkType 0 [] [] tt
+                                            put (addSig sig n (ConSig tt (arity tt))) -- TODO check target
                                             return ()
 
 
@@ -106,9 +99,6 @@ matchesList :: [Pattern] -> [Val] -> Bool
 matchesList [] [] = True
 matchesList (p:pl) (v:vl) = matches p v && matchesList pl vl
 matchesList _ _ = False
-{-
-matchesList x y = error $ "Error matchesList " ++ show x ++ " , " ++ show y 
--}
 
 upPattern :: Env -> Pattern -> Val -> Env
 upPattern env p v = case (p,v) of
@@ -133,32 +123,27 @@ upPatterns env (p:pl) (v:vl) = let env' = upPattern env p v in
 
 
 
-matchClauses :: Name -> Signature -> Env -> [Clause] -> [Val] -> Val
-matchClauses n sig env cl vl = loop cl
-    where loop [] = error $ n ++ ": no function clause matches " ++ show vl
-                    ++ "\n Clauses: " ++ show cl 
-{-
-                    ++ "\n Environment: " ++ show env
-                    ++ "\n Signature: " ++ show sig 
- -}
-          loop  ((Clause (LHS pl) rhs) : cl) = 
-              case matchClause n sig env pl rhs vl of
-                Nothing -> loop cl
-                Just v -> v
+matchClauses :: Name -> [Clause] -> [Val] -> TypeCheck (Maybe Val)
+matchClauses n cl vl = loop cl
+    where loop [] = return Nothing
+          loop  ((Clause (LHS pl) rhs) : cl2) = 
+              do x <- matchClause n [] pl rhs vl 
+                 case x of
+                   Nothing -> loop cl2
+                   Just v -> return $ Just v
 
-matchClause :: Name -> Signature -> Env -> [Pattern] -> RHS -> [Val] -> Maybe Val
-matchClause n sig env [] (RHS e) vl = Just (app sig (eval sig env e) vl)
-matchClause n sig env (p:pl) rhs (v0:vl) =
-  let v = force sig v0
-  in 
-    if (matches p v) then 
-        matchClause n sig (upPattern env p v) pl rhs vl
-    else
-        Nothing 
-matchClause n sig env pl _ [] = error $ "matchClause " ++ n 
--- ++ (show pl) ++ "\n" ++ (show vl) 
-  ++ " (too few arguments) "
-
+matchClause :: Name -> Env -> [Pattern] -> RHS -> [Val] -> TypeCheck (Maybe Val)
+matchClause n env [] (RHS e) vl = do v <- eval env e
+                                     v2 <- app v vl
+                                     return $ Just v2
+matchClause n env (p:pl) rhs (v0:vl) =
+  do v <- force v0
+     let b = matches p v 
+     case b of
+       True ->
+         matchClause n (upPattern env p v) pl rhs vl
+       False -> return Nothing
+matchClause n env pl _ [] = error $ "matchClause " ++ n ++ " " ++ (show pl)  ++ " (too few arguments) "
 
 patternToExpr :: Pattern -> Expr
 patternToExpr p =
@@ -170,275 +155,226 @@ patternToExpr p =
       _ -> error $ "Pat to expr " ++ show p
 --- Interpreter
 
-fapp :: Signature -> Env -> Name -> Val -> Expr -> [Val] -> Val
-fapp sig env x v e vl = app sig (eval sig (update env x v) e) vl
+fapp :: Env -> Name -> Val -> Expr -> [Val] -> TypeCheck Val
+fapp env x v e vl = do v' <- eval (update env x v) e 
+                       app v' vl
 
-app :: Signature -> Val -> [Val] -> Val
-
-app sig u v = case (u,v) of
-            (VApp u2 v2,_) -> app sig u2 (v2 ++ v)
-            (_,[]) -> u
-            (VLam x env e,(v:vl)) -> fapp sig env x v e vl
-            (VPi  x _ env e,(v:vl)) -> fapp sig env x v e vl
-            (VDef n,_) -> appDef sig n v
-
-            _ -> VApp u v
+app :: Val -> [Val] -> TypeCheck Val
+app u v = case (u,v) of
+            (VApp u2 v2,_) -> app u2 (v2 ++ v)
+            (_,[]) -> return u
+            (VLam x env e,(v:vl)) -> fapp env x v e vl
+            (VPi  x _ env e,(v:vl)) -> fapp env x v e vl
+            (VDef n,_) -> appDef n v
+            _ -> return $ VApp u v
 
 -- unroll a corecursive object once
-force :: Signature -> Val -> Val
-force sig v@(VApp (VDef n) vl) = 
-    case lookupSig n sig of
-      (FunSig CoInd t arity cl) | arity <= (length vl) -> matchClauses n sig [] cl vl  
-      _ -> v
-force sig v = v
+force :: Val -> TypeCheck Val
+force v@(VApp (VDef n) vl) =
+    do sig <- get
+       case lookupSig n sig of
+         (FunSig CoInd t arity cl) | arity <= (length vl) -> do m <- matchClauses n cl vl
+                                                                case m of 
+                                                                  Nothing -> return $ VApp (VDef n) vl
+                                                                  Just v2 -> return v2
+         _ -> return v
+force v = return v
 
-appDef :: Signature -> Name -> [Val] -> Val
-appDef sig n vl = 
-    case lookupSig n sig of
-      (FunSig Ind   t arity cl) | arity     <= (length vl) -> matchClauses n sig [] cl vl  
-      (FunSig CoInd t arity cl) | arity + 1 <= (length vl) -> matchClauses n sig [] cl vl  
-      _ -> VApp (VDef n) vl   
+appDef :: Name -> [Val] -> TypeCheck Val
+appDef n vl = 
+    do
+      sig <- get
+      case lookupSig n sig of
+        (FunSig Ind   t arity cl) | arity     <= (length vl) -> do m <- matchClauses n cl vl 
+                                                                   case m of
+                                                                     Nothing -> return $ VApp (VDef n) vl
+                                                                     Just v2 -> return v2
+        (FunSig CoInd t arity cl) | arity + 1 <= (length vl) ->  do m <- matchClauses n cl vl
+                                                                    case m of
+                                                                      Nothing -> return $ VApp (VDef n) vl
+                                                                      Just v2 -> return v2
+        _ -> return $ VApp (VDef n) vl   
 
 
 vsucc :: Val -> Val
 vsucc VInfty = VInfty
 vsucc x = VSucc x
 
-eval :: Signature -> Env -> Expr -> Val
-eval sig env e = case e of
-               Set -> VSet
-               Infty -> VInfty
-               Succ e -> vsucc (eval sig env e)
-               Size -> VSize
-               Con n -> VCon n
-               App e1 e2 -> app sig (eval sig env e1) (map (eval sig env) e2)
-               Def n -> VDef n
-               Const n -> let (ConstSig t a e) = lookupSig n sig in eval sig env e 
-               Var y -> lookupEnv env y
-               Lam n e2 -> VLam n env e2
-               Pi (TBind n t) t2 -> VPi n (eval sig env t) env t2
-               Fun t1 t2 -> VPi "" (eval sig env t1) env t2
+eval :: Env -> Expr -> TypeCheck Val
+eval env e = case e of
+               Set -> return  VSet
+               Infty -> return VInfty
+               Succ e -> do v <- (eval env e)
+                            return $ vsucc v
+               Size -> return VSize
+               Con n -> return $ VCon n
+               App e1 e2 -> do v1 <- eval env e1
+                               v2 <- mapM (eval env) e2
+                               app v1 v2
+               Def n -> return $ VDef n
+               Const n -> do sig <- get 
+                             let (ConstSig t a e) = lookupSig n sig 
+                             eval env e 
+               Var y -> return $ lookupEnv env y
+               Lam n e2 -> return $ VLam n env e2
+               Pi (TBind n t) t2 -> do 
+                      v <- eval env t
+                      return $ VPi n v env t2
+               Fun t1 t2 -> do 
+                      v <- eval env t1
+                      return $ VPi "" v env t2
                _ -> error $ "eval " ++ show e
+
+runEval sig env e = fst $ runTypeCheck emptyEnv sig (eval env e)
 ----
 
-eqVal :: Signature -> Int -> Val -> Val -> Bool
-eqVal sig k u1 u2 = 
+eqVal :: Int -> Val -> Val -> TypeCheck Bool
+eqVal k u1 u2 = 
     case (u1,u2) of
-      (VSet,VSet) -> True
-      (VSize,VSize) -> True
-      (VInfty,VInfty) -> True
-      (VSucc v1,VSucc v2) -> eqVal sig k v1 v2
-      (VApp v1 w1,VApp v2 w2 ) -> eqVal sig k v1 v2 && eqVals sig k w1 w2
-      (VGen k1,VGen k2) -> k1 == k2 || (error $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 )
+      (VSet,VSet) -> return True
+      (VSize,VSize) -> return True
+      (VInfty,VInfty) -> return True
+      (VSucc v1,VSucc v2) -> eqVal k v1 v2
+      (VApp v1 w1,VApp v2 w2 ) -> do eqVal k v1 v2 
+                                     eqVals k w1 w2
+      (VGen k1,VGen k2) -> return $ k1 == k2 || (error $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 )
       (VPi x1 a1 env1 b1, VPi x2 a2 env2 b2) -> 
-          let v = VGen k 
-          in eqVal sig k a1 a2 && eqVal sig (k+1) (fapp sig env1 x1 v b1 []) (fapp sig env2 x2 v b2 [])
-      (VLam x1 env1 b1, VLam x2 env2 b2) -> 
-          let v = VGen k 
-          in eqVal sig (k+1) (fapp sig env1 x1 v b1 []) (fapp sig env2 x2 v b2 [])
-      (VDef x,VDef y) -> x == y || (error $ "eqVal VDef " ++ show x ++ " " ++ show y)
-      (VCon n1,VCon n2) -> n1 == n2 || (error $ "eqVal VCon " ++ show n1 ++ " " ++ show n2)
+          do let v = VGen k 
+             eqVal k a1 a2
+             v1 <- fapp env1 x1 v b1 []
+             v2 <- fapp env2 x2 v b2 []
+             eqVal (k+1) v1 v2
+      (VLam x1 env1 b1, VLam x2 env2 b2) ->
+          do
+            let v = VGen k 
+            v1 <- fapp env1 x1 v b1 []
+            v2 <- fapp env2 x2 v b2 []
+            eqVal (k+1) v1 v2
+      (VDef x,VDef y) -> return $ x == y || (error $ "eqVal VDef " ++ show x ++ " " ++ show y)
+      (VCon n1,VCon n2) -> return $ n1 == n2 || (error $ "eqVal VCon " ++ show n1 ++ " " ++ show n2)
       _ -> error $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
 
-eqVals :: Signature -> Int -> [Val] -> [Val] -> Bool
-eqVals sig k [] [] = True
-eqVals sig k (v1:vs1) (v2:vs2) = eqVal sig k v1 v2 && eqVals sig k vs1 vs2 
-eqVals _ _ _ _ = False
+eqVals :: Int -> [Val] -> [Val] -> TypeCheck Bool
+eqVals k [] [] = return True
+eqVals k (v1:vs1) (v2:vs2) = do eqVal k v1 v2 
+                                eqVals k vs1 vs2 
+eqVals _ _ _ = return False
 
 -- type checking
 
-checkExpr :: Signature -> Int -> Env -> Env -> Expr -> Val -> Bool
-checkExpr sig k rho gamma e v = 
+checkExpr :: Int -> Env -> Env -> Expr -> Val -> TypeCheck Bool
+checkExpr k rho gamma e v = 
     case (e,v) of
       (Lam n e1,VPi x w env t2) -> 
-          let v = VGen k
-          in checkExpr sig (k+1) (update rho n v) (update gamma n w) e1 (fapp sig env x v t2 [])  
-      (Pi (TBind n t1) t2,VSet) -> 
-          checkType sig k rho gamma t1 &&
-          checkType sig (k+1) (update rho n (VGen k)) (update gamma n (eval sig rho t1)) t2
-      (Fun t1 t2,VSet) -> checkType sig k rho gamma t1 && checkType sig k rho gamma t2
-      (Succ e2,VSize) -> checkExpr sig k rho gamma e2 v
-      _ -> eqVal sig k (inferExpr sig k rho gamma e) v
+          do
+            let v = VGen k
+            val <- fapp env x v t2 []
+            checkExpr (k+1) (update rho n v) (update gamma n w) e1 val  
+      (Pi (TBind n t1) t2,VSet) ->
+          do checkType k rho gamma t1 
+             val <- eval rho t1
+             checkType (k+1) (update rho n (VGen k)) (update gamma n val) t2
+      (Fun t1 t2,VSet) -> do checkType k rho gamma t1 
+                             checkType k rho gamma t2
+      (Succ e2,VSize) -> checkExpr k rho gamma e2 v
+      _ -> do v2 <- inferExpr k rho gamma e
+              eqVal k v2 v
 
-inferExpr :: Signature -> Int -> Env -> Env -> Expr -> Val 
-inferExpr sig k rho gamma e = 
+inferExpr :: Int -> Env -> Env -> Expr -> TypeCheck Val 
+inferExpr k rho gamma e = 
     case e of
-      Var x -> lookupEnv gamma x
-      Set -> VSet
-      Size -> VSet
-      Infty -> VSize
-      App e1 [e2] -> case (inferExpr sig k rho gamma e1) of
-                          VPi n w env e3 ->  if (checkExpr sig k rho gamma e2 w) then
-                                                (fapp sig env n (eval sig rho e2) e3 []) 
-                                             else error "inferExpr : app error"
-                          _ -> error $ "inferExp : expected Pi with expression : " ++ show e1 
-      App e1 (e2:el) -> inferExpr sig k rho gamma (App (App e1 [e2]) el) -- hack ?  
-      (Def n) -> case (lookupSig n sig) of
-                   (DataSig _ t _) -> eval sig rho t
-                   (FunSig _ t _ _) -> eval sig rho t
-                   _ -> error $ "bla" ++ show n
-      (Con n) -> case (lookupSig n sig) of
-                   (ConSig t a) -> eval sig rho t
-                   _ -> error $ "imposibble " 
-      (Const n) -> case (lookupSig n sig) of
-                     (ConstSig t a e) -> eval sig rho t
+      Var x -> return $ lookupEnv gamma x
+      Set -> return VSet
+      Size -> return VSet
+      Infty -> return VSize
+      App e1 [e2] ->
+          do
+            v <- inferExpr k rho gamma e1
+            case v of
+               VPi n w env e3 ->  do checkExpr k rho gamma e2 w 
+                                     v2 <- eval rho e2
+                                     fapp env n v2 e3 [] 
+               _ -> error $ "inferExp : expected Pi with expression : " ++ show e1 
+ 
+      App e1 (e2:el) -> inferExpr k rho gamma (App (App e1 [e2]) el)  
+      (Def n) -> do sig <- get 
+                    case (lookupSig n sig) of
+                      (DataSig _ t _) -> eval rho t
+                      (FunSig _ t _ _) -> eval rho t
+                      _ -> error $ "bla" ++ show n
+      (Con n) -> do sig <- get
+                    case (lookupSig n sig) of
+                      (ConSig t a) -> eval rho t
+                      _ -> error $ "imposibble " 
+      (Const n) -> do sig <- get 
+                      case (lookupSig n sig) of
+                        (ConstSig t a e) -> eval rho t
       _ -> error $ "cannot infer type " ++ show e
 
       
 
-checkType :: Signature -> Int -> Env -> Env -> Expr -> Bool
-checkType sig k rho gamma e = checkExpr sig k rho gamma e VSet 
-
-
-typecheck :: Signature -> Expr -> Expr -> Bool
-typecheck sig e t = checkExpr sig 0 emptyEnv emptyEnv e (eval sig emptyEnv t)
-
+checkType :: Int -> Env -> Env -> Expr -> TypeCheck Bool
+checkType k rho gamma e = checkExpr k rho gamma e VSet 
 
 -- type check a funtion
 
 
-checkFun :: Signature -> Type -> [Clause] -> Bool
-checkFun sig t cll =
-    all (checkClause sig t) cll 
+checkFun :: Type -> [Clause] -> TypeCheck Bool
+checkFun t cll =
+    do 
+      mapM (checkClause t) cll 
+      return True
 
-checkClause :: Signature -> Type -> Clause -> Bool
-checkClause sig t (Clause (LHS pl) rhs) = 
-    let (k,rho,gamma,vt2) = checkPatterns sig 0 [] [] (eval sig [] t) pl
-    in checkRHS sig k rho gamma rhs vt2 
+checkClause :: Type -> Clause -> TypeCheck Bool
+checkClause t (Clause (LHS pl) rhs) = 
+    do
+      v <- eval [] t
+      (k,rho,gamma,vt2) <- checkPatterns 0 [] [] v pl
+      checkRHS k rho gamma rhs vt2 
 
-checkPatterns :: Signature -> Int -> Env -> Env -> Val -> [Pattern] -> (Int,Env,Env,Val)
-checkPatterns sig k env1 env2 v pl = 
+checkPatterns :: Int -> Env -> Env -> Val -> [Pattern] -> TypeCheck (Int,Env,Env,Val)
+checkPatterns k env1 env2 v pl = 
     case pl of
-      [] -> (k,env1,env2,v)
-      (p:pl') -> let (k',env1',env2',v') = checkPattern sig k env1 env2 v p 
-                 in checkPatterns sig k' env1' env2' v' pl' 
-       
-          
+      [] -> return (k,env1,env2,v)
+      (p:pl') -> do (k',env1',env2',v') <- checkPattern k env1 env2 v p 
+                    checkPatterns k' env1' env2' v' pl' 
+                
 
-checkPattern :: Signature -> Int -> Env -> Env -> Val -> Pattern -> (Int,Env,Env,Val)
-checkPattern sig k rho gamma v p = 
+checkPattern :: Int -> Env -> Env -> Val -> Pattern -> TypeCheck (Int,Env,Env,Val)
+checkPattern k rho gamma v p = 
     case (p,v) of
-      (VarP x,VPi y v2 env b) ->  (k+1
-                                  ,update rho x (VGen k)
-                                  ,update gamma x v2
-                                  ,eval sig (update env y (VGen k)) b
-                                  )
-      (ConP n pl,VPi y v2 env b) -> let (ConSig t a) = (lookupSig n sig)
-                                        vt = eval sig [] t
-                                        (k',rho',gamma',v') = checkPatterns sig k rho gamma vt pl
-                                        pv = eval sig rho' (patternToExpr p)
-                                    in
-                                      if (eqVal sig k' v2 v') then
-                                          (k,rho',gamma',eval sig (update env y pv) b)
-                                      else error $ "checkPattern Con " ++ n ++ " " ++ show vt
-      (SuccP p2,VPi y v2 env b) -> let (k',rho',gamma',v') = checkPattern sig k rho gamma (VPi "" VSize [] Size) p2
-                                       pv = eval sig rho' (patternToExpr p)
-                                   in 
-                                     if (eqVal sig k' v2 v') then
-                                         (k',rho',gamma',eval sig (update env y pv) b)
-                                     else
-                                         error $ "checkPattern Vsucc"
-      (WildP,VPi y v2 env b) -> (k+1,rho,gamma,eval sig (update env y (VGen k)) b) 
-      (DotP e,VPi y v2 env b) -> if (checkExpr sig k rho gamma e v2) then
-                                     let v' = eval sig rho e
-                                     in 
-                                       (k+1,rho,gamma,eval sig (update env y v') b)
-                                 else error $ "checkPattern DotP"
+      (VarP x,VPi y v2 env b) -> do bv <- eval (update env y (VGen k)) b 
+                                    return (k+1
+                                           ,update rho x (VGen k)
+                                           ,update gamma x v2
+                                           ,bv
+                                           )
+      (ConP n pl,VPi y v2 env b) -> do sig <- get 
+                                       let (ConSig t a) = (lookupSig n sig)
+                                       vt <- eval [] t
+                                       (k',rho',gamma',v') <- checkPatterns k rho gamma vt pl
+                                       pv <- eval rho' (patternToExpr p)
+                                       eqVal k' v2 v' 
+                                       vb <- eval (update env y pv) b
+                                       return (k,rho',gamma',vb)
+      (SuccP p2,VPi y v2 env b) -> do (k',rho',gamma',v') <- checkPattern k rho gamma (VPi "" VSize [] Size) p2
+                                      pv <- eval rho' (patternToExpr p)
+                                      eqVal k' v2 v'
+                                      vb <- eval (update env y pv) b
+                                      return (k',rho',gamma',vb)
+      (WildP,VPi y v2 env b) -> do vb <- eval (update env y (VGen k)) b
+                                   return (k+1,rho,gamma,vb) 
+      (DotP e,VPi y v2 env b) -> do checkExpr k rho gamma e v2 
+                                    v' <- eval rho e
+                                    vb <- eval (update env y v') b
+                                    return (k+1,rho,gamma,vb)
       _ -> error $ "checkpattern " ++ show (p,v)
 
-checkRHS :: Signature -> Int -> Env -> Env -> RHS -> Val -> Bool
-checkRHS sig k rho gamma rhs v =
+checkRHS :: Int -> Env -> Env -> RHS -> Val -> TypeCheck Bool
+checkRHS k rho gamma rhs v =
     case rhs of 
-      (AbsurdRHS) -> True
-      (RHS e) -> checkExpr sig k rho gamma e v  
+      (AbsurdRHS) -> return True
+    --  (RHS e) -> error $ "checkExpr " ++ show k ++ "\n" ++ show rho ++ "\n" ++ show gamma ++ "\n" ++ show e ++ "\n" ++ show v 
+      (RHS e) -> checkExpr k rho gamma e v  
       
-
--- check that all clauses have equal number of patterns in left hand side
-getClauseNumPatterns :: [Clause] -> Int
-getClauseNumPatterns [] = error $ "typecheck error : empty clauses"
-getClauseNumPatterns ((Clause (LHS pl) rhs) : xs) =
-    let k = length pl 
-    in checkNumPatterns k xs
-       where 
-         checkNumPatterns k [] = k
-         checkNumPatterns k ((Clause (LHS pl) rhs):xs) = if length pl == k then checkNumPatterns k xs else error $
-                                                         "pattern number mismatch"
-
------
--- test
-
-e1 :: Expr
-e1 = Lam "A" (Lam "x" (Var "x"))
-
-t1 :: Expr
-t1 = Pi (TBind "A" Set) (Pi (TBind "y" (Var "A")) (Var "A"))
-
-e2 = Succ Infty
-t2 = Size
-
-
--- data type 
-
-natSigdef :: SigDef
-natSigdef = DataSig Ind Set 0
-
-zeroSigdef :: SigDef
-zeroSigdef = ConSig (Def "Nat") 0
-
-succSigdef :: SigDef
-succSigdef = ConSig (Fun (Def "Nat") (Def "Nat")) 1
-
-
-bool = DataSig Ind Set 0
-
-tt = ConSig (Def "Bool") 0
-ff = ConSig (Def "Bool") 0
-
-bla = DataSig Ind (Fun (Def "Nat") Set) 1
-
-blub = ConstSig (Pi (TBind"x" (Def "Nat")) Set) 1 (Def "Bla") 
-
-ftype :: Type
-ftype = (Fun (Def "Bool") Set)
-
-fcl1 :: Clause
-fcl1 = (Clause (LHS [ConP "tt" []]) (RHS (Def "Nat")))
-
-fcl2 = (Clause (LHS [ConP "ff" []]) (RHS (Def "Bool")))
-
-f = FunSig Ind ftype 1 [fcl1,fcl2]
-
-
-f2type :: Type
-f2type = (Pi (TBind "x" (Def "Bool")) (App (Def "f") [Def "x"]))
-
-f2cl1 = (Clause (LHS [ConP "tt" []]) (RHS (Con "zero"))) 
-
-f2cl2 = (Clause (LHS [ConP "ff" []]) (RHS (Con "tt")))
-
-f2 = FunSig Ind  f2type 1 [f2cl1,f2cl2]
-      
-
-signatur1 :: Signature
-signatur1 = [("Nat",natSigdef),("zero",zeroSigdef),("succ",succSigdef)
-            ,("Bla",bla),("Blub",blub),("f",f),("f2",f2)]
-
-e3 = Def ("Blub")
-t3 = Fun (Def "Nat") Set
-
-e4 = Con ("zero")
-t4 = Def ("Nat")
-
-e5 = Def "succ"
-t5 = Fun (Def "Nat") (Def "Nat")
-
-e6 = (App (Def "succ") [e4])
-t6 = Def "Nat"
-
-
-
-
-
-test :: Bool
-test = typecheck signatur1 e6 t6
 
