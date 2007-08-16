@@ -10,6 +10,7 @@ import SizeChecker
 import TypeChecker
 import Value
 import Signature
+import Termination
 
 import System
 
@@ -26,11 +27,10 @@ main = do
   -- putStrLn $ show ast
   -- putStrLn $ show ast2
   -- putStrLn $ show b
-  putStrLn "Signature:"
-  putStrLn $ show sig
-  putStrLn "evaluating all constants:" 
+  -- putStrLn "Signature:"
+  -- putStrLn $ show sig
+  _ <- termCheckAll ast2
   showAll sig
-
 
 --evaluate all constants
 
@@ -47,3 +47,11 @@ showAll sig = let ls = map showConst (evalAll sig sig) in
 
 showConst :: (Name,Val) -> String
 showConst (n,v) = n ++ " evaluates to " ++ prettyVal v
+
+termCheckAll :: [Declaration] -> IO Bool
+termCheckAll dl = if (all terminationCheckDecl) dl 
+                  then do
+                    putStrLn $ "All ok"
+                    return True
+                  else
+                      return False
