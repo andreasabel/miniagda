@@ -14,7 +14,9 @@ terminationCheckDecl (FunDecl co funs) =
         nl2 = [ n | (n,b) <- tl , b == False ]
     in
       case (and bl) of
-        True -> trace ("Termination check for " ++ show nl ++ " ok ") True
+        True -> case nl of 
+                  [f] -> trace ("Termination check for " ++ f ++ " ok") True
+                  _ -> trace ("Termination check for " ++ show nl ++ " ok") True
         False -> case nl of
                     [f] -> trace ("Termination check for function " ++ f ++ " fails ") False
                     _   -> trace ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) False
@@ -28,49 +30,10 @@ terminationCheckFuns funs =
     where
       checkCalls = (hasLexOrd . toRecBehaviours ) 
 
-
-flatclause1 = Clause (LHS flatlhs1) (RHS flatrhs1)
-
-flatlhs1 = [ (ConP "nil" [] ) ]
-flatrhs1 = Con "nil"
-
-flatclause2 = Clause (LHS flatlhs2) (RHS flatrhs2)
-
-flatlhs2 = [ (ConP "cons" [VarP "l",VarP "ls" ])] 
-flatrhs2 = App (Def "aux") [Var "l",Var "ls"]
-
-
-auxclause1 = Clause (LHS auxlhs1) (RHS auxrhs1)
-auxlhs1 = [ (ConP "nil") [] , (VarP "ys") ]
-auxrhs1 = App (Def "flat") [Var "ys"]
-
-auxclause2 = Clause (LHS auxlhs2) (RHS auxrhs2)
-auxlhs2 = [ (ConP "cons" [VarP "x",VarP "xs"]) , (VarP "ys")]
-auxrhs2 = App (Con "cons") [ (Var "x"), App (Def "aux") [Var "xs", Var "ys" ]]
-
-flatfuns =  [(TypeSig "flat" Set,[flatclause1,flatclause2]),
-             (TypeSig "aux" Set,[auxclause1,auxclause2])]
-
-flatdecl = FunDecl Ind flatfuns
-
-badfunclauses = [ Clause (LHS [VarP "x"]) (RHS (Var "x"))]
-
-badfun = [(TypeSig "badfun" Set,badfunclauses)] 
-
 --- 
+-- matrix stuff
 
 data SemiRing a = SemiRing { add :: (a -> a -> a) , mul :: (a -> a -> a) , one :: a , zero :: a } 
-
-intRing :: SemiRing Integer
-intRing = SemiRing { add = (+) , mul = (*), one = 1 , zero = 0 }
-
-
-------------------------------------------------------------------------
--- Specific semirings
-
--- | The standard semiring on 'Integer's.
-
---
 
 type Vector a = [a]
 
@@ -101,12 +64,10 @@ diag m = [ (m !! j) !! j | j <- [ 0..s] ]
    where
      s = length (head m) - 1
 
-m1 :: Matrix Integer
-m1 = [[1,0,0],[0,2,0],[0,0,3]]
 
-m2 = madd intRing m1 m1
 
 ---------------
+
 
 data Order = Lt
            | Le
@@ -135,7 +96,6 @@ ordRing :: SemiRing Order
 ordRing = SemiRing { add = max , mul = comp , one = Le , zero = Un }
 
 ---
-
 
 type Index = Name
 
@@ -243,6 +203,7 @@ compareVar n p =
       (SuccP p2) -> comp Lt (compareVar n p2)
       (DotP e) -> Un
       _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p
+
 ----------------
 --lexicrophic ordering
 
