@@ -190,6 +190,7 @@ patternToExpr p =
       ConP n pl -> App (Con n) (map patternToExpr pl)
       SuccP p -> Succ (patternToExpr p)
       DotP e -> e
+      WildP -> Var ""
       _ -> error $ "Pat to expr " ++ show p
 --- Interpreter
 
@@ -282,6 +283,10 @@ eqVal k u1 u2 =
       (VSet,VSet) -> return True
       (VSize,VSize) -> return True
       (VInfty,VInfty) -> return True
+      (VGen k,VInfty) -> trace "infty weakening" $ return True -- typed equality needed ? 
+      (VGen k1,VSucc (VGen k2)) -> trace "weakening " $ return $ k1 == k2 || (error $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 ) 
+      (VSucc k,VInfty) -> trace "infty weakeking2" $ return True
+      -- ^^ experiment
       (VSucc v1,VSucc v2) -> eqVal k v1 v2
       (VApp v1 w1,VApp v2 w2 ) -> do eqVal k v1 v2 
                                      eqVals k w1 w2
@@ -300,7 +305,7 @@ eqVal k u1 u2 =
             eqVal (k+1) v1 v2
       (VDef x,VDef y) -> return $ x == y || (error $ "eqVal VDef " ++ show x ++ " " ++ show y)
       (VCon n1,VCon n2) -> return $ n1 == n2 || (error $ "eqVal VCon " ++ show n1 ++ " " ++ show n2)
-      _ -> error $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
+      _ ->  error $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
 
 eqVals :: Int -> [Val] -> [Val] -> TypeCheck Bool
 eqVals k [] [] = return True
