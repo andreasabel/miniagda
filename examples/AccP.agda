@@ -42,9 +42,9 @@ ltcase : ( x : Nat ) -> ( y : Nat ) -> Lt x (succ y) ->
 ltcase zero zero      _ P hx' hy = hy
 ltcase zero (succ y') _ P hx' hy = hx' zero (ltzero y')
 ltcase (succ x') zero (ltsucc .x' .zero ()) _ _ _
-ltcase (succ x') (succ y') (ltsucc ._ ._ p) P hx' hy = 
+ltcase (succ x') (succ y') (ltsucc .x' .(succ y') p) P hx' hy = 
   ltcase x' y' p (\ n -> P (succ n))
-    (\ x'' p' -> hx' (succ x'') (ltsucc _ _ p')) hy
+    (\ x'' p' -> hx' (succ x'') (ltsucc x'' y' p')) hy
 
 accSucc : (x : Nat) -> Acc Nat Lt x -> Acc Nat Lt (succ x)
 accSucc x (acc .x h) = acc (succ x) (\ y p -> ltcase y x p (Acc Nat Lt) h (acc x h))

@@ -6,21 +6,26 @@ import qualified Data.Set as Set
 import Debug.Trace
 
 
-terminationCheckDecl :: Declaration -> Bool
+import System
+
+terminationCheckDecl :: Declaration -> IO Bool
 terminationCheckDecl (FunDecl co funs) = 
-    let tl = terminationCheckFuns funs
-        nl = map fst tl
-        bl = map snd tl
-        nl2 = [ n | (n,b) <- tl , b == False ]
-    in
-      case (and bl) of
+    do let tl = terminationCheckFuns funs
+           nl = map fst tl
+           bl = map snd tl
+           nl2 = [ n | (n,b) <- tl , b == False ]
+       case (and bl) of
         True -> case nl of 
-                  [f] -> trace ("Termination check for " ++ f ++ " ok") True
-                  _ -> trace ("Termination check for " ++ show nl ++ " ok") True
+                  [f] -> do putStrLn ("Termination check for " ++ f ++ " ok") 
+                            return True
+                  _ -> do putStrLn ("Termination check for " ++ show nl ++ " ok")
+                          return True
         False -> case nl of
-                    [f] -> trace ("Termination check for function " ++ f ++ " fails ") False
-                    _   -> trace ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) False
-terminationCheckDecl _ = True
+                    [f] -> do putStrLn ("Termination check for function " ++ f ++ " fails ") 
+                              return False
+                    _   -> do putStrLn ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2)
+                              return False
+terminationCheckDecl _ = return True
 
 terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [(Name,Bool)]
 terminationCheckFuns funs = 

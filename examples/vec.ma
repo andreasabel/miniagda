@@ -4,7 +4,7 @@ data Nat : Set
 	succ : Nat -> Nat
 }
 
-data Vec ( A : Set ) : Nat -> Set
+data Vec (A : Set) : Nat -> Set
 {
 	nil : Vec A zero;
 	cons : (n : Nat ) -> A -> Vec A n -> Vec A (succ n)

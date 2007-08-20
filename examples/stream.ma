@@ -48,9 +48,8 @@ const two' : Nat = head Nat infty twos
 cofun map' : (A : Set) -> (B : Set) -> (i : Size) ->
           (A -> B) -> Stream A i -> Stream B i
 {
-map' A B (s i) f as = cons A i (f (head A i as)) (map' A B i f (tail A i as))
+map' A B (s i) = \f -> \as -> cons A i (f (head A i as)) (map' A B i f (tail A i as))
 } 
--- INCOMPLETE PATTERN
 
 const twos2 : Stream Nat infty = map' Nat Nat infty ( \ x -> succ x) ones'
 

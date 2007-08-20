@@ -12,7 +12,7 @@ data Pair : Set
 fun left : Pair -> Bool
 {
 
-left (pp x y) = x
+left (pp x y)  = x
 
 }
 

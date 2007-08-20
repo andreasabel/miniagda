@@ -23,7 +23,7 @@ main = do
   let ast = parse t
   let ast2 = scopeCheck ast
   -- let b = sizeCheck ast2
-  let sig = typeCheck ast2
+  sig <- doTypeCheck ast2
   -- putStrLn $ show ast
   -- putStrLn $ show ast2
   -- putStrLn $ show b
@@ -31,13 +31,13 @@ main = do
   -- putStrLn $ show sig
   _ <- termCheckAll ast2
   showAll sig
-
+  return ()
 --evaluate all constants
 
 evalAll :: Signature -> Signature -> [(Name,Val)]
 evalAll sig [] = []
 evalAll sig ((n,def):xs) = case def of
-                        (ConstSig t a e) -> (n,runEval sig emptyEnv e):(evalAll sig xs)
+                        (ConstSig t e) -> (n,runEval sig emptyEnv e):(evalAll sig xs)
                         _ -> evalAll sig xs 
 
 
@@ -48,10 +48,14 @@ showAll sig = let ls = map showConst (evalAll sig sig) in
 showConst :: (Name,Val) -> String
 showConst (n,v) = n ++ " evaluates to " ++ prettyVal v
 
-termCheckAll :: [Declaration] -> IO Bool
-termCheckAll dl = if (all terminationCheckDecl) dl 
-                  then do
-                    putStrLn $ "All ok"
-                    return True
-                  else
-                      return False
+termCheckAll :: [Declaration] -> IO ()
+termCheckAll dl = do _ <- mapM terminationCheckDecl dl 
+                     return  ()
+
+doTypeCheck :: [Declaration] -> IO Signature
+doTypeCheck decl = do putStrLn $ "Typechecking ... "
+                      let sig = typeCheck decl
+                      _ <- if (length sig > 0) then 
+                               putStrLn $ "TypeChecking ok" 
+                           else return ()
+                      return sig

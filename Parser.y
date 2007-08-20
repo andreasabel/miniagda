@@ -140,7 +140,7 @@ LHS :: { A.LHS }
 LHS : Patterns { A.LHS (reverse $1) }
 
 Patterns :: { [A.Pattern] }
-Patterns : Pattern { [$1] }
+Patterns : {- empty -} { [] }
     | Patterns Pattern { $2 : $1 }
 
 Pattern :: { A.Pattern }

@@ -5,9 +5,9 @@ import Abstract
 type Signature = [(Name,SigDef)] 
 
 data SigDef = FunSig Co Type Int [Clause] --type , co , arity , clauses
-            | ConstSig Type Int Expr -- type , arity 
-            | ConSig Type Int -- type , arity  
-            | DataSig Co Type Int -- parameters, co , type , arity 
+            | ConstSig Type Expr -- type , expr 
+            | ConSig Type -- type   
+            | DataSig Co Type -- parameters, co , type  
               deriving (Show)
 
 emptySig = []

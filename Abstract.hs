@@ -72,9 +72,3 @@ typeToTele t = ttt t []
       ttt x tel = (tel,x)                          
 
 ----
-
-arity :: Type -> Int
-arity t = case t of 
-            (Fun e1 e2) -> 1 + arity e2
-            (Pi t e2) -> 1 + arity e2
-            _ -> 0

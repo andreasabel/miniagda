@@ -8,6 +8,8 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
 
+import Debug.Trace
+
 -- reader monad for local environment (not used right now)
 -- state monad for global signature
 type TypeCheck a = ReaderT Env (StateT Signature Identity) a
@@ -25,19 +27,20 @@ typeCheckDecls (d:ds) = do typeCheckDeclaration d
 
 typeCheckDeclaration :: Declaration -> TypeCheck ()
 typeCheckDeclaration (DataDecl n co tel t cs) = 
-    do sig <- get
+   
+    do sig <-  trace ("TypeChecking data " ++ show n) get
        let dt = (teleToType tel t) 
        checkType 0 [] [] dt 
-       put (addSig sig n (DataSig co dt (arity dt)))
-       mapM (typeCheckConstructor tel) cs
+       put (addSig sig n (DataSig co dt))
+       mapM (typeCheckConstructor n tel dt) cs
        return ()
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs 
 typeCheckDeclaration (ConstDecl (TypeSig n t) e ) = 
-    do sig <- get
+    do sig <-  trace ("TypeChecking const " ++ show n) get
        checkType 0 [] [] t 
        vt <- eval [] t
        checkExpr 0 [] [] e vt
-       put (addSig sig n (ConstSig t (arity t) e))
+       put (addSig sig n (ConstSig t e))
        return ()
 
 typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck()
@@ -47,38 +50,73 @@ typeCheckFuns co funs = do typeCheckFunSig funs
     typeCheckFunSig :: [(TypeSig,[Clause])] -> TypeCheck ()
     typeCheckFunSig [] = return ()
     typeCheckFunSig ((TypeSig n t,cl):rest) = 
-        do sig <- get
-           put (addSig sig n (FunSig co t (arity t) cl))
+        do sig <- trace ("TypeChecking type of " ++ show n) get
+           ar <- arity co t cl
+           put (addSig sig n (FunSig co t ar cl))
            typeCheckFunSig rest
     typeCheckFunClause :: [(TypeSig,[Clause])] -> TypeCheck ()
     typeCheckFunClause [] = return ()
     typeCheckFunClause ((TypeSig n t,cl):rest) =
-        do sig <- get
+        do sig <-  trace ("TypeChecking clauses of " ++ show n) get
            checkFun t cl 
            typeCheckFunClause rest         
                 
-typeCheckConstructor :: Telescope -> Constructor -> TypeCheck ()
-typeCheckConstructor tel (TypeSig n t) = do sig <- get
-                                            let tt = teleToType tel t
-                                            checkType 0 [] [] tt
-                                            put (addSig sig n (ConSig tt (arity tt))) -- TODO check target
-                                            return ()
+typeCheckConstructor :: Name -> Telescope -> Type -> Constructor -> TypeCheck ()
+typeCheckConstructor d tel target (TypeSig n t) = do sig <- trace ("TypeChecking constructor " ++ n) get 
+                                                     let tt = teleToType tel t
+                                                     checkType 0 [] [] tt
+                                                     checkTarget d tel target tt 
+                                                     put (addSig sig n (ConSig tt)) 
+                                                     return ()
 
+checkTarget :: Name -> Telescope -> Type -> Type -> TypeCheck()
+checkTarget d tel dt c = return () -- TODO check constructor arguments and target
 
+-- for inductive data types, the number of clauses is sufficient
+arity :: Co -> Type -> [Clause] -> TypeCheck Int
+arity co t cl = do x <- arityClauses cl 
+                   y <- case x of
+                          Nothing -> error $ "error : pattern length mismatch"
+                          Just k -> case co of 
+                                      Ind -> return $ k
+                                      CoInd -> arityType t
+                   return y
+
+arityType :: Type -> TypeCheck Int
+arityType t = do case t of 
+                   (Fun e1 e2) -> do x <- arityType e2
+                                     return $ x + 1 
+                   (Pi t e2) -> do x <- arityType e2
+                                   return $ x + 1
+                   _ -> return 0
+
+-- have to use this ?
+arityVType :: Val -> TypeCheck Int
+arityVType v = case v of
+                 (VPi n v2 env e) -> do v3 <- eval env e 
+                                        k <- arityVType v3 
+                                        return $ k + 1
+                 _ -> return 0
 
 -- check that patterns have the same length, return length
-checkClauses :: Name -> [Clause] -> Int
-checkClauses n [] = error $ "no clauses in " ++ n 
-checkClauses n ((Clause (LHS pl) rhs):cl) = checkLength (length pl) cl 
+arityClauses :: [Clause] -> TypeCheck (Maybe Int)
+arityClauses [] = error $ "error : empty clause list"  
+arityClauses ((Clause (LHS pl) rhs):cl) = checkLength (length pl) cl 
     where 
-      checkLength i [] = i
-      checkLength i ((Clause (LHS pl) rhs):xs) = if (length pl) == i then checkLength i xs else error $ "checkClause " ++ n ++ " size of patterns differ" 
+      checkLength i [] = return $ Just i
+      checkLength i ((Clause (LHS pl) rhs):xs) = do let x =(length pl) 
+                                                    case (x == i) of
+                                                      True ->
+                                                          checkLength i xs 
+                                                      False ->
+                                                        return Nothing 
                                         
               
 ---- Pattern Matching ----
 
 matches :: Pattern -> Val -> Bool
 matches p v = case (p,v) of
+                (_,VGen _) -> False
                 (VarP x,_) -> True
                 (ConP x [],VCon y) -> x == y
                 (ConP x pl,VApp (VCon y) vl) -> x == y && matchesList pl vl
@@ -162,20 +200,28 @@ fapp env x v e vl = do v' <- eval (update env x v) e
 app :: Val -> [Val] -> TypeCheck Val
 app u v = case (u,v) of
             (VApp u2 v2,_) -> app u2 (v2 ++ v)
-            (_,[]) -> return u
             (VLam x env e,(v:vl)) -> fapp env x v e vl
             (VPi  x _ env e,(v:vl)) -> fapp env x v e vl
             (VDef n,_) -> appDef n v
+            (_,[]) -> return u
             _ -> return $ VApp u v
 
 -- unroll a corecursive object once
 force :: Val -> TypeCheck Val
+force v@ (VDef n) = 
+    do sig <- get
+       case lookupSig n sig of
+         (FunSig CoInd t arity cl) | arity <= 0 -> do m <- matchClauses n cl []
+                                                      case m of
+                                                        Nothing -> return v
+                                                        Just v2 -> return v2
+         _ -> return v 
 force v@(VApp (VDef n) vl) =
     do sig <- get
        case lookupSig n sig of
          (FunSig CoInd t arity cl) | arity <= (length vl) -> do m <- matchClauses n cl vl
                                                                 case m of 
-                                                                  Nothing -> return $ VApp (VDef n) vl
+                                                                  Nothing -> return v
                                                                   Just v2 -> return v2
          _ -> return v
 force v = return v
@@ -193,7 +239,9 @@ appDef n vl =
                                                                     case m of
                                                                       Nothing -> return $ VApp (VDef n) vl
                                                                       Just v2 -> return v2
-        _ -> return $ VApp (VDef n) vl   
+        _ -> case vl of 
+               [] -> return $ VDef n  
+               _ -> return $ VApp (VDef n) vl   
 
 
 vsucc :: Val -> Val
@@ -213,7 +261,7 @@ eval env e = case e of
                                app v1 v2
                Def n -> return $ VDef n
                Const n -> do sig <- get 
-                             let (ConstSig t a e) = lookupSig n sig 
+                             let (ConstSig t e) = lookupSig n sig 
                              eval env e 
                Var y -> return $ lookupEnv env y
                Lam n e2 -> return $ VLam n env e2
@@ -292,23 +340,23 @@ inferExpr k rho gamma e =
             v <- inferExpr k rho gamma e1
             case v of
                VPi n w env e3 ->  do checkExpr k rho gamma e2 w 
-                                     v2 <- eval rho e2
+                                     v2 <- (eval rho e2)
                                      fapp env n v2 e3 [] 
                _ -> error $ "inferExp : expected Pi with expression : " ++ show e1 
  
       App e1 (e2:el) -> inferExpr k rho gamma (App (App e1 [e2]) el)  
       (Def n) -> do sig <- get 
                     case (lookupSig n sig) of
-                      (DataSig _ t _) -> eval rho t
+                      (DataSig _ t) -> eval rho t
                       (FunSig _ t _ _) -> eval rho t
                       _ -> error $ "bla" ++ show n
       (Con n) -> do sig <- get
                     case (lookupSig n sig) of
-                      (ConSig t a) -> eval rho t
-                      _ -> error $ "imposibble " 
+                      (ConSig t) -> eval rho t
+                      _ -> error $ "impossible " 
       (Const n) -> do sig <- get 
                       case (lookupSig n sig) of
-                        (ConstSig t a e) -> eval rho t
+                        (ConstSig t e) -> eval rho t
       _ -> error $ "cannot infer type " ++ show e
 
       
@@ -350,7 +398,7 @@ checkPattern k rho gamma v p =
                                            ,bv
                                            )
       (ConP n pl,VPi y v2 env b) -> do sig <- get 
-                                       let (ConSig t a) = (lookupSig n sig)
+                                       let (ConSig t) = (lookupSig n sig)
                                        vt <- eval [] t
                                        (k',rho',gamma',v') <- checkPatterns k rho gamma vt pl
                                        pv <- eval rho' (patternToExpr p)
@@ -368,13 +416,13 @@ checkPattern k rho gamma v p =
                                     v' <- eval rho e
                                     vb <- eval (update env y v') b
                                     return (k+1,rho,gamma,vb)
-      _ -> error $ "checkpattern " ++ show (p,v)
+      (AbsurdP,_) -> return (k,rho,gamma,v)
+      _ -> error $ "checkpattern " ++ show p ++ " @ " ++ show v
 
 checkRHS :: Int -> Env -> Env -> RHS -> Val -> TypeCheck Bool
 checkRHS k rho gamma rhs v =
     case rhs of 
       (AbsurdRHS) -> return True
-    --  (RHS e) -> error $ "checkExpr " ++ show k ++ "\n" ++ show rho ++ "\n" ++ show gamma ++ "\n" ++ show e ++ "\n" ++ show v 
       (RHS e) -> checkExpr k rho gamma e v  
       
 
