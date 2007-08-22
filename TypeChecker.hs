@@ -283,10 +283,6 @@ eqVal k u1 u2 =
       (VSet,VSet) -> return True
       (VSize,VSize) -> return True
       (VInfty,VInfty) -> return True
-      (VGen k,VInfty) -> trace "infty weakening" $ return True -- typed equality needed ? 
-      (VGen k1,VSucc (VGen k2)) -> trace "weakening " $ return $ k1 == k2 || (error $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 ) 
-      (VSucc k,VInfty) -> trace "infty weakeking2" $ return True
-      -- ^^ experiment
       (VSucc v1,VSucc v2) -> eqVal k v1 v2
       (VApp v1 w1,VApp v2 w2 ) -> do eqVal k v1 v2 
                                      eqVals k w1 w2
