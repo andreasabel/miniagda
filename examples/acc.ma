@@ -16,6 +16,7 @@ data Lt : Nat -> Nat -> Set
   ltzero : (y : Nat) -> Lt zero (succ y) ;
   ltsucc : (x : Nat) -> (y : Nat) -> Lt x y -> Lt (succ x) (succ y)
 }
+
 fun notLt0 : (x : Nat) -> Lt x zero -> (C : Set) -> C
 {
 notLt0 x  () C 

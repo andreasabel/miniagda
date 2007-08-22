@@ -5,6 +5,36 @@
 \usepackage{graphicx}
 
 \newcommand{\vsp}{\;\vert\;}
+\newcommand{\Set}{\mathbf{Set}}
+\newcommand{\s}{\mathbf{s}\;}
+\newcommand{\Size}{\mathbf{Size}}
+\newcommand{\EPi}[3]{( #1 : #2 ) \rightarrow #3} 
+\newcommand{\data}{\mathrm{data}\;}
+\newcommand{\fun}{\mathrm{fun}\;}
+\newcommand{\codata}{\mathrm{codata}\;}
+\newcommand{\cofun}{\mathrm{cofun}\;}
+\newcommand{\const}{\mathrm{const}\;}
+\newcommand{\mutual}{\mathrm{mutual}\;}
+\newcommand{\lam}{\lambda}
+
+\newcommand{\Nat}{\mathbf{Nat}\;}
+\newcommand{\zero}{\mathbf{zero}\;}
+\newcommand{\suc}{\mathbf{succ}\;}
+\newcommand{\add}{\mathbf{add}\;}
+
+\newcommand{\Bool}{\mathbf{Bool}\;}
+\newcommand{\ttt}{\mathbf{tt}\;}
+\newcommand{\fff}{\mathbf{ff}\;}
+
+\newcommand{\List}{\mathbf{List}\;}
+\newcommand{\nil}{\mathbf{nil}\;}
+\newcommand{\cons}{\mathbf{cons}\;}
+
+
+\newcommand{\ra}{\rightarrow}
+
+\newcommand{\spc}{~~~}
+\renewcommand{\labelitemi}{$\star$}
 
 \begin{document}
 \begin{titlepage}
@@ -25,11 +55,9 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 {\Large \textbf{Diploma thesis}}\\
 
 \vspace{2.0cm}
-{\Huge \textbf{Termination Checking}}\\
+{\Huge \textbf{Termination Checking for a}}\\
 \vspace*{3mm}
-{\Huge \textbf{and}}\\
-\vspace*{3mm}
-{\Huge \textbf{Dependent Types}}\\
+{\Huge \textbf{dependently typed language}}\\
 
 \vspace{2cm}
 
@@ -48,7 +76,7 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \input{legal}
 
-\title{Termination Checking and Dependent Types}
+\title{Termination Checking for a dependently typed language}
 \author{Karl Mehltretter}
 \date{today}
 
@@ -66,10 +94,10 @@ through the type sytem. As dependend types already offer annotations through the
 Sized types play to their strength with higher order data types.
 Types like infinitly branchings trees, which are often needed in theorem proving, can be handeled by sized types.
 
-To this end, a prototype theorem prover loosly based based on the theorem prover Agda was implemented.
+To this end, a prototype theorem prover loosly inspired by the theorem prover Agda2 was implemented.
 
-As termination is to inductive functions, productivity is wanted for coinductive functions.
-The implementation was extended to handle coinducitve data types and functions.
+As termination is to inductive functions, productivity is wantend for coinductive functions.
+The implementation was extended to handle coinductive definitions.
 \end{abstract}
 
 \tableofcontents

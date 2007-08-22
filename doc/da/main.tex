@@ -1,22 +1,287 @@
 \chapter{MiniAgda}
+
+\newcommand{\dd}{\mathbf{d}}
+\newcommand{\DD}{\mathbf{D}}
+\newcommand{\cc}{\mathbf{c}}
+\newcommand{\ff}{\mathbf{f}}
+
+
 \section{Syntax}
-
-\[ e := \lambda x . e \vsp \Pi x : e . e \vsp e \; e \vsp \ Set \vsp C \vsp c \vsp f \]
-
-\[ d := data \; n \; tel \; \vsp fun \; n \; e \; cl \vsp con \; n \; e \; e  \]
-
-
+Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
+and $\diamond$ denote the empty list.
+Int the following, these identifiers are used:
+\begin{itemize}
+\item for constructors : $\cc$ 
+\item for data typs : $\DD$
+\item for functions : $\ff$
+\item for definied constants : $\dd$
+\item for variables : $x$
+\end{itemize}
+Now the various syntactical categories can be definied.
+\\
+Expressions (terms and types) $e,t$:  
+\begin{itemize}
+\item
+abstraction: $ \lam x . e $ 
+\item
+dependent function space: $\EPi{x}{t}{t}$ 
+\item 
+application: $ e \; \vec{e} $ 
+\item
+type of all types: $ \Set $ 
+\item
+size type: $ \Size $ 
+\item
+size succesor: $\s e $ 
+\item
+infinity: $\infty$ 
+\item
+variables: $x$
+\item
+defined constructors, data types, functions and constants:
+$ \cc \vsp \DD \vsp \ff \vsp \dd$
+\end{itemize}
+Patterns $p$:
+\begin{itemize}
+\item
+variable pattern: $x$ 
+\item
+constructor pattern:$ \cc \; \vec{p} $ 
+\item
+size succesor pattern:$ \s p $ 
+\item
+dot pattern: $ . \; e $ 
+\item
+absurd pattern: $()$
+\end{itemize}
+Declarations $\delta$:
+\begin{itemize}
+\item
+inductive datatype: 
+\[\data \; \DD \; \tau : t \; \vec{\gamma}\]  
+\item
+coinductive datatype:
+\[\codata \; \DD \; \tau : t \; \vec{\gamma}\]  
+\item
+inductive function:
+\[\fun \; \ff \; : \; t \; \vec{\kappa}\]
+\item
+coinductive function:
+\[\cofun \; \ff \; : \; t \; \vec{\kappa}\]
+\item
+constant:
+\[\const \;  \dd \; : t \; = \; e \]
+\item
+mutual declaration:
+\[\mutual \; \vec{\delta}\]
+\end{itemize}
+Constructor definitions $\gamma$:
+\begin{itemize}
+\item
+$ \cc \; : \; t $ 
+\end{itemize}
+Function clause definitions: $ \kappa $
+\begin{itemize}
+\item
+normal clauses: $ \ff \; \vec{p} = e $
+\item
+absurd clauses : $ \ff \; \vec{p} $
+\end{itemize}
+Telescopes:
+\[ \tau := \diamond \vsp ( x : t ) \; \tau \]
+A MiniAgda program consists of a list of declarations.
 \section{Examples}
+\subsection{Booleans}
+$\data \Bool : \Set$ 
+\\
+$\ttt : \Bool $
+\\
+$\fff : \Bool $
+\subsection{Natural Numbers}
+First we declare the type of natural numbers:
+\begin{quote}
+$\data \Nat : \Set$ 
+\\
+$\zero : \Nat $
+\\
+$\suc : \Nat \ra \Nat $
+\end{quote}
+then we declare the addition function:
+\begin{quote}
+$\fun \add : \Nat \ra \Nat \ra \Nat$
+\\
+$\add x \; \zero = x $
+\\
+$\add x (\suc y) = \suc ( \add x \; y)  $
+\end{quote}
+\subsection{Lists}
+\begin{quote}
+$\data \List ( A : \Set ) : \Set $ 
+\\
+$\nil : \List A  $
+\\
+$\cons : A \ra \List A \ra \List A $
+\end{quote}
+\subsection{Sized Lists}
+\begin{quote}
+$\data \List ( A : \Set ) : \Size \ra \Set $ 
+\\
+$\nil : \EPi{i}{\Size}{ \List A \; (\s i)} $
+\\
+$\cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
+\end{quote}
 
-the type of natural numbers is given by the declaration:
+\section{Universes}
+To keep MiniAgda simple, $\Set$ is the type of all types.
+The judgement is
+\[\Set : \Set \]
+This is known to be inconsistent.
+\section{Missing features}
+Due to its use for interactivly building proofs, the full Agda has meta-variables that represent parts of tge proof that are still misssing. These 
+Also, many bookkeeping arguments can be easily infered by the type checker,easying tedious pain for the user.
+The user can mark these arguments as \emph{implicit}. The type checker will automatically infer them.
+To keep MiniAgda simple, these features were not implemented.
 
-\[ data \; Nat \; : \; Set \{ zero \; : \; Nat \vsp succ \; : \; Nat \rightarrow Nat \} \]
+\section{Interpretation of the Size type}
+One may see the size type as a coniductive data type - the dual to natural numbers, the conatural numbers.
 
-\section{Bidirectional Type Checking}
-a
+\section{Subtyping for size}
+It would be quite nice to have subtyping.
+There is naturall order on size expressions.
+
+\section{Type Checking}
+\subsection{Values}
+Values are the semantical interpretation of expressions.
+Values are in weak head normal form.
+For the interpretation of abstraction and the depentend function space, closures are used.
+Values:
+\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \lam x . e \; \rho \vsp \EPi{x}{v}{e} \; \rho\]
+Environments:
+\[ \rho := \diamond \vsp (x,v) \rho \]
+
+\subsection{Computation during type checking}
+First of all, as types can depent on terms, it becomes necessary to perfom computation on terms during type checking.
+The mutually recursive pair of functions 
+\textbf{eval} and \textbf{app} does the job.
+eval computes the weak head normal form of a expression.
+\subsection{Bidirectional type checking} 
+For depentend types, a practice called \emph{bidirectional type checking} is used.
+This means that the type checker has two modes:
+one for checking that an expression has a certain type and one for infering the type of an expression.
+These modes are again implement as functions
+\[ \mathrm{checkExpr} \]
+
+and
+
+\[ \mathrm{inferExrp} \]
+in checking mode, the type checker might have to infer the type of the expression and then check that the infered
+type is equal (convertible) against the proposed type.
+
+Also, it's convenient to have a function $ \mathrm{checkType} $
+which checks that an expression is a type, i.e has type $\Set$.
+
+so one needs equality between values, which is handled by the function
+
+\[ \mathrm{eqVal} \]
+
+\subsection{Checking declarations}
+\subsubsection{Datatype declarations}
+\subsubsection{Function declarations}
+
+\subsubsection{Constant declaration}
+
 \section{Pattern matching}
-a
+
+the patterns for all the clauses of a function are assumed to be complete. This means that during runtime
+it is guaranteed that matching always succeeds.
+
+\subsection{Matching against infinity}
+The equation 
+
+\[ s \infty = \infty \]
+
+needs to be taken into account when evaluating a function application.
+So whhen the pattern $ s \; x $ is matches against $ \infty $ , $x$ will be bound to $ \infty $  
+
+\subsection{Absurd Pattern}
+There arises the need to specify that a certain case cannot happen at runtime.
+So you can use the absurd pattenr $ () $ to indicate that the type of the argument expected here is the empty type.
+This needs to be checked during type checking. Emptiness checking of types is unddeciable.
+Consider defining the $ < $ relation on natural numbers.
+
+\begin{verbatim}
+data Lt : Nat -> Nat -> Set
+{
+  ltzero : (y : Nat) -> Lt zero (succ y) ;
+  ltsucc : (x : Nat) -> (y : Nat) -> Lt x y -> Lt (succ x) (succ y)
+}
+
+\end{verbatim}
+
+As we know,no natural number is less than zero.
+Now, for some $x$, if we have a proof that $x$ is smaller smaller zero, we can proof everything (ex falso quodlibet)
+This can be formalized as:
+
+\begin{verbatim}
+fun notLt0 : (x : Nat) -> Lt x zero -> (C : Set) -> C
+{
+notLt0 x  () C 
+}
+\end{verbatim}
+So it has to be checked that the type Lt x zero is really empty.
+
+\subsection{Dot Pattern}
+Also you need to be able to tell the type checker that you know exactly the argument value for this pattern during runtime,if the application is type correct.
+In the dot pattern $ . e $ the expression $ e $ may contain variables used in the remaming patterns of the clause.
+
+For example, consider the isZero function for sized natural numbers
+
+\begin{verbatim}
+
+fun isZero : (i : Size ) -> Nat i -> Bool
+{
+
+isZero i (zero .i) = tt;
+isZero (s i) (succ .i x) = ff
+}
+\end{verbatim}
+We just know that the size index that the sized natural numbers carry around equals their size.
+
 \section{Admissibility}
-a
+
+\subsection{Motivation}
+The use of sizes needs to be constraint.
+Consire for example the function definition
+
+\[ \mathrm{fun} \mathrm{bad} : Size -> Size \]
+\[ \mathrm{bad} (s i) = i \]
+
+The termination checker will hapilly tell you that bad is terminating.
+The issue here is that the size argument is not really bound to any sized data type.
+But there are more subtile difficulties with using the size type.
+See the example in the appendix, due to A. Abel,
+the type of the function shift
+
+\[ (i : Size) \rightarrow (Nat \rightarrow Maybe (SNat (s i))) \rightarrow Nat \rightarrow Maybe (SNat i) \] 
+
+needs to be rejected by an admissibility checker.
+
+
 \section{Implementation}
-a
+
+MiniAgda was implemented in the function language Haskell.
+The alex and happy tools where used for generating lexer and parser.
+
+\subsection{Scope checking}
+The first step after parsing is scope checking. This checks that names are used correctly:
+all declared constants should have a uniquie name and variables bound by 
+The use of linear patterns is also restricted at scope checking.
+Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
+function.
+After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+\subsection{Type Checking}
+Type checking was implemented as explained above.
+\subsection{Addmisibility Checking}
+
+\subsection{Termination Checking}
+The foetus checker is used to check that arguments are structurally recursive.

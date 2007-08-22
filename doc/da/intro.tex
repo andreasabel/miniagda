@@ -12,7 +12,14 @@ in untyped lambda calculus, there are non-terminating terms, for example the fam
 \section {Curry Howard Isomorphism}
 The Curry Howard Isomorphism relates theorem proving to functional programming.
 \section{Agda}
+
+Agda is a family of theorem proovers from Chalmers Tu.
+The current Agda2 version is developed by Ulf Norell.
+Agda2 allows general recursive functions to be defined by pattern matching.
+
 \section {Termination checking}
 Termination checking is especially important for theorem proving.
-
+One might easily have a proof that looks correct, but is none because the proof seen as a function
+via the Curry-Howard isomorpism is non terminating.
+A function defined by the equation $ f x = f x $ is a proof for every proposition.
 
