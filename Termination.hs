@@ -160,6 +160,7 @@ collectNames [] = []
 collectNames ((TypeSig n e):rest) = n : collectNames rest
 
 
+-- pre : all clauses have same pattern length
 collectCallsExpr :: [Name] -> Name -> [Pattern] -> Expr -> [Call]
 collectCallsExpr nl f pl e =
     case e of
@@ -171,10 +172,7 @@ collectCallsExpr nl f pl e =
                                 True -> let m = compareArgs pl args in 
                                         (Call {source = f , target = g , matrix = m}):calls
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
-      (App _ args) -> concatMap (collectCallsExpr nl f pl) args
-                   
-
-        
+      (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)           
       (Lam _ e1) -> collectCallsExpr nl f pl e1
       (Pi (TBind _ e1) e2) -> (collectCallsExpr nl f pl e1) ++ 
                               (collectCallsExpr nl f pl e2)
@@ -186,8 +184,14 @@ collectCallsExpr nl f pl e =
 
 compareArgs :: [Pattern] -> [Expr] -> Matrix Order
 compareArgs [] [] = [[]]
-compareArgs pl el = map (\ e -> map (compareExpr e) pl ) el
-
+compareArgs pl el = let ar = length pl
+                        na = length el
+                        uns = max (ar - na) 0
+                        -- ignore too many arguments, fill up with unknown if too few
+                        m1 = map (\ e -> (map (compareExpr e) pl)) (take ar el)
+                        m2 = m1 ++ (replicate uns (replicate ar Un))
+                    in
+                      m2
 compareExpr :: Expr -> Pattern -> Order
 compareExpr e p =  
     case (e,p) of 
