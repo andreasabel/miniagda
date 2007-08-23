@@ -170,6 +170,7 @@ collectCallsExpr nl f pl e =
                                 False -> calls
                                 True -> let m = compareArgs pl args in 
                                         (Call {source = f , target = g , matrix = m}):calls
+      (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
       (App _ args) -> concatMap (collectCallsExpr nl f pl) args
                    
 
@@ -184,6 +185,7 @@ collectCallsExpr nl f pl e =
 
 
 compareArgs :: [Pattern] -> [Expr] -> Matrix Order
+compareArgs [] [] = [[]]
 compareArgs pl el = map (\ e -> map (compareExpr e) pl ) el
 
 compareExpr :: Expr -> Pattern -> Order
@@ -222,6 +224,10 @@ testm1 = [ [ Le , Lt , Un ] , [ Le , Le , Lt ] , [ Le , Lt , Le ] ]
 testm2 = [ [ Le ]]
 
 testm3 = [ [Lt,Le ] , [Un , Lt ]]
+
+testm4 = [ [] ]
+
+testm5 = []
 
 okColumn :: [Order] -> Bool
 okColumn v = any (== Lt) v && not (any (== Un) v) 
