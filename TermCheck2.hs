@@ -37,17 +37,26 @@ terminationCheckFuns funs =
 
 type Edge = (Int,Order,Int)
 
-data CallGraph = CG { source :: Name , target :: Name , edges :: [Edge] }
-               deriving (Eq,Show,Ord)
+type Path = [Name]
+
+data CallGraph = CG { source :: Name , target :: Name , edges :: Set.Set Edge , path :: Path }
+               deriving (Show)
+
+instance Eq CallGraph where
+    (CG s t e _) == (CG s2 t2 e2 _) = (s,t,e) == (s2,t2,e2)  
+
+instance Ord CallGraph where
+    (CG s t e _) <= (CG s2 t2 e2 _) = (s,t,e) <= (s2,t2,e2) 
 
 composeCG :: CallGraph -> CallGraph -> CallGraph
 composeCG cg1 cg2 =  
         let l3 = [ ( s1 , comp o1 o2 , t2 ) 
-                       | (s1,o1,t1) <- edges cg1 , (s2,o2,t2) <- edges cg2 , t1 == s2 ]
-        in  CG { source = (source cg1) , target = (target cg2) , edges = l3 }
+                       | (s1,o1,t1) <- Set.toList $ edges cg1 , (s2,o2,t2) <- Set.toList $ edges cg2 , t1 == s2 ]
+        in  CG { source = (source cg1) , target = (target cg2) , edges = Set.fromList l3 , path = (path cg1) ++ (path cg2)}
 
 cgComb :: Set.Set CallGraph -> Set.Set CallGraph -> Set.Set CallGraph
-cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 | c1 <- (Set.toList cg1) , c2 <- (Set.toList cg2) , (source c1 == target c2)])
+cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 | c1 <- (Set.toList cg1) , c2 <- (Set.toList cg2) , (target c1 == source c2)])
+
 
 complete :: Set.Set CallGraph -> Set.Set CallGraph
 complete cg = let cg' = Set.union cg (cgComb cg cg) in
@@ -59,7 +68,7 @@ checkAll x = all checkIdem x
 
 checkIdem :: CallGraph -> Bool
 checkIdem cg = let cgcg = composeCG cg cg 
-                   el = edges cg
+                   el = Set.toList $ edges cg
                    containsDecr = any isDecr el
                    in (not (cg == cgcg)) || containsDecr 
 
@@ -104,8 +113,8 @@ collectCallsExpr nl f pl e =
                               case gIn of
                                 False -> calls
                                 True -> let m = compareArgs pl args 
-                                            el = matrixToEdges m
-                                            cg = CG { source = f , target =  g , edges = el}
+                                            el = Set.fromList $ matrixToEdges m
+                                            cg = CG { source = f , target =  g , edges = el , path = ["<" ++ f ++ g ++ ">" ]}
                                         in                                         
                                           cg:calls
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
