@@ -19,15 +19,15 @@ and tt b = b ;
 and ff b = ff
 }
 
-data Ty : Nat -> Set 
+data Ty : Set 
 {
-base : ( n : Nat ) -> Ty (succ n);
-arr : ( n : Nat ) -> Ty n -> Ty n -> Ty (succ n)
+base : Ty;
+arr : Ty -> Ty -> Ty
 }
 
-fun subty : ( n : Nat ) -> Ty n -> Ty n -> Bool
+fun subty : Ty -> Ty -> Bool
 {
-subty (succ n) (base .n) (base .n) = tt;
-subty (succ n) (arr .n x y) (arr .n x' y') = and (subty n x' x) (subty n y y');
-subty _ _ _ = ff
+subty base base = tt;
+subty (arr x x') (arr y y') = and (subty y x) (subty x' y') ;
+subty _ _ = ff
 }

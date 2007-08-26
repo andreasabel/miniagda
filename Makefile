@@ -1,6 +1,6 @@
 # Makefile for miniagda
 
-files=Tokens Lexer Parser Abstract ScopeChecker SizeChecker TypeChecker Value Signature Termination
+files=Tokens Lexer Parser Abstract ScopeChecker SizeChecker TypeChecker Value Signature Termination TermCheck1 TermCheck2
 hsfiles=$(foreach file,$(files),$(file).hs)
 
 default : Main

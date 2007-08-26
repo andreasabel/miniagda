@@ -10,7 +10,7 @@ import SizeChecker
 import TypeChecker
 import Value
 import Signature
-import Termination
+import TermCheck2
 
 import System
 
@@ -49,7 +49,7 @@ showConst :: (Name,Val) -> String
 showConst (n,v) = n ++ " evaluates to " ++ prettyVal v
 
 termCheckAll :: [Declaration] -> IO ()
-termCheckAll dl = do _ <- mapM terminationCheckDecl dl 
+termCheckAll dl = do _ <- mapM terminationCheckDecl dl
                      return  ()
 
 doTypeCheck :: [Declaration] -> IO Signature

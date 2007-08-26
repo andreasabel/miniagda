@@ -5,7 +5,8 @@
 \newcommand{\cc}{\mathbf{c}}
 \newcommand{\ff}{\mathbf{f}}
 
-
+MiniAgda is a small experimental version of Agda.
+The current version of Agda is described by Ulf Norell in his thesis \cite{norell:thesis}.
 \section{Syntax}
 Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
 and $\diamond$ denote the empty list.
@@ -91,6 +92,11 @@ Telescopes:
 \[ \tau := \diamond \vsp ( x : t ) \; \tau \]
 A MiniAgda program consists of a list of declarations.
 \section{Examples}
+\subsection{Identity function}
+as this functon is not recursive, it can be defined as a const.
+this is not really a polymorphic identity function, as you have to supply the
+type as the first argument.
+$\const id : \EPi{A}{\Set}{A \ra A} = \lam a \lam x . ; x$   
 \subsection{Booleans}
 $\data \Bool : \Set$ 
 \\
@@ -106,7 +112,7 @@ $\zero : \Nat $
 \\
 $\suc : \Nat \ra \Nat $
 \end{quote}
-then we declare the addition function:
+then we declare the addition function by pattern matching:
 \begin{quote}
 $\fun \add : \Nat \ra \Nat \ra \Nat$
 \\
@@ -191,8 +197,8 @@ so one needs equality between values, which is handled by the function
 \subsubsection{Constant declaration}
 
 \section{Pattern matching}
-
-the patterns for all the clauses of a function are assumed to be complete. This means that during runtime
+Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92pattern}.
+The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
 it is guaranteed that matching always succeeds.
 
 \subsection{Matching against infinity}
