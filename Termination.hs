@@ -72,6 +72,11 @@ compareExpr' e p =
                                            else
                                                Un
       (Succ e2,SuccP p2) -> compareExpr' e2 p2
+      -- needed for ordinal addition f <= f n 
+      (App (Var f) args,VarP g) -> if (f == g) then 
+                                 Le
+                             else
+                                 Un
       _ -> Un
 
 compareVar :: Name -> Pattern -> Order
