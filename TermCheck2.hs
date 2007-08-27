@@ -117,7 +117,7 @@ collectCallsExpr nl f pl e =
                             in
                               case gIn of
                                 False -> calls
-                                True -> let m = compareArgs2 pl args
+                                True -> let m = compareArgs pl args
                                             el = Set.fromList $ matrixToEdges m 
                                             cg = CG { source = f
                                                     , target =  g
@@ -134,12 +134,6 @@ collectCallsExpr nl f pl e =
       (Succ e1) -> collectCallsExpr nl f pl e1
       _ -> []
 
-compareArgs2 :: [Pattern] -> [Expr] -> [[Order]]
-compareArgs2 [] [] = [[]]
-compareArgs2 pl el = let ar = length pl
-                         -- ignore too many arguments
-                         in
-                           map (\ e -> (map (compareExpr e) pl)) (take ar el)          
 matrixToEdges :: [[Order]] -> [Edge]
 matrixToEdges m = concat $ mte 0 m
     where

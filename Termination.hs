@@ -41,15 +41,8 @@ type Matrix a = [Vector a]
 
 compareArgs :: [Pattern] -> [Expr] -> Matrix Order
 compareArgs [] [] = [[]]
-compareArgs pl el = let ar = length pl
-                        na = length el
-                        uns = max (ar - na) 0
-                        -- ignore too many arguments, fill up with unknown if too few
-                        m1 = map (\ e -> (map (compareExpr e) pl)) (take ar el)
-                        m2 = m1 ++ (replicate uns (replicate ar Un))
-                    in
-                      m2
-
+compareArgs pl el = map (\ e -> (map (compareExpr e) pl)) el
+                    
 compareExpr :: Expr -> Pattern -> Order
 compareExpr e p = supremum $ (compareExpr' e p) : (map cmp (subPatterns p))
     where cmp p' = comp Lt (compareExpr' e p') -- if e Le p' , then e Lt p
