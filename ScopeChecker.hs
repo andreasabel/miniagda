@@ -5,6 +5,7 @@ import Abstract
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Error
 
 --scope checker
 -- check if all identifiers are "in scope"
@@ -51,13 +52,13 @@ addSig n k sig = sig ++ [(n,k)]
 -- reader monad for local environment (only used in expresssions and patterns)
 
 -- state monad for global signature
-type ScopeCheck a = ReaderT Context (StateT Sig Identity) a
+type ScopeCheck a = ReaderT Context (StateT Sig (ErrorT String Identity)) a
 
-runScopeCheck :: Context -> Sig -> ScopeCheck a -> (a,Sig)
-runScopeCheck ctx sig sc = runIdentity (runStateT (runReaderT sc ctx) sig)  
+runScopeCheck :: Context -> Sig -> ScopeCheck a -> Either String (a,Sig)
+runScopeCheck ctx sig sc = runIdentity (runErrorT (runStateT (runReaderT sc ctx) sig))  
 
-scopeCheck :: [Declaration] -> [Declaration]
-scopeCheck dl = fst (runScopeCheck emptyCtx emptySig (scopeCheckDecls dl))
+scopeCheck :: [Declaration] -> Either String ([Declaration],Sig)
+scopeCheck dl = runScopeCheck emptyCtx emptySig (scopeCheckDecls dl)
 
 ---------
 
@@ -68,7 +69,8 @@ scopeCheckDecls = mapM scopeCheckDeclaration
 scopeCheckDeclaration :: Declaration -> ScopeCheck Declaration
 scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
                                                     (TypeSig _ tt') <- scopeCheckTypeSig DataK (TypeSig n tt)
-                                                    let (tel',t') = typeToTele tt'
+                                                    let (tel',t') = 
+                                                            splitTeleType (length tel) ([],tt') -- get original tele back
                                                     let names = collectTelescopeNames tel
                                                     cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs)
                                                     return $ DataDecl n co tel' t' cs'
@@ -115,7 +117,6 @@ scopeCheckTelescope a@((TBind n t):xs) =
                                   xs' <- local (addCtx n) (scopeCheckTelescope xs)
                                   return $ (TBind n t') : xs'
                       
-
 scopeCheckExpr :: Expr -> ScopeCheck Expr
 scopeCheckExpr e = 
     case e of 
@@ -160,30 +161,33 @@ scopeCheckExpr e =
                                    True -> return $ (Var n)
                                    False -> errorIdentifierUndefined n 
 
--- first check the Patterns (replacing IdentP with VarP or ConP)
--- and then check the dot patterns and RHS with all the VarP names in the context
+
 scopeCheckClause :: Clause -> ScopeCheck Clause
 scopeCheckClause (Clause (LHS pl) rhs) = 
     do pl' <- mapM scopeCheckPattern pl
-       let names = collectVarPNames pl'
-       pl'' <- local (addCtxs names) (mapM scopeCheckDotPattern pl') 
+       names <- collectVarPNames pl'
+       pl'' <- local (addCtxs names) (mapM replaceIdentDotPattern pl') 
        rhs' <- local (addCtxs names) (scopeCheckRHS rhs)
        return $ Clause (LHS pl'') rhs'
 
+
+
 -- collect all variable names, checks if pattern is linear
-collectVarPNames :: [Pattern] -> [Name]
+-- check dot patterns 
+collectVarPNames :: [Pattern] -> ScopeCheck [Name]
 collectVarPNames pl = cvp pl [] where
-    cvp [] acc = acc
+    cvp [] acc = return acc
     cvp (p:pl) acc = case p of
                        WildP -> cvp pl acc
                        AbsurdP -> cvp pl acc
                        SuccP p2 -> cvp (p2:pl) acc
                        ConP n pl2 -> cvp (pl2++pl) acc
                        VarP n ->  if (elem n acc) then 
-                                     error $ "not a linear pattern: " ++ n ++ " already used"
+                                      cvp pl acc
                                   else 
-                                 cvp pl (n:acc)
-                       DotP p -> cvp pl acc
+                                      cvp pl (n:acc)
+                       DotP e -> --do local (addCtxs acc) $ scopeCheckExpr e 
+                            cvp pl acc
 
 scopeCheckPattern :: Pattern -> ScopeCheck Pattern
 scopeCheckPattern p = 
@@ -202,19 +206,20 @@ scopeCheckPattern p =
                                           return $ ConP n pl'
                         (Just _) -> errorPatternNotConstructor n 
                         Nothing -> errorPatternNotConstructor n 
-      _ -> return $ p -- dot pattern checked later 
-
-
-scopeCheckDotPattern :: Pattern -> ScopeCheck Pattern
-scopeCheckDotPattern p  = 
+      _ -> return p -- dot patterns checked later
+    
+replaceIdentDotPattern :: Pattern -> ScopeCheck Pattern
+replaceIdentDotPattern p  = 
     case p of 
       DotP e -> do e' <- scopeCheckExpr e
                    return $ DotP e'
-      SuccP p2 -> do p2' <- scopeCheckDotPattern p2
+      SuccP p2 -> do p2' <- replaceIdentDotPattern p2
                      return $ SuccP p2'
-      (ConP n pl) -> do pl' <- mapM scopeCheckDotPattern pl
+      (ConP n pl) -> do pl' <- mapM replaceIdentDotPattern pl
                         return $ ConP n pl'
       _ -> return p 
+
+
 
 scopeCheckRHS :: RHS -> ScopeCheck RHS
 scopeCheckRHS AbsurdRHS = return $ AbsurdRHS
@@ -222,10 +227,10 @@ scopeCheckRHS (RHS e) = do e' <- scopeCheckExpr e
                            return $ RHS e'
 
 
-errorAlreadyInSignature s n = error $ "Scope Error at " ++ show s  ++ ": Identifier " ++ n ++ " already in signature"
+errorAlreadyInSignature s n = throwError $ "Scope Error at " ++ show s  ++ ": Identifier " ++ n ++ " already in signature"
 
-errorAlreadyInContext s n = error $ "Scope Error at " ++ show s ++ ": Identifier " ++ n ++ " already in context"
+errorAlreadyInContext s n = throwError $ "Scope Error at " ++ show s ++ ": Identifier " ++ n ++ " already in context"
 
-errorPatternNotConstructor n = error $ "Scope Error in pattern: " ++ show n ++ " not a constructor"
+errorPatternNotConstructor n = throwError $ "Scope Error in pattern: " ++ show n ++ " not a constructor"
 
-errorIdentifierUndefined n = error $ "Scope Error: Identifier " ++ n ++ " undefined"
+errorIdentifierUndefined n = throwError $ "Scope Error: Identifier " ++ n ++ " undefined"

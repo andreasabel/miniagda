@@ -65,22 +65,22 @@ merge (s i) (s j) A le (cons .A .i a as) (cons .A .j b bs) = ite (Stream A infty
 
 
 
-data TransMu (A : Set) ( B : Set) (X : Set) : Set
+data TransMu (A : Set) ( B : Set) (X : Set) : Size -> Set
 {
-  put : B -> X -> TransMu A B X;
-  get : (A -> TransMu A B X) -> TransMu A B X
+  put : (i : Size ) -> B -> X -> TransMu A B X (s i);
+  get : (i : Size) -> (A -> TransMu A B X i) -> TransMu A B X (s i)
 }
 
 fun transMu : (i : Size) -> (A : Set) -> ( B : Set) -> (X : Set ) -> 
-          TransMu A B X -> Stream A i -> (B -> X -> Stream A i -> Stream B i) -> Stream B i
+          TransMu A B X i -> Stream A i -> (B -> X -> Stream A i -> Stream B i) -> Stream B i
 {
-transMu (s i) A B X (get .A .B .X f) (cons .A .i a as) k = transMu (s i) A B X (f a) as k;
-transMu i A B X (put .A .B .X b x) as k = k b x as
+transMu (s i) A B X (get .A .B .X .i f) (cons .A .i a as) k = transMu (s i) A B X (f a) as k;
+transMu (s i) A B X (put .A .B .X .i b x) as k = k b x as
 }
 
 cofun Trans : Set -> Set -> Set
 {
-Trans A B = TransMu A B (Trans A B) 
+Trans A B = TransMu A B (Trans A B) infty 
 }
 
 
@@ -89,9 +89,9 @@ cofun repeat : ( i : Size ) -> (A : Set) -> A -> Stream A i
 repeat (s i) A a = cons A i a (repeat i A a)
 }
 
-cofun trans : ( i : Size ) -> ( A : Set) -> ( B : Set)  -> Trans A B -> Stream A i -> Stream B i
+fun trans : ( i : Size ) -> ( A : Set) -> ( B : Set)  -> Trans A B -> Stream A i -> Stream B i
 {
--- trans (s i) A B (put .A .B .(Trans A B) b t) as = cons B (s i) b (trans i A B t as)
+trans (s i) A B (put .A .B .(Trans A B) .i b x) as = cons B (s i) b (trans i A B x as);
 trans (s i) A B (get .A .B .(Trans A B) f) (cons .A .i a as) = transMu i A B (Trans A B) (f a) as
                                           (\ b -> \ t -> \ as' -> cons B i b (trans i A B t as'))
 }

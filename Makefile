@@ -6,7 +6,7 @@ hsfiles=$(foreach file,$(files),$(file).hs)
 default : Main
 
 Main : Main.hs $(hsfiles)
-	ghc -O1 $< --make -o $@
+	ghc $< --make -o $@
 
 Lexer.hs : Lexer.x
 	alex $<

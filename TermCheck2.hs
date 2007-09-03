@@ -65,8 +65,9 @@ cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 |
                                 , (target c1 == source c2)])
 
 complete :: Set.Set CallGraph -> Set.Set CallGraph
-complete cg = let cg' = Set.union cg (cgComb cg cg) in
-              if (cg' == cg) then cg' else complete cg'
+complete cg = let cg' = Set.union cg (cgComb cg cg) 
+              in
+                if (cg' == cg) then cg' else complete cg'
 
 
 checkAll :: [CallGraph] -> Bool
@@ -79,7 +80,16 @@ checkIdem cg = let cgcg = composeCG cg cg
                in (not (cg == cgcg)) || containsDecr
 
 isDecr :: Edge -> Bool
-isDecr (k1,k2,o) = k1 == k2 && o == Lt
+isDecr (k1,k2,o) = k1 == k2 && case o of
+                                  Lt -> True
+                                  (Mat m) -> isDecrO (Mat m)
+                                  _ -> False
+             
+-- a matrix is decreasing if one diagonal element is decreasing
+isDecrO :: Order -> Bool
+isDecrO Lt = True
+isDecrO (Mat m) = any isDecrO (diag m)
+isDecrO _ = False
 
 recBehaviours :: [ (TypeSig, [Clause] ) ] -> [(Name,[CallGraph])]
 recBehaviours funs = let names = collectNames (map fst funs)
@@ -146,4 +156,7 @@ matrixToEdges m = concat $ mte 0 m
                 te k2 (o:os) = let ys = te (k2 + 1) os 
                                in case o of
                                     Un -> ys
+                                    (Mat m) -> if (any (/= Un) (diag m)) then (k1,k2,o) : ys 
+                                               else ys
+                               
                                     _ -> (k1,k2,o) : ys

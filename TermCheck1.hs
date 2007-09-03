@@ -37,45 +37,6 @@ terminationCheckFuns funs =
     where
       checkCalls = (hasLexOrd . toRecBehaviours ) 
 
---- 
--- matrix stuff
-
-data SemiRing a = SemiRing { add :: (a -> a -> a) , mul :: (a -> a -> a) , one :: a , zero :: a } 
-
-ssum :: SemiRing a -> Vector a -> a
-ssum sem v = foldl (add sem) (zero sem) v 
-
-vadd :: SemiRing a -> Vector a -> Vector a -> Vector a
-vadd sem v1 v2 = [ (add sem) x y | (x,y) <- zip v1 v2]
-
-scalarProdukt :: SemiRing a -> Vector a -> Vector a -> a
-scalarProdukt sem xs ys = ssum sem [(mul sem) x y  | (x,y) <- zip xs ys]
-
-madd :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
-madd sem v1 v2 = [ vadd sem x y | (x,y) <- zip v1 v2]
-
-transp :: Matrix a -> Matrix a 
-transp y = [[ z!!j | z<-y] | j<-[0..s]]
-    where
-    s = length (head y)-1
-
-mmul :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
-mmul sem m1 m2 = [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
-
-diag :: Matrix a -> Vector a
-diag m = [ (m !! j) !! j | j <- [ 0..s] ] 
-   where
-     s = length (head m) - 1
-
-
-
-
-
-ordRing :: SemiRing Order
-ordRing = SemiRing { add = max , mul = comp , one = Le , zero = Un }
-
----
-
 type Index = Name
 
 data Call = Call { source :: Index , target :: Index , matrix :: CallMatrix }  
@@ -87,8 +48,6 @@ type CallGraph = Set.Set Call
 
 union :: CallGraph -> CallGraph -> CallGraph
 union = Set.union
-
-
 
 callComb :: Call -> Call -> Call
 callComb (Call s1 t1 m1) (Call s2 t2 m2) = Call s2 t1 (mmul ordRing m1 m2)

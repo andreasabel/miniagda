@@ -3,12 +3,17 @@
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage{latexsym}
+
+\usepackage{proof}
 
 \newcommand{\vsp}{\;\vert\;}
 \newcommand{\Set}{\mathbf{Set}}
 \newcommand{\s}{\mathbf{s}\;}
 \newcommand{\Size}{\mathbf{Size}}
 \newcommand{\EPi}[3]{( #1 : #2 ) \rightarrow #3} 
+\newcommand{\VPi}[4]{( #1 : #2 ) \rightarrow #3 \; #4} 
+\newcommand{\VLam}[3]{\lambda #1 . #2 \; #3}
 \newcommand{\data}{\mathrm{data}\;}
 \newcommand{\fun}{\mathrm{fun}\;}
 \newcommand{\codata}{\mathrm{codata}\;}
@@ -52,7 +57,7 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \vspace*{2cm}
 
-{\Large \textbf{Diploma thesis}}\\
+{\Large \textbf{Diplomarbeit}}\\
 
 \vspace{2.0cm}
 {\Huge \textbf{Termination Checking for a}}\\
@@ -61,15 +66,15 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \vspace{2cm}
 
-\large{December 2007}
+\large{Dezember 2007}
 
 \vspace{1.5cm}
 
   \begin{Large}
-      Author : Karl Mehltretter\\
-      Supervisor: Dr. Andreas Abel
+      Autor : Karl Mehltretter\\
+      Aufgabensteller : Prof. Dr. Martin Hofmann\\
+      Betreuer: Dr. Andreas Abel
   \end{Large}
-
 
 \end{center}
 \end{titlepage} 
@@ -94,8 +99,7 @@ through the type sytem. As dependend types already offer annotations through the
 Sized types play to their strength with higher order data types.
 Types like infinitly branchings trees, which are often needed in theorem proving, can be handeled by sized types.
 
-To this end, a prototype theorem prover loosly inspired by the theorem prover Agda2 was implemented.
-
+To this end, a prototype theorem prover inspired by the theorem prover Agda2 was implemented, including a size type.
 As termination is to inductive functions, productivity is wantend for coinductive functions.
 The implementation was extended to handle coinductive definitions.
 \end{abstract}

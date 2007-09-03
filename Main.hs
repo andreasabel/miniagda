@@ -21,7 +21,7 @@ main = do
   file <- readFile (args !! 0)
   let t = alexScanTokens file 
   let ast = parse t
-  let ast2 = scopeCheck ast
+  let ast2 = doScopeCheck ast
   -- let b = sizeCheck ast2
   sig <- doTypeCheck ast2
   -- putStrLn $ show ast
@@ -34,15 +34,20 @@ main = do
   return ()
 --evaluate all constants
 
-evalAll :: Signature -> Signature -> [(Name,Val)]
-evalAll sig [] = []
-evalAll sig ((n,def):xs) = case def of
-                        (ConstSig t e) -> (n,runEval sig emptyEnv e):(evalAll sig xs)
-                        _ -> evalAll sig xs 
+evalAllConst :: Signature -> Signature -> [(Name,Val)]
+evalAllConst sig [] = []
+evalAllConst sig ((n,def):xs) =
+    case def of
+      (ConstSig t e) -> 
+          let ev = runEval sig emptyEnv e
+          in case ev of
+               Left err -> error $ "error during evaluation: " ++ err
+               Right (v,_) -> (n,v):(evalAllConst sig xs)
+      _ -> evalAllConst sig xs 
 
 
 showAll :: Signature -> IO ()
-showAll sig = let ls = map showConst (evalAll sig sig) in
+showAll sig = let ls = map showConst (evalAllConst sig sig) in
                   sequence_ (map putStrLn ls)
 
 showConst :: (Name,Val) -> String
@@ -54,8 +59,14 @@ termCheckAll dl = do _ <- mapM terminationCheckDecl dl
 
 doTypeCheck :: [Declaration] -> IO Signature
 doTypeCheck decl = do putStrLn $ "Typechecking ... "
-                      let sig = typeCheck decl
-                      _ <- if (length sig > 0) then 
-                               putStrLn $ "TypeChecking ok" 
-                           else return ()
-                      return sig
+                      let k = typeCheck decl
+                      case k of
+                        Left err -> error $ "error during typechecking: " ++ err
+                        Right (_,sig) -> return $ sig
+
+doScopeCheck :: [Declaration] -> [Declaration]
+doScopeCheck decl = let k = scopeCheck decl 
+                    in
+                      case k of
+                        Left err -> error $ "scope check error: " ++ err
+                        Right (decl',_) -> decl'

@@ -12,28 +12,85 @@ import System
 data Order = Lt
            | Le
            | Un
-           deriving (Eq,Show)
+           | Mat (Matrix Order)
+           deriving (Show,Eq,Ord)
 
-instance Ord Order where
-    _ <= Lt = True
-    Un <= _ = True
-    Le <= Le = True
-    _ <= _ = False
+ordRing :: SemiRing Order
+ordRing = SemiRing { add = maxO , mul = comp , one = Le , zero = Un }
 
 comp :: Order -> Order -> Order
 comp Lt Un = Un
-comp Lt  _ = Lt
+comp Lt _ = Lt
 comp Le o = o
-comp Un  _ = Un
+comp Un _ = Un
+comp (Mat m1) (Mat m2) = let m1m2 = Mat $mmul ordRing m1 m2
+                             cm1m2 = comp (collabse m1) (collabse m2)
+                         in
+                           if (compatible m1 m2) then 
+                               m1m2
+                           else
+                               cm1m2
+comp (Mat m1) x = comp (collabse m1) x
+
+collabse :: Matrix Order -> Order
+collabse m = foldl comp Le (diag m)
+
+maxO :: Order -> Order -> Order
+maxO o1 o2 = case (o1,o2) of 
+               (_,Lt) -> Lt
+               (Lt,_) -> Lt
+               (Un,_) -> o2
+               (_,Un) -> o1
+               (Mat m,_) -> maxO (collabse m) o2
+               (_,Mat m) ->  maxO o1 (collabse m)
+               (Le,Le) -> Le
 
 supremum :: [Order] -> Order
-supremum = foldr max Un
+supremum = foldr maxO Un
 
-infimum :: [Order] -> Order
-infimum = foldr min Lt
+--infimum :: [Order] -> Order
+--infimum = foldr min Lt
 
 type Vector a = [a]
 type Matrix a = [Vector a]
+
+compatible :: Matrix a -> Matrix a -> Bool 
+compatible m1 m2 = (length m2) == (length m1) -- assumed square 
+
+--- 
+-- matrix stuff
+
+data SemiRing a = SemiRing { add :: (a -> a -> a) , mul :: (a -> a -> a) , one :: a , zero :: a } 
+
+ssum :: SemiRing a -> Vector a -> a
+ssum sem v = foldl (add sem) (zero sem) v 
+
+vadd :: SemiRing a -> Vector a -> Vector a -> Vector a
+vadd sem v1 v2 = [ (add sem) x y | (x,y) <- zip v1 v2]
+
+scalarProdukt :: SemiRing a -> Vector a -> Vector a -> a
+scalarProdukt sem xs ys = ssum sem [(mul sem) x y  | (x,y) <- zip xs ys]
+
+madd :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
+madd sem v1 v2 = [ vadd sem x y | (x,y) <- zip v1 v2]
+
+transp :: Matrix a -> Matrix a 
+transp y = [[ z!!j | z<-y] | j<-[0..s]]
+    where
+    s = length (head y)-1
+
+mmul :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
+mmul sem m1 m2 = [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
+
+diag :: Matrix a -> Vector a
+diag m = [ (m !! j) !! j | j <- [ 0..s] ] 
+   where
+     s = length (head m) - 1
+
+elems :: Matrix a -> Vector a
+elems m = concat m
+
+
 
 
 ---
@@ -58,12 +115,16 @@ compareExpr' e p =
     case (e,p) of 
       ((Var i),p) -> compareVar i p 
       ((App (Con n) args),(ConP n2 pl)) -> if ( n == n2 ) then
-                                               if null args then 
-                                                   Le
+                                               if length args <= 0 then
+                                                   foldl comp Le $ 
+                                                         map (compareExpr' (head args)) pl
                                                else
-                                                   infimum (zipWith compareExpr' args pl)
+                                                   let m' = map (\e'' -> (map (compareExpr' e'') pl)) args 
+                                                   in
+                                                     Mat m'
                                            else
                                                Un
+      (Con n,ConP n2 []) -> if n == n2 then Le else Un    
       (Succ e2,SuccP p2) -> compareExpr' e2 p2
       -- needed for ordinal addition f <= f n 
       (App (Var f) args,VarP g) -> if (f == g) then 
@@ -79,4 +140,5 @@ compareVar n p =
       (ConP c pl) -> comp Lt (supremum (map (compareVar n) pl))
       (SuccP p2) -> comp Lt (compareVar n p2)
       (DotP e) -> Un
+      WildP -> Un
       _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p

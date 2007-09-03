@@ -12,7 +12,10 @@ data Val =   VSet
            | VGen Int
            | VLam Name Env Expr
            | VPi  Name Val Env Expr
-             deriving (Show)
+           | VClos Env Expr -- for lazy evaluation during typechecking
+             deriving (Eq,Show)
+
+type TVal = Val
 
 prettyVal :: Val -> String
 prettyVal VSet = "Set"

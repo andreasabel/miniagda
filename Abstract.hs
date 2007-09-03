@@ -64,11 +64,16 @@ teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
 teleToType (tb:tel) t = Pi tb (teleToType tel t)
 
+splitTeleType :: Int -> (Telescope,Type) -> (Telescope,Type)
+splitTeleType 0 (tel,t) = (tel,t)
+splitTeleType k (tel,(Pi tb t2)) = splitTeleType (k - 1) (tel ++ [tb],t2) 
+
 typeToTele :: Type -> (Telescope, Type)
 typeToTele t = ttt t []
     where 
       ttt :: Type -> Telescope -> (Telescope,Type)
       ttt (Pi tb t2) tel = ttt t2 (tel ++ [tb])
+      ttt (Fun t1 t2) tel = ttt t2 (tel ++ [(TBind "" t1)])
       ttt x tel = (tel,x)                          
 
 ----

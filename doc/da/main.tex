@@ -1,9 +1,15 @@
-\chapter{MiniAgda}
+\chapter{Basic MiniAgda}
 
 \newcommand{\dd}{\mathbf{d}}
 \newcommand{\DD}{\mathbf{D}}
 \newcommand{\cc}{\mathbf{c}}
 \newcommand{\ff}{\mathbf{f}}
+
+\begin{figure}
+\caption{MiniAgda syntax}
+Expressions : \[e,t :  \lam x . e \vsp \EPi{x}{t}{t} \vsp e \; \vec{e} \vsp  \Set \vsp x \vsp \cc \vsp \DD \vsp \ff \vsp \dd\]
+Patterns: \[ x  \vsp \cc \; \vec{p} \]
+\end{figure}
 
 MiniAgda is a small experimental version of Agda.
 The current version of Agda is described by Ulf Norell in his thesis \cite{norell:thesis}.
@@ -13,7 +19,7 @@ and $\diamond$ denote the empty list.
 Int the following, these identifiers are used:
 \begin{itemize}
 \item for constructors : $\cc$ 
-\item for data typs : $\DD$
+\item for data types : $\DD$
 \item for functions : $\ff$
 \item for definied constants : $\dd$
 \item for variables : $x$
@@ -29,14 +35,8 @@ dependent function space: $\EPi{x}{t}{t}$
 \item 
 application: $ e \; \vec{e} $ 
 \item
-type of all types: $ \Set $ 
-\item
-size type: $ \Size $ 
-\item
-size succesor: $\s e $ 
-\item
-infinity: $\infty$ 
-\item
+type of all types: $ \Set $  $ \Set $ 
+
 variables: $x$
 \item
 defined constructors, data types, functions and constants:
@@ -49,8 +49,6 @@ variable pattern: $x$
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
-size succesor pattern:$ \s p $ 
-\item
 dot pattern: $ . \; e $ 
 \item
 absurd pattern: $()$
@@ -61,14 +59,8 @@ Declarations $\delta$:
 inductive datatype: 
 \[\data \; \DD \; \tau : t \; \vec{\gamma}\]  
 \item
-coinductive datatype:
-\[\codata \; \DD \; \tau : t \; \vec{\gamma}\]  
-\item
 inductive function:
 \[\fun \; \ff \; : \; t \; \vec{\kappa}\]
-\item
-coinductive function:
-\[\cofun \; \ff \; : \; t \; \vec{\kappa}\]
 \item
 constant:
 \[\const \;  \dd \; : t \; = \; e \]
@@ -128,14 +120,7 @@ $\nil : \List A  $
 \\
 $\cons : A \ra \List A \ra \List A $
 \end{quote}
-\subsection{Sized Lists}
-\begin{quote}
-$\data \List ( A : \Set ) : \Size \ra \Set $ 
-\\
-$\nil : \EPi{i}{\Size}{ \List A \; (\s i)} $
-\\
-$\cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
-\end{quote}
+
 
 \section{Universes}
 To keep MiniAgda simple, $\Set$ is the type of all types.
@@ -148,47 +133,280 @@ Also, many bookkeeping arguments can be easily infered by the type checker,easyi
 The user can mark these arguments as \emph{implicit}. The type checker will automatically infer them.
 To keep MiniAgda simple, these features were not implemented.
 
-\section{Interpretation of the Size type}
-One may see the size type as a coniductive data type - the dual to natural numbers, the conatural numbers.
 
-\section{Subtyping for size}
-It would be quite nice to have subtyping.
-There is naturall order on size expressions.
 
 \section{Type Checking}
+
+\renewcommand\Check[4]{#1,#2\;\vdash\;#3\uparrow#4}
+\newcommand\Infer[4]{#1,#2\;\vdash\;#3\downarrow#4}
+\newcommand\IsType[3]{#1,#2\;\vdash\;#3\uparrow\Set}
+\newcommand\EqVal[2]{\vdash\;#1\leftrightarrow#2}
+\newcommand\Eval[3]{\mathrm{eval}\;#1\;#2\leadsto#3}
+\newcommand\App[3]{\mathrm{app}\;#1,#2\leadsto#3}
+\newcommand\AppFun[3]{\mathrm{appFun}\;#1,#2,\leadsto#3}
+\newcommand\Fapp[6]{\mathrm{fapp}\;#1,#2,#3,#4,#5\leadsto#6}
+\newcommand\Lookup[3]{#1(#2) = #3}
+
 \subsection{Values}
 Values are the semantical interpretation of expressions.
 Values are in weak head normal form.
 For the interpretation of abstraction and the depentend function space, closures are used.
 Values:
-\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \lam x . e \; \rho \vsp \EPi{x}{v}{e} \; \rho\]
+\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \VLam{x}{e}{\rho} \vsp \VPi{x}{v}{e}{\rho} \vsp k \]
 Environments:
 \[ \rho := \diamond \vsp (x,v) \rho \]
 
+The generic values $k$ are needed during type checking.
 \subsection{Computation during type checking}
 First of all, as types can depent on terms, it becomes necessary to perfom computation on terms during type checking.
 The mutually recursive pair of functions 
-\textbf{eval} and \textbf{app} does the job.
+\textbf{eval} and \textbf{app} do the job.
 eval computes the weak head normal form of a expression.
+\[ evaluation : \Eval{\rho}{e}{v}\]
+
+application is the equivalent of beta reduction on values
+\[ application : \App{v}{\vec{v}}{v'}\]
+
+
+\begin{figure}
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{\Set}{\Set}} 
+          {} 
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+	  \infer{\Eval{\rho}{\cc}{\cc}} 
+          {}
+
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{\ff}{\ff}} 
+          {} 
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{\dd}{v}} 
+          {\Lookup{\Sigma}{\dd}{e} & \Eval{\rho}{e}{v}} 
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{x}{v}} 
+          {\Lookup{\rho}{\dd}{v}} 
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{\EPi{x}{t}{t'}{\VPi{x}{v}{t'}{\rho}}}}
+          {\Eval{\rho}{t}{v}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Eval{\rho}{\lam x . e}{\VLam{x}{e}{\rho}}}
+		{} 
+\end{array}
+\]
+
+
+\[
+\begin{array}{c}
+          
+	  \infer{\Eval{\rho}{e \vec{e}}{v \vec{v}}}
+          {\Eval{\rho}{e}{v} & \Eval{\rho}{\vec{e}}{\vec{v}}}
+\end{array}
+\]
+\caption{Evaluation of expressions}
+\end{figure}
+
+\begin{figure}
+
+\[
+\begin{array}{c}
+          
+	  \infer{\App{\VLam{x}{e}{\rho}}{v \; \vec{v}}{v''}}
+          {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+          
+	  \infer{\App{\VPi{x}{w}{e}{\rho}}{v \; \vec{v}}{v''}}
+          {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
+
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+          
+	  \infer{\App{\ff}{\vec{v}}{v'}}
+          {\AppFun{\ff}{\vec{v}}{v'}}
+\end{array}
+\]
+
+\caption{application of values}
+\end{figure}
+
 \subsection{Bidirectional type checking} 
 For depentend types, a practice called \emph{bidirectional type checking} is used.
 This means that the type checker has two modes:
 one for checking that an expression has a certain type and one for infering the type of an expression.
 These modes are again implement as functions
-\[ \mathrm{checkExpr} \]
+\[ \mathrm{check expression} :  \Check{\rho_1}{\rho_2}{e}{v}\]
 
 and
 
-\[ \mathrm{inferExrp} \]
+\[ \mathrm{infer expression} : \Infer{\rho_1}{\rho_2}{e}{v}\]
+
 in checking mode, the type checker might have to infer the type of the expression and then check that the infered
 type is equal (convertible) against the proposed type.
 
-Also, it's convenient to have a function $ \mathrm{checkType} $
+Also, as a special case of check expression, the judgment 
+
+\[ \mathrm{is type} : \IsType{\rho_1}{\rho_2}{e}\]
+
 which checks that an expression is a type, i.e has type $\Set$.
 
 so one needs equality between values, which is handled by the function
+\[ \mathrm{eqVal} : \EqVal{v_1}{v_2} \]
 
-\[ \mathrm{eqVal} \]
+
+\begin{figure}
+\[\begin{array}{c}
+	  \infer{\Check{\rho_1}{\rho_2}{\lam x . e}{\VPi{y}{v}{e'}{\rho}}}
+          { \Eval{(x,k)\;\rho}{e}{v'} & \Check{(x,k)\;\rho_1}{(x,v)\;\rho_2}{e'}{v'}} 
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Check{\rho_1}{\rho_2}{\EPi{x}{t}{t'}}{\Set}}
+          {\IsType{\rho_1}{\rho_2}{t}  
+	    & \Eval{(x,k)\;\rho_1}{t}{v}
+	    & \IsType{(x,k)\rho}{{x,v}\rho_2}{t'}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Check{\rho_1}{\rho_2}{e}{v}} 
+          { \Infer{\rho_1}{\rho_2}{e}{v'} & \EqVal{\rho_1}{\rho_2}{e}{v'}} 
+\end{array}
+\]
+\caption{Checking expressions}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{x}{v}} 
+          {\Lookup{\rho_2}{x}{v}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{\Set}{\Set}} 
+          {}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{\ff}{v}} 
+          {\Lookup{\Sigma}{\ff}{v}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{\cc}{v}} 
+          {\Lookup{\Sigma}{\cc}{v}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{\DD}{v}} 
+          {\Lookup{\Sigma}{\dd}{v}}
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{e_1 \; e_2}{v''}}
+{\Infer{\rho_1}{\rho_2}{e1}{\VPi{x}{v'}{e_3}{\rho}}
+& \Check{\rho_1}{\rho_2}{e_2}{w}
+& \Eval{\rho_1}{e_2}{v'}
+& \Eval{(x,v')\rho}{e_3}{v''}}
+
+\end{array}
+\]
+
+\[\begin{array}{c}
+	  \infer{\Infer{\rho_1}{\rho_2}{e_1 \; e_2 \vec{e}}{v}
+	  } 
+          {\Infer{\rho_1}{\rho_2}{(e_1 \; e_2) \vec{e}}{v}}
+\end{array}
+\]
+
+
+
+\caption{Infering type of expressions}
+\end{figure}
+
+\begin{figure}
+\caption{Untypes value equality checking}
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\Set}{\Set}}
+          {}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{k_n}{k_n}}
+          {}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\VPi{x}{v_1}{e_1}{\rho_1}}{\VPi{y}{v_2}{e_2}{\rho_2}}}
+          {   \EqVal{v_1}{v} 
+& \Eval{(x,k)\rho_1}{e_2}{v'_1}
+& \Eval{(x,k)\rho_2}{e_2}{v'_2}
+& \EqVal{v'_1}{v'_2}}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\VPi{x}{v_1}{e_1}{\rho_1}}{\VPi{y}{v_2}{e_2}{\rho_2}}}
+          {
+\Eval{(x,k)\rho_1}{e_2}{v'_1}
+& \Eval{(x,k)\rho_2}{e_2}{v'_2}
+& \EqVal{v'_1}{v'_2}}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\cc}{\cc}}
+          {}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\ff}{\ff}}
+          {}
+\end{array}\]
+
+\[\begin{array}{c}
+	  \infer{\EqVal{\DD}{\DD}}
+          {}
+\end{array}\]
+
+
+\[\begin{array}{c}
+	  \infer{\EqVal{v_1 \; \vec{v_1}}{v_2 \; \vec{v_2}}}
+          {\EqVal{v_1}{v_2} & \EqVal{\vec{v_1}}{\vec{v_2}}}
+\end{array}\]
+
+
+\end{figure}
 
 \subsection{Checking declarations}
 \subsubsection{Datatype declarations}
@@ -201,13 +419,6 @@ Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92p
 The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
 it is guaranteed that matching always succeeds.
 
-\subsection{Matching against infinity}
-The equation 
-
-\[ s \infty = \infty \]
-
-needs to be taken into account when evaluating a function application.
-So whhen the pattern $ s \; x $ is matches against $ \infty $ , $x$ will be bound to $ \infty $  
 
 \subsection{Absurd Pattern}
 There arises the need to specify that a certain case cannot happen at runtime.
@@ -253,8 +464,79 @@ isZero (s i) (succ .i x) = ff
 \end{verbatim}
 We just know that the size index that the sized natural numbers carry around equals their size.
 
-\section{Admissibility}
 
+\section{Implementation}
+
+MiniAgda was implemented in the function language Haskell.
+The alex and happy tools where used for generating lexer and parser.
+
+\subsection{Scope checking}
+The first step after parsing is scope checking. This checks that names are used correctly:
+all declared constants should have a uniquie name and variables bound by 
+The use of linear patterns is also restricted at scope checking.
+Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
+function.
+After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+\subsection{Type Checking}
+Type checking was implemented as explained above.
+\subsection{Addmisibility Checking}
+
+\chapter{Termination Checking}
+
+\section{Structural recursion}
+
+\section{Size change principle}
+
+\section{Extending the Order}
+
+\section{Examples}
+
+\subsection{Huet list rev}
+fails the current termination checker
+\subsection{natural number division}
+fails the current termination checker
+\chapter{Adding a Size Type}
+
+\section{Syntax}
+
+\begin{itemize}
+\item
+size type: $ \Size $ 
+\item
+size succesor: $\s e $ 
+\item
+infinity: $\infty$ 
+\item
+\end{itemize}
+
+\begin{itemize}
+\item
+size succesor pattern:$ \s p $ 
+\end{itemize}
+
+\section{Matching against infinity}
+The equation 
+
+\[ s \infty = \infty \]
+
+needs to be taken into account when evaluating a function application.
+So whhen the pattern $ s \; x $ is matches against $ \infty $ , $x$ will be bound to $ \infty $  
+
+\section{Interpretation of the Size type}
+One may see the size type as a coniductive data type - the dual to natural numbers, the conatural numbers.
+
+
+\section{Examples}
+\subsection{Sized Lists}
+\begin{quote}
+$\data \List ( A : \Set ) : \Size \ra \Set $ 
+\\
+$\nil : \EPi{i}{\Size}{ \List A \; (\s i)} $
+\\
+$\cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
+\end{quote}
+
+\section{Admissibility}
 \subsection{Motivation}
 The use of sizes needs to be constraint.
 Consire for example the function definition
@@ -273,21 +555,29 @@ the type of the function shift
 needs to be rejected by an admissibility checker.
 
 
-\section{Implementation}
+\section{Subtyping for size}
+It would be quite nice to have subtyping.
+There is natural order on size expressions.
 
-MiniAgda was implemented in the function language Haskell.
-The alex and happy tools where used for generating lexer and parser.
 
-\subsection{Scope checking}
-The first step after parsing is scope checking. This checks that names are used correctly:
-all declared constants should have a uniquie name and variables bound by 
-The use of linear patterns is also restricted at scope checking.
-Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
-function.
-After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
-\subsection{Type Checking}
-Type checking was implemented as explained above.
-\subsection{Addmisibility Checking}
+\chapter{Adding coinductive types}
 
-\subsection{Termination Checking}
-The foetus checker is used to check that arguments are structurally recursive.
+\begin{itemize}
+\item
+coinductive datatype:
+\[\codata \; \DD \; \tau : t \; \vec{\gamma}\]  
+
+\item
+coinductive function:
+\[\cofun \; \ff \; : \; t \; \vec{\kappa}\]
+\end{itemize}
+
+\section{Syntax}
+
+\section{Arity}
+
+\section{Admissibility}
+
+\section{Examples}
+
+
