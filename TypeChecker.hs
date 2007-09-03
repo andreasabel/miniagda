@@ -4,6 +4,7 @@ import Abstract
 import Value
 import Signature
 
+import Control.Monad.Error
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
@@ -284,7 +285,8 @@ vsucc VInfty = VInfty
 vsucc x = x
 
 vclos ::  Env -> Expr -> TypeCheck Val
-vclos env e = return $ VClos env e
+vclos = eval
+-- vclos env e = return $ VClos env e
 
 eval :: Env -> Expr -> TypeCheck Val
 eval env e = case e of
@@ -316,7 +318,7 @@ runEval sig env e = runTypeCheck emptyEnv sig (eval env e)
 eqVal :: Int -> Val -> Val -> TypeCheck ()
 eqVal k u1 u2 = 
  do u1' <- whnf u1
-    u2'<- whnf u2
+    u2' <- whnf u2
     case (u1',u2') of
       (VSet,VSet) -> return ()
       (VSize,VSize) -> return ()
@@ -348,10 +350,48 @@ eqVal k u1 u2 =
 eqVals :: Int -> [Val] -> [Val] -> TypeCheck ()
 eqVals k [] [] = return ()
 eqVals k (v1:vs1) (v2:vs2) = do eqVal k v1 v2 
-                                eqVals k vs1 vs2 
+                                eqVals k vs1 vs2
 eqVals k vl1 vl2 = throwError $ "mismatch number of arguments"
 
 
+
+-- subtyping
+
+leqVal :: Int -> Val -> Val -> TypeCheck ()
+leqVal k u1 u2 =
+    case (u1,u2) of
+      (VSet,VSet) -> return ()
+      (VSize,VSize) -> return ()
+      (_,VInfty) -> return ()
+      (VSucc v1,VSucc v2) -> leqVal k v1 v2
+      (v1,VSucc v2) -> leqVal k v1 v2
+      -- add hack for sized data types
+      (VApp (VDef x) [w1],VApp (VDef y) [w2]) 
+         | x == y -> leqVal k w1 w2 
+                                    
+      (VApp v1 w1,VApp v2 w2 ) -> do leqVal k v1 v2 
+                                     eqVals k w1 w2
+      (VGen k1,VGen k2) -> if k1 == k2 then return () 
+                           else throwError $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 
+      (VPi x1 a1 env1 b1, VPi x2 a2 env2 b2) -> 
+          do let v = VGen k 
+             leqVal k a2 a1
+             v1 <- fapp env1 x1 v b1 []
+             v2 <- fapp env2 x2 v b2 []
+             leqVal (k+1) v1 v2
+      (VLam x1 env1 b1, VLam x2 env2 b2) ->
+          do
+            let v = VGen k 
+            v1 <- fapp env1 x1 v b1 []
+            v2 <- fapp env2 x2 v b2 []
+            leqVal (k+1) v1 v2
+      (VDef x,VDef y) ->  if x == y then return () 
+                          else throwError $ "leqVal VDef " ++ show x ++ " " ++ show y
+      (VCon n1,VCon n2) -> if n1 == n2 then return () 
+                           else throwError $ "leqVal VCon " ++ show n1 ++ " " ++ show n2
+      _ ->  throwError $ "leqVal error " ++ show u1 ++ " @@ " ++ show u2
+
+  
 
 -- type checking
 
@@ -364,8 +404,8 @@ checkExpr k rho gamma e v =
             val <- fapp env x v t2 []
             checkExpr (k+1) (update rho n v) (update gamma n w) e1 val  
       (Pi (TBind n t1) t2,VSet) ->
-          do checkType k rho gamma t1 
-             val <- vclos rho t1
+          do checkType k rho gamma t1
+             val <- vclos rho t1 
              checkType (k+1) (update rho n (VGen k)) (update gamma n val) t2
       (Fun t1 t2,VSet) -> do checkType k rho gamma t1 
                              checkType k rho gamma t2
@@ -433,8 +473,10 @@ checkPatterns k rho gamma v pl =
                 
 
 checkPattern :: Int -> Env -> Env -> Val -> Pattern -> TypeCheck (Int,Env,Env,Val)
-checkPattern k rho gamma v p = trace ("cp " ++ show rho ++ "  @  " ++ show p) $ 
-    case (p,v) of
+checkPattern k rho gamma v p = do 
+  v' <- force v 
+  trace ("cp " ++ show rho ++ "  @  " ++ show p) $ 
+      case (p,v') of
       (VarP x,VPi y v2 env b) ->
                                  case lookup x rho of
                                    Nothing ->
@@ -481,6 +523,6 @@ checkRHS :: Int -> Env -> Env -> RHS -> TVal -> TypeCheck ()
 checkRHS k rho gamma rhs v =
     case rhs of 
       (AbsurdRHS) -> return ()
-      (RHS e) -> return () --checkExpr k rho gamma e v  
+      (RHS e) -> checkExpr k rho gamma e v  
       
 

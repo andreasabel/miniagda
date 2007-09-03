@@ -77,6 +77,17 @@ gcd (s i) (s j) (succ .i x) (succ .j y) =
 
 const gcd6_4 : SNat infty = gcd infty infty six four
 
+data Eq (A : Set) (a : A) : A -> Set 
+{
+  refl : Eq A a a
+}
 
+fun subst : (A : Set) -> (P :  A -> Set) -> (a : A) -> (b : A) -> 
+            Eq A a b -> P a -> P b
+{
+ subst A P a a (refl A a) p = p
+}
 
-
+const Nat : Set = SNat infty
+const add' : Nat -> Nat -> Nat = add infty infty
+const plus_1_0_is_1 : Eq Nat (add' one z) one = refl Nat one
