@@ -25,12 +25,6 @@ fun h : (ass : (i : Size) -> Eq Size (s i) i) -> (i : Size) -> SNat i -> SNat in
 const loop : (ass : (i : Size) -> Eq Size (s i) i) -> SNat infty 
            = \ ass -> h ass infty (zero infty) 
 
--- 
--- const xx : (ass : (i : Size) -> Eq Size (s i) i) -> 
---            Eq (SNat infty) (zero infty) (h ass infty (zero infty)) 
---          = \ ass -> refl (SNat infty) (zero infty)
--- 
-
 
 -- the following program has to be rejected 
 -- because of incomplete pattern matching
@@ -39,6 +33,6 @@ fun g : (ass : (i : Size) -> Eq Size (s i) i) -> (i : Size) -> SNat i -> SNat in
   g ass (s i) x = g ass i (subst Size SNat (s i) i (ass i) x)
 }
 
-const yy : (ass : (i : Size) -> Eq Size (s i) i) -> 
-           Eq (SNat infty) (zero infty) (g ass infty (zero infty)) 
-         = \ ass -> refl (SNat infty) (zero infty)
+-- const yy : (ass : (i : Size) -> Eq Size (s i) i) -> 
+--	     Eq (SNat infty) (zero infty) (g ass infty (zero infty)) 
+--         = \ ass -> refl (SNat infty) (zero infty)

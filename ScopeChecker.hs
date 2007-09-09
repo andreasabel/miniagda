@@ -93,7 +93,7 @@ scopeCheckTypeSig kind a@(TypeSig n e) =
                        return $ TypeSig n e'         
 
 collectTelescopeNames :: Telescope -> [Name]
-collectTelescopeNames = map ( \(TBind n e) -> n )
+collectTelescopeNames = map ( \(n,_) -> n )
 
 scopeCheckConstructor :: Constructor -> ScopeCheck Constructor
 scopeCheckConstructor a@(TypeSig n e) = 
@@ -106,7 +106,7 @@ scopeCheckConstructor a@(TypeSig n e) =
 
 scopeCheckTelescope :: Telescope -> ScopeCheck Telescope
 scopeCheckTelescope [] = return []
-scopeCheckTelescope a@((TBind n t):xs) = 
+scopeCheckTelescope a@((n,t):xs) = 
     do ctx <- ask
        sig <- get
        case (lookupSig n sig) of
@@ -115,7 +115,7 @@ scopeCheckTelescope a@((TBind n t):xs) =
                       True  -> errorAlreadyInContext a n
                       False -> do t' <- scopeCheckExpr t
                                   xs' <- local (addCtx n) (scopeCheckTelescope xs)
-                                  return $ (TBind n t') : xs'
+                                  return $ (n,t') : xs'
                       
 scopeCheckExpr :: Expr -> ScopeCheck Expr
 scopeCheckExpr e = 
@@ -128,20 +128,19 @@ scopeCheckExpr e =
       App e1 el -> do e1' <- scopeCheckExpr e1
                       el' <- mapM scopeCheckExpr el
                       return $ App e1' el'
-      
-      Fun e1 e2 -> do e1' <- scopeCheckExpr e1
-                      e2' <- scopeCheckExpr e2
-                      return $ Fun e1' e2'
+      Pi "" t e1 -> do t <- scopeCheckExpr t -- non-dep. function type
+                       e1 <- scopeCheckExpr e1
+                       return $ Pi "" t e1
       -- interesting cases
-      Pi (TBind n t) e1 -> do ctx <- ask
-                              sig <- get
-                              case (lookupSig n sig) of
-                                Just _ ->  errorAlreadyInSignature e n 
-                                Nothing -> case (lookupCtx n ctx) of 
-                                             True  -> errorAlreadyInContext e n
-                                             False -> do t' <- scopeCheckExpr t
-                                                         e1' <- local (addCtx n) (scopeCheckExpr e1)
-                                                         return $ Pi (TBind n t') e1'
+      Pi n t e1 -> do ctx <- ask
+                      sig <- get
+                      case (lookupSig n sig) of
+                        Just _ ->  errorAlreadyInSignature e n 
+                        Nothing -> case (lookupCtx n ctx) of 
+                                     True  -> errorAlreadyInContext e n
+                                     False -> do t' <- scopeCheckExpr t
+                                                 e1' <- local (addCtx n) (scopeCheckExpr e1)
+                                                 return $ Pi n t' e1'
       Lam n e1 -> do ctx <- ask
                      sig <- get
                      case (lookupSig n sig) of

@@ -145,14 +145,14 @@ To keep MiniAgda simple, these features were not implemented.
 \newcommand\App[3]{\mathrm{app}\;#1,#2\leadsto#3}
 \newcommand\AppFun[3]{\mathrm{appFun}\;#1,#2,\leadsto#3}
 \newcommand\Fapp[6]{\mathrm{fapp}\;#1,#2,#3,#4,#5\leadsto#6}
+\newcommand\Whnf[2]{\mathrm{whnf}\;#1\leadsto#2}
 \newcommand\Lookup[3]{#1(#2) = #3}
 
 \subsection{Values}
 Values are the semantical interpretation of expressions.
-Values are in weak head normal form.
 For the interpretation of abstraction and the depentend function space, closures are used.
 Values:
-\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \VLam{x}{e}{\rho} \vsp \VPi{x}{v}{e}{\rho} \vsp k \]
+\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \ e \; \rho vsp k \]
 Environments:
 \[ \rho := \diamond \vsp (x,v) \rho \]
 
@@ -167,7 +167,8 @@ eval computes the weak head normal form of a expression.
 application is the equivalent of beta reduction on values
 \[ application : \App{v}{\vec{v}}{v'}\]
 
-
+weak head normal form: 
+\[ whnf : \Whnf{v}{v'} \]
 \begin{figure}
 
 \[\begin{array}{c}
@@ -253,6 +254,18 @@ application is the equivalent of beta reduction on values
 \]
 
 \caption{application of values}
+\end{figure}
+
+
+\begin{figure}
+\[
+\begin{array}{c}
+          
+	  \infer{\Whnf{e \; \rho}{v'}}{\Eval{\rho}{e}{v'}}
+
+\end{array}
+\]
+\caption{weak head normal form}
 \end{figure}
 
 \subsection{Bidirectional type checking} 
@@ -485,9 +498,162 @@ Type checking was implemented as explained above.
 
 \section{Structural recursion}
 
+\begin{definition}[Order]
+\[ O := \{ < , \leq , ? \} \]
+\end{definition}
+
+\begin{definition}[Order Addition]
+\[
+\begin{array}{l | c |c | c }
+
+ +    &  <   &  \leq   &  ? \\
+ \hline 
+ <    &  <   & <       &  < \\
+ \leq &  <   & \leq    &  <  \\
+ ?    &  <   & \leq    &  ?
+\end{array}
+\]
+
+\end{definition}
+
+
+\begin{definition}[Order multiplication]
+\[
+\begin{array}{l | c |c | c}
+ *   &  <  &  \leq & ? \\
+\hline
+  <   & <    & <    &   ? \\
+ \leq & <    & \leq &   ?  \\
+ ?    & ?    & ?    &   ?
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}{Relating patterns and arguments}
+\end{definition}
+
+The following definitons are taken from \cite{abelAltenkirch:predStRec}
+
+\begin{definition}
+CallMatrix
+A call matrix collects the comparisons of arguments and patterns of single call from function $f$ to function $g$
+\end{definition}
+
+\begin{definition}[Call Matrix multiplication]
+
+\[(f,M_1,g) \times (g,M_2,h) := (f,M_1 \times M_2,h)\]
+\end{definition}
+
+\begin{definition}[Call Graph]
+A finite set of Call matrices is called a \emph{call graph}
+\end{definition}
+
+\begin{definition}[Call Graph completion]
+Call graph completion is closing the set under multiplication.
+Completion of a finite set is also finite. 
+\end{definition}
+
 \section{Size change principle}
 
+The termination criterion in \cite{abelAltenkirch:predStRec} can be replaced with the
+simpler and more powerful criterion from \cite{lee01sizechang}
+Their formalism is based on bipartit graphs instead of call matrixes, but these are
+equivalent representations.
+
+\begin{definition}
+A callmatrix (f,M,f) is \emph{idempotent} if $ M \times M = M $ 
+\end{definition}
+
+\begin{definition}[Size change principle]
+A function f is terminating, if every idempotent callmatrix  $ \in \mathrm{complete g} $ from f to f has a decreasing element $<$ on
+the diagonal.
+\end{definition}
+
+\begin{figure}
+\[
+\mathrm{add}\begin{pmatrix}
+
+\leq & ? \\
+?    & < \\
+
+\end{pmatrix}\mathrm{add}
+\]
+\caption{add call matrix}
+\end{figure}
+
+\begin{figure}
+
+\[
+\mathrm{add'} \begin{pmatrix}
+
+? & \leq \\
+< & ?   \\
+
+\end{pmatrix} \mathrm{add'}
+\]
+
+\caption{initial add' call matrix}
+
+\end{figure}
+
+
+\begin{figure}
+
+\[
+\mathrm{add'} \begin{pmatrix}
+
+< & ?    \\
+? & <    \\
+
+\end{pmatrix} \mathrm{add'}
+\] 
+\caption{idempotent add' call matrix}
+
+\end{figure}
+
+
 \section{Extending the Order}
+
+Definition of pair data type.
+Add and ackerman no longer termination check.
+Idea: extend order
+
+\begin{definition}[MOrder]
+\[ MO := \{ < , \leq , ? , MO^{r,n}\} \]
+\end{definition}
+
+\begin{definition}[Order Addition]
+\[
+\begin{array}{l | c |c | c | c}
+
+ +    &  <   &  \leq   &  ? & M \\
+ \hline 
+ <    &  <   & <       &  < &  \\
+ \leq &  <   & \leq    &  < &  \\
+ ?    &  <   & \leq    &  ? &  \\
+ M    &      &         &  M &  
+\end{array}
+\]
+
+\end{definition}
+
+
+\begin{definition}[Order multiplication]
+\[
+\begin{array}{l | c |c | c| c }
+ *    &  <  &  \leq &   ? & M \\
+\hline
+  <   & <    & <    &   ? &   \\
+ \leq & <    & \leq &   ? &   \\
+ ?    & ?    & ?    &   ? &   \\
+ M    &      &      &   ? &
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}[Completion with extended order]
+is also finite because matrices are only getting smaller or a collapsed to a single value.
+\end{definition}
 
 \section{Examples}
 

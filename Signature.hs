@@ -1,13 +1,14 @@
 module Signature where
 
 import Abstract
+import Value
 
 type Signature = [(Name,SigDef)] 
 
-data SigDef = FunSig Co Type Int [Clause] --type , co , arity , clauses
-            | ConstSig Type Expr -- type , expr 
-            | ConSig Type -- type   
-            | DataSig Co Type -- parameters, co , type  
+data SigDef = FunSig Co TVal Int [Clause] --type , co , arity , clauses
+            | ConstSig TVal Expr -- type , expr 
+            | ConSig TVal -- type   
+            | DataSig Co TVal -- parameters, co , type  
               deriving (Show)
 
 emptySig = []

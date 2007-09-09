@@ -96,12 +96,12 @@ Id : id { $1 }
      
 Expr :: { A.Expr }
 Expr : 
-         TArrow Expr { A.Pi $1 $2 } 
+       TArrow Expr { let (n,t) = $1 in A.Pi n t $2 } 
        | '\\' Id '->' Expr { A.Lam $2 $4 }
-       | Expr1 '->' Expr { A.Fun $1 $3}
+       | Expr1 '->' Expr { A.Pi "" $1 $3}
        | Expr1 { $1 }
 
-TArrow :: { A.TBind }
+TArrow :: { (A.Name,A.Expr) }
 TArrow : TBind '->' { $1 }  
 
 Expr1 :: { A.Expr }
@@ -164,8 +164,8 @@ Clauses : {- empty -} { [] }
 | Clauses ';' Clause { $3 : $1 }
 
 
-TBind :: { A.TBind }
-TBind :  '(' Id ':' Expr ')' { A.TBind $2 $4 }
+TBind :: { (A.Name,A.Expr) }
+TBind :  '(' Id ':' Expr ')' { ($2,$4) }
 
 
 Telescope :: { A.Telescope }

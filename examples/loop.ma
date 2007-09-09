@@ -4,7 +4,7 @@ data SNat : Size -> Set
 	succ : (i : Size) -> SNat i -> SNat (s i)
 }
 
-data Maybe (A : Set) : Set
+data Maybe : ( A : Set ) -> Set
 {
 	nothing : Maybe A;
 	just : A -> Maybe A
@@ -14,22 +14,23 @@ const Nat : Set = SNat infty
 
 fun wkSNat : (i : Size ) -> SNat i -> SNat (s i)
 {
-wkSNat (s i) (zero .i) = zero (s i);
-wkSNat (s i) (succ .i x) = succ (s i) (wkSNat i x) 
+wkSNat .(s i) (zero i) = zero (s i);
+wkSNat .(s i) (succ i x) = succ (s i) (wkSNat i x) 
 }
 
 fun wkNatInfty : (i : Size) -> SNat i -> SNat infty
 {
-wkNatInfty (s i) (zero .i) = zero infty;
-wkNatInfty (s i) (succ .i n) = succ infty (wkNatInfty i n)
+wkNatInfty .(s i) (zero i) = zero infty;
+wkNatInfty .(s i) (succ i n) = succ infty (wkNatInfty i n)
 }
 
 fun shift_case : (i : Size) -> Maybe (SNat (s i)) -> Maybe (SNat i)
 {
 
 shift_case i (nothing .(SNat (s i))) = nothing (SNat i);
-shift_case i (just .(SNat (s i)) (zero .i)) = nothing (SNat i);
-shift_case i (just .(SNat (s i)) (succ .i x)) = just (SNat i) x
+shift_case i (just .(SNat (s i)) (zero i)) = nothing (SNat i);
+shift_case i (just .(SNat (s i)) (succ i x)) = just (SNat i) x
+
 
 }
 
@@ -58,18 +59,17 @@ mutual
 fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 {
 
-loop_case i f (nothing .(SNat i)) = unit;
-loop_case (s i) f (just .(SNat (s i)) (zero .i)) = unit;
-loop_case (s i) f (just .(SNat (s i)) (succ .i y)) = loop i y (shift i f) 
+loop_case i       f (nothing .(SNat i)) = unit;
+loop_case (s i)   f (just .(SNat (s i))  (zero i)) = unit;
+loop_case (s i)   f  (just .(SNat (s i)) (succ i y)) = loop i y (shift i f) 
 
 }
 
 fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
 
-loop (s i) (zero .i) f = loop_case (s i) f (f (wkNatInfty (s i) (zero i)));
-loop (s i) (succ .i n) f = loop i n (shift i f)
-
+loop .(s i) (zero i) f = loop_case (s i) f (f (wkNatInfty (s i) (zero i)));
+loop .(s i) (succ i n) f = loop i n (shift i f)
 }
 
 }

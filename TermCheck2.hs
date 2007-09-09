@@ -137,10 +137,8 @@ collectCallsExpr nl f pl e =
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
       (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f pl e1
-      (Pi (TBind _ e1) e2) -> (collectCallsExpr nl f pl e1) ++
+      (Pi _ e1 e2) -> (collectCallsExpr nl f pl e1) ++
                               (collectCallsExpr nl f pl e2)
-      (Fun e1 e2) ->  (collectCallsExpr nl f pl e1) ++ 
-                      (collectCallsExpr nl f pl e2)
       (Succ e1) -> collectCallsExpr nl f pl e1
       _ -> []
 

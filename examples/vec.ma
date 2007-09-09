@@ -9,26 +9,32 @@ data List : Nat -> Set
 	nil2 : List zero
 }
 
-data Vec (A : Set) : Nat -> Set
+data Vec : Nat -> Set
 {
-	nil : Vec A zero;
-	cons : (n : Nat ) -> A -> Vec A n -> Vec A (succ n)
+	nil : Vec zero;
+	cons : (y : Nat ) -> Nat -> Vec y -> Vec (succ y)
 }
 
-fun head : (A: Set) -> (n : Nat ) -> Vec A (succ n) -> A
+
+fun head : (n : Nat ) -> Vec (succ n) -> Nat 
 {
-head A n (cons A n a xl) = a
+head .m (cons m x xl) = x
 }
 
-fun zeroes : ( n : Nat ) -> Vec Nat n
+fun tail : (n : Nat) -> Vec (succ n) -> Vec n
+{
+tail .m (cons m x xl) = xl
+}
+
+fun zeroes : ( n : Nat ) -> Vec n
 {
 
-zeroes zero = nil Nat;
-zeroes (succ x) = cons Nat x zero (zeroes x)
+zeroes zero = nil ;
+zeroes (succ x) = cons x zero (zeroes x)
 }
 
 const four : Nat = succ (succ (succ (succ zero)))
 const five : Nat = succ four
 
-const headzeroes5 : Nat = head Nat four (zeroes five)
+const headzeroes5 : Nat = head four (zeroes five)
 

@@ -21,7 +21,7 @@ const ones' : Stream Nat infty = ones infty
 cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
           (A -> B) -> Stream A i -> Stream B i
 {
-map A B (s i) f (cons .A .i a as) = cons B i (f a) (map A B i f as)
+map .A B .(s i) f (cons A i a as) = cons B i (f a) (map A B i f as)
 } 
 
 const twos : Stream Nat infty = map Nat Nat infty ( \ x -> succ x) ones'
@@ -29,7 +29,7 @@ const twos : Stream Nat infty = map Nat Nat infty ( \ x -> succ x) ones'
 -- tail is a fun not a cofun
 fun tail : (A : Set) -> (i : Size) -> Stream A (s i) -> Stream A i
 {
-tail  A i (cons .A .i a as) = as
+tail .A .i (cons A i a as) = as
 }
 
 const twos' : Stream Nat infty = tail Nat infty twos
@@ -39,7 +39,7 @@ const twos' : Stream Nat infty = tail Nat infty twos
 -- head is a fun not a cofun
 fun head : (A : Set) -> (i : Size) -> Stream A (s i) -> A
 {
-head A i (cons .A .i a as) = a
+head .A .i (cons A i a as) = a
 }
 
 const two' : Nat = head Nat infty twos

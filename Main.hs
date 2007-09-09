@@ -30,24 +30,24 @@ main = do
   -- putStrLn "Signature:"
   -- putStrLn $ show sig
   _ <- termCheckAll ast2
-  showAll sig
+  showAll sig ast2
   return ()
 --evaluate all constants
 
-evalAllConst :: Signature -> Signature -> [(Name,Val)]
+evalAllConst :: Signature -> [Declaration] -> [(Name,Val)]
 evalAllConst sig [] = []
-evalAllConst sig ((n,def):xs) =
-    case def of
-      (ConstSig t e) -> 
-          let ev = runEval sig emptyEnv e
+evalAllConst sig (decl:xs) =
+    case decl of
+      (ConstDecl (TypeSig n t) e) -> 
+          let ev =  runEval sig e
           in case ev of
                Left err -> error $ "error during evaluation: " ++ err
                Right (v,_) -> (n,v):(evalAllConst sig xs)
       _ -> evalAllConst sig xs 
 
 
-showAll :: Signature -> IO ()
-showAll sig = let ls = map showConst (evalAllConst sig sig) in
+showAll :: Signature -> [Declaration] -> IO ()
+showAll sig decl = let ls = map showConst (evalAllConst sig decl) in
                   sequence_ (map putStrLn ls)
 
 showConst :: (Name,Val) -> String

@@ -20,20 +20,23 @@ ordRing = SemiRing { add = maxO , mul = comp , one = Le , zero = Un }
 
 comp :: Order -> Order -> Order
 comp Lt Un = Un
+comp Lt (Mat m) = comp Lt (collapse m)
 comp Lt _ = Lt
 comp Le o = o
 comp Un _ = Un
 comp (Mat m1) (Mat m2) = let m1m2 = Mat $mmul ordRing m1 m2
-                             cm1m2 = comp (collabse m1) (collabse m2)
+                             cm1m2 = comp (collapse m1) (collapse m2)
                          in
                            if (compatible m1 m2) then 
                                m1m2
                            else
                                cm1m2
-comp (Mat m1) x = comp (collabse m1) x
+comp (Mat m) Le = Mat m
+comp (Mat m) Un = Un
+comp (Mat m) Lt = comp (collapse m) Lt
 
-collabse :: Matrix Order -> Order
-collabse m = foldl comp Le (diag m)
+collapse :: Matrix Order -> Order
+collapse m = foldl comp Le (diag m)
 
 maxO :: Order -> Order -> Order
 maxO o1 o2 = case (o1,o2) of 
@@ -41,21 +44,18 @@ maxO o1 o2 = case (o1,o2) of
                (Lt,_) -> Lt
                (Un,_) -> o2
                (_,Un) -> o1
-               (Mat m,_) -> maxO (collabse m) o2
-               (_,Mat m) ->  maxO o1 (collabse m)
+               (Mat m,_) -> maxO (collapse m) o2
+               (_,Mat m) ->  maxO o1 (collapse m)
                (Le,Le) -> Le
 
 supremum :: [Order] -> Order
 supremum = foldr maxO Un
 
---infimum :: [Order] -> Order
---infimum = foldr min Lt
-
 type Vector a = [a]
 type Matrix a = [Vector a]
 
 compatible :: Matrix a -> Matrix a -> Bool 
-compatible m1 m2 = (length m2) == (length m1) -- assumed square 
+compatible m1 m2 = (length m2) == (length (transpose m1))  
 
 --- 
 -- matrix stuff
@@ -113,6 +113,9 @@ subPatterns p = case p of
 compareExpr' :: Expr -> Pattern -> Order
 compareExpr' e p =  
     case (e,p) of 
+      (_,DotP e') -> case exprToPattern e' of
+                       Nothing -> Un
+                       Just p' -> compareExpr' e p'
       ((Var i),p) -> compareVar i p 
       ((App (Con n) args),(ConP n2 pl)) -> if ( n == n2 ) then
                                                if length args <= 0 then
@@ -139,6 +142,29 @@ compareVar n p =
       (VarP n2) -> if n == n2 then Le else Un
       (ConP c pl) -> comp Lt (supremum (map (compareVar n) pl))
       (SuccP p2) -> comp Lt (compareVar n p2)
-      (DotP e) -> Un
+      (DotP e) -> case (exprToPattern e) of
+                    Nothing -> trace "fails" $ Un
+                    Just p' -> compareVar n p'
       WildP -> Un
       _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p
+
+exprToPattern :: Expr -> Maybe Pattern
+exprToPattern e = 
+    case e of
+      Var n -> Just $ VarP n
+      (Succ e) -> case exprToPattern e of
+                    Nothing -> Nothing
+                    Just p -> Just $ SuccP p
+      (App (Con n) el) -> case exprsToPatterns el of
+                            Nothing -> Nothing
+                            Just pl -> Just $ ConP n pl
+      (Con n) -> Just $ ConP n []
+      _ -> Nothing
+
+exprsToPatterns :: [Expr] -> Maybe [Pattern]
+exprsToPatterns [] = Just []
+exprsToPatterns (e:el) = case exprToPattern e of
+                           Nothing -> Nothing
+                           Just p -> case exprsToPatterns el of
+                                       Nothing -> Nothing
+                                       Just pl -> Just (p:pl)
