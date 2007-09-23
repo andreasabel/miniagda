@@ -1,4 +1,4 @@
-\chapter{Basic MiniAgda}
+m\chapter{Basic MiniAgda}
 
 \newcommand{\dd}{\mathbf{d}}
 \newcommand{\DD}{\mathbf{D}}
@@ -26,12 +26,12 @@ Int the following, these identifiers are used:
 \end{itemize}
 Now the various syntactical categories can be definied.
 \\
-Expressions (terms and types) $e,t$:  
+Expressions (terms and types) $e,A,B$:  
 \begin{itemize}
 \item
 abstraction: $ \lam x . e $ 
 \item
-dependent function space: $\EPi{x}{t}{t}$ 
+dependent function space: $\EPi{x}{A}{B}$ 
 \item 
 application: $ e \; \vec{e} $ 
 \item
@@ -49,9 +49,7 @@ variable pattern: $x$
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
-dot pattern: $ . \; e $ 
-\item
-absurd pattern: $()$
+inacessible pattern: $ \underbar{e} $ 
 \end{itemize}
 Declarations $\delta$:
 \begin{itemize}
@@ -68,33 +66,40 @@ constant:
 mutual declaration:
 \[\mutual \; \vec{\delta}\]
 \end{itemize}
-Constructor definitions $\gamma$:
+Constructor definition $\gamma$:
 \begin{itemize}
 \item
-$ \cc \; : \; t $ 
+$ \cc \; : \; A $ 
 \end{itemize}
-Function clause definitions: $ \kappa $
+Function clause definition
 \begin{itemize}
 \item
-normal clauses: $ \ff \; \vec{p} = e $
-\item
-absurd clauses : $ \ff \; \vec{p} $
+\[ \kappa :=  \ff \; \vec{p} = e \]
 \end{itemize}
 Telescopes:
 \[ \tau := \diamond \vsp ( x : t ) \; \tau \]
 A MiniAgda program consists of a list of declarations.
+Each declaration adds newly defined constructs to the signature $\Sigma$.
+The signature is empty at the beginning.
 \section{Examples}
+The best way to explain the syntax is through examples.
 \subsection{Identity function}
-as this functon is not recursive, it can be defined as a const.
-this is not really a polymorphic identity function, as you have to supply the
+Without defining new data types, we still can define some useful non recursive functions.
+One example is the polymorphic identity function. 
+Miniagda is monomorphic, so this is not really a polymorphic function, as you have to supply the
 type as the first argument.
 $\const id : \EPi{A}{\Set}{A \ra A} = \lam a \lam x . ; x$   
+We simple add the defintion of $id$ to the signature:
+\[ \Sigma := \{ id : \EPi{A}{\Set}{A \ra A} = \lam a \lam x . ; x \} \]
 \subsection{Booleans}
+The booleans are an example of a non-inductive enumeration type.
 $\data \Bool : \Set$ 
 \\
 $\ttt : \Bool $
 \\
 $\fff : \Bool $
+Three new constants are added to the signature
+\[ \Sigma := \{ \Bool : \Set , \ttt : \Bool , \fff : \Bool \} \]
 \subsection{Natural Numbers}
 First we declare the type of natural numbers:
 \begin{quote}
@@ -113,6 +118,7 @@ $\add x \; \zero = x $
 $\add x (\suc y) = \suc ( \add x \; y)  $
 \end{quote}
 \subsection{Lists}
+Lists are an example of a parametrized data type:
 \begin{quote}
 $\data \List ( A : \Set ) : \Set $ 
 \\
@@ -120,8 +126,58 @@ $\nil : \List A  $
 \\
 $\cons : A \ra \List A \ra \List A $
 \end{quote}
-
-
+\subsection{Binary Trees}
+The following introduces binary trees with leaf labeled with elements of $A$ and nodes labeld with elements of $B$:
+\begin{quote}
+$\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ 
+\\
+$\leaf : A \ra \Tree A \; B $
+\\
+$\node : B \ra \Tree A \; B \ra \Tree A \; B $
+\end{quote}
+The tree definition adds the following constans to the signature:
+\begin{quote}
+$\Tree  : ( A : \Set ) \ra ( B : \Set ) \ra \Set$
+\\
+$\leaf : ( A : \Set ) \ra ( B : \Set ) \ra A \ra \Tree A \; B $
+\\
+$\node : ( A : \Set ) \ra ( B : \Set ) \ra A B \ra \Tree A \; B $
+\end{quote}
+\section{Vectors}
+The previous data types that didn't use any depentend product. 
+Now things get more interesting.
+Vectors are an example of an inductive family of types.
+They can be imagined as lists that store their length.
+\begin{quote}
+$\data \vVec ( A : \Set ) : \Nat \ra \Set $ 
+\\
+$\vnil : \vVec A \; \zero  $
+\\
+$\vcons : \EPi{n}{\Nat}{ A \ra \vVec A \; n \ra \vVec A \; (\suc n)} $
+\end{quote}
+Now let's define the $\head$ function that returns the first element of an vector. This operation should only be allowed for a non-empty vector.
+With depentend types, we can express this in the type signature
+\begin{quote}
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
+\end{quote}
+Now to the clause definition. We can explain the use inaccesible patterns here.
+We need to pattern match to get the head element.
+\begin{quote}
+$\head ? \; ? \; (\vcons \; B \; m \; x \; xl) = x $
+\end{quote}
+First, let's note that we don't need to pattern match against $\nil$.
+Now what about the ? above. 
+One might be inclined to use non-linear patterns:
+\begin{quote}
+$\head \; B \; m \; (\vcons  B \; m \; x \; xl) = x $
+\end{quote}
+But we really don't have to check at runtime that the values at the corresponding arguments match -- it's guranteed for a well-typed program.
+So to really capture the notion that the first two arguments are automatically istantiated by pattern matching against the inductive family argument, we use the inacessible pattern notation. The final definiton is:
+\begin{quote}
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
+\\
+$\head \underbar{B} \; \underbar{m} \; (cons \; B \; m \; x \; xl) = x $
+\end{quote}
 \section{Universes}
 To keep MiniAgda simple, $\Set$ is the type of all types.
 The judgement is
@@ -132,8 +188,6 @@ Due to its use for interactivly building proofs, the full Agda has meta-variable
 Also, many bookkeeping arguments can be easily infered by the type checker,easying tedious pain for the user.
 The user can mark these arguments as \emph{implicit}. The type checker will automatically infer them.
 To keep MiniAgda simple, these features were not implemented.
-
-
 
 \section{Type Checking}
 
@@ -260,11 +314,38 @@ weak head normal form:
 \begin{figure}
 \[
 \begin{array}{c}
-          
-	  \infer{\Whnf{e \; \rho}{v'}}{\Eval{\rho}{e}{v'}}
+
+\infer{\Whnf{\lam x . e \; \rho}{\lam x . e \; \rho}}{}
 
 \end{array}
 \]
+
+\[
+\begin{array}{c}
+\infer{\Whnf{\EPi{x}{A}{B} \; \rho}{\EPi{x}{A}{B} \; \rho}}{}
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+\infer{\Whnf{e \; \rho}{v''}}
+{\Eval{\rho}{e}{v'}
+& \Whnf{v'}{v''} 
+}
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+\infer{\Whnf{v \; \vec{v}}{v''}}
+{
+\Whnf{v}{v'}
+& \Whnf{\vec{v}}{\vec{v}'}
+& {\App{v'}{\vec{v}'}{v''}}
+}
+\end{array}
+\]
+
 \caption{weak head normal form}
 \end{figure}
 

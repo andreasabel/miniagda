@@ -128,12 +128,12 @@ compareExpr' e p =
                                            else
                                                Un
       (Con n,ConP n2 []) -> if n == n2 then Le else Un    
-      (Succ e2,SuccP p2) -> compareExpr' e2 p2
-      -- needed for ordinal addition f <= f n 
-      (App (Var f) args,VarP g) -> if (f == g) then 
-                                 Le
-                             else
-                                 Un
+      (Succ e2,SuccP p2) -> compareExpr' e2 p2     
+      (App (Var f) args,VarP g) -> if (f == g) then  -- axiom f x <= f 
+                                       Le
+                                   else
+                                       Un
+
       _ -> Un
 
 compareVar :: Name -> Pattern -> Order
@@ -143,9 +143,8 @@ compareVar n p =
       (ConP c pl) -> comp Lt (supremum (map (compareVar n) pl))
       (SuccP p2) -> comp Lt (compareVar n p2)
       (DotP e) -> case (exprToPattern e) of
-                    Nothing -> trace "fails" $ Un
+                    Nothing -> Un
                     Just p' -> compareVar n p'
-      WildP -> Un
       _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p
 
 exprToPattern :: Expr -> Maybe Pattern

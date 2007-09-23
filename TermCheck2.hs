@@ -17,7 +17,7 @@ terminationCheckDecl (FunDecl co funs) =
          True -> case nl of
                    [f] -> do putStrLn ("Termination check for " ++ f ++ " ok")
                              return True
-                   _ -> do putStrLn ("Termination check for " ++ show nl ++ " ok")
+                   _ -> do putStrLn ("Termination check for mutual block" ++ show nl ++ " ok")
                            return True
          False -> case nl of
                     [f] -> do putStrLn ("Termination check for function " ++ f ++ " fails ") 
@@ -110,9 +110,8 @@ collectCGFunDecl funs =
       concatMap (collectClauses names) funs
           where
             collectClauses names ((TypeSig n _),cll) = collectClause names n cll
-            collectClause names n ((Clause (LHS pl) (RHS e)):rest) = 
-                (collectCallsExpr names n pl e) ++ (collectClause names n rest) 
-            collectClause names n (absurd:rest) = collectClause names n rest
+            collectClause names n ((Clause pl rhs):rest) = 
+                (collectCallsExpr names n pl rhs) ++ (collectClause names n rest) 
             collectClause names n [] = []
 
 collectNames [] = []                                     

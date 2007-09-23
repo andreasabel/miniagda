@@ -15,14 +15,6 @@ cons : (i : Size ) -> A -> SList A i -> SList A (s i)
 
 const list : SList Enum infty = cons Enum infty aa (cons Enum infty bb (cons Enum infty cc (nil Enum infty))) 
 
-fun weakList : ( i : Size ) -> ( A : Set ) -> SList A i -> SList A (s i)
-{
-
-weakList .(s i) .A (nil A i) = nil A (s i);
-weakList .(s i) .A (cons A i x xs) = cons A (s i) x (weakList i A xs)
-
-}
-
 mutual 
 {
 
@@ -56,6 +48,6 @@ mutual
 
 const revlist : SList Enum infty = rev infty Enum list
 
-
+const EnumSList : Size -> Set = \j -> SList Enum j
 
 

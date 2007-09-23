@@ -31,12 +31,6 @@ ite A tt x y = x;
 ite A ff x y = y
 }
 
-fun wkList : ( i : Size ) -> ( A : Set ) -> List A i -> List A (s i)
-{
-wkList .(s i) .A (nil A i) = nil A (s i);
-wkList .(s i) .A (cons A i x xs) = cons A (s i) x (wkList i A xs)
-}
-
 fun pivot : (i : Size ) -> (A : Set ) -> ( leq : A -> A -> Bool ) 
 	-> A -> List A i -> Prod (List A i)
 {
@@ -46,13 +40,13 @@ pivot .(s i)     .A leq a (cons A i x xs) =
      ite (Prod (List A (s i))) (leq a x) 
    
      (prod (List A (s i))
-	(wkList i A (pr1 (List A i) (pivot i A leq a xs)))
+        (pr1 (List A i) (pivot i A leq a xs)) --subtyping
 	(cons A i x (pr2 (List A i) (pivot i A leq a xs))) 
      )
 
      (prod (List A (s i))
-	(cons A i x (pr1 (List A i) (pivot i A leq a xs))) 
-	(wkList i A (pr2 (List A i) (pivot i A leq a xs)))
+	(cons A i x (pr1 (List A i) (pivot i A leq a xs)))
+        (pr2 (List A i) (pivot i A leq a xs)) --subtyping
      )
 }
 
@@ -85,7 +79,7 @@ data Nat : Set
 
 fun leqN : Nat -> Nat -> Bool
 {
-leqN zero _ = tt;
+leqN zero m = tt;
 leqN (succ n) zero = ff;
 leqN (succ n) (succ m) = leqN n m
 }

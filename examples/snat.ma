@@ -16,6 +16,14 @@ wkSNat .(s i) (zero i) = zero (s i);
 wkSNat .(s i) (succ i x) = succ (s i) (wkSNat i x) 
 }
 
+-- bad
+-- but incomplete pattern match
+fun wkSNat2 : (i : Size ) -> SNat (s i) -> SNat i
+{
+wkSNat2 .(s i) (zero (s i)) = zero i;
+wkSNat2 .(s i) (succ (s i) x) = succ i (wkSNat2 i x) 
+}
+
 fun wkNatInfty : (i : Size) -> SNat i -> SNat infty
 {
 wkNatInfty .(s i) (zero i) = zero infty;
@@ -36,8 +44,8 @@ const six : SNat infty = add infty infty four two
 fun minus : (i : Size ) -> (j : Size ) -> SNat i -> SNat j -> SNat i
 {
 
-minus .(s i) _       (zero i)    y           = zero i;
-minus _      .(s j)  x           (zero j )  = x ;
+minus .(s i) j       (zero i)    y           = zero i;
+minus i      .(s j)  x           (zero j )  = x ;
 minus .(s i) .(s j)  (succ i x)  (succ j y) = wkSNat i (minus i j x y)
 
 }
@@ -48,7 +56,7 @@ const min4_2 : SNat infty = minus infty infty  four two
 fun div : ( i : Size ) -> ( j : Size ) ->  SNat i -> SNat j -> SNat i
 {
 
-div .(s i) _      (zero i)   _           = zero i ;
+div .(s i) j      (zero i)   y           = zero i ;
 div .(s i) .(s j) (succ i x) (zero j)    = zero i ;
 div .(s i) .(s j) (succ i x) (succ j y)  = succ i (div i (s j) (minus i j x y) (succ j y))
 
@@ -60,7 +68,7 @@ const div4_4 : SNat infty = div infty infty four four
 fun compare : (i : Size ) -> (j : Size ) -> (SNat i) -> (SNat j)
     -> (A : Set) -> A -> A -> A
 {
-compare _      .(s j) _          (zero j)          A a a' = a ;
+compare i      .(s j) x          (zero j)          A a a' = a ;
 compare .(s i) .(s j) (zero i)   (succ j y')        A a a' = a';
 compare .(s i) .(s j) (succ i x) (succ j y)       A a a' = compare i j x y A a a'
 }
@@ -86,7 +94,7 @@ data Eq (A : Set) (a : A) : A -> Set
 fun subst : (A : Set) -> (P :  A -> Set) -> (a : A) -> (b : A) -> 
             Eq A a b -> P a -> P b
 {
- subst .A P .a . a (refl A a) p = p
+subst .A P .a .a (refl A a) p = p
 }
 
 const Nat : Set = SNat infty

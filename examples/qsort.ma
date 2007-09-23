@@ -70,7 +70,7 @@ data Nat : Set
 
 fun leqN : Nat -> Nat -> Bool
 {
-leqN zero _ = tt;
+leqN zero m = tt;
 leqN (succ n) zero = ff;
 leqN (succ n) (succ m) = leqN n m
 }

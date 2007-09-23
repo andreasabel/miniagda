@@ -42,23 +42,14 @@ type TBind = (Name,Type)
 
 type Telescope = [TBind]
 
-data Clause = Clause LHS RHS  
+data Clause = Clause [Pattern] Expr  
             deriving (Eq,Show)
-
-data RHS = RHS Expr
-         | AbsurdRHS
-           deriving (Eq,Show)
-
-data LHS = LHS [Pattern]
-         deriving (Eq,Show)
 
 data Pattern = VarP Name
              | ConP Name [Pattern]
              | SuccP Pattern
-             | WildP
-             | AbsurdP
-             | IdentP Name -- not used after scope checking
              | DotP Expr
+             | IdentP Name -- not used after scope checking
                deriving (Eq,Show)
 
 teleToType :: Telescope -> Type -> Type

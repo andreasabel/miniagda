@@ -74,7 +74,8 @@ scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
                                                     let names = collectTelescopeNames tel
                                                     cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs)
                                                     return $ DataDecl n co tel' t' cs'
-scopeCheckDeclaration (FunDecl co funs) = do tsl' <- mapM (scopeCheckTypeSig FunK . fst ) funs  
+scopeCheckDeclaration (FunDecl co funs) = do _ <- mapM (scopeCheckFunName . fst ) funs
+                                             tsl' <- mapM (scopeCheckFunSig . fst ) funs  
                                              cll' <- mapM ((mapM scopeCheckClause) . snd ) funs
                                              return $ FunDecl co (zip tsl' cll') 
 scopeCheckDeclaration (ConstDecl ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
@@ -83,40 +84,44 @@ scopeCheckDeclaration (ConstDecl ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
 
 
 
+scopeCheckFunName :: TypeSig -> ScopeCheck ()
+scopeCheckFunName a@(TypeSig n t) = 
+    do sig <- get
+       case (lookupSig n sig) of
+         Just _ ->  errorAlreadyInSignature a n
+         Nothing -> do put (addSig n FunK sig)
+                       return ()
+
+scopeCheckFunSig :: TypeSig -> ScopeCheck TypeSig 
+scopeCheckFunSig a@(TypeSig n t) = do t' <- scopeCheckExpr t 
+                                      sig <- get
+                                      put (addSig n FunK sig)
+                                      return $ TypeSig n t'         
+
+
+-- for data and const declarations
 scopeCheckTypeSig :: Kind -> TypeSig -> ScopeCheck TypeSig 
-scopeCheckTypeSig kind a@(TypeSig n e) = 
+scopeCheckTypeSig kind a@(TypeSig n t) = 
     do sig <- get
        case (lookupSig n sig) of
          Just _ -> errorAlreadyInSignature a n
-         Nothing -> do e' <- scopeCheckExpr e 
+         Nothing -> do t' <- scopeCheckExpr t 
                        put (addSig n kind sig)
-                       return $ TypeSig n e'         
+                       return $ TypeSig n t'         
 
 collectTelescopeNames :: Telescope -> [Name]
 collectTelescopeNames = map ( \(n,_) -> n )
 
 scopeCheckConstructor :: Constructor -> ScopeCheck Constructor
-scopeCheckConstructor a@(TypeSig n e) = 
+scopeCheckConstructor a@(TypeSig n t) = 
     do sig <- get
        case (lookupSig n sig) of
          Just _ -> errorAlreadyInSignature a n
-         Nothing -> do e' <- scopeCheckExpr e 
+         Nothing -> do t' <- scopeCheckExpr t 
                        put (addSig n ConK sig)
-                       return $ TypeSig n e'
+                       return $ TypeSig n t'
 
-scopeCheckTelescope :: Telescope -> ScopeCheck Telescope
-scopeCheckTelescope [] = return []
-scopeCheckTelescope a@((n,t):xs) = 
-    do ctx <- ask
-       sig <- get
-       case (lookupSig n sig) of
-         Just _ ->  errorAlreadyInSignature (show t) n
-         Nothing -> case (lookupCtx n ctx) of 
-                      True  -> errorAlreadyInContext a n
-                      False -> do t' <- scopeCheckExpr t
-                                  xs' <- local (addCtx n) (scopeCheckTelescope xs)
-                                  return $ (n,t') : xs'
-                      
+                     
 scopeCheckExpr :: Expr -> ScopeCheck Expr
 scopeCheckExpr e = 
     case e of 
@@ -128,9 +133,9 @@ scopeCheckExpr e =
       App e1 el -> do e1' <- scopeCheckExpr e1
                       el' <- mapM scopeCheckExpr el
                       return $ App e1' el'
-      Pi "" t e1 -> do t <- scopeCheckExpr t -- non-dep. function type
-                       e1 <- scopeCheckExpr e1
-                       return $ Pi "" t e1
+      Pi "" t e1 -> do t' <- scopeCheckExpr t -- non-dep. function type
+                       e1' <- scopeCheckExpr e1
+                       return $ Pi "" t' e1'
       -- interesting cases
       Pi n t e1 -> do ctx <- ask
                       sig <- get
@@ -162,31 +167,26 @@ scopeCheckExpr e =
 
 
 scopeCheckClause :: Clause -> ScopeCheck Clause
-scopeCheckClause (Clause (LHS pl) rhs) = 
+scopeCheckClause (Clause pl rhs) = 
     do pl' <- mapM scopeCheckPattern pl
        names <- collectVarPNames pl'
-       pl'' <- local (addCtxs names) (mapM replaceIdentDotPattern pl') 
-       rhs' <- local (addCtxs names) (scopeCheckRHS rhs)
-       return $ Clause (LHS pl'') rhs'
-
+       pl'' <- local (addCtxs names) (mapM scopeCheckDotPattern pl') 
+       rhs' <- local (addCtxs names) (scopeCheckExpr rhs)
+       return $ Clause pl'' rhs'
 
 
 -- collect all variable names, checks if pattern is linear
--- check dot patterns 
 collectVarPNames :: [Pattern] -> ScopeCheck [Name]
 collectVarPNames pl = cvp pl [] where
     cvp [] acc = return acc
     cvp (p:pl) acc = case p of
-                       WildP -> cvp pl acc
-                       AbsurdP -> cvp pl acc
                        SuccP p2 -> cvp (p2:pl) acc
                        ConP n pl2 -> cvp (pl2++pl) acc
                        VarP n ->  if (elem n acc) then 
-                                      cvp pl acc
+                                      errorPatternNotLinear
                                   else 
                                       cvp pl (n:acc)
-                       DotP e -> --do local (addCtxs acc) $ scopeCheckExpr e 
-                            cvp pl acc
+                       DotP e -> cvp pl acc
 
 scopeCheckPattern :: Pattern -> ScopeCheck Pattern
 scopeCheckPattern p = 
@@ -207,23 +207,16 @@ scopeCheckPattern p =
                         Nothing -> errorPatternNotConstructor n 
       _ -> return p -- dot patterns checked later
     
-replaceIdentDotPattern :: Pattern -> ScopeCheck Pattern
-replaceIdentDotPattern p  = 
+scopeCheckDotPattern :: Pattern -> ScopeCheck Pattern
+scopeCheckDotPattern p  = 
     case p of 
       DotP e -> do e' <- scopeCheckExpr e
                    return $ DotP e'
-      SuccP p2 -> do p2' <- replaceIdentDotPattern p2
+      SuccP p2 -> do p2' <- scopeCheckDotPattern p2
                      return $ SuccP p2'
-      (ConP n pl) -> do pl' <- mapM replaceIdentDotPattern pl
+      (ConP n pl) -> do pl' <- mapM scopeCheckDotPattern pl
                         return $ ConP n pl'
       _ -> return p 
-
-
-
-scopeCheckRHS :: RHS -> ScopeCheck RHS
-scopeCheckRHS AbsurdRHS = return $ AbsurdRHS
-scopeCheckRHS (RHS e) = do e' <- scopeCheckExpr e 
-                           return $ RHS e'
 
 
 errorAlreadyInSignature s n = throwError $ "Scope Error at " ++ show s  ++ ": Identifier " ++ n ++ " already in signature"
@@ -233,3 +226,5 @@ errorAlreadyInContext s n = throwError $ "Scope Error at " ++ show s ++ ": Ident
 errorPatternNotConstructor n = throwError $ "Scope Error in pattern: " ++ show n ++ " not a constructor"
 
 errorIdentifierUndefined n = throwError $ "Scope Error: Identifier " ++ n ++ " undefined"
+
+errorPatternNotLinear = throwError "Scope Error: pattern not linear"

@@ -4,6 +4,12 @@ data Nat : Set
 	succ : Nat -> Nat
 }
 
+fun add : Nat -> Nat -> Nat
+{
+add zero y = y;
+add (succ x) y = succ (add x y) 
+}
+
 data List : Nat -> Set
 {
 	nil2 : List zero
@@ -33,8 +39,8 @@ zeroes zero = nil ;
 zeroes (succ x) = cons x zero (zeroes x)
 }
 
-const four : Nat = succ (succ (succ (succ zero)))
-const five : Nat = succ four
-
-const headzeroes5 : Nat = head four (zeroes five)
-
+fun append : ( n : Nat ) -> ( m : Nat) -> Vec n -> Vec m -> Vec (add n m)
+{
+append .zero m nil v = v;
+append .(succ n) m (cons n x xl) v = cons (add n m) x (append n m xl v)
+}

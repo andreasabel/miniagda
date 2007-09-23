@@ -34,7 +34,6 @@ succ    { T.Succ _ }
 '->'    { T.Arrow _ }
 '='     { T.Eq _ }
 '\\'     { T.Lam _ }
-'_'     { T.UScore _ } 
 
 %%
 
@@ -128,25 +127,25 @@ Constructor :: { A.Constructor }
 Constructor : TypeSig { $1 }
 
 Constructors :: { [A.Constructor ] }
-Constructors : {- empty -} { [] }
-         | Constructor { [$1] }
-         | Constructors ';' Constructor { $3 : $1 }
+Constructors :
+      Constructors ';' Constructor { $3 : $1 }
+    | Constructors ';' { $1 }
+    | Constructor { [$1] }
+    | {- empty -} { [] }
 
 
 Clause :: { A.Clause }
-Clause : Id LHS RHS { A.Clause $2 $3 }
+Clause : Id LHS '=' Expr { A.Clause $2 $4 }
 
-LHS :: { A.LHS }
-LHS : Patterns { A.LHS (reverse $1) }
+LHS :: { [A.Pattern] }
+LHS : Patterns { reverse $1 }
 
 Patterns :: { [A.Pattern] }
 Patterns : {- empty -} { [] }
     | Patterns Pattern { $2 : $1 }
 
 Pattern :: { A.Pattern }
-Pattern : '_' { A.WildP }
-        | '(' ')' { A.AbsurdP }
-        | ConP { $1 }
+Pattern : ConP { $1 }
         | Id { A.IdentP $1 }
         | '.' Expr3 { A.DotP $2 }
 
@@ -154,14 +153,12 @@ ConP :: { A.Pattern }
 ConP : '(' Id Patterns ')' { A.ConP $2 (reverse $3) }
      | '(' succ Pattern ')' { A.SuccP $3 }
 
-RHS :: { A.RHS }
-RHS : {- empty -} { A.AbsurdRHS }
-    | '=' Expr { A.RHS $2 }
-    
 Clauses :: { [A.Clause ] }
-Clauses : {- empty -} { [] }
-        | Clause { [$1] }
-| Clauses ';' Clause { $3 : $1 }
+Clauses :
+   Clauses ';' Clause { $3 : $1 }
+ | Clauses ';' { $1 }
+ | Clause { [$1] }
+ | {- empty -} { [] }
 
 
 TBind :: { (A.Name,A.Expr) }

@@ -20,14 +20,10 @@ olim : ( Nat -> Ord ) -> Ord
 
 }
 
+-- needs axiom f n < f
 fun addord : Ord -> Ord -> Ord
 {
 addord x ozero = x ;
 addord x (olim f) = olim (\n -> addord x (f n))
 }
 
-fun foo : Ord -> (Nat -> Ord) -> Ord
-{
-foo ozero    g = ozero;
-foo (olim f) g = olim (\n -> foo (g n) f)
-}

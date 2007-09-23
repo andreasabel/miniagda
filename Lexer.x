@@ -37,7 +37,6 @@ s				{ tok (\p s -> Succ p) }
 "->"				{ tok (\p s -> Arrow p)  }
 =				{ tok (\p s -> Eq p) }
 \\				{ tok (\p s -> Lam p) }
-_				{ tok (\p s -> UScore p) }
 
 $alpha [$alpha $digit \_ \']*		{ tok (\p s -> (Id s p )) }
 	
@@ -66,7 +65,6 @@ data Token = Id String AlexPosn
            | Arrow AlexPosn
            | Eq AlexPosn
            | Lam AlexPosn
-           | UScore AlexPosn
            | NotUsed AlexPosn -- so happy doesn't generate overlap case pattern warning
              deriving (Eq)
 
@@ -94,7 +92,6 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Arrow p -> ("->",p)
     Eq p -> ("=",p)
     Lam p -> ("\\",p)
-    UScore p -> ("_",p)
     _ -> error "not used"    
 
 
