@@ -561,8 +561,9 @@ We just know that the size index that the sized natural numbers carry around equ
 
 \section{Implementation}
 
-MiniAgda was implemented in the function language Haskell.
-The alex and happy tools where used for generating lexer and parser.
+MiniAgda was implemented in the function language Haskell \cite{haskell}The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
+
+The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
 
 \subsection{Scope checking}
 The first step after parsing is scope checking. This checks that names are used correctly:
@@ -582,6 +583,11 @@ Type checking was implemented as explained above.
 \begin{definition}[Order]
 \[ O := \{ < , \leq , ? \} \]
 \end{definition}
+Axiom1:
+\[ e \; < \; C \; \vec{e_1} \; e \; \vec{e_2} \]
+\\
+Axiom2:
+\[ f \; \vec{e} \; \leq \; f \] 
 
 \begin{definition}[Order Addition]
 \[
@@ -806,6 +812,45 @@ needs to be rejected by an admissibility checker.
 It would be quite nice to have subtyping.
 There is natural order on size expressions.
 
+\begin{figure}
+\[
+\begin{array}{c}
+	  \infer{i \preceq \infty}
+          {}
+\end{array}
+\]
+\[
+\begin{array}{c}
+	  \infer{i \preceq \s i}
+          {}
+\end{array}
+\]
+\[
+\begin{array}{c}
+	  \infer{i \preceq k}
+          {i \preceq j & j \preceq k}
+\end{array}
+\]
+\caption{Size comparison}
+\end{figure}
+
+
+\begin{figure}
+\[
+\begin{array}{c}
+	  \infer{\dd \vec{v1} \; i \; \vec{v2} \leq \dd \vec{v1'} \; j \; \vec{v2'}}
+	      {i \preceq j & \EqVal{\vec{v1}}{\vec{v1'}}}
+\end{array}\dd \; \data
+\]
+\[
+\begin{array}{c}
+	  \infer{\dd \vec{v1} \; i \; \vec{v2} \leq \dd \vec{v1'} \; j \; \vec{v2'}}
+	      {j \preceq i & \EqVal{\vec{v1}}{\vec{v1'}}}
+\end{array}
+\dd \; \codata
+\]
+\caption{Subtyping}
+\end{figure}
 
 \chapter{Adding coinductive types}
 
@@ -826,5 +871,11 @@ coinductive function:
 \section{Admissibility}
 
 \section{Examples}
+
+\subsection{Streams}
+
+\subsection{Fibonacci stream}
+
+\subsection{Stream processors}
 
 

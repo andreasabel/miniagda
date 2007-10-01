@@ -167,3 +167,16 @@ const sixteens : Stream Nat = eat Nat Nat adder2' twos
 
 const sixteen : Nat = nth one sixteens
 
+-- an unproductive stream
+cofun unp1 : Stream Nat 
+{
+unp1 = unp1
+}
+
+-- another one
+cofun unp2 : Stream Nat
+{
+unp2 = cons Nat zero (tail Nat unp2)
+}
+
+const bla : Nat = nth one unp2

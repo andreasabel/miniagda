@@ -179,3 +179,16 @@ cofun wkStream2 : ( A : Set ) -> ( i : Size ) -> Stream A i -> Stream A (s i)
 {
 wkStream2 .A .(s i) (cons A i x xs) = cons A (s i) x (wkStream2 A i xs)
 }
+
+-- an unproductive stream
+cofun unp : (i : Size ) -> Stream Nat i 
+{
+unp i = unp i
+}
+
+-- another one
+cofun unp2 : (i : Size ) -> Stream Nat i
+{
+unp2 (s i) = cons Nat i zero (tail Nat i (unp2 (s i)))
+}
+-- const bla : Nat = nth one (unp2 infty)

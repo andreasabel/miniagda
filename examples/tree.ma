@@ -22,25 +22,26 @@ mapT .A B f (leaf A a) = leaf B (f a);
 mapT .A B f (node A l) = node B (mapL (Tree A) (Tree B) (mapT A B f) l)
 }
 
-data Enum : Set
+-- append list
+
+fun append : ( A : Set ) -> List A -> List A -> List A
 {
-aa : Enum;
-bb : Enum;
-cc : Enum
+append .A (nil  A) yl = yl ;
+append .A (cons A x xl) yl = cons A x (append A xl yl) 
 }
 
-fun perm : Enum -> Enum
+
+-- concatenate lists
+fun conc : ( A : Set ) -> List (List A) -> List A
 {
-perm aa = bb;
-perm bb = cc;
-perm cc = aa
+conc A (nil .(List A)) = nil A ;
+conc A (cons .(List A) l l2) = append A l (conc A l2)
 }
 
-const TE : Set = Tree Enum
-const aal : TE = leaf Enum aa
-const bbl : TE = leaf Enum bb
-const ccl : TE = leaf Enum cc
+-- tree flattening
 
-const t1 : TE = node Enum (cons TE aal (cons TE bbl (cons TE ccl (nil TE))))
-const t2 : TE = node Enum (cons TE aal (cons TE t1 (nil TE)))
-const t3 : TE = mapT Enum Enum perm t2
+fun flat : ( A : Set ) -> Tree A -> List A 
+{
+flat .A (leaf A a) = cons A a (nil A);
+flat .A (node A l) = conc A (mapL (Tree A) (List A) (flat A) l)
+}

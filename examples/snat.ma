@@ -24,6 +24,14 @@ wkSNat2 .(s i) (zero (s i)) = zero i;
 wkSNat2 .(s i) (succ (s i) x) = succ i (wkSNat2 i x) 
 }
 
+fun loop : ( i : Size ) -> SNat i -> Set
+{
+loop .(s i) (zero i) = Set;
+loop .(s i) (succ i x) = loop i (wkSNat2 i (succ i x)) 
+}
+
+-- const loops : Set = loop infty one
+
 fun wkNatInfty : (i : Size) -> SNat i -> SNat infty
 {
 wkNatInfty .(s i) (zero i) = zero infty;

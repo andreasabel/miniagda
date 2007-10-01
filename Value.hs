@@ -49,7 +49,7 @@ update :: Env -> Name -> Val -> Env
 update env n v = (n,v):env
 
 lookupEnv :: Env -> Name -> Val
-lookupEnv [] n = error $ "lookup error " ++ n 
+lookupEnv [] n = error $ "lookup env error " ++ n 
 lookupEnv ((x,v):xs) n = if x == n then v else lookupEnv xs n
 
 

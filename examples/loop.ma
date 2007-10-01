@@ -12,25 +12,12 @@ data Maybe (A : Set ) : Set
 
 const Nat : Set = SNat infty
 
-fun wkSNat : (i : Size ) -> SNat i -> SNat (s i)
-{
-wkSNat .(s i) (zero i) = zero (s i);
-wkSNat .(s i) (succ i x) = succ (s i) (wkSNat i x) 
-}
-
-fun wkNatInfty : (i : Size) -> SNat i -> SNat infty
-{
-wkNatInfty .(s i) (zero i) = zero infty;
-wkNatInfty .(s i) (succ i n) = succ infty (wkNatInfty i n)
-}
-
 fun shift_case : (i : Size) -> Maybe (SNat (s i)) -> Maybe (SNat i)
 {
 
 shift_case i (nothing .(SNat (s i))) = nothing (SNat i);
 shift_case .i (just .(SNat (s i)) (zero i)) = nothing (SNat i);
 shift_case .i (just .(SNat (s i)) (succ i x)) = just (SNat i) x
-
 
 }
 
@@ -68,7 +55,7 @@ loop_case .(s i)   f  (just .(SNat (s i)) (succ i y)) = loop i y (shift i f)
 fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
 
-loop .(s i) (zero i) f = loop_case (s i) f (f (wkNatInfty (s i) (zero i)));
+loop .(s i) (zero i) f = loop_case (s i) f (f (zero i)); --weak infty
 loop .(s i) (succ i n) f = loop i n (shift i f)
 }
 

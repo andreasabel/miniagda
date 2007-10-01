@@ -132,7 +132,7 @@ arityType t = do case t of
 
 -- check that patterns have the same length, return length
 arityClauses :: [Clause] -> TypeCheck (Maybe Int)
-arityClauses [] = throwError $ "error : empty clause list"  
+arityClauses [] = return $ Just (-1) -- empty clause list  
 arityClauses (Clause pl rhs :cl ) = checkLength (length pl) cl 
     where 
       checkLength i [] = return $ Just i
@@ -159,7 +159,6 @@ matches p v = case (p,v) of
 matchesSucc :: Pattern -> Val -> Bool
 matchesSucc p v = case (p,v) of
                     (_,VInfty) -> True
-                    --(SuccP (VarP x),VInfty) -> True
                     (SuccP (VarP x),VSucc v2) -> True
                     (SuccP p2,VSucc v2) -> matchesSucc p2 v2
                     _ -> False
@@ -227,7 +226,7 @@ patternToExpr p =
 
 whnf :: Val -> TypeCheck Val
 whnf v = 
-    -- trace ("whnf " ++ show v) $
+    --trace ("whnf " ++ show v) $
     case v of
       (VClos _ (Lam _ _)) -> return v
       (VClos _ (Pi _ _ _)) -> return v
@@ -271,8 +270,29 @@ force v@(VApp (VDef n) vl) =
          _ -> return v
 force v = return v
 
+
+canForce :: Val -> TypeCheck Bool
+canForce v@ (VDef n) = 
+    do sig <- get
+       case lookupSig n sig of
+         (FunSig CoInd t arity cl) | arity <= 0 -> do m <- matchClauses n cl []
+                                                      case m of
+                                                        Nothing -> return False
+                                                        Just v2 -> return True
+         _ -> return False 
+canForce v@(VApp (VDef n) vl) =
+    do sig <- get
+       case lookupSig n sig of
+         (FunSig CoInd t arity cl) | arity <= (length vl) -> do m <- matchClauses n cl vl
+                                                                case m of 
+                                                                  Nothing -> return False
+                                                                  Just v2 -> return True
+         _ -> return False
+canForce v = return False
+
+
 appDef :: Name -> [Val] -> TypeCheck Val
-appDef n vl = -- trace ("appDef " ++ n ++ show vl) $ 
+appDef n vl = --trace ("appDef " ++ n ++ show vl) $ 
     do
       sig <- get
       case lookupSig n sig of
@@ -297,7 +317,8 @@ vclos :: Env -> Expr -> TypeCheck Val
 vclos env e = return $ VClos env e
 
 eval :: Env -> Expr -> TypeCheck Val
-eval env e = case e of
+eval env e = --trace ("eval " ++ show e) $ 
+            case e of
                Set -> return  VSet
                Infty -> return VInfty
                Succ e -> do v <- (eval env e)
@@ -317,50 +338,71 @@ eval env e = case e of
 runEval sig e = runTypeCheck emptyEnv sig (eval emptyEnv e)
 ----
 
+
 eqVal :: Int -> Val -> Val -> TypeCheck ()
-eqVal k u1 u2 = --trace ("eqVal " ++ show (u1,u2)) $ 
+eqVal = eqVal' N
+
+
+-- force history
+data Force = N | L | R -- not yet, left , right  
+    deriving Eq
+
+eqVal' :: Force -> Int -> Val -> Val -> TypeCheck ()
+eqVal' f k u1 u2 = --trace ("eqVal'" ++ show (u1,u2)) $ 
  do u1 <- whnf u1
     u2 <- whnf u2
-    case (u1,u2) of
-      (VSet,VSet) -> return ()
-      (VSize,VSize) -> return ()
-      (VInfty,VInfty) -> return ()
-      (VSucc v1,VSucc v2) -> eqVal k v1 v2
-      (VApp v1 w1,VApp v2 w2 ) -> do eqVal k v1 v2 
-                                     eqVals k w1 w2
-      (VGen k1,VGen k2) -> if k1 == k2 then return ()
-                           else
-                               throwError $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 
-      (VClos env1 (Pi x1 a1 b1), VClos env2 (Pi x2 a2 b2)) -> 
-          do let v = VGen k 
-             a1' <- eval env1 a1
-             a2' <- eval env2 a2
-             eqVal k a1' a2'
-             v1 <- eval (update env1 x1 v) b1
-             v2 <- eval (update env2 x2 v) b2 
-             eqVal (k+1) v1 v2
-      (VClos env1 (Lam x1 b1), VClos env2 (Lam x2 b2)) ->
-                   do 
-                     v1 <- eval (update env1 x1 (VGen k)) b1
-                     v2 <- eval (update env2 x2 (VGen k)) b2
-                     eqVal (k+1) v1 v2
-      (VDef x,VDef y) -> if x == y then return ()
-                         else throwError $ "eqVal VDef " ++ show x ++ " " ++ show y
-      (VCon n1,VCon n2) -> if (n1 == n2) then return ()
-                           else throwError $ "eqVal VCon " ++ show n1 ++ " " ++ show n2
-      _ ->  throwError $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
+    b1 <- canForce u1
+    b2 <- canForce u2
+    case (b1,b2) of
+      (True,False) | f /= R -> -- only unroll one side  
+          do u1' <- force u1
+             eqVal' L k u1' u2
+      (False,True) | f /= L ->
+          do u2' <- force u2
+             eqVal' R k u1 u2' 
+      _ -> case (u1,u2) of
+             (VSet,VSet) -> return ()
+             (VSize,VSize) -> return ()
+             (VInfty,VInfty) -> return ()
+             (VSucc v1,VSucc v2) -> eqVal' f k v1 v2
+             (VApp v1 w1,VApp v2 w2 ) -> do eqVal' f k v1 v2 
+                                            eqVals' f k w1 w2
+             (VGen k1,VGen k2) -> if k1 == k2 then return ()
+                                  else
+                                      throwError $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 
+             (VClos env1 (Pi x1 a1 b1), VClos env2 (Pi x2 a2 b2)) -> 
+                        do let v = VGen k 
+                           a1' <- eval env1 a1
+                           a2' <- eval env2 a2
+                           eqVal' f k a1' a2'
+                           v1 <- eval (update env1 x1 v) b1
+                           v2 <- eval (update env2 x2 v) b2 
+                           eqVal' f (k+1) v1 v2
+             (VClos env1 (Lam x1 b1), VClos env2 (Lam x2 b2)) ->
+                        do v1 <- eval (update env1 x1 (VGen k)) b1
+                           v2 <- eval (update env2 x2 (VGen k)) b2
+                           eqVal' f (k+1) v1 v2
+             (VDef x,VDef y) -> if x == y then return ()
+                                else throwError $ "eqVal VDef " ++ show x ++ show y 
+             (VCon n1,VCon n2) -> if (n1 == n2) then return ()
+                                  else throwError $ "eqVal VCon " ++ show n1 ++ " " ++ show n2
+             _ -> throwError $ "eqVal error " ++ show u1 ++ " @@ " ++ show u2
 
-eqVals :: Int -> [Val] -> [Val] -> TypeCheck ()
-eqVals k [] [] = return ()
-eqVals k (v1:vs1) (v2:vs2) = do eqVal k v1 v2 
-                                eqVals k vs1 vs2
-eqVals k vl1 vl2 = throwError $ "mismatch number of arguments"
 
+eqVals' :: Force -> Int -> [Val] -> [Val] -> TypeCheck ()
+eqVals' f k [] [] = return ()
+eqVals' f k (v1:vs1) (v2:vs2) = do eqVal' f k v1 v2 
+                                   eqVals' f k vs1 vs2
+eqVals' f k vl1 vl2 = throwError $ "mismatch number of arguments"
+
+eqVals :: Int -> [Val ] -> [Val ] -> TypeCheck ()
+eqVals = eqVals' N
 
 -- subtyping
 
 leqVal :: Int -> Val -> Val -> TypeCheck ()
-leqVal k u1 u2 = do
+leqVal k u1 u2 = --trace ("leqVal " ++ show (u1,u2) ) $ 
+  do
     u1 <- whnf u1
     u2 <- whnf u2
     case (u1,u2) of
@@ -431,8 +473,8 @@ leqSizes k vl1 vl2 = throwError $ "mismatch number of arguments"
 -- type checking
 
 checkExpr :: Int -> Env -> Env -> Expr -> TVal -> TypeCheck ()
-checkExpr k rho gamma e v = do
-    --trace ("checkExpr " ++ show e) $
+checkExpr k rho gamma e v = --trace ("checkExpr " ++ show e) $
+  do
     v <- whnf v 
     case (e,v) of
       (Lam n e1,VClos env (Pi x w t2)) -> 
@@ -499,6 +541,7 @@ checkClause t (Clause pl rhs) =
     do
       v <- trace "checking clause .. " $ vclos [] t
       (k,flex,ins,rho,gamma,vt) <- checkPatterns 0 [] [] [] [] v pl
+      gamma <- substEnv ins gamma
       checkDots k rho gamma flex ins
       checkRHS k rho gamma rhs vt
 
@@ -510,7 +553,7 @@ checkPatterns k flex ins rho gamma v pl =
                     checkPatterns k' flex' ins' rho' gamma' v' pl' 
        
 checkPattern :: Int -> [(Int,Expr)] -> [(Int,Val)] -> Env -> Env -> TVal -> Pattern -> TypeCheck (Int,[(Int,Expr)],[(Int,Val)],Env,Env,TVal)
-checkPattern k flex ins rho gamma v p = --trace ("cp " ++ show k ++ " " ++ show flex ++ " " ++ show rho ++ " " ++ show gamma ++ " " ++ show v ++ " " ++ show p) $ 
+checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show flex ++ " " ++ show rho ++ " " ++ show gamma ++ " " ++ show v ++ " " ++ show p) $ 
  do 
   v <- whnf v
   v <- force v 
@@ -519,10 +562,7 @@ checkPattern k flex ins rho gamma v p = --trace ("cp " ++ show k ++ " " ++ show 
         v2 <- eval env v2
         v2 <- whnf v2
         case p of
-          VarP x ->
-              case lookup x rho of
-                Nothing ->
-                    do let gk = VGen k 
+          VarP x -> do let gk = VGen k 
                        bv <- eval (update env y gk) b 
                        return (k+1
                               ,flex
@@ -531,16 +571,6 @@ checkPattern k flex ins rho gamma v p = --trace ("cp " ++ show k ++ " " ++ show 
                               ,update gamma x v2
                               ,bv
                               )
-                (Just vg) -> -- non-linear pattern var
-                               do let (Just v2') = lookup x gamma 
-                                  eqVal k v2 v2'
-                                  bv <- eval (update env y vg) b
-                                  return (k
-                                         ,flex
-                                         ,ins
-                                         , rho
-                                         , gamma
-                                         ,bv)
           ConP n pl -> do 
                  sig <-  get 
                  let (ConSig tv) = (lookupSig n sig)
@@ -574,11 +604,12 @@ checkDots i rho gamma ((k,e):flex) ins = trace ("checking dot pattern " ++ show 
                                          case (lookup k ins) of
                                            Nothing -> throwError $ "dot pattern " ++ show e ++ " not instantiated "
                                            Just v -> do v' <- eval rho e
-                                                        eqVal i v v'
+                                                        v'' <- substVal ins v
+                                                        eqVal i v' v''
                                                         checkDots i rho gamma flex ins
                                                     
 checkRHS :: Int -> Env -> Env -> Expr -> TVal -> TypeCheck ()
-checkRHS k rho gamma rhs v = trace "checking rhs" $
+checkRHS k rho gamma rhs v = trace ("checking rhs") $
                              checkExpr k rho gamma rhs v  
       
 
@@ -606,8 +637,8 @@ instList m flex (v1:vl1) (v2:vl2) = do map <- inst m flex v1 v2
 
 -- substitute generic variable in value
 substVal :: [(Int,Val)] -> Val -> TypeCheck Val
-substVal map v = do
-    v <- whnf v
+substVal map v = -- trace ("substval " ++ show v) $ 
+  do
     case v of
       (VGen k) -> case lookup k map of
                    Nothing -> return v

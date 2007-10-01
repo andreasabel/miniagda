@@ -19,15 +19,15 @@ data Lt : Nat -> Nat -> Set
 
 fun notLt0 : (x : Nat) -> Lt x zero -> (C : Set) -> C
 {
-notLt0 x  () C 
+-- notLt0 x  () C 
 }
 
 
 fun ltcase  : (x : Nat) -> (y : Nat) -> 
               Lt x (succ y) -> (P : Nat -> Set) -> ((x' : Nat) -> Lt x' y -> P x') -> P y -> P x
 {
-ltcase zero zero _ P  hx' hy = hy ;
-ltcase zero (succ y) _ P hx' hy = hx' zero (ltzero y) ;
+ltcase zero zero lt P  hx' hy = hy ;
+ltcase zero (succ y) lt P hx' hy = hx' zero (ltzero y) ;
 ltcase (succ x) (succ y) (ltsucc .x .(succ y) p) P hx' hy = ltcase x y p ( \n -> P (succ n)) ( \x' -> \p' -> hx' (succ x') (ltsucc x' y p')) hy
 }
 
