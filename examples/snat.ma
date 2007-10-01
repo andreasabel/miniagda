@@ -38,6 +38,7 @@ wkNatInfty .(s i) (zero i) = zero infty;
 wkNatInfty .(s i) (succ i n) = succ infty (wkNatInfty i n)
 }
 
+-- fun add : ( i : Size) -> SNat i -> SNat infty -> SNat infty
 fun add : ( i : Size) -> ( j : Size ) -> SNat i -> SNat j -> SNat infty
 {
 
@@ -49,6 +50,7 @@ add .(s i) j (succ i x) y = succ infty (add i j x y)
 const four : SNat infty = add infty infty two two
 const six : SNat infty = add infty infty four two
 
+-- fun minus : (i : Size ) -> SNat i -> SNat infty -> SNat i
 fun minus : (i : Size ) -> (j : Size ) -> SNat i -> SNat j -> SNat i
 {
 

@@ -401,7 +401,7 @@ eqVals = eqVals' N
 -- subtyping
 
 leqVal :: Int -> Val -> Val -> TypeCheck ()
-leqVal k u1 u2 = --trace ("leqVal " ++ show (u1,u2) ) $ 
+leqVal k u1 u2 = -- trace ("leqVal " ++ show (u1,u2) ) $ 
   do
     u1 <- whnf u1
     u2 <- whnf u2
@@ -473,7 +473,7 @@ leqSizes k vl1 vl2 = throwError $ "mismatch number of arguments"
 -- type checking
 
 checkExpr :: Int -> Env -> Env -> Expr -> TVal -> TypeCheck ()
-checkExpr k rho gamma e v = --trace ("checkExpr " ++ show e) $
+checkExpr k rho gamma e v = trace ("checkExpr " ++ show e) $
   do
     v <- whnf v 
     case (e,v) of
@@ -552,15 +552,31 @@ checkPatterns k flex ins rho gamma v pl =
       (p:pl') -> do (k',flex',ins',rho',gamma',v') <- checkPattern k flex ins rho gamma v p 
                     checkPatterns k' flex' ins' rho' gamma' v' pl' 
        
+{- 
+checkPattern k flex subst rho gamma v p = (k', flex', subst', rho', gamma', v')
+
+Input : 
+  k     : next free generic value
+  flex  : list of pairs (flexible variable, its dot pattern)
+  subst : list of pairs (flexible variable, its valuation)
+  rho   : binding of variables to values
+  gamma : binding of variables to their types
+  v     : type of the expression \ p -> t
+  p     : the pattern to check
+
+Output
+  v'    : type of t
+-}
+
 checkPattern :: Int -> [(Int,Expr)] -> [(Int,Val)] -> Env -> Env -> TVal -> Pattern -> TypeCheck (Int,[(Int,Expr)],[(Int,Val)],Env,Env,TVal)
 checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show flex ++ " " ++ show rho ++ " " ++ show gamma ++ " " ++ show v ++ " " ++ show p) $ 
  do 
   v <- whnf v
   v <- force v 
   case v of
-    VClos env (Pi y v2 b) -> do
-        v2 <- eval env v2
-        v2 <- whnf v2
+    VClos env (Pi y a b) -> do
+        av <- eval env a
+        av <- whnf av
         case p of
           VarP x -> do let gk = VGen k 
                        bv <- eval (update env y gk) b 
@@ -568,7 +584,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                               ,flex
                               ,ins
                               ,update rho x gk
-                              ,update gamma x v2
+                              ,update gamma x av
                               ,bv
                               )
           ConP n pl -> do 
@@ -576,7 +592,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                  let (ConSig tv) = (lookupSig n sig)
                  tv <- whnf tv
                  (k',flex',ins',rho',gamma',v') <- checkPatterns k flex ins rho gamma tv pl
-                 subst <- inst k' (fst $ unzip flex') v2 v'
+                 subst <- inst k' (fst $ unzip flex') v' av
                  pv <- vclos rho' (patternToExpr p)
                  vb <- eval (update env y pv) b
                  vb <- substVal subst vb
@@ -584,7 +600,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                  return (k',flex',ins' ++ subst,rho',gamma',vb)
           SuccP p2 -> do (k',flex',ins',rho',gamma',v') <- checkPattern 
                                                              k flex ins rho gamma (VClos [] (Pi "" Size Size)) p2
-                         eqVal k' v2 v'
+                         eqVal k' av v'
                          pv <- vclos rho' (patternToExpr p)
                          vb <- eval (update env y pv) b
                          return (k',flex',ins',rho',gamma',vb)
@@ -623,6 +639,7 @@ inst m flex v1 v2 = do
     (VApp (VDef d1) vl1,VApp (VDef d2) vl2) | d1 == d2 -> instList m flex vl1 vl2
     (VApp (VCon c1) vl1,VApp (VCon c2) vl2) | c1 == c2 -> instList m flex vl1 vl2
     (VSucc v1',VSucc v2') -> inst m flex v1' v2'
+    (VSucc v, VInfty) -> inst m flex v VInfty
     _ -> do eqVal m v1 v2
             return []
    

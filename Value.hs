@@ -5,7 +5,7 @@ import Abstract
 data Val =   VSet
            | VSize
            | VInfty
-           | VSucc Val
+           | VSucc Val   -- VSucc Env Expr
            | VApp Val [Val]
            | VCon Name
            | VDef Name
