@@ -179,4 +179,4 @@ cofun unp2 : Stream Nat
 unp2 = cons Nat zero (tail Nat unp2)
 }
 
-const bla : Nat = nth one unp2
+--const bla : Nat = nth one unp2

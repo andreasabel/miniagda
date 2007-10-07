@@ -21,8 +21,8 @@ instance Show Val where
 prettyVal :: Val -> String
 prettyVal VSet = "Set"
 prettyVal VSize = "Size"
-prettyVal VInfty = "infty"
-prettyVal (VSucc v) = "(s " ++ prettyVal v ++ ")" 
+prettyVal VInfty = "#"
+prettyVal (VSucc v) = "($ " ++ prettyVal v ++ ")" 
 prettyVal (VApp v vl) = "(" ++ prettyVal v ++ " " ++ prettyVals vl ++ ")"
 prettyVal (VCon n) = n
 prettyVal (VDef n) = n

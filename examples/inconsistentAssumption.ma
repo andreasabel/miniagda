@@ -1,7 +1,7 @@
 data SNat : Size -> Set
 {
-	zero : (i : Size ) -> SNat (s i);
-	succ : (i : Size ) -> SNat i -> SNat (s i)
+	zero : (i : Size ) -> SNat ($ i);
+	succ : (i : Size ) -> SNat i -> SNat ($ i)
 }
 
 data Eq (A : Set) (a : A) : A -> Set
@@ -12,27 +12,27 @@ data Eq (A : Set) (a : A) : A -> Set
 fun subst : (A : Set) -> (P : A -> Set) -> (i : A) -> (j : A) ->
             Eq A i j -> P i -> P j
 {
-  subst A P i i (refl A i) p = p
+  subst .A P .i .i (refl A i) p = p
 }
 
-fun h : (ass : (i : Size) -> Eq Size (s i) i) -> (i : Size) -> SNat i -> SNat infty
+fun h : (ass : (i : Size) -> Eq Size ($ i) i) -> (i : Size) -> SNat i -> SNat #
 {
-  h ass (s i) (zero i) = h ass i (subst Size SNat (s i) i (ass i) (zero i));
-  h ass (s i) (succ i n) = h ass i n
+  h ass .($ i) (zero i) = h ass i (subst Size SNat ($ i) i (ass i) (zero i));
+  h ass .($ i) (succ i n) = h ass i n
 }
 
 
-const loop : (ass : (i : Size) -> Eq Size (s i) i) -> SNat infty 
-           = \ ass -> h ass infty (zero infty) 
+const loop : (ass : (i : Size) -> Eq Size ($ i) i) -> SNat # 
+           = \ ass -> h ass # (zero #) 
 
 
 -- the following program has to be rejected 
 -- because of incomplete pattern matching
-fun g : (ass : (i : Size) -> Eq Size (s i) i) -> (i : Size) -> SNat i -> SNat infty
+fun g : (ass : (i : Size) -> Eq Size ($ i) i) -> (i : Size) -> SNat i -> SNat #
 {
-  g ass (s i) x = g ass i (subst Size SNat (s i) i (ass i) x)
+  g ass ($ i) x = g ass i (subst Size SNat ($ i) i (ass i) x)
 }
 
--- const yy : (ass : (i : Size) -> Eq Size (s i) i) -> 
---	     Eq (SNat infty) (zero infty) (g ass infty (zero infty)) 
---         = \ ass -> refl (SNat infty) (zero infty)
+-- const yy : (ass : (i : Size) -> Eq Size ($ i) i) -> 
+--	     Eq (SNat #) (zero #) (g ass # (zero #)) 
+--         = \ ass -> refl (SNat #) (zero #)

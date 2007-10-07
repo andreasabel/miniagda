@@ -24,8 +24,8 @@ mutual				{ tok (\p s -> Mutual p) }
 Set				{ tok (\p s -> Set p) }
 
 Size				{ tok (\p s -> Size p) }
-infty				{ tok (\p s -> Infty p) }
-s				{ tok (\p s -> Succ p) }
+\#				{ tok (\p s -> Infty p) }
+\$				{ tok (\p s -> Succ p) }
 
 \{				{ tok (\p s -> BrOpen p) }
 \}				{ tok (\p s -> BrClose p) }
@@ -38,7 +38,7 @@ s				{ tok (\p s -> Succ p) }
 =				{ tok (\p s -> Eq p) }
 \\				{ tok (\p s -> Lam p) }
 
-$alpha [$alpha $digit \_ \']*		{ tok (\p s -> (Id s p )) }
+[$alpha $digit \_ \']+		{ tok (\p s -> (Id s p )) }
 	
 
 {
@@ -78,10 +78,10 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Fun p -> ("fun",p)
     CoFun p -> ("cofun",p)
     Const p -> ("const",p)
-    Set p -> ("set",p)
+    Set p -> ("Set",p)
     Size p -> ("Size",p)
-    Infty p -> ("Infty",p)
-    Succ p -> ("s",p)
+    Infty p -> ("?",p)
+    Succ p -> ("$",p)
     BrOpen p -> ("{",p)
     BrClose p -> ("}",p)
     PrOpen p -> ("(",p)

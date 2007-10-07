@@ -5,7 +5,6 @@ import Data.List as List
 import qualified Data.Set as Set
 import Debug.Trace
 
-
 import System
 
 
@@ -106,7 +105,7 @@ compareExpr e p = supremum $ (compareExpr' e p) : (map cmp (subPatterns p))
 
 subPatterns :: Pattern -> [Pattern]
 subPatterns p = case p of
-                  (ConP c pl) -> pl ++ (concatMap subPatterns pl)
+                  (ConP Ind c pl) -> pl ++ (concatMap subPatterns pl)
                   (SuccP p2) -> p2 : subPatterns p2
                   _ -> []
 
@@ -116,8 +115,8 @@ compareExpr' e p =
       (_,DotP e') -> case exprToPattern e' of
                        Nothing -> Un
                        Just p' -> compareExpr' e p'
-      ((Var i),p) -> compareVar i p 
-      ((App (Con n) args),(ConP n2 pl)) -> if ( n == n2 ) then
+      (Var i,p) -> compareVar i p 
+      (App (Con Ind n) args,(ConP Ind n2 pl)) -> if ( n == n2 ) then
                                                if length args <= 0 then
                                                    foldl comp Le $ 
                                                          map (compareExpr' (head args)) pl
@@ -127,7 +126,7 @@ compareExpr' e p =
                                                      Mat m'
                                            else
                                                Un
-      (Con n,ConP n2 []) -> if n == n2 then Le else Un    
+      (Con Ind n,ConP Ind n2 []) -> if n == n2 then Le else Un    
       (Succ e2,SuccP p2) -> compareExpr' e2 p2     
       (App (Var f) args,VarP g) -> if (f == g) then  -- axiom f x <= f 
                                        Le
@@ -140,11 +139,12 @@ compareVar :: Name -> Pattern -> Order
 compareVar n p = 
     case p of
       (VarP n2) -> if n == n2 then Le else Un
-      (ConP c pl) -> comp Lt (supremum (map (compareVar n) pl))
+      (ConP Ind c pl) -> comp Lt (supremum (map (compareVar n) pl))
       (SuccP p2) -> comp Lt (compareVar n p2)
       (DotP e) -> case (exprToPattern e) of
                     Nothing -> Un
                     Just p' -> compareVar n p'
+      (ConP CoInd _ _ ) -> Un
       _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p
 
 exprToPattern :: Expr -> Maybe Pattern
@@ -154,10 +154,10 @@ exprToPattern e =
       (Succ e) -> case exprToPattern e of
                     Nothing -> Nothing
                     Just p -> Just $ SuccP p
-      (App (Con n) el) -> case exprsToPatterns el of
-                            Nothing -> Nothing
-                            Just pl -> Just $ ConP n pl
-      (Con n) -> Just $ ConP n []
+      (App (Con co n) el) -> case exprsToPatterns el of
+                               Nothing -> Nothing
+                               Just pl -> Just $ ConP co n pl
+      (Con co n) -> Just $ ConP co n []
       _ -> Nothing
 
 exprsToPatterns :: [Expr] -> Maybe [Pattern]

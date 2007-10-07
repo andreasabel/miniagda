@@ -35,7 +35,7 @@ addCtxs nl ctx = ctx ++ nl
 
 --global signature
 
-data Kind = DataK | ConK | FunK | ConstK
+data Kind = DataK | ConK Co | FunK | ConstK
 
 type Sig = [(Name,Kind)] -- we record if a name is a constructor name or something else
 
@@ -72,7 +72,7 @@ scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
                                                     let (tel',t') = 
                                                             splitTeleType (length tel) ([],tt') -- get original tele back
                                                     let names = collectTelescopeNames tel
-                                                    cs' <- local (addCtxs names) (mapM scopeCheckConstructor cs)
+                                                    cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs )
                                                     return $ DataDecl n co tel' t' cs'
 scopeCheckDeclaration (FunDecl co funs) = do _ <- mapM (scopeCheckFunName . fst ) funs
                                              tsl' <- mapM (scopeCheckFunSig . fst ) funs  
@@ -112,13 +112,13 @@ scopeCheckTypeSig kind a@(TypeSig n t) =
 collectTelescopeNames :: Telescope -> [Name]
 collectTelescopeNames = map ( \(n,_) -> n )
 
-scopeCheckConstructor :: Constructor -> ScopeCheck Constructor
-scopeCheckConstructor a@(TypeSig n t) = 
+scopeCheckConstructor :: Co -> Constructor -> ScopeCheck Constructor
+scopeCheckConstructor co a@(TypeSig n t) = 
     do sig <- get
        case (lookupSig n sig) of
          Just _ -> errorAlreadyInSignature a n
          Nothing -> do t' <- scopeCheckExpr t 
-                       put (addSig n ConK sig)
+                       put (addSig n (ConK co) sig)
                        return $ TypeSig n t'
 
                      
@@ -158,7 +158,7 @@ scopeCheckExpr e =
                     sig <- get
                     case (lookupSig n sig) of
                       Just k -> case k of
-                                  ConK -> return $ Con n
+                                  (ConK co) -> return $ Con co n
                                   ConstK -> return $ Const n
                                   _ -> return $ Def n
                       Nothing -> case (lookupCtx n ctx) of
@@ -181,7 +181,7 @@ collectVarPNames pl = cvp pl [] where
     cvp [] acc = return acc
     cvp (p:pl) acc = case p of
                        SuccP p2 -> cvp (p2:pl) acc
-                       ConP n pl2 -> cvp (pl2++pl) acc
+                       ConP _ n pl2 -> cvp (pl2++pl) acc
                        VarP n ->  if (elem n acc) then 
                                       errorPatternNotLinear
                                   else 
@@ -194,17 +194,17 @@ scopeCheckPattern p =
       IdentP n -> do sig <- get
                      ctx <- ask
                      case (lookupSig n sig) of
-                       (Just ConK) -> return $ ConP n [] -- assumed to be a nullary constructor
+                       (Just (ConK co)) -> return $ ConP co n [] -- a nullary constructor
                        (Just _) -> errorPatternNotConstructor n
                        Nothing -> return $ VarP n
       SuccP p -> do p' <- scopeCheckPattern p
                     return $ SuccP p'
-      ConP n pl -> do sig <- get
-                      case (lookupSig n sig) of
-                        (Just ConK) -> do pl' <- mapM scopeCheckPattern pl 
-                                          return $ ConP n pl'
-                        (Just _) -> errorPatternNotConstructor n 
-                        Nothing -> errorPatternNotConstructor n 
+      ConP NN n pl -> do sig <- get
+                         case (lookupSig n sig) of
+                           Just (ConK co) -> do pl' <- mapM scopeCheckPattern pl 
+                                                return $ ConP co n pl'
+                           Just _ -> errorPatternNotConstructor n 
+                           Nothing -> errorPatternNotConstructor n 
       _ -> return p -- dot patterns checked later
     
 scopeCheckDotPattern :: Pattern -> ScopeCheck Pattern
@@ -214,8 +214,8 @@ scopeCheckDotPattern p  =
                    return $ DotP e'
       SuccP p2 -> do p2' <- scopeCheckDotPattern p2
                      return $ SuccP p2'
-      (ConP n pl) -> do pl' <- mapM scopeCheckDotPattern pl
-                        return $ ConP n pl'
+      (ConP co n pl) -> do pl' <- mapM scopeCheckDotPattern pl
+                           return $ ConP co n pl'
       _ -> return p 
 
 

@@ -107,11 +107,11 @@ Expr1 :: { A.Expr }
 Expr1 : Expr2 { let list = reverse $1 in
                if length list == 1 then head list else A.App (head list) (tail list) 
 	      }
-
+--      | SizeE { $1}
 Expr2 :: { [A.Expr] }
 Expr2 : Expr3 { [$1] }
-      | succ Expr3 { [A.Succ $2] }
-      | Expr2 Expr3 { $2 : $1 }
+       | succ SE { [A.Succ $2] }
+       | Expr2 Expr3 { $2 : $1 }
 
 Expr3 :: { A.Expr }
 Expr3 :  set { A.Set}
@@ -119,6 +119,10 @@ Expr3 :  set { A.Set}
       | infty { A.Infty }
       | Id { A.Ident $1}
       | '(' Expr ')' { $2 }
+
+SE :: { A.Expr}
+SE : succ SE { A.Succ $2}
+SE : Expr3 { $1}
 
 TypeSig :: { A.TypeSig }
 TypeSig : Id ':' Expr { A.TypeSig $1 $3 }
@@ -150,9 +154,12 @@ Pattern : ConP { $1 }
         | '.' Expr3 { A.DotP $2 }
 
 ConP :: { A.Pattern }
-ConP : '(' Id Patterns ')' { A.ConP $2 (reverse $3) }
-     | '(' succ Pattern ')' { A.SuccP $3 }
+ConP : '(' Id Patterns ')' { A.ConP A.NN $2 (reverse $3) }
+     | '(' succ SP ')' { A.SuccP $3 }
 
+SP :: { A.Pattern}
+SP : succ SP {A.SuccP $2}
+   | Pattern { $1 }
 Clauses :: { [A.Clause ] }
 Clauses :
    Clauses ';' Clause { $3 : $1 }

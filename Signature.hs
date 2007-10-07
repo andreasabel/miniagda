@@ -3,23 +3,28 @@ module Signature where
 import Abstract
 import Value
 
-type Signature = [(Name,SigDef)] 
+import Data.Map as Map
+
+type Signature = Map.Map Name SigDef
+
+data Sized = Sized | NotSized 
+             deriving (Eq,Show)
 
 data SigDef = FunSig Co TVal Int [Clause] --type , co , arity , clauses
             | ConstSig TVal Expr -- type , expr 
             | ConSig TVal -- type   
-            | DataSig Co TVal -- parameters, co , type  
+            | DataSig Int Sized Co TVal -- parameters, sized , co , type  
               deriving (Show)
 
-emptySig = []
+emptySig = Map.empty
 
 lookupSigMaybe :: Name -> Signature -> Maybe SigDef
-lookupSigMaybe = lookup
+lookupSigMaybe = Map.lookup
 
 lookupSig :: Name -> Signature -> SigDef
-lookupSig n sig = case (lookup n sig) of
+lookupSig n sig = case (Map.lookup n sig) of
                        Nothing -> error $ "Error not in signature: "  ++ n ++ " " ++ show sig
                        Just k -> k
 
 addSig :: Signature -> Name -> SigDef -> Signature
-addSig sig n def = sig ++ [(n,def)]
+addSig sig n def = Map.insert n def sig

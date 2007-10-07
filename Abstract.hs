@@ -5,6 +5,7 @@ type Name = String
 
 data Co = Ind 
         | CoInd
+        | NN -- not known , not used after scope checking
           deriving (Eq,Show)
 
 data Expr = Set
@@ -14,7 +15,7 @@ data Expr = Set
           | Infty
           -- 
           | Var Name
-          | Con Name
+          | Con Co Name
           | Def Name
           | Const Name
           | App Expr [Expr]
@@ -46,7 +47,7 @@ data Clause = Clause [Pattern] Expr
             deriving (Eq,Show)
 
 data Pattern = VarP Name
-             | ConP Name [Pattern]
+             | ConP Co Name [Pattern]
              | SuccP Pattern
              | DotP Expr
              | IdentP Name -- not used after scope checking
@@ -74,14 +75,14 @@ prettyExpr e =
     case e of
       Set -> "Set"
       Size -> "Size" 
-      Succ e -> "(s " ++ prettyExpr e ++ ")"
-      Infty -> "infty"
+      Succ e -> "($ " ++ prettyExpr e ++ ")"
+      Infty -> "#"
       Var n -> n
-      Con n -> n
+      Con _ n -> n
       Def n -> n
       Const n -> n
       App e1 el -> "(" ++ prettyExprs (e1:el) ++ ")"
-      Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1
+      Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
       Pi "" t1 t2 -> "(" ++ prettyExpr t1 ++ " -> " ++ prettyExpr t2 ++ ")" 
       Pi x t1 t2 -> "( ( " ++ x ++ " : " ++ prettyExpr t1 ++ ") -> " ++ prettyExpr t2 ++ ")"
       Ident n -> n

@@ -1,6 +1,6 @@
 codata BadCo : Size -> Set
 {
-nil : BadCo infty
+nil : BadCo #
 }
 
-const bla : BadCo infty = nil
+const bla : BadCo # = nil
