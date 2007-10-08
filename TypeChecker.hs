@@ -223,7 +223,7 @@ upPatterns env (p:pl) (v:vl) = let env' = upPattern env p v in
 
 
 
-matchClauses :: [Clause] -> [Val] -> TypeCheck (Maybe Val)
+matchClauses :: [Clause] -> [Clos] -> TypeCheck (Maybe Val)
 matchClauses cl vl = loop cl
     where loop [] = return Nothing
           loop  (Clause pl rhs : cl2) = 
@@ -232,13 +232,14 @@ matchClauses cl vl = loop cl
                    Nothing -> loop cl2
                    Just v -> return $ Just v
 
-matchClause :: Env -> [Pattern] -> Expr -> [Val] -> TypeCheck (Maybe Val)
-matchClause env [] rhs vl = do v <- eval env rhs
-                               v' <- force v
-                               v2 <- app v' vl
+matchClause :: Env -> [Pattern] -> Expr -> [Clos] -> TypeCheck (Maybe Val)
+matchClause env [] rhs vl = do v <- whnf (VClos env rhs)
+                               -- v <- force v
+                               v2 <- app v vl
                                return $ Just v2
 matchClause env (p:pl) rhs (v0:vl) =
-  do v <- force v0
+  do v0 <- whnf v0
+     v <- force v0
      let b = matches p v 
      case b of
        True ->
@@ -256,6 +257,49 @@ patternToExpr p =
      
 --- Interpreter
 
+eval :: Env -> Expr -> TypeCheck Clos
+eval env e = return (VClos env e)
+
+whnf :: Clos -> TypeCheck Val
+whnf v = 
+    --trace ("whnf " ++ show v) $
+    case v of
+      (VClos _ (Lam _ _)) -> return v
+      (VClos _ (Pi _ _ _)) -> return v
+      VClos env e ->
+            case e of
+               Set -> return  VSet
+               Infty -> return VInfty
+               Succ e -> do v <- whnf (VClos env e)
+                            return $ vsucc v
+               Size -> return VSize
+               Con _ n -> return $ VCon n
+               App e1 e2 -> do v1 <- whnf (VClos env e1)
+                               app v1 (map (VClos env) e2)
+               Def n -> return $ VDef n
+               Const n -> do sig <- get 
+                             let (ConstSig _ e) = lookupSig n sig
+                             whnf (VClos [] e)
+               Var y -> whnf (lookupEnv env y)
+      v -> return v
+
+
+app :: Val -> [Clos] -> TypeCheck Val
+app u [] = return $ u
+app u v = do 
+          u <- force u
+          case (u,v) of
+            (VApp u2 v2,_) -> app u2 (v2 ++ v)
+            (VClos env (Lam x e),(v:vl))  -> do v' <- whnf (VClos (update env x v) e)
+                                                app v' vl
+            (VClos env (Pi x _ e),(v:vl)) -> do v' <- whnf (VClos (update env x v) e)
+                                                app v' vl
+            (VDef n,_) -> appDef n v
+            (_,[]) -> return u
+            _ -> return $ VApp u v
+
+
+{-
 whnf :: Val -> TypeCheck Val
 whnf v = 
     --trace ("whnf " ++ show v) $
@@ -281,6 +325,7 @@ app u v = case (u,v) of
             (VDef n,_) -> appDef n v
             (_,[]) -> return u
             _ -> return $ VApp u v
+-}
 
 -- unroll a corecursive object once
 force :: Val -> TypeCheck Val
@@ -323,7 +368,7 @@ canForce v@(VApp (VDef n) vl) =
 canForce v = return False
 
 
-appDef :: Name -> [Val] -> TypeCheck Val
+appDef :: Name -> [Clos] -> TypeCheck Val
 appDef n vl = -- trace ("appDef " ++ n ++ show vl) $ 
     do
       sig <- get
@@ -348,7 +393,7 @@ vsucc x = VSucc x
 vclos :: Env -> Expr -> TypeCheck Val
 vclos env e = return $ VClos env e
 
-
+{-
 eval :: Env -> Expr -> TypeCheck Val
 eval env e =  --trace ("eval " ++ show e) $ 
             case e of
@@ -367,6 +412,7 @@ eval env e =  --trace ("eval " ++ show e) $
                              eval [] e
                Var y -> return $ lookupEnv env y
                _ -> return $ VClos env e -- Lam , Pi
+-}
                                  
 runEval sig e = runTypeCheck emptyEnv sig (eval emptyEnv e)
 ----
@@ -381,7 +427,7 @@ data Force = N | L | R -- not yet, left , right
     deriving Eq
 
 eqVal' :: Force -> Int -> Val -> Val -> TypeCheck ()
-eqVal' f k u1 u2 = --trace ("eqVal'" ++ show (u1,u2)) $ 
+eqVal' f k u1 u2 = -- trace ("eqVal'" ++ show (u1,u2)) $ 
  do u1 <- whnf u1
     u2 <- whnf u2
     b1 <- canForce u1
@@ -442,7 +488,7 @@ leqVal k u1 u2 = -- trace ("leqVal " ++ show (u1,u2) ) $
       (VSize,VSize) -> return ()
       (VInfty,VInfty) -> return ()
       (VSucc v1,VSucc v2) -> leqVal k v1 v2
-      (v1,VSucc v2) -> leqVal k v1 v2                                            
+--      (v1,VSucc v2) -> leqVal k v1 v2                                            
       (VApp v1 w1,VApp v2 w2 ) -> leqApp k v1 w1 v2 w2
       (VGen k1,VGen k2) -> if k1 == k2 then return () 
                            else throwErrorMsg $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 
@@ -466,7 +512,7 @@ leqVal k u1 u2 = -- trace ("leqVal " ++ show (u1,u2) ) $
 
 
 leqApp :: Int -> Val -> [Val] -> Val -> [Val] -> TypeCheck ()
-leqApp k v1 w1 v2 w2 = 
+leqApp k v1 w1 v2 w2 =  trace ("leqApp " ++ show v1 ++ show w1 ++ "<=" ++ show v2 ++ show w2) $ 
     do
       v1 <- whnf v1
       v2 <- whnf v2
@@ -767,7 +813,8 @@ szSizeVarUsage n k p i tv = do tv' <- whnf tv
 szSizeVarTarget :: Int -> Int -> Int -> TVal -> TypeCheck Bool
 szSizeVarTarget k p i tv = do
                              (VApp v1 vl) <- whnf tv
-                             case (vl !! p) of
+                             v0 <- whnf (vl !! p)
+                             case v0 of
                                (VSucc (VGen i')) -> case i' == i of
                                                       True -> do let rargs = take p vl ++ drop (p+1) vl
                                                                  bl <- mapM (szSizeVarNotUsed k i) rargs
@@ -783,7 +830,9 @@ szSizeVarDataArgs n k p i tv = do
   case tv of
     VGen i' -> return $ i' /= i
     VSucc tv' -> szSizeVarDataArgs n k p i tv'
-    VApp (VDef m) vl | n == m -> case (vl !! p) of
+    VApp (VDef m) vl | n == m -> do 
+                                 v0 <- whnf (vl !! p)
+                                 case v0 of
                                    (VGen i') -> case i' == i of
                                                       True -> do let rargs = take p vl ++ drop (p+1) vl
                                                                  bl <- mapM (szSizeVarNotUsed k i) rargs
@@ -826,7 +875,6 @@ doParams 0 k tv = do tv' <- whnf tv
                      return (tv',k)
 doParams p k tv = do
   (VClos env (Pi x a b)) <- whnf tv
-  av <- eval env a
   bv <- eval (update env x (VGen k)) b
   doParams (p - 1 ) (k + 1) bv
 
@@ -840,6 +888,7 @@ szCheckIndFun k tv =
   do tv <- whnf tv
      case tv of
        VClos env (Pi x a b) -> do av <- eval env a
+                                  av <- whnf av
                                   bv <- eval (update env x (VGen k)) b
                                   let k' = k + 1 
                                   _ <- case av of
@@ -871,18 +920,19 @@ szCheckIndFunSize k i good tv = do
                                               _ -> do b1 <- szSizeVarNotUsed k' i av 
                                                       case b1 of
                                                         True -> szCheckIndFunSize k' i good bv
-                                                        False -> throwErrorMsg $ "size var unallawed use " ++ show av
+                                                        False -> throwErrorMsg $ "size var unallowed use " ++ show av
                                      _ -> do b1 <- szSizeVarNotUsed k' i av
                                              case b1 of
                                                True -> szCheckIndFunSize k' i good bv
-                                               False -> throwErrorMsg $ "size var unallawed use " ++ show av
+                                               False -> throwErrorMsg $ "size var unallowed use " ++ show av
        _ -> return good
 
 -- check that arguments are of the form  ... i ..... 
 szSizeVarArgs :: Int -> Int -> Int -> [TVal] -> TypeCheck Bool
 szSizeVarArgs k p i vl = do case p <= length vl of
-                              True ->
-                                  case (vl !! p) of
+                              True -> do 
+                                  v0 <- whnf (vl !! p)
+                                  case v0 of
                                     (VGen i') | i == i' -> do let rargs = take p vl ++ drop (p+1) vl
                                                               bl <- mapM (szSizeVarNotUsed k i) rargs
                                                               return $ and bl
@@ -897,6 +947,7 @@ szCheckCoFun k tv =
   do tv <- whnf tv
      case tv of
        VClos env (Pi x a b) -> do av <- eval env a
+                                  av <- whnf av
                                   bv <- eval (update env x (VGen k)) b
                                   let k' = k + 1 
                                   _ <- case av of

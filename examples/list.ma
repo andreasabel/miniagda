@@ -46,7 +46,3 @@ mutual
 }
 
 const revlist : List Enum = rev Enum list
-
-
-
-

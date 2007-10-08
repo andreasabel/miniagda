@@ -6,7 +6,7 @@ import Parser
 
 import Abstract
 import ScopeChecker
-import SizeChecker
+-- import SizeChecker
 import TypeChecker
 import Value
 import Signature
