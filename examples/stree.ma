@@ -32,7 +32,6 @@ append .($ i) .A (nil A i) yl = yl ;
 append .($ i) .A (cons A i x xl) yl = cons A # x (append i A xl yl) 
 }
 
-
 -- concatenate lists
 fun conc : (i : Size ) -> ( A : Set ) -> SList (SList A #) i -> SList A #
 {

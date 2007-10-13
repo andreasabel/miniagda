@@ -18,7 +18,9 @@ codata  { T.CoData _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
+norec   { T.NoRec _ }
 const   { T.Const _ }
+eval    { T.Eval _ }
 set     { T.Set _ }
 size    { T.Size _ }
 infty   { T.Infty _ }
@@ -50,6 +52,7 @@ Declaration : Data { $1 }
            | CoData { $1 }
            | mFun { $1 }
            | mCoFun { $1 }
+           | NoRec { $1}
            | Const { $1 }
 
 Data :: { A.Declaration }
@@ -62,6 +65,9 @@ CoData : codata Id Telescope ':' Expr '{' Constructors '}'
 
 Fun :: { (A.TypeSig,[A.Clause]) }
 Fun : fun TypeSig '{' Clauses '}' { ($2,(reverse $4)) }
+
+NoRec :: { A.Declaration}
+NoRec : norec TypeSig '{' Clauses '}' { A.NoRecDecl $2 (reverse $4) }  
 
 Funs :: { [(A.TypeSig,[A.Clause])] }
 Funs : Fun { [$1] }
@@ -87,8 +93,8 @@ mCoFun : mutual '{' CoFuns '}' { A.FunDecl A.CoInd $3 }
 
 
 Const :: { A.Declaration }
-Const : const TypeSig '=' Expr { A.ConstDecl $2 $4 } 
-
+Const : const TypeSig '=' Expr { A.ConstDecl False $2 $4 } 
+      | eval const TypeSig '=' Expr { A.ConstDecl True $3 $5 } 
 
 Id :: { A.Name }
 Id : id { $1 }

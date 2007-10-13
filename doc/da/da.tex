@@ -45,6 +45,34 @@
 \newcommand{\vcons}{\mathbf{vcons}\;}
 \newcommand{\head}{\mathbf{head}\;}
 
+\newcommand{\Eq}{\mathbf{Eq}\;}
+\newcommand{\refl}{\mathbf{refl}\;}
+
+\newcommand{\prof}{\mathbf{proof}\;}
+\newcommand{\tprof}{\mathbf{proof2}\;}
+\newcommand{\eqsucc}{\mathbf{eqsucc}\;}
+
+\newcommand{\Bad}{\mathbf{Bad}\;}
+\newcommand{\bad}{\mathbf{bad}\;}
+\newcommand{\ok}{\mathbf{ok}\;}
+
+\newcommand{\Ord}{\mathbf{Ord}\;}
+\newcommand{\ozero}{\mathbf{ozero}\;}
+\newcommand{\olim}{\mathbf{olim}\;}
+\newcommand{\addOrd}{\mathbf{addOrd}\;}
+
+\newcommand{\Stream}{\mathbf{Stream}\;}
+
+\newcommand{\ones}{\mathbf{ones}\;}
+\newcommand{\unp}{\mathbf{unp}\;}
+\newcommand{\zipWith}{\mathbf{zipWith}\;}
+\newcommand{\fib}{\mathbf{fib}\;}
+
+\newcommand{\Empty}{\mathbf{Empty}\;}
+\newcommand{\BadNat}{\mathbf{BadNat}\;}
+\newcommand{\foo}{\mathbf{foo}\;}
+
+
 \newcommand{\ra}{\rightarrow}
 
 \newcommand{\spc}{~~~}
@@ -97,26 +125,20 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 \date{today}
 
 \begin{abstract}
-This thesis deals with the problem of termination checking for theorem provers bases on dependend types.
+Dependent type theories have been used at the core of many theorem provers.
+More recently, there are efforts to extend their use to functional programming languages.
+Dependent types allow programming and reasoning about programs in one common framework.
 
-With the well-known \emph{Curry Howard isomorphism}, proofs and propositions can be thought of as terms and types of
-functional languages. 
-Proof checking then becomes type checking of functions.
-Simple termination checkers rely on strucural orderings to show that funcions are terminating (i.e the proof is a real one). 
-But quite a lot of proofs are rejected by these simple termination checkers.
+The well known concept of pattern matching has been proposed for defining functions in such systems.
+While user-friendly and powerful, it enables the user to define non-terminating functions, i.e functions that don't compute a value in finite time. Such ddefinitionscan not be allowed in a dependently typed system. 
 
-Some authors have suggested \emph{sized types}: using data types that are annotated with a size index and to ensure termination
-through the type sytem. As dependend types already offer annotations through the notion of inductive families, the question is how the concept of sized types could be integrated into a theorem prover based on depentend types.
-Sized types play to their strength with higher order data types.
-Types like infinitly branchings trees, which are often needed in theorem proving, can be handeled by sized types.
+It is known that the halteproblem is, in general, undecidable. Thus, no perfect method for checking termination will ever exist. To be on the safe side, there have to be definitions that are valid but will not be accepted.
+Multiple methods have been proposed to broaden the range of allowed definitions.
 
-To this end, a prototype theorem prover inspired by the theorem prover Agda2 was implemented, including a size type.
-As termination is to inductive functions, productivity is wantend for coinductive functions.
-The implementation was extended to handle coinductive definitions.
+The goal of this thesis was to investigate their feasibilityy for a practical language based on dependent types.
+As a result, a system with a unique termination criterion that combines several ideas was implemented.
 \end{abstract}
-
 \tableofcontents
-
 \input{intro}
 \input{prelim}
 \input{main}

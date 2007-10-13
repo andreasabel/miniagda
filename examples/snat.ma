@@ -5,10 +5,9 @@ data SNat : Size -> Set
 }
 
 const z : SNat # = zero #
-const one : SNat # = succ # z
+eval const one : SNat # = succ # z
 const two : SNat # = succ # one
 const three : SNat # = succ # two
-
 
 fun wkSNat : (i : Size ) -> SNat i -> SNat ($ i)
 {
@@ -38,7 +37,7 @@ add .($ i) j (succ i x) y = succ # (add i j x y)
 
 }
 
-const four : SNat # = add # # two two
+eval const four : SNat # = add # # two two
 const six : SNat # = add # # four two
 
 -- fun minus : (i : Size ) -> SNat i -> SNat # -> SNat i
@@ -63,7 +62,7 @@ div .($ i) .($ j) (succ i x) (succ j y)  = succ i (div i ($ j) (minus i j x y) (
 
 }
 
-const div4_4 : SNat # = div # # four four
+eval const div4_4 : SNat # = div # # four four
 
 
 fun compare : (i : Size ) -> (j : Size ) -> (SNat i) -> (SNat j)
@@ -84,7 +83,6 @@ gcd .($ i)  .($ j) (succ i x) (succ j y) =
                (gcd ($ i) j (succ i x) (minus j i y x))
 }
 
-
 const gcd6_4 : SNat # = gcd # # six four
 
 data Eq (A : Set) (a : A) : A -> Set 
@@ -100,6 +98,7 @@ subst .A P .a .a (refl A a) p = p
 
 const Nat : Set = SNat #
 const add' : Nat -> Nat -> Nat = add # #
+
 const plus_1_0_is_1 : Eq Nat (add' one z) one = refl Nat one
 
   

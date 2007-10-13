@@ -23,7 +23,7 @@ ones ($ i) = cons Nat i one (ones i)
 }
 
 
-const ones' : Stream Nat # = ones #
+eval const ones' : Stream Nat # = ones #
 
 cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
           (A -> B) -> Stream A i -> Stream B i
@@ -33,28 +33,24 @@ map .A B .($ i) f (cons A i a as) = cons B i (f a) (map A B i f as)
 
 const twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 
--- tail is a fun not a cofun
-cofun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
+-- tail is a norec
+norec tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
 tail .A .i (cons A i a as) = as
 }
 
 const twos' : Stream Nat # = tail Nat # twos
 
--- head is a fun not a cofun
---fun head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
---{
---head .A .i (cons A i a as) = a
---}
-
--- head is a fun not a cofun
-fun head2 : (A : Set) -> Stream A # -> A
+--head is a norec
+norec head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
 {
-head2 .A (cons A .# a as) = a
+head .A .i (cons A i a as) = a
 }
 
-const two : Nat = head2 Nat twos 
-const two' : Nat = head2 Nat twos'
+
+
+eval const two : Nat = head Nat # twos 
+eval const two' : Nat = head Nat #twos'
 -- evaluates to two
 
 const twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
@@ -70,13 +66,13 @@ zipWith A B C ($ i) f (cons .A .i a as) (cons .B .i b bs) = cons C i (f a b) (zi
 
 fun nth : Nat -> Stream Nat # -> Nat
 {
-nth zero ns = head2 Nat ns;
+nth zero ns = head Nat # ns;
 nth (succ x) ns = nth x (tail Nat # ns) 
 }
 
 const fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
 
-const four : Nat = head2 Nat fours
+const four : Nat = head Nat # fours
 
 mutual{
 
@@ -99,21 +95,8 @@ fibs2' ($ $ i) = cons Nat ($ i) zero (cons Nat i one (zipWith Nat Nat Nat i add 
 }
 
 
-const fib8 : Nat = nth (add four four)  (fibs #)
-const fib8' : Nat = nth (add four four) (fibs2' #) 
-
-
--- stream processor
-data SP ( A : Set ) ( B : Set ) : Size -> Set
-{
-put : (i : Size ) -> B -> SP A B i -> SP A B ($ i); 
-get : (i : Size ) -> ( A -> SP A B ($ i)) -> SP A B ($ i); -- NB size arguments
-}
-
-
-
-
-
+eval const fib8 : Nat = nth (add four four)  (fibs #)
+eval const fib8' : Nat = nth (add four four) (fibs2' #) 
 
 cofun nats : (i : Size ) -> Nat -> Stream Nat i
 {
@@ -149,7 +132,9 @@ unp2 ($ i) = cons Nat i zero (tail Nat i (unp2 ($ i)))
 }
 
 -- looking at a finite part of an unproductive stream hangs
---const bla : Nat = nth one (unp2 #)
+-- eval const bla : Nat = nth one (unp2 #)
+-- or gets stuck
+-- eval const bla2 : Nat = nth one (unp #)
 
 mutual
 {
@@ -161,13 +146,12 @@ evens ($ i) = cons Nat i zero (map Nat Nat i succ (odds i))
 
 cofun odds : ( i : Size ) -> Stream Nat i
 {
-odds i = map Nat Nat i succ (evens i)
+odds i = map Nat Nat i succ (evens i) -- not guarded
 }
 
 }
 
-
--- not guarded by constructor
+-- also not guarded by constructor
 cofun nats2 : ( i : Size) -> Stream Nat i
 {
 nats2 ($ i) = cons Nat i zero (map Nat Nat i succ (nats2 i)) 

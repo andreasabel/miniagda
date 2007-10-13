@@ -44,3 +44,15 @@ fun append : ( n : Nat ) -> ( m : Nat) -> Vec n -> Vec m -> Vec (add n m)
 append .zero m nil v = v;
 append .(succ n) m (cons n x xl) v = cons (add n m) x (append n m xl v)
 }
+
+data Bool : Set
+{
+tt : Bool;
+ff : Bool
+}
+
+fun null : ( n : Nat ) -> Vec n -> Bool
+{
+null .zero nil = tt;
+null (succ .n) (cons n x l) = ff
+}

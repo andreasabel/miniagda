@@ -4,11 +4,26 @@ nil : (i : Size ) -> List i;
 cons : (i : Size ) -> List i -> List ($ i);
 }
 
-fun foo : (i : Size ) -> List i -> List i
+data Empty : Set
 {
-foo .($ i) (nil ($ i)) = foo i (nil i); -- not possible w/o subtyping
-foo .i (nil i) = nil i;
-foo .($ i)y (cons i l) = foo i l
 }
 
---const loop : List # = foo # (nil #)
+fun foo : (i : Size ) -> List i -> Empty
+{
+foo .($ i) (nil ($ i)) = foo i (nil i);
+foo .($ i) (cons i l) = foo i l
+}
+
+eval const loop : Empty = foo # (nil #)
+
+data Bla : Set
+{
+bla : Bla
+}
+
+fun b : Bla -> Bla
+{
+b x = b x
+}
+
+--eval const loop2 : Bla = b bla

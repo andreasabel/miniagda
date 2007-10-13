@@ -6,10 +6,8 @@ import Parser
 
 import Abstract
 import ScopeChecker
--- import SizeChecker
 import TypeChecker
 import Value
-import Signature
 import TermCheck2
 
 import System
@@ -38,7 +36,7 @@ evalAllConst :: Signature -> [Declaration] -> [(Name,Val)]
 evalAllConst sig [] = []
 evalAllConst sig (decl:xs) =
     case decl of
-      (ConstDecl (TypeSig n t) e) -> 
+      (ConstDecl True (TypeSig n t) e) -> 
           let ev =  runEval sig e
           in case ev of
                Left err -> error $ "error during evaluation: " ++ show err
@@ -47,11 +45,14 @@ evalAllConst sig (decl:xs) =
 
 
 showAll :: Signature -> [Declaration] -> IO ()
-showAll sig decl = let ls = map showConst (evalAllConst sig decl) in
+showAll sig decl = let ls = map (showConst sig) (evalAllConst sig decl) in
                   sequence_ (map putStrLn ls)
 
-showConst :: (Name,Val) -> String
-showConst (n,v) = n ++ " evaluates to " ++ prettyVal v
+showConst :: Signature -> (Name,Val) -> String
+showConst sig (n,v) = let s = prettyVal sig v in
+                          case s of
+                            Left err -> "error"
+                            Right (str,_) -> n ++ " evaluates to " ++ str
 
 termCheckAll :: [Declaration] -> IO ()
 termCheckAll dl = do _ <- mapM terminationCheckDecl dl

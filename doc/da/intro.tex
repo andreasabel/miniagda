@@ -1,29 +1,61 @@
 \chapter{Introduction}
-\section {Deptendend Types}
-Have been used for theorem provers.
-Agda \cite{norell:thesis}, Coq \cite{coq} , LEGO \cite{pollack94theory} , Twelf \cite{pfenning99system}.
-Formal proofs with the help of a computer.
-Also as programing languages. Cayenne \cite{augustsson98cayenne} and Epigram \cite{epigram}. 
-\section{Lambda Calculus}
-
-in untyped lambda calculus, there are non-terminating terms, for example the famous \( \Omega \):
-
-\[ \Omega := (\lambda x . x x) (\lambda x . x x) \]
-
-
-\section{Martin-L\"of Type Theory}
-Martin-l\"of Type Theory \cite{mart84}.
-\section {Curry Howard Isomorphism}
-The Curry Howard Isomorphism relates theorem proving to functional programming.
-\section{Agda}
-
-Agda is a family of theorem proovers from Chalmers Tu.
-The current Agda2 version is developed by Ulf Norell.
-Agda2 allows general recursive functions to be defined by pattern matching.
+\section {Type systems}
+Type systems are well known concept for programming languages.
+They allow programmers to write down simple specifations to functions that can easily be checked by the type checker of the program, thus leading to less errors in programs.
+Thus, more expressive type systems that allow a better specification of the function is desirable.
+Haskell \cite{haskell} has an already quite expressive type system.
+Another attempt to improve software reliability is the use of computer aided formal reasoning.
+Here, the user tries to proof properties of his software with the help of the computer.
+Depentend types provide the underlying link between these two efforts.
+For one, many theorem provers like Coq \cite{coq} , Lego \cite{pollack94theory} , Twelf \cite{pfenning99system}.
+are internally based on depentend types.
+On the other side, a programming language with a depentent type system would be quite powerfull for specification.
+Through the Curry-Howard Isomorphism, proofs are treated as functions, thus propositions correspond to types.
+Recently , languages like Agda \cite{norell:thesis}, Cayenne \cite{augustsson98cayenne} and Epigram \cite{epigram} try to combine both aspects of depentend types.
+Programming was added to Coq.
 
 \section {Termination checking}
 Termination checking is especially important for theorem proving.
-One might easily have a proof that looks correct, but is none because the proof seen as a function
-via the Curry-Howard isomorpism is non terminating.
-A function defined by the equation $ f x = f x $ is a proof for every proposition.
+For one, we don't want to wait very long for type checking, only to suspect that there is an
+an inifite computation going on.
+More importantly, one might easily have a proof as a function that that looks correct, but is not because it is not total, i.e is not definied on some input values.
+A function defined by the pattern matching equation $ f x = f x $ can be seen as a proof for every proposition.
+("Why ? just because ! ")
+One common criterion for recursive functions is : Every recursive call has to happen on a smaller argument.
+If the arguments are well-founded, this will 
+For multiple arguments and mutally recursive functions, the size-change principle can be used.
+One other mehod that has been proposed are sized types.
+Types are decorated with a size annotation to help see the system that arguments are getting smaller.
+The reader may wonder if depentend types are not already enough to specify such properities.
+And indeed, they nearly are.
+\section{Infite Objects}
+Many objects for todays computers are potentially infite - a stream of network packages for example.
+So 
+While we can't expect that we can analyse all packets, what we want to guarantee that during finite time,
+new packages will arrive. This is called productivity for streams.
+Productivity of an inifite objects means we can look at any part in finite time.
+As it turns out, the sized type is suited to handle productivy for our purposes.
+\section {Curry Howard Isomorphism}
+The Curry Howard Isomorphism relates theorem proving to functional programming.
+\section{Agda}
+Agda is a familiy of theorem provers / programming languages based primairly on the 
+orinal definiton of type theory by Martin-L\"öf \cite{mart84}.
+The current Agda2 version is developed by Ulf Norell.
+Agda2 allows general recursive functions to be defined by pattern matching.
+Our goal was to study the addition of a size type to a system in the style of Agda, and to
+extend it to inifite objetcs.
+
+\section{Overview}
+In chapter 2 we introduce our language MiniAgda and present type checking.
+In chapter 3 we add a termination checker based on structural recursion and the size-change principle.
+In chapter 4, we add a size type to enable even more valid definitons to be accepted as total by the system.
+We define valied uses of the size type.
+In chapter 5, we extend the language to coinductive objects with corecursive functions.
+We again present 
+In chapter 6, we detail the implementation of the resulting system.
+Finally in chapter 7, we give an outlook for improvements.
+
+
+
+
 

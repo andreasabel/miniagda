@@ -16,8 +16,8 @@ eq : ( n : Nat ) -> (s1 : Stream) -> (s2 : Stream ) -> Eq s1 s2 -> Eq (cons n s1
 
 cofun trans : ( s1 : Stream ) -> (s2 : Stream ) -> (s3 : Stream ) -> Eq s1 s2 -> Eq s2 s3 -> Eq s1 s3
 { 
---trans .(cons m s1) .(cons m s2) .(cons m s3) (eq .m s1 .s2 p) (eq m s2 s3 q) = 
---	eq m s1 s3 (trans s1 s2 s3 p q)
+trans .(cons m s1) .(cons m s2) .(cons m s3) (eq .m s1 .s2 p) (eq m s2 s3 q) = 
+	eq m s1 s3 (trans s1 s2 s3 p q)
 }
 
 cofun nats : Nat -> Stream

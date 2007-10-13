@@ -74,15 +74,17 @@ scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
                                                     let names = collectTelescopeNames tel
                                                     cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs )
                                                     return $ DataDecl n co tel' t' cs'
-scopeCheckDeclaration (FunDecl co funs) = do _ <- mapM (scopeCheckFunName . fst ) funs
+scopeCheckDeclaration (FunDecl co funs) = do mapM (scopeCheckFunName . fst ) funs
                                              tsl' <- mapM (scopeCheckFunSig . fst ) funs  
                                              cll' <- mapM ((mapM scopeCheckClause) . snd ) funs
                                              return $ FunDecl co (zip tsl' cll') 
-scopeCheckDeclaration (ConstDecl ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
-                                             e' <- scopeCheckExpr e
-                                             return $ ConstDecl ts' e'
-
-
+scopeCheckDeclaration (ConstDecl b ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
+                                               e' <- scopeCheckExpr e
+                                               return $ ConstDecl b ts' e'
+scopeCheckDeclaration (NoRecDecl ts cs) = do cs' <- mapM scopeCheckClause cs
+                                             scopeCheckFunName ts
+                                             ts' <- scopeCheckFunSig ts  
+                                             return $ NoRecDecl ts' cs'
 
 scopeCheckFunName :: TypeSig -> ScopeCheck ()
 scopeCheckFunName a@(TypeSig n t) = 

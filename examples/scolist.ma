@@ -50,7 +50,7 @@ const omega : CoNat # = omega' #
 -- ok 
 fun convert2 : ( i : Size ) -> Nat i -> CoNat i
 {
-convert2 .($ i) (zero i) = (cozero i);
+convert2 .($ i) (zero i) = cozero i;
 convert2 .($ i) (succ i x) = cosucc i (convert2 i x) 
 }
 
@@ -59,5 +59,12 @@ fun convert3 : ( i : Size ) -> Nat i -> CoNat #
 {
 convert3 .($ i) (zero i) = cozero #;
 convert3 .($ i) (succ i x) = omega' #
+}
+
+-- also ok
+cofun convert4 : ( i : Size ) -> Nat i -> CoNat i
+{
+convert4 .($ i) (zero i) = cozero ($ i) ;
+convert4 .($ i) (succ i x) = cosucc i (convert4 i x) 
 }
 

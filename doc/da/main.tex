@@ -5,7 +5,7 @@ m\chapter{Basic MiniAgda}
 \newcommand{\cc}{\mathbf{c}}
 \newcommand{\ff}{\mathbf{f}}
 
-\begin{figure}
+\begin{figure}[p]
 \caption{MiniAgda syntax}
 Expressions : \[e,t :  \lam x . e \vsp \EPi{x}{t}{t} \vsp e \; \vec{e} \vsp  \Set \vsp x \vsp \cc \vsp \DD \vsp \ff \vsp \dd\]
 Patterns: \[ x  \vsp \cc \; \vec{p} \]
@@ -49,7 +49,7 @@ variable pattern: $x$
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
-inacessible pattern: $ \underbar{e} $ 
+inacessible pattern: $ \underline{e} $ 
 \end{itemize}
 Declarations $\delta$:
 \begin{itemize}
@@ -176,13 +176,52 @@ So to really capture the notion that the first two arguments are automatically i
 \begin{quote}
 $ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
 \\
-$\head \underbar{B} \; \underbar{m} \; (cons \; B \; m \; x \; xl) = x $
+$\head \underline{B} \; \underline{m} \; (cons \; B \; m \; x \; xl) = x $
 \end{quote}
+
+\subsection{Equality}
+The following is called Martin-L\"of equality.
+The equality relation is defined by reflexivity.
+\begin{quote}
+$\data \Eq ( A : \Set ) : A \ra A \ra \Set $ 
+\\
+$\refl : A \ra \Eq A \; A  $
+\end{quote}
+As a simple example, we can now prove that $ 0 + x = x $.
+
+\begin{quote}
+$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x) x} $ \\ 
+$ = \lam y\; \ra \refl \Nat y$ 
+\end{quote}
+Here we see that proof checking equals type checking.
+Now if we want to prove $ x + 0 = x $, we need more effort.
+The following does not pass the type checker
+\begin{quote}
+$ \const \prof2 : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)  x} $ \\ 
+$ \lam y\; \ra \refl \Nat y$ 
+\end{quote}
+The type checker can only see definitional equality.
+Note that addition was definied by recursion on the second argument. 
+What we need is a recursive proof.
+\begin{quote}
+$\fun \eqsucc : \EPi{x}{\Nat}{\EPi{y}{\Nat}{\Eq \Nat x \; y \ra \Eq \Nat (\suc x) \; (\suc y)}}$ \\
+$\eqsucc \underline{x} \; \underline{x} \; (\refl \underline{\Nat} \; x) = \refl \Nat (\suc x)$
+\\
+\\
+$\fun \tprof : ( x : \Nat ) \ra \Eq \Nat (\add \zero x) x$
+\\
+$\tprof \zero = \refl \Nat \zero$
+\\
+$\tprof (\suc x) = \eqsucc (\add \zero x)\; x \; (\tprof x)$
+\end{quote}
+Recursive proofs need to be total (complete pattern matching and termination) to be correct.
+
 \section{Universes}
 To keep MiniAgda simple, $\Set$ is the type of all types.
-The judgement is
-\[\Set : \Set \]
 This is known to be inconsistent.
+It is quite complicated but possible to define a recusor.
+Universe stratication can be used to avoid this inconsistency.
+
 \section{Missing features}
 Due to its use for interactivly building proofs, the full Agda has meta-variables that represent parts of tge proof that are still misssing. These 
 Also, many bookkeeping arguments can be easily infered by the type checker,easying tedious pain for the user.
@@ -201,7 +240,7 @@ To keep MiniAgda simple, these features were not implemented.
 \newcommand\Fapp[6]{\mathrm{fapp}\;#1,#2,#3,#4,#5\leadsto#6}
 \newcommand\Whnf[2]{\mathrm{whnf}\;#1\leadsto#2}
 \newcommand\Lookup[3]{#1(#2) = #3}
-
+\newcommand\LeqVal[2]{\vdash\;#1\leq#2}
 \subsection{Values}
 Values are the semantical interpretation of expressions.
 For the interpretation of abstraction and the depentend function space, closures are used.
@@ -223,7 +262,7 @@ application is the equivalent of beta reduction on values
 
 weak head normal form: 
 \[ whnf : \Whnf{v}{v'} \]
-\begin{figure}
+\begin{figure}[p]
 
 \[\begin{array}{c}
 	  \infer{\Eval{\rho}{\Set}{\Set}} 
@@ -280,7 +319,7 @@ weak head normal form:
 \caption{Evaluation of expressions}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 
 \[
 \begin{array}{c}
@@ -311,7 +350,7 @@ weak head normal form:
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[p]
 \[
 \begin{array}{c}
 
@@ -373,7 +412,7 @@ so one needs equality between values, which is handled by the function
 \[ \mathrm{eqVal} : \EqVal{v_1}{v_2} \]
 
 
-\begin{figure}
+\begin{figure}[p]
 \[\begin{array}{c}
 	  \infer{\Check{\rho_1}{\rho_2}{\lam x . e}{\VPi{y}{v}{e'}{\rho}}}
           { \Eval{(x,k)\;\rho}{e}{v'} & \Check{(x,k)\;\rho_1}{(x,v)\;\rho_2}{e'}{v'}} 
@@ -396,7 +435,7 @@ so one needs equality between values, which is handled by the function
 \caption{Checking expressions}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \[\begin{array}{c}
 	  \infer{\Infer{\rho_1}{\rho_2}{x}{v}} 
           {\Lookup{\rho_2}{x}{v}}
@@ -449,7 +488,7 @@ so one needs equality between values, which is handled by the function
 \caption{Infering type of expressions}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \caption{Untypes value equality checking}
 
 \[\begin{array}{c}
@@ -502,8 +541,45 @@ so one needs equality between values, which is handled by the function
 
 \end{figure}
 
-\subsection{Checking declarations}
 \subsubsection{Datatype declarations}
+We require that datatype delcarations are strictly positive.
+Otherwise there are inconsistencys (\cite{paulinmohring93inductive}).
+\begin{definition}
+X appears strictly positive in A if and only if
+\begin{itemize}
+\item
+$ A = X$
+\item
+$ A = ( x : A' ) \ra B $ and X does not occur in $A'$  and appears strictly positive in B
+\item
+$ A = \DD \vec{p} \vec{v} $ and $X$ appears strictly positive in the parameters $\vec{p}$ 
+and $X$ does not occur in $\vec{v}$.
+\end{itemize}
+\end{definition}
+A delaration for $\DD$ is strictly positive if the $\dd$ and all parameters appear only
+strictly positive in every constructor argument.
+Our definition requires that datatypes are positivly parametrized.
+Later this will be helpfull for subtyping.
+
+\begin{quote}
+$\data \Bad : \Set $ 
+\\
+$\ok : \Bad$
+\\
+$\bad : ((\Nat \ra \Bad) \ra \Bad) \ra \Bad  $
+\end{quote}
+is not allowed because of the non-positive occurence of $\Bad$ in the argument of $\bad$.
+
+
+\begin{quote}
+$\data \Bad : ( A : \Set ) : \Set $ 
+\\
+$\ok : \Bad A$
+\\
+$\bad : (A \ra \Bad) \ra \Bad A$
+\end{quote}
+is not allowed because of the negative occurence of $A$ in the argument of $\bad$.
+
 \subsubsection{Function declarations}
 
 \subsubsection{Constant declaration}
@@ -559,22 +635,6 @@ isZero (s i) (succ .i x) = ff
 We just know that the size index that the sized natural numbers carry around equals their size.
 
 
-\section{Implementation}
-
-MiniAgda was implemented in the function language Haskell \cite{haskell}The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
-
-The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
-
-\subsection{Scope checking}
-The first step after parsing is scope checking. This checks that names are used correctly:
-all declared constants should have a uniquie name and variables bound by 
-The use of linear patterns is also restricted at scope checking.
-Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
-function.
-After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
-\subsection{Type Checking}
-Type checking was implemented as explained above.
-\subsection{Addmisibility Checking}
 
 \chapter{Termination Checking}
 
@@ -643,7 +703,7 @@ Completion of a finite set is also finite.
 \section{Size change principle}
 
 The termination criterion in \cite{abelAltenkirch:predStRec} can be replaced with the
-simpler and more powerful criterion from \cite{lee01sizechang}
+simpler and more powerful criterion from \cite{lee01sizechange}
 Their formalism is based on bipartit graphs instead of call matrixes, but these are
 equivalent representations.
 
@@ -656,7 +716,7 @@ A function f is terminating, if every idempotent callmatrix  $ \in \mathrm{compl
 the diagonal.
 \end{definition}
 
-\begin{figure}
+\begin{figure}[p]
 \[
 \mathrm{add}\begin{pmatrix}
 
@@ -668,7 +728,7 @@ the diagonal.
 \caption{add call matrix}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 
 \[
 \mathrm{add'} \begin{pmatrix}
@@ -684,7 +744,7 @@ the diagonal.
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[p]
 
 \[
 \mathrm{add'} \begin{pmatrix}
@@ -698,12 +758,33 @@ the diagonal.
 
 \end{figure}
 
+\section{Examples}
 
+\subsection{Brouwer ordinals}
+The so called Brouwer ordinal notations can be defined with
+\begin{quote}
+$\data \Ord : \Set$ 
+\\
+$\ozero : \Ord $
+\\
+$\olim : (\Nat \ra \Ord ) \ra \Ord $
+\end{quote}
+This is an example of a higher-order data type, because one argument contains a function space.
+Now let's define ordinal addition:
+\begin{quote}
+$\fun \addOrd : \Ord \ra \Ord \ra \Ord$
+\\
+$\addOrd x \; \ozero = x $
+\\
+$\addOrd x (\olim f) = \olim ( \lam y \ra \addOrd  x \; (f y))  $
+\end{quote}
+Axiom 2 is needed to show that the recursive call happens on a smaller argument.
 \section{Extending the Order}
 
 Definition of pair data type.
-Add and ackerman no longer termination check.
-Idea: extend order
+
+But now, the uncurried versions do no longer termination check.
+The reason is that we need to keep the information.
 
 \begin{definition}[MOrder]
 \[ MO := \{ < , \leq , ? , MO^{r,n}\} \]
@@ -744,12 +825,17 @@ is also finite because matrices are only getting smaller or a collapsed to a sin
 
 \section{Examples}
 
+
 \subsection{Huet list rev}
 fails the current termination checker
 \subsection{natural number division}
 fails the current termination checker
-\chapter{Adding a Size Type}
 
+\chapter{Adding a Size Type}
+Traditionally, size annotation have been used in the typing rules.
+We take a different approach.
+Wie add a primitive size type, and then use the current termination checker to see that the size is 
+decreasing.
 \section{Syntax}
 
 \begin{itemize}
@@ -766,6 +852,21 @@ infinity: $\infty$
 \item
 size succesor pattern:$ \s p $ 
 \end{itemize}
+
+\section{Sized types definition}
+We now declare what a sized type is.
+\begin{definition}
+A datatype D is a sized type, if $ \Size \ra A $ is its type
+For every constructor 
+\begin{itemize}
+\item
+it begins with $(i: Size)$
+\item
+the result type is $D \dots (\s i) \dots $
+\item
+every rec. argument is of the form $ D \dots i \dots $
+\end{itemize}
+\end{definition}
 
 \section{Matching against infinity}
 The equation 
@@ -789,30 +890,128 @@ $\nil : \EPi{i}{\Size}{ \List A \; (\s i)} $
 $\cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
 \end{quote}
 
+What is the differnce between vectors and sized lists ?
+The size index is only used for relativ comparisons, its not an exact number, but an upper bound.
+This enables subtyping, and one can compromise by forgetting the exact size ($\infty$).
+For example, splitting a vector of length n, we need to show that there exist j,k such that $j+k = n$.
+With sized type, we don't need to be that exact.
+\subsection{Sized natural numbers}
+\begin{quote}
+$\data \Nat : \Size \ra \Set $ 
+\\
+$\zero : \EPi{i}{\Size}{ \Nat \; (\s i)} $
+\\
+$\succ : \EPi{i}{\Size}{ \Nat \; i \ra Nat \; (\s i)} $
+\end{quote}
+
+\subsection{Great common divisor}
+
+\subsection{Quicksort}
+
+\subsection{Sized ordinal numbers}
+Note that sized types are quite powerful. 
+We can show the termination of ordinal addition with a decreasing size argument.
+First, sized Brouwer Ordinals:
+\begin{quote}
+$\data \Ord : \Set$ 
+\\
+$\ozero : \Ord $
+\\
+$\olim : (\Nat \ra \Ord ) \ra \Ord $
+\end{quote}
+\begin{quote}
+$\fun \addOrd : \Ord \infty \ra \EPi{i}{Size}{\Ord i \ra \Ord \infty }$
+\\
+$\addOrd x \underline{\s i}\; (\ozero i) = \ozero i $
+\\
+$\addOrd x \underline{\s i}\; (\olim f)  = \olim \infty ( \lam y \ra \addOrd  x \; i \; (f y))  $
+\end{quote}
+
 \section{Admissibility}
 \subsection{Motivation}
 The use of sizes needs to be constraint.
-Consire for example the function definition
+Consider for example the function definition
 
-\[ \mathrm{fun} \mathrm{bad} : Size -> Size \]
-\[ \mathrm{bad} (s i) = i \]
-
-The termination checker will hapilly tell you that bad is terminating.
+\begin{quote}
+$\fun \bad : \EPi{i}{Size}{\Nat}$
+\\
+$\bad (\s i) = bad i $ 
+\end{quote}
+The termination checker will hapilly tell you that $\bad$ is terminating.
 The issue here is that the size argument is not really bound to any sized data type.
 But there are more subtile difficulties with using the size type.
 See the example in the appendix, due to A. Abel,
 the type of the function shift
-
-\[ (i : Size) \rightarrow (Nat \rightarrow Maybe (SNat (s i))) \rightarrow Nat \rightarrow Maybe (SNat i) \] 
-
+\begin{quote}
+$ \EPi{i}{Size}{\Nat i \ra Maybe (\Nat (s i)) \ra (Nat \ra Maybe (Nat i))} $ 
+\end{quote}
 needs to be rejected by an admissibility checker.
+Otherwise, a non terminating term can be constructed.
+\subsection{Admissibility criterion}
 
-
+Gimenez and Barthe deal with monotonicity criterions.
+Abel and Pareto have worked on continuous criterions.
+\begin{definition}
+A Type $A$ is \emph{inductive in i} if it is of the form $ \DD \vec{p} \; i \: \vec{v} $ and $\DD$ is a sized inductive type
+\end{definition}
+\begin{definition}
+A type $A$ is \emph{monotone in i} if $ \LeqVal{A}{A[i \ra \s i ]}$ 
+\end{definition}
+\begin{definition}
+A type $A$ is \emph{antitone in i} if $ \LeqVal{A[i \ra \s i ]}{A}$ 
+\end{definition}
+Note that if a type is inductive in $i$, it is also monotone in $i$. 
+Now we give a criterion for when a $\fun$ declaration is admissible.
+\begin{definition}
+A recursive function with type $ A_1 \ra \dots A_n \ra R $ is admissible, if
+for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ the following holds 
+\begin{itemize}
+\item
+every argument $A_k$ is antitone or inductive in $i$
+\item
+at least one argument $A_k$ is inductive in $i$
+\item
+the result $R$ is monotone in $i$  
+\end{itemize}
+\end{definition}
+\subsection{Examples}
+We first give an example to show why we limit the form of what a sized type is.
+Had we definied the sized natural numbers this way:
+\begin{quote}
+$\data \BadNat ( A : \Set ) : \Size \ra \Set $ 
+\\
+$\zero : \EPi{i}{\Size}{ \BadNat A \; i} $
+\\
+$\suc : \EPi{i}{\Size}{\BadNat i \ra \BadNat \; (\s i)} $
+\end{quote}
+If the systemn accepted this as a sized type, then the following function would be seen terminating and admissible, while obviosuly looping on $\zero$.
+\begin{quote}
+$\fun \foo : \EPi{i}{\Size}{\BadNat i \ra \Empty}$
+\\
+$\foo \underline{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$
+\\
+$\foo \underline{(\s i)}\; (\suc i l) = \foo i \; l$
+\end{quote}
+In our system, the $\BadNat$ type above is not a sized type, so the function $\foo$ is not admissible because $\BadNat i$ is not inductive in $i$.\\
+For the same reason, the following function definition is also not admissible:
+\begin{quote}
+$\fun \foo : \EPi{i}{\Size}{\Nat (\s i) \ra \Empty}$
+\\
+$\foo \underline{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$
+\\
+$\foo \underline{(\s i)}\; (\suc i l) = \foo i \; l$
+\end{quote}
+While $\Nat$ is a sized type, $\Nat (\s i)$ is not inductive in $i$.
 \section{Subtyping for size}
-It would be quite nice to have subtyping.
+It would be quite nice to have subtyping on sized data types.
+As we are only interested in size arguments getting smaller, 
+In one call to the function, the size might decrease by one, in another clause, by two.
+It is enough for termination to decrease by one.
 There is natural order on size expressions.
-
-\begin{figure}
+The special rules for subtyping are given in table x.
+There are rules for function type and data types.
+Otherwise, it's identical to convetability of types.  
+\begin{figure}[p]
 \[
 \begin{array}{c}
 	  \infer{i \preceq \infty}
@@ -835,24 +1034,34 @@ There is natural order on size expressions.
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[p]
 \[
 \begin{array}{c}
-	  \infer{\dd \vec{v1} \; i \; \vec{v2} \leq \dd \vec{v1'} \; j \; \vec{v2'}}
+	  \infer{\LeqVal{\dd \vec{v1} \; i \; \vec{v2}}{\dd \vec{v1'} \; j \; \vec{v2'}}}
 	      {i \preceq j & \EqVal{\vec{v1}}{\vec{v1'}}}
 \end{array}\dd \; \data
 \]
 \[
 \begin{array}{c}
-	  \infer{\dd \vec{v1} \; i \; \vec{v2} \leq \dd \vec{v1'} \; j \; \vec{v2'}}
+	  \infer{\LeqVal{\dd \vec{v1} \; i \; \vec{v2}}{\dd \vec{v1'} \; j \; \vec{v2'}}}
 	      {j \preceq i & \EqVal{\vec{v1}}{\vec{v1'}}}
 \end{array}
 \dd \; \codata
 \]
-\caption{Subtyping}
+\caption{Subtyping for sized types}
 \end{figure}
 
 \chapter{Adding coinductive types}
+
+Coinductive types allow the introduction of (possibly) infinite objects in type theory.
+The analogon to list are colists. This type includes all finite and infinite lists.
+The list of all natural numbers is an example of an infinite colist.
+While we can't look at all natural numbers in a finite time, we should expect to be able to
+compute any finite part of a colist in finite time.
+Functions that define corecursive objects are corecustive functions.
+This is possible for \emph{productive} coinductive definitions.
+There are syntactic criteria for checking productivity of coinductive definitons.
+But in the following, we will use the size type introduced earlier to prove termination.
 
 \begin{itemize}
 \item
@@ -866,16 +1075,139 @@ coinductive function:
 
 \section{Syntax}
 
-\section{Arity}
+\section{Lazy values}
+Unrolling of corecursive functions needs to be restricted.
+Force is used in specific places.
 
-\section{Admissibility}
+\section{Arity}
 
 \section{Examples}
 
 \subsection{Streams}
+Now we introduce streams of natural numbers.
+\begin{quote}
+$\codata Stream : \Set $ 
+\\
+$\cons : \Nat \ra \Stream \ra \Stream $
+\end{quote}
+Note that because $\Stream$ has only one constructor, there are no finite $\Stream$ objects.
+A stream of zeroes can be generated by:
+\begin{quote}
+$\cofun \ones: \Stream $ 
+\\
+$\ones = : \cons \zero \ones$
+\end{quote}
+
+An example of an unproductive stream is $\unp$:
+\begin{quote}
+$\cofun \unp : \Stream $ 
+\\
+$\unp = : \unp$
+\end{quote}
+We can look at any element of $\ones$ .
+But looking at a element $ unp $ is not defined. 
+A syntactic criterion for productivity of coinductive definitions is the guardness condition:
+Every (co)recursive call must be guarded by a constructor.
+In the above example , the call to $\ones$ is guarded by $\cons$
+But we want to use sized types for productivity checking.
+\subsection{Sized Streams}
+
+Let us now explain how sized types , in comnbination with the current terminatin criterion, can be used for showing productivity.
+First we introduce the sized coinductive type 
+\begin{quote}
+$\codata \Stream : \Size \ra \Set $ 
+\\
+$\cons : \EPi{i}{\Size}{\Nat \ra \Stream i \; \ra \Stream (\s i) } $
+\end{quote}
+For the productive stream $\ones$, we turn it into
+\begin{quote}
+$\cofun \ones: \EPi{i}{Size}{\Stream i} $ 
+\\
+$\ones (\s i) = : \cons i \zero (\ones i)$
+\\
+\\
+$\const \ones' \Stream \infty = \ones \infty $
+\end{quote}
+The termination checker sees that the recursive call happens on a smaller size.
+For the unproductive stream, we have two bad choices:
+The first one
+\begin{quote}
+$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ 
+\\
+$\unp i = : \unp i$
+\end{quote}
+is type correct, but the call is not on a smaller size.
+The second option is
+\begin{quote}
+$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ 
+\\
+$\unp (\s i) = : \unp i$
+\end{quote}
+is accepted by the termination checker, but thankfully not type correct.
 
 \subsection{Fibonacci stream}
+First, we introduce the helper function $\zipWith$:
+\begin{quote}
+$\cofun \zipWith : (\Nat \ra \Nat ) \ra \EPi{i}{\Size}{\Stream i \ra \Stream i \ra \Stream i}$ 
+\\
+$\zipWith f \underline{\s i} (\cons i a as) (\cons i b bs) =  \cons i (f a b) (\zipWith f i as bs)$
+\end{quote}
 
 \subsection{Stream processors}
 
+\subsection{Colists and conatural numbers}
 
+\section{Admissibility}
+We now have to define when a $\cofun$ declaration is admissible.
+\begin{definition}
+A corecursive function with type $ A_1 \ra \dots A_n \ra R $ is admissible, if
+for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ the following holds 
+\begin{itemize}
+\item
+every argument $A_k$ is antitone or inductive in $i$
+\item
+the result $R$ is coinductive in $i$  
+\end{itemize}
+\end{definition}
+It follows from the definition that one can only use on size argument, because it has to be coinductive in the result type.
+\chapter{Implementation}
+
+MiniAgda was implemented in the function language Haskell \cite{haskell}.
+
+\section{Overview}
+\begin{itemize}
+\item
+\texttt{Abstract.hs} : Syntax for expressions , patterns, and declarations
+\item
+\texttt{Values.hs} : Values and related functions: eval, whnf 
+\item
+\texttt{TypeChecker.hs} : TypeChecking with Admissiblity checking
+\item
+\texttt{Termination.hs} : structural Termination checker
+\item
+Main.hs : the main module
+\item
+\text{example} dir: example input files
+\end{itemize}
+
+\section{Parsing}
+The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
+Delimiters ( \texttt{\{} , \texttt{\}} ) and separtor ( \texttt{;}) were added so that there are no 
+conflicts.
+$ \infty $ is written \texttt{\#} 
+$ \s $ is written \texttt{\$}
+For observing computation, \texttt{const} can be replaced with {\texttt {eval const}}
+
+The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
+
+\section{Scope checking}
+The first step after parsing is scope checking. This checks that names are used correctly:
+all declared constants should have a uniquie name and variables bound by 
+The use of linear patterns is also restricted at scope checking.
+Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
+function.
+After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+\subsection{Type Checking}
+Type checking was implemented as explained above.
+\subsection{Termination Checking}
+Termination checking was implemented as explained.

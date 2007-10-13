@@ -20,7 +20,7 @@ olim : ( Nat -> Ord ) -> Ord
 
 }
 
--- needs axiom f n < f
+-- needs axiom f n <= f
 fun addord : Ord -> Ord -> Ord
 {
 addord x ozero = x ;

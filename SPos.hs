@@ -1,0 +1,150 @@
+module SPos (sposConstructor) where
+
+import Abstract
+import Value
+
+import Control.Monad.Identity
+import Control.Monad.Reader
+import Control.Monad.State
+import Control.Monad.Error
+
+import Debug.Trace
+
+-----------------------------------
+-- check that recursive Data argument n and the p parameter variables are only used strictly positvly
+
+sposConstructor :: Name -> Int -> Int -> TVal -> TypeCheck ()
+sposConstructor n k p tv = 
+    do tv <- whnf tv
+       case tv of
+         VClos env (Pi x a b) -> do av <- eval env a
+                                    av <- whnf av
+                                    spr <- sposRecArg 0 n av
+                                    spv <- sposVars [0..(p-1)] av
+                                    case (spr,spv) of
+                                      (True,True) -> do bv <- eval (update env x (VGen k)) b
+                                                        sposConstructor n (k+1) p bv
+                                      (False,_) -> throwErrorMsg "rec. arg not strictly positive"
+                                      (True,False) -> throwErrorMsg "parameter not strictly positive"
+         _ -> return ()
+
+-- check wether variables l appear only strictly pos in type
+sposVars :: [Int] -> TVal -> TypeCheck Bool
+sposVars vars tv = do sl <- mapM (\i -> sposVar 0 i tv) vars
+                      return $ and sl
+
+-- checks wether variable is used strictly positiv in type tv
+sposVar :: Int -> Int -> TVal -> TypeCheck Bool
+sposVar k i tv = -- trace ("sposVar " ++ show tv) $
+    do tv <- whnf tv 
+       case tv of
+         VClos env (Pi x a b) ->
+              do av <- eval env a
+                 av <- whnf av
+                 n <- noccVar k i av
+                 case n of
+                   True -> do
+                        bv <- eval (update env x (VGen k)) b
+                        bv <- whnf bv
+                        sposVar (k+1) i bv
+                   False -> return False
+         (VApp (VDef m) vl) -> do
+                 do sig <- get
+                    case (lookupSig m sig) of
+                      (DataSig p _ _ _) ->
+                          do let params = take p vl
+                             let rest = drop p vl
+                             sl <- mapM (sposVar k i) params
+                             nl <- mapM (noccVar k i) rest
+                             return $ and sl && and nl
+                      _ -> do nl <- mapM (noccVar k i) vl
+                              return $ and nl
+         (VApp v vl) -> do
+                 no <- noccVar k i v
+                 nl <- mapM (noccVar k i) vl
+                 return $ no && and nl
+         (VSucc v) -> sposVar k i v
+         _ -> return $ True
+
+
+-- check that i does not occur in tv
+noccVar :: Int -> Int -> TVal -> TypeCheck Bool
+noccVar k i tv = -- trace ("noccVar " ++ show tv) $
+    do tv <- whnf tv
+       case tv of
+         VClos env (Pi x a b) -> 
+             do av <- eval env a
+                av <- whnf av
+                n <- noccVar k i av
+                case n of 
+                  True -> do
+                      bv <- eval (update env x (VGen k)) b
+                      bv <- whnf bv
+                      noccVar (k+1) i bv
+                  False  -> return False
+         VApp v1 vl -> do sp <- noccVar k i v1
+                          nl <- mapM (noccVar k i) vl
+                          return $ sp && and nl
+         VGen i' -> return $ i /= i'
+         VSucc v -> noccVar k i v
+         _ -> return True
+
+
+---
+
+-- checks that rec. argument is used strictly positiv in type tv
+sposRecArg :: Int -> Name -> TVal -> TypeCheck Bool
+sposRecArg k n tv = -- trace ("sposRecArg " ++ show tv) $
+    do tv <- whnf tv 
+       case tv of
+         VClos env (Pi x a b) ->
+              do av <- eval env a
+                 av <- whnf av
+                 no <- noccRecArg k n av
+                 case no of
+                   True -> do
+                        bv <- eval (update env x (VGen k)) b
+                        bv <- whnf bv
+                        sposRecArg (k+1) n bv
+                   False -> return False
+         (VApp (VDef m) vl) -> do
+                 do sig <- get
+                    case (lookupSig m sig) of
+                      (DataSig p _ _ _) ->
+                          do let params = take p vl
+                             let rest = drop p vl
+                             sl <- mapM (sposRecArg k n) params
+                             nl <- mapM (noccRecArg k n) rest
+                             return $ and sl && and nl
+                      _ -> do sl <- mapM (sposRecArg k n) vl
+                              return $ and sl
+         (VApp v vl) -> do
+                 sp <- sposRecArg k n v
+                 nl <- mapM (noccRecArg k n) vl
+                 return $ sp && and nl
+         (VSucc v) -> sposRecArg k n v
+         _ -> return $ True
+
+-- check that n does not occur in tv
+noccRecArg :: Int -> Name -> TVal -> TypeCheck Bool
+noccRecArg k n tv = -- trace ("noccRecArg " ++ show tv) $
+    do tv <- whnf tv
+       case tv of
+         VClos env (Pi x a b) -> 
+             do av <- eval env a
+                av <- whnf av
+                no <- noccRecArg k n av
+                case no of 
+                  True -> do
+                      bv <- eval (update env x (VGen k)) b
+                      bv <- whnf bv
+                      noccRecArg (k+1) n bv
+                  False  -> return False
+         VApp (VDef m) vl | n == m -> return False
+         VApp v1 vl -> do no <- noccRecArg k n v1
+                          nl <- mapM (noccRecArg k n) vl
+                          return $ no && and nl
+         VSucc v -> noccRecArg k n v
+         VDef m -> return $ m /= n
+         _ -> return True
+

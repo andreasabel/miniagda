@@ -1,5 +1,16 @@
 \chapter{Conclusion}
-\section{Achieved}
-a
-\section{Extensions}
-b
+We hope this work provides an easy access to depented types and the sized type principle.
+The pattern mathching of MiniAgda is in our opinion more accesible than the traditional fixpoint operator
+notation of previous articles about sized types.
+We think that the MiniAgda language demonstrates the usefullnes of sized types.
+They are quite elegent for coinductive definitions.
+\section{Inference}
+We should investigate the possibility of infering the size arguments.
+This would entail completly hiding the size type from the user.
+Barthe has already developed inferences algorithm for his sized version of CIC.
+\section{Proofs of correctness}
+Obviosuly, proofing the correctness of the admissibilty criterion is important.
+This should involve a model construction, which is not easy for a language with inductive families.
+\section{Polarized Subtyping}
+The subtyping could be properly extend to higher order subtyping.
+The use of polarities could be used.
