@@ -1,83 +1,106 @@
 \documentclass[a4paper,11pt]{report}
 \usepackage[latin1]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath}
+\usepackage{amsmath, amsthm, amssymb}
 \usepackage{graphicx}
 \usepackage{latexsym}
-
+\usepackage{subfig}
 \usepackage{proof}
 
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{lem}[thm]{Lemma}
+
+\newenvironment{bsp}
+{\begin{list}{}{
+\setlength{\leftmargin}{0cm}
+\setlength{\rightmargin}{0cm}
+}
+\item}{
+\end {list}
+}
+
+
+\theoremstyle{remark}
+\newtheorem{rem}[thm]{Remark}
+
 \newcommand{\vsp}{\;\vert\;}
-\newcommand{\Set}{\mathbf{Set}}
-\newcommand{\s}{\mathbf{s}\;}
-\newcommand{\Size}{\mathbf{Size}}
-\newcommand{\EPi}[3]{( #1 : #2 ) \rightarrow #3} 
-\newcommand{\VPi}[4]{( #1 : #2 ) \rightarrow #3 \; #4} 
-\newcommand{\VLam}[3]{\lambda #1 . #2 \; #3}
+\newcommand{\Set}{\mathsf{Set}}
+\newcommand{\s}{\mathsf{s}\;}
+\newcommand{\Size}{\mathsf{Size}}
+\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
 \newcommand{\data}{\mathrm{data}\;}
 \newcommand{\fun}{\mathrm{fun}\;}
 \newcommand{\codata}{\mathrm{codata}\;}
 \newcommand{\cofun}{\mathrm{cofun}\;}
+\newcommand{\norec}{\mathrm{norec}\;}
 \newcommand{\const}{\mathrm{const}\;}
 \newcommand{\mutual}{\mathrm{mutual}\;}
-\newcommand{\lam}{\lambda}
+\newcommand{\lam}[1]{\lambda\; #1 .\;}
 
-\newcommand{\Nat}{\mathbf{Nat}\;}
-\newcommand{\zero}{\mathbf{zero}\;}
-\newcommand{\suc}{\mathbf{succ}\;}
-\newcommand{\add}{\mathbf{add}\;}
+\newcommand{\inacc}[1]{\underline{#1}}
 
-\newcommand{\Bool}{\mathbf{Bool}\;}
-\newcommand{\ttt}{\mathbf{tt}\;}
-\newcommand{\fff}{\mathbf{ff}\;}
+\newcommand{\id}{\mathsf{id}\;}
+\newcommand{\Nat}{\mathsf{Nat}\;}
+\newcommand{\zero}{\mathsf{zero}\;}
+\newcommand{\suc}{\mathsf{succ}\;}
+\newcommand{\add}{\mathsf{add}\;}
 
-\newcommand{\List}{\mathbf{List}\;}
-\newcommand{\nil}{\mathbf{nil}\;}
-\newcommand{\cons}{\mathbf{cons}\;}
+\newcommand{\Bool}{\mathsf{Bool}\;}
+\newcommand{\ttt}{\mathsf{tt}\;}
+\newcommand{\fff}{\mathsf{ff}\;}
+
+\newcommand{\List}{\mathsf{List}\;}
+\newcommand{\nil}{\mathsf{nil}\;}
+\newcommand{\cons}{\mathsf{cons}\;}
 
 
-\newcommand{\Tree}{\mathbf{Tree}\;}
-\newcommand{\leaf}{\mathbf{leaf}\;}
-\newcommand{\node}{\mathbf{node}\;}
+\newcommand{\Tree}{\mathsf{Tree}\;}
+\newcommand{\leaf}{\mathsf{leaf}\;}
+\newcommand{\node}{\mathsf{node}\;}
 
-\newcommand{\vVec}{\mathbf{Vec}\;}
-\newcommand{\vnil}{\mathbf{vnil}\;}
-\newcommand{\vcons}{\mathbf{vcons}\;}
-\newcommand{\head}{\mathbf{head}\;}
+\newcommand{\vVec}{\mathsf{Vec}\;}
+\newcommand{\head}{\mathsf{head}\;}
+\newcommand{\rev}{\mathsf{rev}\;}
+\newcommand{\reva}{\mathsf{rev1}\;}
+\newcommand{\revb}{\mathsf{rev2}\;}
 
-\newcommand{\Eq}{\mathbf{Eq}\;}
-\newcommand{\refl}{\mathbf{refl}\;}
+\newcommand{\Eq}{\mathsf{Eq}\;}
+\newcommand{\refl}{\mathsf{refl}\;}
 
-\newcommand{\prof}{\mathbf{proof}\;}
-\newcommand{\tprof}{\mathbf{proof2}\;}
-\newcommand{\eqsucc}{\mathbf{eqsucc}\;}
+\newcommand{\prof}{\mathsf{proof}\;}
+\newcommand{\tprof}{\mathsf{proof2}\;}
+\newcommand{\eqsucc}{\mathsf{eqsucc}\;}
 
-\newcommand{\Bad}{\mathbf{Bad}\;}
-\newcommand{\bad}{\mathbf{bad}\;}
-\newcommand{\ok}{\mathbf{ok}\;}
+\newcommand{\Bad}{\mathsf{Bad}\;}
+\newcommand{\bad}{\mathsf{bad}\;}
+\newcommand{\ok}{\mathsf{ok}\;}
 
-\newcommand{\Ord}{\mathbf{Ord}\;}
-\newcommand{\ozero}{\mathbf{ozero}\;}
-\newcommand{\olim}{\mathbf{olim}\;}
-\newcommand{\addOrd}{\mathbf{addOrd}\;}
+\newcommand{\Ord}{\mathsf{Ord}\;}
+\newcommand{\ozero}{\mathsf{ozero}\;}
+\newcommand{\olim}{\mathsf{olim}\;}
+\newcommand{\addOrd}{\mathsf{addOrd}\;}
 
-\newcommand{\Stream}{\mathbf{Stream}\;}
+\newcommand{\Stream}{\mathsf{Stream}\;}
+\newcommand{\tail}{\mathsf{tail}\;}
+\newcommand{\nth}{\mathsf{nth}\;}
 
-\newcommand{\ones}{\mathbf{ones}\;}
-\newcommand{\unp}{\mathbf{unp}\;}
-\newcommand{\zipWith}{\mathbf{zipWith}\;}
-\newcommand{\fib}{\mathbf{fib}\;}
+\newcommand{\ones}{\mathsf{ones}\;}
+\newcommand{\unp}{\mathsf{unp}\;}
+\newcommand{\zipWith}{\mathsf{zipWith}\;}
+\newcommand{\fib}{\mathsf{fib}\;}
+\newcommand{\fibf}{\mathsf{fib4}\;}
 
-\newcommand{\Empty}{\mathbf{Empty}\;}
-\newcommand{\BadNat}{\mathbf{BadNat}\;}
-\newcommand{\foo}{\mathbf{foo}\;}
+\newcommand{\Empty}{\mathsf{Empty}\;}
+\newcommand{\BadNat}{\mathsf{BadNat}\;}
+\newcommand{\foo}{\mathsf{foo}\;}
 
 
 \newcommand{\ra}{\rightarrow}
 
-\newcommand{\spc}{~~~}
-\renewcommand{\labelitemi}{$\star$}
-
+\newcommand{\spc}{\hspace*{3mm}}
+\newcommand{\spcx}{\hspace*{10mm}}
+\newcommand{\vs}{\vspace{2mm}}
 \newtheorem{definition}{Definition}
 
 \begin{document}

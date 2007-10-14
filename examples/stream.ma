@@ -74,29 +74,12 @@ const fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
 
 const four : Nat = head Nat # fours
 
-mutual{
 
-cofun fibs : (i : Size ) -> Stream Nat i  
+cofun fibs : ( i : Size ) -> Stream Nat i
 {
-fibs ($ i) = cons Nat i zero (fibs' i) 
-} 
-
-cofun fibs' : (i : Size ) -> Stream Nat i
-{
-fibs' ($ i) = cons Nat i one (zipWith Nat Nat Nat i add (fibs' i) (fibs ($ i)))
+fibs ($ $ i) = cons Nat ($ i) zero (cons Nat i one (zipWith Nat Nat Nat i add (fibs2' i) (tail Nat i (fibs2' ($ i)))))
 }
-
-}
-
-cofun fibs2' : ( i : Size ) -> Stream Nat i
-{
-fibs2' ($ $ i) = cons Nat ($ i) zero (cons Nat i one (zipWith Nat Nat Nat i add (fibs2' i) (tail Nat i (fibs2' ($ i)))))
---fibs2' ($ i) = cons Nat i one (zipWith Nat Nat Nat i add (fibs2' i) (cons Nat i zero (fibs2' i))) 
-}
-
-
-eval const fib8 : Nat = nth (add four four)  (fibs #)
-eval const fib8' : Nat = nth (add four four) (fibs2' #) 
+eval const fib8 : Nat = nth (add four four) (fibs2 #) 
 
 cofun nats : (i : Size ) -> Nat -> Stream Nat i
 {

@@ -34,7 +34,7 @@ typeCheckDeclaration (DataDecl n co tel t cs) =
        checkTargetSet t
        v <- vclos [] dt
        b <- szType params v
-       put (addSig sig n (DataSig params Sized co v))
+       put (addSig sig n (DataSig params NotSized co v))
        bl <- mapM (typeCheckConstructor n tel t) cs
        case (b && and bl) of
          True -> trace (n ++ " is a sized type ") $ do
@@ -536,8 +536,8 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                               ,rho
                               ,gamma
                               ,vb)
-          _ -> error $ "checkpattern " ++ show p ++ " @ " ++ show v
-    _ -> error $ "checkpattern " ++ show p ++ " @ " ++ show v
+          _ -> throwErrorMsg $ "checkpattern " ++ show p 
+    _ -> throwErrorMsg $ "checkpattern " ++ show p 
   ) `throwTrace` ("pattern " ++ show p)
 
 

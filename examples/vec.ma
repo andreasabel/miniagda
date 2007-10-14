@@ -10,49 +10,58 @@ add zero y = y;
 add (succ x) y = succ (add x y) 
 }
 
-data List : Nat -> Set
+data Vec (A : Set ) : Nat -> Set
 {
-	nil2 : List zero
-}
-
-data Vec : Nat -> Set
-{
-	nil : Vec zero;
-	cons : (y : Nat ) -> Nat -> Vec y -> Vec (succ y)
+	nil : Vec A zero;
+	cons : (n : Nat) -> A -> Vec A n -> Vec A (succ n)
 }
 
 
-fun head : (n : Nat ) -> Vec (succ n) -> Nat 
+fun head : (A : Set ) -> (n : Nat ) -> Vec A (succ n) -> A 
 {
-head .m (cons m x xl) = x
+head .A .m (cons A m x xl) = x
 }
 
-fun tail : (n : Nat) -> Vec (succ n) -> Vec n
+fun tail : ( A: Set ) -> (n : Nat) -> Vec A (succ n) -> Vec A n
 {
-tail .m (cons m x xl) = xl
+tail .A .m (cons A m x xl) = xl
 }
 
-fun zeroes : ( n : Nat ) -> Vec n
+fun zeroes : ( n : Nat ) -> Vec Nat n
 {
 
-zeroes zero = nil ;
-zeroes (succ x) = cons x zero (zeroes x)
+zeroes zero = nil Nat ;
+zeroes (succ x) = cons Nat x zero (zeroes x)
 }
 
-fun append : ( n : Nat ) -> ( m : Nat) -> Vec n -> Vec m -> Vec (add n m)
+fun append : (A : Set ) -> ( n : Nat ) -> ( m : Nat) -> Vec  A n -> Vec A m -> Vec A (add n m)
 {
-append .zero m nil v = v;
-append .(succ n) m (cons n x xl) v = cons (add n m) x (append n m xl v)
+append .A .zero m (nil A) v = v;
+append .A .(succ n) m (cons A n x xl) v = cons A (add n m) x (append A n m xl v)
 }
 
-data Bool : Set
+mutual 
 {
-tt : Bool;
-ff : Bool
-}
 
-fun null : ( n : Nat ) -> Vec n -> Bool
-{
-null .zero nil = tt;
-null (succ .n) (cons n x l) = ff
+	fun rev : ( n : Nat ) -> ( A : Set ) -> Vec A n -> Vec A n
+	{
+
+	rev .zero     .A  (nil A) = nil A;
+	rev .(succ n) .A (cons A n x xs) = cons A n (rev1 n A x xs) (rev2 n A x xs)
+	}
+
+	fun rev1 : ( n : Nat ) -> ( A : Set ) -> A -> Vec A n -> A
+	{
+
+	rev1 .zero     .A a (nil A) = a ;
+	rev1 .(succ n) .A a (cons A n x xs) = rev1 n A x xs
+
+	}
+
+	fun rev2 : ( n : Nat ) -> (A : Set ) -> A -> Vec A n -> Vec A n
+	{
+	rev2 .zero .A  a (nil A) = nil A;
+	rev2 .(succ n) .A a (cons A n x xs) = rev (succ n) A (cons A n a (rev n A (rev2 n A x xs)))	
+	}
+
 }

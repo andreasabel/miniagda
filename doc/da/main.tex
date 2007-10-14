@@ -49,7 +49,7 @@ variable pattern: $x$
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
-inacessible pattern: $ \underline{e} $ 
+inacessible pattern: $ \inacc{e} $ 
 \end{itemize}
 Declarations $\delta$:
 \begin{itemize}
@@ -88,132 +88,117 @@ Without defining new data types, we still can define some useful non recursive f
 One example is the polymorphic identity function. 
 Miniagda is monomorphic, so this is not really a polymorphic function, as you have to supply the
 type as the first argument.
-$\const id : \EPi{A}{\Set}{A \ra A} = \lam a \lam x . ; x$   
+\begin{bsp}
+$\const id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$   
+\end{bsp}
 We simple add the defintion of $id$ to the signature:
-\[ \Sigma := \{ id : \EPi{A}{\Set}{A \ra A} = \lam a \lam x . ; x \} \]
+\begin{bsp}
+$\Sigma := \{ id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
+\end{bsp}
 \subsection{Booleans}
 The booleans are an example of a non-inductive enumeration type.
-$\data \Bool : \Set$ 
-\\
-$\ttt : \Bool $
-\\
-$\fff : \Bool $
+\begin{bsp}
+$\data \Bool : \Set$  \\
+$\spc \ttt : \Bool $\\
+$\spc \fff : \Bool $
+\end{bsp}
 Three new constants are added to the signature
 \[ \Sigma := \{ \Bool : \Set , \ttt : \Bool , \fff : \Bool \} \]
 \subsection{Natural Numbers}
 First we declare the type of natural numbers:
-\begin{quote}
-$\data \Nat : \Set$ 
-\\
-$\zero : \Nat $
-\\
-$\suc : \Nat \ra \Nat $
-\end{quote}
+\begin{bsp}
+$\data \Nat : \Set$ \\
+$\spc \zero : \Nat $\\
+$\spc \suc : \Nat \ra \Nat$
+\end{bsp}
 then we declare the addition function by pattern matching:
-\begin{quote}
-$\fun \add : \Nat \ra \Nat \ra \Nat$
-\\
-$\add x \; \zero = x $
-\\
-$\add x (\suc y) = \suc ( \add x \; y)  $
-\end{quote}
+\begin{bsp}
+$\fun \add : \Nat \ra \Nat \ra \Nat$\\
+$\spc \add x \; \zero = x $\\
+$\spc \add x \; (\suc y) = \suc (\add x \; y)  $
+\end{bsp}
 \subsection{Lists}
 Lists are an example of a parametrized data type:
-\begin{quote}
-$\data \List ( A : \Set ) : \Set $ 
-\\
-$\nil : \List A  $
-\\
-$\cons : A \ra \List A \ra \List A $
-\end{quote}
+\begin{bsp}
+$\data \List ( A : \Set ) : \Set $ \\
+$ \spc \nil : \List A  $\\
+$ \spc \cons : A \ra \List A \ra \List A $
+\end{bsp}
 \subsection{Binary Trees}
 The following introduces binary trees with leaf labeled with elements of $A$ and nodes labeld with elements of $B$:
-\begin{quote}
-$\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ 
-\\
-$\leaf : A \ra \Tree A \; B $
-\\
-$\node : B \ra \Tree A \; B \ra \Tree A \; B $
-\end{quote}
+\begin{bsp}
+$\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ \\
+$ \spc \leaf : A \ra \Tree A \; B $\\
+$ \spc \node : B \ra \Tree A \; B \ra \Tree A \; B $
+\end{bsp}
 The tree definition adds the following constans to the signature:
-\begin{quote}
-$\Tree  : ( A : \Set ) \ra ( B : \Set ) \ra \Set$
-\\
-$\leaf : ( A : \Set ) \ra ( B : \Set ) \ra A \ra \Tree A \; B $
-\\
-$\node : ( A : \Set ) \ra ( B : \Set ) \ra A B \ra \Tree A \; B $
-\end{quote}
+\begin{bsp}
+$\Tree  : ( A : \Set ) \ra ( B : \Set ) \ra \Set$ \\
+$ \spc \leaf : ( A : \Set ) \ra ( B : \Set ) \ra A \ra \Tree A \; B $ \\
+$ \spc \node : ( A : \Set ) \ra ( B : \Set ) \ra A B \ra \Tree A \; B $
+\end{bsp}
 \section{Vectors}
-The previous data types that didn't use any depentend product. 
-Now things get more interesting.
-Vectors are an example of an inductive family of types.
+The previous data types didn't use any dependent function space. 
+Now things get more interesting. Vectors are an example of an inductive family of types.
 They can be imagined as lists that store their length.
-\begin{quote}
-$\data \vVec ( A : \Set ) : \Nat \ra \Set $ 
-\\
-$\vnil : \vVec A \; \zero  $
-\\
-$\vcons : \EPi{n}{\Nat}{ A \ra \vVec A \; n \ra \vVec A \; (\suc n)} $
-\end{quote}
+\begin{bsp}
+$\data \vVec ( A : \Set ) : \Nat \ra \Set $ \\
+$\spc \nil : \vVec A \; \zero  $\\
+$ \spc \cons : \EPi{n}{\Nat}{ A \ra \vVec A \; n \ra \vVec A \; (\suc n)} $
+\end{bsp}
 Now let's define the $\head$ function that returns the first element of an vector. This operation should only be allowed for a non-empty vector.
 With depentend types, we can express this in the type signature
-\begin{quote}
+\begin{bsp}
 $ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
-\end{quote}
+\end{bsp}
 Now to the clause definition. We can explain the use inaccesible patterns here.
 We need to pattern match to get the head element.
-\begin{quote}
-$\head ? \; ? \; (\vcons \; B \; m \; x \; xl) = x $
-\end{quote}
+\begin{bsp}
+$\head ? \; ? \; (\cons \; B \; m \; x \; xl) = x $
+\end{bsp}
 First, let's note that we don't need to pattern match against $\nil$.
 Now what about the ? above. 
 One might be inclined to use non-linear patterns:
-\begin{quote}
-$\head \; B \; m \; (\vcons  B \; m \; x \; xl) = x $
-\end{quote}
+\begin{bsp}
+$\head \; B \; m \; (\cons  B \; m \; x \; xl) = x $
+\end{bsp}
 But we really don't have to check at runtime that the values at the corresponding arguments match -- it's guranteed for a well-typed program.
 So to really capture the notion that the first two arguments are automatically istantiated by pattern matching against the inductive family argument, we use the inacessible pattern notation. The final definiton is:
-\begin{quote}
-$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
-\\
-$\head \underline{B} \; \underline{m} \; (cons \; B \; m \; x \; xl) = x $
-\end{quote}
-
+\begin{bsp}
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $\\
+$ \spc \head \inacc{B} \; \inacc{m} \; (\cons \; B \; m \; x \; xl) = x $
+\end{bsp}
 \subsection{Equality}
 The following is called Martin-L\"of equality.
 The equality relation is defined by reflexivity.
-\begin{quote}
-$\data \Eq ( A : \Set ) : A \ra A \ra \Set $ 
-\\
-$\refl : A \ra \Eq A \; A  $
-\end{quote}
+\begin{bsp}
+$\data \Eq ( A : \Set ) : A \ra A \ra \Set $ \\
+$\spc \refl : A \ra \Eq A \; A  $
+\end{bsp}
 As a simple example, we can now prove that $ 0 + x = x $.
-
-\begin{quote}
+\begin{bsp}
 $ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x) x} $ \\ 
-$ = \lam y\; \ra \refl \Nat y$ 
-\end{quote}
+$ \spcx = \lam{y}\refl \Nat y$ 
+\end{bsp}
 Here we see that proof checking equals type checking.
 Now if we want to prove $ x + 0 = x $, we need more effort.
 The following does not pass the type checker
-\begin{quote}
+\begin{bsp}
 $ \const \prof2 : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)  x} $ \\ 
-$ \lam y\; \ra \refl \Nat y$ 
-\end{quote}
-The type checker can only see definitional equality.
+$ \spcx \lam{y} \refl \Nat y$ 
+\end{bsp}
+The reason why is that type checker can only see definitional equality.
 Note that addition was definied by recursion on the second argument. 
 What we need is a recursive proof.
-\begin{quote}
-$\fun \eqsucc : \EPi{x}{\Nat}{\EPi{y}{\Nat}{\Eq \Nat x \; y \ra \Eq \Nat (\suc x) \; (\suc y)}}$ \\
-$\eqsucc \underline{x} \; \underline{x} \; (\refl \underline{\Nat} \; x) = \refl \Nat (\suc x)$
-\\
-\\
-$\fun \tprof : ( x : \Nat ) \ra \Eq \Nat (\add \zero x) x$
-\\
-$\tprof \zero = \refl \Nat \zero$
-\\
-$\tprof (\suc x) = \eqsucc (\add \zero x)\; x \; (\tprof x)$
-\end{quote}
+
+\begin{bsp}
+$\fun \eqsucc : \EPi{x}{\Nat}\EPi{y}{\Nat} \Eq \Nat x \; y \ra \Eq \Nat (\suc x) \; (\suc y)$ \\
+$\spc \eqsucc \inacc{x} \; \inacc{x} \; (\refl \inacc{\Nat} \; x) = \refl \Nat (\suc x)$\\
+$\fun \tprof : ( x : \Nat ) \ra \Eq \Nat (\add \zero x) x$\\
+$\spc \tprof \zero = \refl \Nat \zero$\\
+$\spc \tprof (\suc x) = \eqsucc (\add \zero x)\; x \; (\tprof x)$
+\end{bsp}
+
 Recursive proofs need to be total (complete pattern matching and termination) to be correct.
 
 \section{Universes}
@@ -297,13 +282,13 @@ weak head normal form:
 \]
 
 \[\begin{array}{c}
-	  \infer{\Eval{\rho}{\EPi{x}{t}{t'}{\VPi{x}{v}{t'}{\rho}}}}
+	  \infer{\Eval{\rho}{\EPi{x}{t}{t'}{\EPi{x}{v}{t'}{\rho}}}}
           {\Eval{\rho}{t}{v}}
 \end{array}
 \]
 
 \[\begin{array}{c}
-	  \infer{\Eval{\rho}{\lam x . e}{\VLam{x}{e}{\rho}}}
+	  \infer{\Eval{\rho}{\lam x . e}{\lam{x}{e}{\rho}}}
 		{} 
 \end{array}
 \]
@@ -324,7 +309,7 @@ weak head normal form:
 \[
 \begin{array}{c}
           
-	  \infer{\App{\VLam{x}{e}{\rho}}{v \; \vec{v}}{v''}}
+	  \infer{\App{\lam{x}{e}{\rho}}{v \; \vec{v}}{v''}}
           {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
 \end{array}
 \]
@@ -332,7 +317,7 @@ weak head normal form:
 \[
 \begin{array}{c}
           
-	  \infer{\App{\VPi{x}{w}{e}{\rho}}{v \; \vec{v}}{v''}}
+	  \infer{\App{\EPi{x}{w}{e}{\rho}}{v \; \vec{v}}{v''}}
           {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
 
 \end{array}
@@ -414,7 +399,7 @@ so one needs equality between values, which is handled by the function
 
 \begin{figure}[p]
 \[\begin{array}{c}
-	  \infer{\Check{\rho_1}{\rho_2}{\lam x . e}{\VPi{y}{v}{e'}{\rho}}}
+	  \infer{\Check{\rho_1}{\rho_2}{\lam x . e}{\EPi{y}{v}{e'}{\rho}}}
           { \Eval{(x,k)\;\rho}{e}{v'} & \Check{(x,k)\;\rho_1}{(x,v)\;\rho_2}{e'}{v'}} 
 \end{array}
 \]
@@ -468,7 +453,7 @@ so one needs equality between values, which is handled by the function
 
 \[\begin{array}{c}
 	  \infer{\Infer{\rho_1}{\rho_2}{e_1 \; e_2}{v''}}
-{\Infer{\rho_1}{\rho_2}{e1}{\VPi{x}{v'}{e_3}{\rho}}
+{\Infer{\rho_1}{\rho_2}{e1}{\EPi{x}{v'}{e_3}{\rho}}
 & \Check{\rho_1}{\rho_2}{e_2}{w}
 & \Eval{\rho_1}{e_2}{v'}
 & \Eval{(x,v')\rho}{e_3}{v''}}
@@ -502,7 +487,7 @@ so one needs equality between values, which is handled by the function
 \end{array}\]
 
 \[\begin{array}{c}
-	  \infer{\EqVal{\VPi{x}{v_1}{e_1}{\rho_1}}{\VPi{y}{v_2}{e_2}{\rho_2}}}
+	  \infer{\EqVal{\EPi{x}{v_1}{e_1}{\rho_1}}{\EPi{y}{v_2}{e_2}{\rho_2}}}
           {   \EqVal{v_1}{v} 
 & \Eval{(x,k)\rho_1}{e_2}{v'_1}
 & \Eval{(x,k)\rho_2}{e_2}{v'_2}
@@ -510,7 +495,7 @@ so one needs equality between values, which is handled by the function
 \end{array}\]
 
 \[\begin{array}{c}
-	  \infer{\EqVal{\VPi{x}{v_1}{e_1}{\rho_1}}{\VPi{y}{v_2}{e_2}{\rho_2}}}
+	  \infer{\EqVal{\EPi{x}{v_1}{e_1}{\rho_1}}{\EPi{y}{v_2}{e_2}{\rho_2}}}
           {
 \Eval{(x,k)\rho_1}{e_2}{v'_1}
 & \Eval{(x,k)\rho_2}{e_2}{v'_2}
@@ -561,23 +546,19 @@ strictly positive in every constructor argument.
 Our definition requires that datatypes are positivly parametrized.
 Later this will be helpfull for subtyping.
 
-\begin{quote}
-$\data \Bad : \Set $ 
-\\
-$\ok : \Bad$
-\\
-$\bad : ((\Nat \ra \Bad) \ra \Bad) \ra \Bad  $
-\end{quote}
+\begin{bsp}
+$\data \Bad : \Set $ \\
+$\spc \ok : \Bad$\\
+$\spc \bad : ((\Nat \ra \Bad) \ra \Bad) \ra \Bad  $
+\end{bsp}
 is not allowed because of the non-positive occurence of $\Bad$ in the argument of $\bad$.
 
 
-\begin{quote}
-$\data \Bad : ( A : \Set ) : \Set $ 
-\\
-$\ok : \Bad A$
-\\
-$\bad : (A \ra \Bad) \ra \Bad A$
-\end{quote}
+\begin{bsp}
+$\data \Bad : ( A : \Set ) : \Set $\\
+$\spc \ok : \Bad A$\\
+$\spc \bad : (A \ra \Bad) \ra \Bad A$
+\end{bsp}
 is not allowed because of the negative occurence of $A$ in the argument of $\bad$.
 
 \subsubsection{Function declarations}
@@ -588,53 +569,6 @@ is not allowed because of the negative occurence of $A$ in the argument of $\bad
 Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92pattern}.
 The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
 it is guaranteed that matching always succeeds.
-
-
-\subsection{Absurd Pattern}
-There arises the need to specify that a certain case cannot happen at runtime.
-So you can use the absurd pattenr $ () $ to indicate that the type of the argument expected here is the empty type.
-This needs to be checked during type checking. Emptiness checking of types is unddeciable.
-Consider defining the $ < $ relation on natural numbers.
-
-\begin{verbatim}
-data Lt : Nat -> Nat -> Set
-{
-  ltzero : (y : Nat) -> Lt zero (succ y) ;
-  ltsucc : (x : Nat) -> (y : Nat) -> Lt x y -> Lt (succ x) (succ y)
-}
-
-\end{verbatim}
-
-As we know,no natural number is less than zero.
-Now, for some $x$, if we have a proof that $x$ is smaller smaller zero, we can proof everything (ex falso quodlibet)
-This can be formalized as:
-
-\begin{verbatim}
-fun notLt0 : (x : Nat) -> Lt x zero -> (C : Set) -> C
-{
-notLt0 x  () C 
-}
-\end{verbatim}
-So it has to be checked that the type Lt x zero is really empty.
-
-\subsection{Dot Pattern}
-Also you need to be able to tell the type checker that you know exactly the argument value for this pattern during runtime,if the application is type correct.
-In the dot pattern $ . e $ the expression $ e $ may contain variables used in the remaming patterns of the clause.
-
-For example, consider the isZero function for sized natural numbers
-
-\begin{verbatim}
-
-fun isZero : (i : Size ) -> Nat i -> Bool
-{
-
-isZero i (zero .i) = tt;
-isZero (s i) (succ .i x) = ff
-}
-\end{verbatim}
-We just know that the size index that the sized natural numbers carry around equals their size.
-
-
 
 \chapter{Termination Checking}
 
@@ -648,6 +582,8 @@ Axiom1:
 \\
 Axiom2:
 \[ f \; \vec{e} \; \leq \; f \] 
+
+Axiom 2 is needed for higher order data types like $\Ord$.
 
 \begin{definition}[Order Addition]
 \[
@@ -716,6 +652,12 @@ A function f is terminating, if every idempotent callmatrix  $ \in \mathrm{compl
 the diagonal.
 \end{definition}
 
+David Wahlstedt proofs the soundness of the size-change principle for a depently typed language 
+for first order data types (no function space in constructor arguments, so Axiom 2 is not needed ).
+Andreas Abel has shown the soundness of the structual order defined by Axiom 1 and 2 for the simple typed
+language foetus.
+Note that the order from Axiom 1 and 2 is actually not valid in impredicative systems.
+
 \begin{figure}[p]
 \[
 \mathrm{add}\begin{pmatrix}
@@ -743,7 +685,6 @@ the diagonal.
 
 \end{figure}
 
-
 \begin{figure}[p]
 
 \[
@@ -754,6 +695,7 @@ the diagonal.
 
 \end{pmatrix} \mathrm{add'}
 \] 
+
 \caption{idempotent add' call matrix}
 
 \end{figure}
@@ -762,30 +704,23 @@ the diagonal.
 
 \subsection{Brouwer ordinals}
 The so called Brouwer ordinal notations can be defined with
-\begin{quote}
-$\data \Ord : \Set$ 
-\\
-$\ozero : \Ord $
-\\
-$\olim : (\Nat \ra \Ord ) \ra \Ord $
-\end{quote}
-This is an example of a higher-order data type, because one argument contains a function space.
+\begin{bsp}
+$\data \Ord : \Set$ \\
+$\sp \ozero : \Ord $\\
+$\sp \olim : (\Nat \ra \Ord ) \ra \Ord $
+\end{bsp}
+This is an example of a higher-order data type, because the argument to $\olim$ contains a function space.
 Now let's define ordinal addition:
-\begin{quote}
-$\fun \addOrd : \Ord \ra \Ord \ra \Ord$
-\\
-$\addOrd x \; \ozero = x $
-\\
-$\addOrd x (\olim f) = \olim ( \lam y \ra \addOrd  x \; (f y))  $
-\end{quote}
+\begin{bsp}
+$\fun \addOrd : \Ord \ra \Ord \ra \Ord$\\
+$\spc \addOrd x \; \ozero = x $\\
+$\spc \addOrd x (\olim f) = \olim ( \lam{y} \addOrd  x \; (f \; y))  $
+\end{bsp}
 Axiom 2 is needed to show that the recursive call happens on a smaller argument.
 \section{Extending the Order}
-
 Definition of pair data type.
-
 But now, the uncurried versions do no longer termination check.
 The reason is that we need to keep the information.
-
 \begin{definition}[MOrder]
 \[ MO := \{ < , \leq , ? , MO^{r,n}\} \]
 \end{definition}
@@ -826,10 +761,51 @@ is also finite because matrices are only getting smaller or a collapsed to a sin
 \section{Examples}
 
 
-\subsection{Huet list rev}
-fails the current termination checker
-\subsection{natural number division}
-fails the current termination checker
+\subsection{Huet list reversion}
+First, we present a peculiar list reversion algorithm.
+
+The algorithm cannot be verified terminating.
+Note that the recursive calls don't happen directly on subcomponents of the argument.
+but are passed through another function.
+We would need the information that revb does not increase the size of the list to ensure termination.
+We can fix this by using vectors instead of lists:
+
+Now the termination checker can verify the termination.
+So we note that better type information helps the termination checker.
+But using vectors instead of lists is not always easily possible.
+Consider a filter function on Lists. We only know that this function does not increase the size, but
+we don't know the exact length.
+This is one of the reasons we will introduce a special size type in the next chapter.
+
+\begin{figure}
+$\mutual $  \\
+$ \spc \fun \rev : \EPi{A}{\Set}{\List A \ra  \List A} $ \\
+$ \spc \spc \rev .A \; (\nil A ) = \nil A$\\
+$ \spc \spc \rev .A \; (\cons A \;x  \; xs) = \cons A \; (\reva A \; x \; xs) (\revb A \; x \; xs)$\\
+$\ \spc \fun \reva : \EPi{A }{\Set}{A  \ra \List A \ra A}$\\
+$ \spc \spc \reva .A \; a \; (\nil A ) = a$ \\
+$\spc \spc \reva .A \; a (\cons A \; x \; xs) = \reva A \; x \; xs$\\
+$\spc \fun \revb : \EPi{A}{\Set}{ A \ra \List A \ra \List A} $\\
+$\spc \spc \revb .A \; a \; (\nil A ) = \nil A $\\
+$\spc \spc \revb .A \; a (\cons A\;  x \; xs) = \rev A (\cons A \; a \; (\rev A \; (\revb A \; x \; xs)))$
+
+\caption{reversion on Lists}  
+\end{figure}
+\begin{figure} 
+$\mutual $ \\
+$\spc \fun \rev : \EPi{n}{\Nat }{\EPi{A}{\Set }{\vVec A \; n \ra \vVec A \; n}}$\\
+$\spc \spc \rev .zero \; .A  \; (\nil A) = \nil A $\\
+$\spc \spc \rev .(\suc n) .\; A (\cons A \; n \; x \; xs) = $\\
+$\spcx \cons A \; n \; (\reva n \; A \; x \; xs) (\revb n \; A \; x \; xs) $ \\
+$\spc \fun \reva : \EPi{n}{\Nat}\EPi{A}{\Set}{A \ra Vec A \; n \ra A}$\\
+$\spc \spc \reva .zero  \; .A \; a \; (\nil A) = a $\\
+$\spc \spc \reva .(\suc n) .A \; a \; (\cons A \; n \; x \; xs) = \reva n \; A \; x \; xs $\\
+$\spc \fun \revb : \EPi{n}{\Nat}{\EPi{A}{\Set}{A \ra \vVec A \; n \ra \vVec A \; n}}$\\
+$ \spc \spc \revb .zero \; .A  \; a \; (\nil A) = \nil A $\\
+$ \spc \spc \revb .(\suc n) \; .A \; a (\cons A \; n \; x \; xs) = $\\
+$ \spcx \rev (\suc n) A (\cons A \; n \; a (\rev n \; A \; x \; xs))$
+\caption{reversion on vectors}  
+\end{figure}  
 
 \chapter{Adding a Size Type}
 Traditionally, size annotation have been used in the typing rules.
@@ -838,6 +814,7 @@ Wie add a primitive size type, and then use the current termination checker to s
 decreasing.
 \section{Syntax}
 
+Expressions:
 \begin{itemize}
 \item
 size type: $ \Size $ 
@@ -845,14 +822,14 @@ size type: $ \Size $
 size succesor: $\s e $ 
 \item
 infinity: $\infty$ 
-\item
 \end{itemize}
-
+Patterns:
 \begin{itemize}
 \item
 size succesor pattern:$ \s p $ 
 \end{itemize}
-
+Note that we also have variables of type $\Size$.
+As such, expressions of type size form the stage expression of Barthe et. al :  $ i , \s i $ and $ \infty $ .
 \section{Sized types definition}
 We now declare what a sized type is.
 \begin{definition}
@@ -867,28 +844,20 @@ the result type is $D \dots (\s i) \dots $
 every rec. argument is of the form $ D \dots i \dots $
 \end{itemize}
 \end{definition}
-
 \section{Matching against infinity}
 The equation 
-
-\[ s \infty = \infty \]
-
+$[ s \infty = \infty $
 needs to be taken into account when evaluating a function application.
 So whhen the pattern $ s \; x $ is matches against $ \infty $ , $x$ will be bound to $ \infty $  
-
 \section{Interpretation of the Size type}
 One may see the size type as a coniductive data type - the dual to natural numbers, the conatural numbers.
-
-
 \section{Examples}
 \subsection{Sized Lists}
-\begin{quote}
-$\data \List ( A : \Set ) : \Size \ra \Set $ 
-\\
-$\nil : \EPi{i}{\Size}{ \List A \; (\s i)} $
-\\
-$\cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
-\end{quote}
+\begin{bsp}
+$\data \List ( A : \Set ) : \Size \ra \Set $ \\
+$\spc \nil : \EPi{i}{\Size}{ \List A \; (\s i)} $\\
+$\spc \cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
+\end{bsp}
 
 What is the differnce between vectors and sized lists ?
 The size index is only used for relativ comparisons, its not an exact number, but an upper bound.
@@ -896,13 +865,11 @@ This enables subtyping, and one can compromise by forgetting the exact size ($\i
 For example, splitting a vector of length n, we need to show that there exist j,k such that $j+k = n$.
 With sized type, we don't need to be that exact.
 \subsection{Sized natural numbers}
-\begin{quote}
-$\data \Nat : \Size \ra \Set $ 
-\\
-$\zero : \EPi{i}{\Size}{ \Nat \; (\s i)} $
-\\
-$\succ : \EPi{i}{\Size}{ \Nat \; i \ra Nat \; (\s i)} $
-\end{quote}
+\begin{bsp}
+$\data \Nat : \Size \ra \Set $ \\
+$\zero : \EPi{i}{\Size}{ \Nat \; (\s i)} $\\
+$\suc : \EPi{i}{\Size}{ \Nat \; i \ra \Nat \; (\s i)} $
+\end{bsp}
 
 \subsection{Great common divisor}
 
@@ -912,45 +879,40 @@ $\succ : \EPi{i}{\Size}{ \Nat \; i \ra Nat \; (\s i)} $
 Note that sized types are quite powerful. 
 We can show the termination of ordinal addition with a decreasing size argument.
 First, sized Brouwer Ordinals:
-\begin{quote}
-$\data \Ord : \Set$ 
-\\
-$\ozero : \Ord $
-\\
-$\olim : (\Nat \ra \Ord ) \ra \Ord $
-\end{quote}
-\begin{quote}
-$\fun \addOrd : \Ord \infty \ra \EPi{i}{Size}{\Ord i \ra \Ord \infty }$
-\\
-$\addOrd x \underline{\s i}\; (\ozero i) = \ozero i $
-\\
-$\addOrd x \underline{\s i}\; (\olim f)  = \olim \infty ( \lam y \ra \addOrd  x \; i \; (f y))  $
-\end{quote}
+\begin{bsp}
+$\data \Ord : \Set$ \\
+$\spc \ozero : \Ord $\\
+$\spc \olim : (\Nat \ra \Ord ) \ra \Ord $
+\end{bsp}
+Now we don't kneed Axiom 2 of the structual ordering to see that addition is terminating:
+\begin{bsp}
+$\fun \addOrd : \Ord \infty \ra \EPi{i}{\Size}{\Ord i \ra \Ord \infty }$\\
+$\spc \addOrd x \inacc{\s i}\; (\ozero i) = \ozero i $\\
+$\spc \addOrd x \inacc{\s i}\; (\olim f)  = \olim \infty ( \lam{y} \addOrd  x \; i \; (f \; y))  $
+\end{bsp}
 
 \section{Admissibility}
 \subsection{Motivation}
 The use of sizes needs to be constraint.
 Consider for example the function definition
 
-\begin{quote}
-$\fun \bad : \EPi{i}{Size}{\Nat}$
-\\
-$\bad (\s i) = bad i $ 
-\end{quote}
+\begin{bsp}
+$\fun \bad : \EPi{i}{\Size}{\Nat}$\\
+$\spc \bad (\s i) = bad i $ 
+\end{bsp}
 The termination checker will hapilly tell you that $\bad$ is terminating.
 The issue here is that the size argument is not really bound to any sized data type.
 But there are more subtile difficulties with using the size type.
 See the example in the appendix, due to A. Abel,
 the type of the function shift
-\begin{quote}
-$ \EPi{i}{Size}{\Nat i \ra Maybe (\Nat (s i)) \ra (Nat \ra Maybe (Nat i))} $ 
-\end{quote}
+\begin{bsp}
+$\EPi{i}{Size}{\Nat i \ra Maybe (\Nat (s i)) \ra (Nat \ra Maybe (Nat i))} $ 
+\end{bsp}
 needs to be rejected by an admissibility checker.
 Otherwise, a non terminating term can be constructed.
 \subsection{Admissibility criterion}
-
 Gimenez and Barthe deal with monotonicity criterions.
-Abel and Pareto have worked on continuous criterions.
+Abel and Pareto have worked on criterions based on continuity.
 \begin{definition}
 A Type $A$ is \emph{inductive in i} if it is of the form $ \DD \vec{p} \; i \: \vec{v} $ and $\DD$ is a sized inductive type
 \end{definition}
@@ -977,30 +939,24 @@ the result $R$ is monotone in $i$
 \subsection{Examples}
 We first give an example to show why we limit the form of what a sized type is.
 Had we definied the sized natural numbers this way:
-\begin{quote}
-$\data \BadNat ( A : \Set ) : \Size \ra \Set $ 
-\\
-$\zero : \EPi{i}{\Size}{ \BadNat A \; i} $
-\\
-$\suc : \EPi{i}{\Size}{\BadNat i \ra \BadNat \; (\s i)} $
-\end{quote}
-If the systemn accepted this as a sized type, then the following function would be seen terminating and admissible, while obviosuly looping on $\zero$.
-\begin{quote}
-$\fun \foo : \EPi{i}{\Size}{\BadNat i \ra \Empty}$
-\\
-$\foo \underline{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$
-\\
-$\foo \underline{(\s i)}\; (\suc i l) = \foo i \; l$
-\end{quote}
+\begin{bsp}
+$\data \BadNat ( A : \Set ) : \Size \ra \Set $ \\
+$\spc \zero : \EPi{i}{\Size}{ \BadNat A \; i} $\\
+$\spc \suc : \EPi{i}{\Size}{\BadNat i \ra \BadNat \; (\s i)} $
+\end{bsp}
+If the systemn accepted this as a sized type, then the following function would be seen terminating and admissible, while obviously looping on $\zero$.
+\begin{bsp}
+$\fun \foo : \EPi{i}{\Size}{\BadNat i \ra \Empty}$\\
+$\spc \foo \inacc{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$\\
+$\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i \; x$
+\end{bsp}
 In our system, the $\BadNat$ type above is not a sized type, so the function $\foo$ is not admissible because $\BadNat i$ is not inductive in $i$.\\
 For the same reason, the following function definition is also not admissible:
-\begin{quote}
-$\fun \foo : \EPi{i}{\Size}{\Nat (\s i) \ra \Empty}$
-\\
-$\foo \underline{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$
-\\
-$\foo \underline{(\s i)}\; (\suc i l) = \foo i \; l$
-\end{quote}
+\begin{bsp}
+$\fun \foo : \EPi{i}{\Size}{\Nat (\s i) \ra \Empty}$\\
+$\spc \foo \inacc{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$\\
+$\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i x; l$
+\end{bsp}
 While $\Nat$ is a sized type, $\Nat (\s i)$ is not inductive in $i$.
 \section{Subtyping for size}
 It would be quite nice to have subtyping on sized data types.
@@ -1085,78 +1041,88 @@ Force is used in specific places.
 
 \subsection{Streams}
 Now we introduce streams of natural numbers.
-\begin{quote}
-$\codata Stream : \Set $ 
-\\
-$\cons : \Nat \ra \Stream \ra \Stream $
-\end{quote}
+\begin{bsp}
+$\codata Stream : \Set $ \\
+$\spc \cons : \Nat \ra \Stream \ra \Stream $
+\end{bsp}
 Note that because $\Stream$ has only one constructor, there are no finite $\Stream$ objects.
 A stream of zeroes can be generated by:
-\begin{quote}
-$\cofun \ones: \Stream $ 
-\\
-$\ones = : \cons \zero \ones$
-\end{quote}
+\begin{bsp}
+$\cofun \ones: \Stream $ \\
+$\spc \ones = : \cons \zero \ones$
+\end{bsp}
 
 An example of an unproductive stream is $\unp$:
-\begin{quote}
-$\cofun \unp : \Stream $ 
-\\
-$\unp = : \unp$
-\end{quote}
+\begin{bsp}
+$\cofun \unp : \Stream $ \\
+$\spc \unp = : \unp$
+\end{bsp}
 We can look at any element of $\ones$ .
-But looking at a element $ unp $ is not defined. 
+But looking at a element $\unp$ is not defined. 
 A syntactic criterion for productivity of coinductive definitions is the guardness condition:
 Every (co)recursive call must be guarded by a constructor.
 In the above example , the call to $\ones$ is guarded by $\cons$
 But we want to use sized types for productivity checking.
 \subsection{Sized Streams}
-
 Let us now explain how sized types , in comnbination with the current terminatin criterion, can be used for showing productivity.
 First we introduce the sized coinductive type 
-\begin{quote}
-$\codata \Stream : \Size \ra \Set $ 
-\\
-$\cons : \EPi{i}{\Size}{\Nat \ra \Stream i \; \ra \Stream (\s i) } $
-\end{quote}
+\begin{bsp}
+$\codata \Stream : \Size \ra \Set $ \\
+$\spc \cons : \EPi{i}{\Size}{\Nat \ra \Stream i \; \ra \Stream (\s i) } $
+\end{bsp}
 For the productive stream $\ones$, we turn it into
-\begin{quote}
-$\cofun \ones: \EPi{i}{Size}{\Stream i} $ 
-\\
-$\ones (\s i) = : \cons i \zero (\ones i)$
-\\
-\\
-$\const \ones' \Stream \infty = \ones \infty $
-\end{quote}
+\begin{bsp}
+$\cofun \ones: \EPi{i}{Size}{\Stream i} $ \\
+$\spc \ones (\s i) = \cons i \zero (\ones i)$\\
+$\spc \const \ones \Stream \infty = \ones \infty $
+\end{bsp}
 The termination checker sees that the recursive call happens on a smaller size.
 For the unproductive stream, we have two bad choices:
 The first one
-\begin{quote}
-$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ 
-\\
-$\unp i = : \unp i$
-\end{quote}
+\begin{bsp}
+$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ \\
+$\spc \unp i =  \unp i$
+\end{bsp}
 is type correct, but the call is not on a smaller size.
 The second option is
-\begin{quote}
-$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ 
-\\
-$\unp (\s i) = : \unp i$
-\end{quote}
-is accepted by the termination checker, but thankfully not type correct.
-
+\begin{bsp}
+$\cofun \unp : \EPi{i}{\Size}{\Stream i}$ \\
+$\spc \unp (\s i) = \unp i $
+\end{bsp}
+is accepted by the termination checker, but thankfully is not type correct.
 \subsection{Fibonacci stream}
-First, we introduce the helper function $\zipWith$:
-\begin{quote}
-$\cofun \zipWith : (\Nat \ra \Nat ) \ra \EPi{i}{\Size}{\Stream i \ra \Stream i \ra \Stream i}$ 
-\\
-$\zipWith f \underline{\s i} (\cons i a as) (\cons i b bs) =  \cons i (f a b) (\zipWith f i as bs)$
-\end{quote}
 
+Helper functions head, tail:
+\begin{bsp}
+$\norec \tail : \EPi{i}{\Size}\Stream (\s i) \ra \Stream i$\\
+$\spc \tail \; .i \; (\cons A \; i \; n \; ns) = ns$\\
+$\norec \head : \EPi{i}{\Size}\Stream (\s i) \ra \Nat$\\
+$\spc \head \; .i \; (\cons A \; i \; n \; ns) = n$
+\end{bsp}
+Note that these a $\norec$ functions because they are not recursive. Besides, their type would not be admissble as a $\fun$.
+We can now define looking up the nth element of a Stream.
+\begin{bsp}
+$\fun nth : \Nat -> \Stream \infty -> \Nat$\\
+$\nth \zero ns = \head \infty ns$\\
+$\nth (\suc n) \; ns = nth n (\tail \infty ns)$\\
+\end{bsp}
+Then, we introduce the helper function $\zipWith$:
+\begin{bsp}
+$\cofun \zipWith : (\Nat \ra \Nat ) \ra \EPi{i}{\Size}{\Stream i \ra \Stream i \ra \Stream i}$ \\
+$\spc \zipWith f \; (\s i) \; as bs = \cons i \; (f \; a \; b) (\zipWith f \; i \; (\tail i \; as) (\tail i \; bs)$
+\end{bsp}
+Finally we can define the stream of all fibonacci streams:
+\begin{bsp}
+$\cofun \fib : \EPi{i}{\Size}\Stream i$\\
+$\spc \fib (\s \s i) = \cons (\s i) \; \zero (\cons i \; (\suc \zero)$\\
+$\spcx (\zipWith \add \; i \; (\fib i) \; (\tail i (\fib (\s i)))))$
+\end{bsp}
+and get the fourth fibonacci number by:
+\begin{bsp}
+$\const \fibf : \Nat = \nth (\suc (\suc (\suc (\suc \zero )))) \; (\fib \infty)$
+\end{bsp}
 \subsection{Stream processors}
-
 \subsection{Colists and conatural numbers}
-
 \section{Admissibility}
 We now have to define when a $\cofun$ declaration is admissible.
 \begin{definition}
@@ -1171,9 +1137,7 @@ the result $R$ is coinductive in $i$
 \end{definition}
 It follows from the definition that one can only use on size argument, because it has to be coinductive in the result type.
 \chapter{Implementation}
-
 MiniAgda was implemented in the function language Haskell \cite{haskell}.
-
 \section{Overview}
 \begin{itemize}
 \item
@@ -1190,13 +1154,86 @@ Main.hs : the main module
 \text{example} dir: example input files
 \end{itemize}
 
+\section{Usage}
+
+\begin{itemize}
+\item
+lists of constructors and clauses are grouped with brackets \texttt{\{},\texttt{\}} and separated with semicolon \texttt{;}
+\item
+$\EPi{x}{A}{B}$ is written \texttt{(x : A) -> B }
+\item
+$A \ra B$ is written \texttt{A -> B}
+\item
+$ \lam{x}e$ is written \texttt{\\ x -> e }
+\item
+$ \inacc{e}$ is written \texttt {.e} 
+\item
+$ \infty$ is written \texttt{\#} 
+\item
+$\s$ is written \texttt{\$}
+\end{itemize}
+\texttt{const} can be replaced with {\texttt {eval const}}. Then the value will be evaluated after type checking is done.
+As an example showing all syntactial features, here is the fibonacci stream example (\texttt{examples/fib.ma}) in ASCII format:
+\begin{verbatim}
+data Nat : Set {
+  zero : Nat;
+  succ : Nat -> Nat 
+}
+
+fun add : Nat -> Nat -> Nat {
+  add zero = \y -> y;
+  add (succ x) = \y -> succ (add x y)
+}
+
+codata Stream : Size -> Set {
+  cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
+}
+ 
+norec tail : (i : Size) -> Stream ($ i) -> Stream i {
+  tail .i (cons i n ns) = ns
+}
+
+norec head : (i : Size) -> Stream ($ i) -> Nat {
+  head .i (cons i n ns) = n
+}
+
+cofun zipWith :  (Nat -> Nat -> Nat ) -> ( i : Size ) 
+		-> Stream i -> Stream i -> Stream i {
+  zipWith f ($ i) as bs = 
+	cons i (f (head i as) (head i bs))  (zipWith f i (tail i as) (tail i bs)) 
+}
+
+fun nth : Nat -> Stream # -> Nat {
+  nth zero ns = head # ns;
+  nth (succ x) ns = nth x (tail # ns) 
+}
+
+cofun fibs : ( i : Size ) -> Stream i
+{
+  fibs ($ $ i) = cons ($ i) zero (cons i (succ zero)
+	 	(zipWith add i (fibs i) (tail i (fibs ($ i)))))
+}
+
+const 4 : Nat = (succ (succ (succ (succ zero))))
+-- fib(4) = 3 
+eval const fib4 : Nat = nth 4 (fibs #) 
+
+\end{verbatim}
+Running \texttt{Main examples/fib.ma} yields the console output:
+\begin{verbatim}
+./Main examples/fib.ma
+***** MiniAgda v1.0 *****
+--- scope checking ---
+--- termination checking ---
+--- type checking ---
+Stream is a sized type 
+--- evaluating constants ---
+fib4 evaluates to (succ (succ (succ zero)))
+
+\end{verbatim}
+
 \section{Parsing}
 The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
-Delimiters ( \texttt{\{} , \texttt{\}} ) and separtor ( \texttt{;}) were added so that there are no 
-conflicts.
-$ \infty $ is written \texttt{\#} 
-$ \s $ is written \texttt{\$}
-For observing computation, \texttt{const} can be replaced with {\texttt {eval const}}
 
 The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
 
