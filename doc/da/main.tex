@@ -1,4 +1,4 @@
-m\chapter{Basic MiniAgda}
+\chapter{Basic MiniAgda}
 
 \newcommand{\dd}{\mathbf{d}}
 \newcommand{\DD}{\mathbf{D}}
@@ -16,15 +16,15 @@ The current version of Agda is described by Ulf Norell in his thesis \cite{norel
 \section{Syntax}
 Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
 and $\diamond$ denote the empty list.
-Int the following, these identifiers are used:
+In the following, these identifiers are used:
 \begin{itemize}
 \item for constructors : $\cc$ 
 \item for data types : $\DD$
 \item for functions : $\ff$
-\item for definied constants : $\dd$
+\item for defined constants : $\dd$
 \item for variables : $x$
 \end{itemize}
-Now the various syntactical categories can be definied.
+Now the various syntactical categories can be defined.
 \\
 Expressions (terms and types) $e,A,B$:  
 \begin{itemize}
@@ -49,7 +49,7 @@ variable pattern: $x$
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
-inacessible pattern: $ \inacc{e} $ 
+inaccessible pattern: $ \inacc{e} $ 
 \end{itemize}
 Declarations $\delta$:
 \begin{itemize}
@@ -86,12 +86,12 @@ The best way to explain the syntax is through examples.
 \subsection{Identity function}
 Without defining new data types, we still can define some useful non recursive functions.
 One example is the polymorphic identity function. 
-Miniagda is monomorphic, so this is not really a polymorphic function, as you have to supply the
+MiniAgda is monomorphic, so this is not really a polymorphic function, as you have to supply the
 type as the first argument.
 \begin{bsp}
 $\const id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$   
 \end{bsp}
-We simple add the defintion of $id$ to the signature:
+We simple add the definition of $id$ to the signature:
 \begin{bsp}
 $\Sigma := \{ id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
 \end{bsp}
@@ -118,20 +118,20 @@ $\spc \add x \; \zero = x $\\
 $\spc \add x \; (\suc y) = \suc (\add x \; y)  $
 \end{bsp}
 \subsection{Lists}
-Lists are an example of a parametrized data type:
+Lists are an example of a parameterized data type:
 \begin{bsp}
 $\data \List ( A : \Set ) : \Set $ \\
 $ \spc \nil : \List A  $\\
 $ \spc \cons : A \ra \List A \ra \List A $
 \end{bsp}
 \subsection{Binary Trees}
-The following introduces binary trees with leaf labeled with elements of $A$ and nodes labeld with elements of $B$:
+The following introduces binary trees with leaf labeled with elements of $A$ and nodes labeled with elements of $B$:
 \begin{bsp}
 $\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ \\
 $ \spc \leaf : A \ra \Tree A \; B $\\
 $ \spc \node : B \ra \Tree A \; B \ra \Tree A \; B $
 \end{bsp}
-The tree definition adds the following constans to the signature:
+The tree definition adds the following constants to the signature:
 \begin{bsp}
 $\Tree  : ( A : \Set ) \ra ( B : \Set ) \ra \Set$ \\
 $ \spc \leaf : ( A : \Set ) \ra ( B : \Set ) \ra A \ra \Tree A \; B $ \\
@@ -147,11 +147,11 @@ $\spc \nil : \vVec A \; \zero  $\\
 $ \spc \cons : \EPi{n}{\Nat}{ A \ra \vVec A \; n \ra \vVec A \; (\suc n)} $
 \end{bsp}
 Now let's define the $\head$ function that returns the first element of an vector. This operation should only be allowed for a non-empty vector.
-With depentend types, we can express this in the type signature
+With dependent types, we can express this in the type signature
 \begin{bsp}
 $ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
 \end{bsp}
-Now to the clause definition. We can explain the use inaccesible patterns here.
+Now to the clause definition. We can explain the use inaccessible patterns here.
 We need to pattern match to get the head element.
 \begin{bsp}
 $\head ? \; ? \; (\cons \; B \; m \; x \; xl) = x $
@@ -162,8 +162,8 @@ One might be inclined to use non-linear patterns:
 \begin{bsp}
 $\head \; B \; m \; (\cons  B \; m \; x \; xl) = x $
 \end{bsp}
-But we really don't have to check at runtime that the values at the corresponding arguments match -- it's guranteed for a well-typed program.
-So to really capture the notion that the first two arguments are automatically istantiated by pattern matching against the inductive family argument, we use the inacessible pattern notation. The final definiton is:
+But we really don't have to check at runtime that the values at the corresponding arguments match -- it's guaranteed for a well-typed program.
+So to really capture the notion that the first two arguments are automatically instantiated by pattern matching against the inductive family argument, we use the inaccessible pattern notation. The final definition is:
 \begin{bsp}
 $ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $\\
 $ \spc \head \inacc{B} \; \inacc{m} \; (\cons \; B \; m \; x \; xl) = x $
@@ -188,7 +188,7 @@ $ \const \prof2 : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)  x} $ \\
 $ \spcx \lam{y} \refl \Nat y$ 
 \end{bsp}
 The reason why is that type checker can only see definitional equality.
-Note that addition was definied by recursion on the second argument. 
+Note that addition was defined by recursion on the second argument. 
 What we need is a recursive proof.
 
 \begin{bsp}
@@ -204,7 +204,7 @@ Recursive proofs need to be total (complete pattern matching and termination) to
 \section{Universes}
 To keep MiniAgda simple, $\Set$ is the type of all types.
 This is known to be inconsistent.
-It is quite complicated but possible to define a recusor.
+It is quite complicated but possible to define a recursor.
 Universe stratication can be used to avoid this inconsistency.
 
 \section{Missing features}
@@ -1248,3 +1248,9 @@ After scope checking, it is guaranteed that looking up in signature or environme
 Type checking was implemented as explained above.
 \subsection{Termination Checking}
 Termination checking was implemented as explained.
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "da"
+%%% End: 

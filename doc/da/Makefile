@@ -5,3 +5,4 @@ da.pdf : da.tex intro.tex legal.tex main.tex prelim.tex concl.tex bibl.tex da.bi
 	pdflatex da
 	bibtex da
 	pdflatex da
+	pdflatex da
