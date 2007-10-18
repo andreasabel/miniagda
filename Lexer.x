@@ -36,6 +36,7 @@ Size				{ tok (\p s -> Size p) }
 \;				{ tok (\p s -> Sem p) }
 \:				{ tok (\p s -> Col p) }
 \.				{ tok (\p s -> Dot p) }
+\+				{ tok (\p s -> Plus p) }
 "->"				{ tok (\p s -> Arrow p)  }
 =				{ tok (\p s -> Eq p) }
 \\				{ tok (\p s -> Lam p) }
@@ -68,6 +69,7 @@ data Token = Id String AlexPosn
 	   | Dot AlexPosn
            | Arrow AlexPosn
            | Eq AlexPosn
+	   | Plus AlexPosn
            | Lam AlexPosn
            | NotUsed AlexPosn -- so happy doesn't generate overlap case pattern warning
              deriving (Eq)
@@ -97,6 +99,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Dot p -> (".",p)
     Arrow p -> ("->",p)
     Eq p -> ("=",p)
+    Plus p -> ("+",p)
     Lam p -> ("\\",p)
     _ -> error "not used"    
 

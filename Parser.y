@@ -35,7 +35,8 @@ succ    { T.Succ _ }
 '.'     { T.Dot _ }
 '->'    { T.Arrow _ }
 '='     { T.Eq _ }
-'\\'     { T.Lam _ }
+'+'     { T.Plus _ }
+'\\'    { T.Lam _ }
 
 %%
 
@@ -56,12 +57,14 @@ Declaration : Data { $1 }
            | Const { $1 }
 
 Data :: { A.Declaration }
-Data : data Id Telescope ':' Expr '{' Constructors '}' 
-       { A.DataDecl $2 A.Ind $3 $5 (reverse $7) }
+Data : data Id DataTelescope ':' Expr '{' Constructors '}' 
+   { let (pos,tel) = unzip $3 
+       in A.DataDecl $2 A.Ind pos tel $5 (reverse $7) }
 
 CoData :: { A.Declaration }
-CoData : codata Id Telescope ':' Expr '{' Constructors '}' 
-       { A.DataDecl $2 A.CoInd $3 $5 (reverse $7) }
+CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' 
+       { let (pos,tel) = unzip $3 
+         in A.DataDecl $2 A.CoInd pos tel $5 (reverse $7) }
 
 Fun :: { (A.TypeSig,[A.Clause]) }
 Fun : fun TypeSig '{' Clauses '}' { ($2,(reverse $4)) }
@@ -177,11 +180,16 @@ Clauses :
 TBind :: { (A.Name,A.Expr) }
 TBind :  '(' Id ':' Expr ')' { ($2,$4) }
 
+TBindSP :: { (A.Pos,(A.Name,A.Expr)) }
+TBindSP :  '(' '+' Id ':' Expr ')' { (A.SPos,($3,$5)) }
 
-Telescope :: { A.Telescope }
-Telescope : {- empty -} { [] }
-          | TBind Telescope { $1 : $2 } 
+TBindNP :: { (A.Pos,(A.Name,A.Expr)) }
+TBindNP :  '(' Id ':' Expr ')' { (A.NSPos,($2,$4)) }
 
+DataTelescope :: { [(A.Pos,(A.Name,A.Expr))] }
+DataTelescope : {- empty -} { [] }
+                | TBindSP DataTelescope { $1 : $2 } 
+                | TBindNP DataTelescope { $1 : $2 } 
 
 {
 

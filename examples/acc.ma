@@ -1,4 +1,4 @@
-data Acc (A : Set) (Lt : A -> A -> Set) : A -> Set
+data Acc ( A : Set) ( Lt : A -> A -> Set) : A -> Set
 {
   acc :  (b : A) ->
         ((a : A) -> Lt a b -> Acc A Lt a) 

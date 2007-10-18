@@ -12,8 +12,12 @@ import TermCheck2
 
 import System
 
+import System.IO (stdout, hSetBuffering, BufferMode(..))
+
+
 main :: IO ()
 main = do
+  hSetBuffering stdout NoBuffering
   putStrLn $ "***** MiniAgda v1.0 *****"
   args <- getArgs
   file <- readFile (args !! 0)
@@ -31,28 +35,25 @@ main = do
                    showAll sig ast2
   
 
---evaluate all constants
-evalAllConst :: Signature -> [Declaration] -> [(Name,Val)]
-evalAllConst sig [] = []
-evalAllConst sig (decl:xs) =
+-- all constants
+allConst :: Signature -> [Declaration] -> [(Name,Val)]
+allConst sig [] = []
+allConst sig (decl:xs) =
     case decl of
       (ConstDecl True (TypeSig n t) e) -> 
-          let ev =  runEval sig e
-          in case ev of
-               Left err -> error $ "error during evaluation: " ++ show err
-               Right (v,_) -> (n,v):(evalAllConst sig xs)
-      _ -> evalAllConst sig xs 
+          let v = VClos [] e in
+          (n,v):(allConst sig xs)
+      _ -> allConst sig xs 
 
 
 showAll :: Signature -> [Declaration] -> IO ()
-showAll sig decl = let ls = map (showConst sig) (evalAllConst sig decl) in
+showAll sig decl = let ls = map (showConst sig) (allConst sig decl) in
                   sequence_ (map putStrLn ls)
 
 showConst :: Signature -> (Name,Val) -> String
-showConst sig (n,v) = let s = prettyVal sig v in
-                          case s of
-                            Left err -> "error"
-                            Right (str,_) -> n ++ " evaluates to " ++ str
+showConst sig (n,v) = let Right (str,_) = doPrettyVal sig v 
+                      in
+                        n ++ " evaluates to " ++ str
 
 termCheckAll :: [Declaration] -> IO ()
 termCheckAll dl = do _ <- mapM terminationCheckDecl dl

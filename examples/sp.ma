@@ -32,7 +32,7 @@ head .i (cons i a as) = a
 -- continuation style
 
 -- inductive stream processor
-data ISP (K : Set) : Set
+data ISP ( + K : Set) : Set
 {
 put : Nat -> K -> ISP K; 
 get : (Nat -> ISP K) -> ISP K; 

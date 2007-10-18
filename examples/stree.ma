@@ -1,4 +1,4 @@
-data SList (A : Set ) : Size -> Set
+data SList ( + A : Set ) : Size -> Set
 {
 nil : ( i : Size ) -> SList A ($ i);
 cons : (i : Size ) -> A -> SList A i -> SList A ($ i)
@@ -10,7 +10,7 @@ mapL .($ i) .A B f (nil A i) = (nil B i);
 mapL .($ i) .A B f (cons A i x xl) = cons B i (f x) (mapL i A B f xl)
 }
 
-data Tree (A : Set) : Size -> Set 
+data Tree ( + A : Set) : Size -> Set 
 {
   leaf : (i : Size ) -> A -> Tree A ($ i);
   node : (i : Size ) -> SList (Tree A i) # -> Tree A ($ i)

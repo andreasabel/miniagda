@@ -67,13 +67,13 @@ scopeCheckDecls :: [Declaration] -> ScopeCheck [Declaration]
 scopeCheckDecls = mapM scopeCheckDeclaration
                
 scopeCheckDeclaration :: Declaration -> ScopeCheck Declaration
-scopeCheckDeclaration (DataDecl n co tel t cs) = do let tt = teleToType tel t
-                                                    (TypeSig _ tt') <- scopeCheckTypeSig DataK (TypeSig n tt)
-                                                    let (tel',t') = 
-                                                            splitTeleType (length tel) ([],tt') -- get original tele back
-                                                    let names = collectTelescopeNames tel
-                                                    cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs )
-                                                    return $ DataDecl n co tel' t' cs'
+scopeCheckDeclaration (DataDecl n co pos tel t cs) = 
+    do let tt = teleToType tel t
+       (TypeSig _ tt') <- scopeCheckTypeSig DataK (TypeSig n tt)
+       let (tel',t') = splitTeleType (length tel) ([],tt') -- get original tele back
+       let names = collectTelescopeNames tel
+       cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs )
+       return $ DataDecl n co pos tel' t' cs'
 scopeCheckDeclaration (FunDecl co funs) = do mapM (scopeCheckFunName . fst ) funs
                                              tsl' <- mapM (scopeCheckFunSig . fst ) funs  
                                              cll' <- mapM ((mapM scopeCheckClause) . snd ) funs

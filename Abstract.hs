@@ -8,6 +8,10 @@ data Co = Ind
         | NN -- not known , not used after scope checking
           deriving (Eq,Show)
 
+-- positivity 
+data Pos = SPos | NSPos  
+         deriving (Eq,Show)
+
 data Expr = Set
           -- size type
           | Size 
@@ -27,7 +31,7 @@ data Expr = Set
 instance Show Expr where
     show = prettyExpr
 
-data Declaration = DataDecl Name Co Telescope Type [Constructor]
+data Declaration = DataDecl Name Co [Pos] Telescope Type [Constructor]
                  | FunDecl Co [(TypeSig,[Clause])] -- may be mutually recursive
                  | ConstDecl Bool TypeSig Expr -- bool = if eval
                  | NoRecDecl TypeSig [Clause]

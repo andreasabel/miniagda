@@ -5,7 +5,7 @@ data Enum : Set
 	cc : Enum 
 }
 
-data SList ( A : Set ) : Size -> Set 
+data SList ( + A : Set ) : Size -> Set 
 {
 
 nil : (i : Size ) -> SList A ($ i) ;
@@ -50,7 +50,7 @@ eval const revlist : SList Enum # = rev # Enum list
 
 const EnumSList : Size -> Set = \j -> SList Enum j
 
-data Prod (A : Set) : Set 
+data Prod (+ A : Set) : Set 
 {
   prod : A -> A -> Prod A 
 }

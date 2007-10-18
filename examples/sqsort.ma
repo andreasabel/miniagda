@@ -1,10 +1,10 @@
-data List ( A : Set ) : Size -> Set 
+data List ( + A : Set ) : Size -> Set 
 {
   nil : (i : Size ) -> List A ($ i);
   cons : (i : Size ) -> A -> List A i -> List A ($ i)
 }
 
-data Prod (A : Set) : Set 
+data Prod ( + A : Set) : Set 
 {
   prod : A -> A -> Prod A 
 }

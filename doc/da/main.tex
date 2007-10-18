@@ -1,9 +1,33 @@
 \chapter{Basic MiniAgda}
 
-\newcommand{\dd}{\mathbf{d}}
-\newcommand{\DD}{\mathbf{D}}
-\newcommand{\cc}{\mathbf{c}}
-\newcommand{\ff}{\mathbf{f}}
+\newcommand{\dd}{\mathsf{d}}
+\newcommand{\DD}{\mathsf{D}}
+\newcommand{\cc}{\mathsf{c}}
+\newcommand{\ff}{\mathsf{f}}
+
+\newcommand{\cll}{\mathcal{L}}
+\newcommand{\cdd}{\mathcal{D}}
+\newcommand{\ccc}{\mathcal{C}}
+\newcommand{\cff}{\mathcal{F}}
+\newcommand{\cV}{\mathcal{V}}
+
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cI}{\mathcal{I}}
+
+\newcommand{\sz}{\mathbf{sz}}
+\newcommand{\ns}{\mathbf{nosz}}
+\newcommand{\co}{\mathbf{co}}
+\newcommand{\ind}{\mathbf{ind}}
+
+\newcommand{\Expr}{\mathrm{Expr}}
+\newcommand{\Val}{\mathrm{Val}}
+\newcommand{\Clause}{\mathrm{Clause}}
+\newcommand{\Decl}{\mathrm{Decl}}
+\newcommand{\Pat}{\mathrm{Pat}}
+\newcommand{\Env}{\mathrm{Env}}
+
+\newcommand{\Sig}{\Sigma\;}
 
 \begin{figure}[p]
 \caption{MiniAgda syntax}
@@ -13,20 +37,36 @@ Patterns: \[ x  \vsp \cc \; \vec{p} \]
 
 MiniAgda is a small experimental version of Agda.
 The current version of Agda is described by Ulf Norell in his thesis \cite{norell:thesis}.
+
+
+
 \section{Syntax}
-Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
-and $\diamond$ denote the empty list.
-In the following, these identifiers are used:
+
+First, let us denote the following sets:
 \begin{itemize}
-\item for constructors : $\cc$ 
-\item for data types : $\DD$
-\item for functions : $\ff$
-\item for defined constants : $\dd$
-\item for variables : $x$
+\item
+$ \cN $ for natural numbers
+\item
+$ \cI = \{ \ind , \co \} $ of induction kinds to distinguish wether a function or data type is 
+inductive or coinductive  
+\item
+$ \cS = \{ \sz, \ns \} $ of size kinds to distinguish wether a data type is sized or not
+\end{itemize}
+
+Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
+and $\diamond$ denote the empty list. $\#\vec{a}$ denotes the size of vector $\vec{a}$.
+
+In the following, we assume sets of identifiers:
+\begin{itemize}
+\item for constructors : $\ccc \ni \cc$ 
+\item for data types : $\cdd \ni \DD $
+\item for functions : $\cff \ni ff$
+\item for defined constants : $\cll \ni \dd$
+\item for variables : $\cV \ni x,y,i$
 \end{itemize}
 Now the various syntactical categories can be defined.
 \\
-Expressions (terms and types) $e,A,B$:  
+Expressions (terms and types) $e,A,B \in \Expr$:  
 \begin{itemize}
 \item
 abstraction: $ \lam x . e $ 
@@ -35,54 +75,121 @@ dependent function space: $\EPi{x}{A}{B}$
 \item 
 application: $ e \; \vec{e} $ 
 \item
-type of all types: $ \Set $  $ \Set $ 
-
+type of all types: $ \Set $ 
+\item
+size type: $ \Size $ 
+\item
+size succesor: $\s e $ 
+\item
+infinity: $\infty$ 
+\item
 variables: $x$
 \item
 defined constructors, data types, functions and constants:
 $ \cc \vsp \DD \vsp \ff \vsp \dd$
 \end{itemize}
-Patterns $p$:
+Patterns $p \in \Pat$:
 \begin{itemize}
 \item
 variable pattern: $x$ 
 \item
 constructor pattern:$ \cc \; \vec{p} $ 
 \item
+size succesor pattern:$ \s p $ 
+\item
 inaccessible pattern: $ \inacc{e} $ 
 \end{itemize}
-Declarations $\delta$:
+Declarations $\delta \in \Decl$:
 \begin{itemize}
 \item
-inductive datatype: 
-\[\data \; \DD \; \tau : t \; \vec{\gamma}\]  
+inductive datatype:\\ 
+$\data \; \DD \; \tau : A $\\ 
+$\spc \vec{\gamma}$  
 \item
-inductive function:
-\[\fun \; \ff \; : \; t \; \vec{\kappa}\]
+coinductive datatype:\\
+$\codata \; \DD \; \tau : A $\\
+$\spc \vec{\gamma}$  
 \item
-constant:
-\[\const \;  \dd \; : t \; = \; e \]
+inductive function:\\
+$\fun \; \ff \; : \; A$\\
+$\spc \vec{\kappa}$
 \item
-mutual declaration:
-\[\mutual \; \vec{\delta}\]
+nonrecursive function:\\
+$\norec \; \ff \; : \; A $\\ 
+$\spc \vec{\kappa}$
+\item
+coinductive function:\\
+$\cofun \; \ff \; : \; A $\\
+$\spc \vec{\kappa}$
+\item
+constant:\\
+\[\const \;  \dd \; : A \; = \; e \]
+\item
+mutual declaration:\\
+$\mutual$\\
+$\spc \vec{\delta}$
 \end{itemize}
 Constructor definition $\gamma$:
 \begin{itemize}
 \item
 $ \cc \; : \; A $ 
 \end{itemize}
-Function clause definition
+Function clause definition $\kappa \in \Clause$:
 \begin{itemize}
 \item
-\[ \kappa :=  \ff \; \vec{p} = e \]
+$\ff \; \vec{p} = e$ 
 \end{itemize}
 Telescopes:
-\[ \tau := \diamond \vsp ( x : t ) \; \tau \]
-A MiniAgda program consists of a list of declarations.
-Each declaration adds newly defined constructs to the signature $\Sigma$.
+\[ \tau := \diamond \vsp ( x : t ) \; \tau \vsp ( + \; x : t ) \; \tau \]
+
+A MiniAgda program $\vec{\delta}$ is a list of declarations.
+We assume a MiniAgda program is correctly scoped, i.e every identifier
+is only declared once and only used after declaration and variables are bound by lambda or variable patterns.
+For $\mutual$ declarations, we only allow either multiple $\fun$ or $\cofun$ declarations.
+Each declaration adds newly defined constructs to the signature $\Sig$.
 The signature is empty at the beginning.
+\subsection{Values}
+Values are the semantical interpretation of expressions.
+For the interpretation of abstraction and the depentend function space, closures are used.
+Values $ v \in \Val$:\\
+\[v := \Set \vsp \Size \vsp v \; \vec{v} \vsp \s v \vsp \infty \vsp \cc \vsp \ff \vsp \ e \; \rho \vsp k\]
+\begin{itemize}
+\item
+the closure value $e \rho $
+\item
+generic variables $k$ that are introduced during type checking.
+\item
+Application on values $ v \; \vec{v}$
+\item
+the rest of values are corresponding directly to their expression counterpart.
+\end{itemize}
+Environments: $ \rho \in \Env$ \\
+$ \rho := \diamond \vsp (x,v) \rho $
+Looking up the corresponding value for a variable in the environment is defined as usual.
+\subsection{Signature}
+
+The signature $\Sig$ provides information for the user-defined constants.
+We define it as a overloaded function:
+\begin{itemize}
+\item
+$ \Sig : \cff \ra \cI \times \Val \times \cN \times \vec{\Clause}$\\
+recording for a function symbol the rcursion kind, the type and the arity,
+and the defining clauses
+\item
+$ \Sig : \cll \ra \Expr \times \Val $ \\
+recording for a const definition the expression and its type. 
+\item
+$ \Sig : \ccc \ra \Val $
+recording for a constructor its type.
+\item
+$ \Sig : \cdd \ra \cN \times \vec{\cN} \times \cS \times \cI \times \Val $\\
+recording for a data type the number of parameters, the indices of the strictly positive arguments,
+the size and induction kinds and its type.
+\end{itemize}
+
+
+
 \section{Examples}
-The best way to explain the syntax is through examples.
 \subsection{Identity function}
 Without defining new data types, we still can define some useful non recursive functions.
 One example is the polymorphic identity function. 
@@ -93,7 +200,7 @@ $\const id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
 \end{bsp}
 We simple add the definition of $id$ to the signature:
 \begin{bsp}
-$\Sigma := \{ id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
+$\Sig := \{ id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
 \end{bsp}
 \subsection{Booleans}
 The booleans are an example of a non-inductive enumeration type.
@@ -103,7 +210,7 @@ $\spc \ttt : \Bool $\\
 $\spc \fff : \Bool $
 \end{bsp}
 Three new constants are added to the signature
-\[ \Sigma := \{ \Bool : \Set , \ttt : \Bool , \fff : \Bool \} \]
+\[ \Sig := \{ \Bool : \Set , \ttt : \Bool , \fff : \Bool \} \]
 \subsection{Natural Numbers}
 First we declare the type of natural numbers:
 \begin{bsp}
@@ -220,33 +327,27 @@ To keep MiniAgda simple, these features were not implemented.
 \newcommand\IsType[3]{#1,#2\;\vdash\;#3\uparrow\Set}
 \newcommand\EqVal[2]{\vdash\;#1\leftrightarrow#2}
 \newcommand\Eval[3]{\mathrm{eval}\;#1\;#2\leadsto#3}
-\newcommand\App[3]{\mathrm{app}\;#1,#2\leadsto#3}
+\newcommand\App[3]{\mathrm{app}#1\;#2\leadsto#3}
 \newcommand\AppFun[3]{\mathrm{appFun}\;#1,#2,\leadsto#3}
 \newcommand\Fapp[6]{\mathrm{fapp}\;#1,#2,#3,#4,#5\leadsto#6}
 \newcommand\Whnf[2]{\mathrm{whnf}\;#1\leadsto#2}
+\newcommand\Force[2]{\mathrm{force}\;#1\leadsto#2}
 \newcommand\Lookup[3]{#1(#2) = #3}
 \newcommand\LeqVal[2]{\vdash\;#1\leq#2}
-\subsection{Values}
-Values are the semantical interpretation of expressions.
-For the interpretation of abstraction and the depentend function space, closures are used.
-Values:
-\[ v := \Set \vsp \Size \vsp vs \vsp \infty \vsp v \; \vec{v} \vsp \cc \vsp \ff \vsp \ e \; \rho vsp k \]
-Environments:
-\[ \rho := \diamond \vsp (x,v) \rho \]
 
-The generic values $k$ are needed during type checking.
 \subsection{Computation during type checking}
 First of all, as types can depent on terms, it becomes necessary to perfom computation on terms during type checking.
 The mutually recursive pair of functions 
 \textbf{eval} and \textbf{app} do the job.
 eval computes the weak head normal form of a expression.
-\[ evaluation : \Eval{\rho}{e}{v}\]
-
+\[\Eval{\_}{\_}{\_} : \Env \times \Expr \ra \Val \]
 application is the equivalent of beta reduction on values
-\[ application : \App{v}{\vec{v}}{v'}\]
-
+\[\App{\_}{\_}{\_} : \Val \times \vec{Val} \ra \Val\]
 weak head normal form: 
-\[ whnf : \Whnf{v}{v'} \]
+\[\Whnf{\_}{\_} : \Val \ra \Val\]
+force
+\[\Force{\_}{\_} : \Val \ra \Val \] 
+
 \begin{figure}[p]
 
 \[\begin{array}{c}
@@ -271,7 +372,7 @@ weak head normal form:
 
 \[\begin{array}{c}
 	  \infer{\Eval{\rho}{\dd}{v}} 
-          {\Lookup{\Sigma}{\dd}{e} & \Eval{\rho}{e}{v}} 
+          {\Lookup{\Sig}{\dd}{e} & \Eval{\rho}{e}{v}} 
 \end{array}
 \]
 
@@ -378,23 +479,23 @@ For depentend types, a practice called \emph{bidirectional type checking} is use
 This means that the type checker has two modes:
 one for checking that an expression has a certain type and one for infering the type of an expression.
 These modes are again implement as functions
-\[ \mathrm{check expression} :  \Check{\rho_1}{\rho_2}{e}{v}\]
+\[ \mathrm{check expression} :  \Check{\_}{\_}{\_}{\_} \subset \Env \times \Env \times \Expr \times Val\]
 
 and
 
-\[ \mathrm{infer expression} : \Infer{\rho_1}{\rho_2}{e}{v}\]
+\[ \mathrm{infer expression} : \Infer{\_}{\_}{\_}{\_} : \Env \times \Env \times \Expr \ra \Val\]
 
 in checking mode, the type checker might have to infer the type of the expression and then check that the infered
 type is equal (convertible) against the proposed type.
 
 Also, as a special case of check expression, the judgment 
 
-\[ \mathrm{is type} : \IsType{\rho_1}{\rho_2}{e}\]
-
+\[ \IsType{\_}{\_}{\_} \subset \Env \times \Env \times \Expr\]
 which checks that an expression is a type, i.e has type $\Set$.
 
 so one needs equality between values, which is handled by the function
-\[ \mathrm{eqVal} : \EqVal{v_1}{v_2} \]
+
+\[\EqVal{\_}{\_} \subset \Val \times \Val \]
 
 
 \begin{figure}[p]
@@ -435,19 +536,19 @@ so one needs equality between values, which is handled by the function
 
 \[\begin{array}{c}
 	  \infer{\Infer{\rho_1}{\rho_2}{\ff}{v}} 
-          {\Lookup{\Sigma}{\ff}{v}}
+          {\Lookup{\Sig}{\ff}{v}}
 \end{array}
 \]
 
 \[\begin{array}{c}
 	  \infer{\Infer{\rho_1}{\rho_2}{\cc}{v}} 
-          {\Lookup{\Sigma}{\cc}{v}}
+          {\Lookup{\Sig}{\cc}{v}}
 \end{array}
 \]
 
 \[\begin{array}{c}
 	  \infer{\Infer{\rho_1}{\rho_2}{\DD}{v}} 
-          {\Lookup{\Sigma}{\dd}{v}}
+          {\Lookup{\Sig}{\dd}{v}}
 \end{array}
 \]
 
@@ -706,8 +807,8 @@ Note that the order from Axiom 1 and 2 is actually not valid in impredicative sy
 The so called Brouwer ordinal notations can be defined with
 \begin{bsp}
 $\data \Ord : \Set$ \\
-$\sp \ozero : \Ord $\\
-$\sp \olim : (\Nat \ra \Ord ) \ra \Ord $
+$\spc \ozero : \Ord $\\
+$\spc \olim : (\Nat \ra \Ord ) \ra \Ord $
 \end{bsp}
 This is an example of a higher-order data type, because the argument to $\olim$ contains a function space.
 Now let's define ordinal addition:
