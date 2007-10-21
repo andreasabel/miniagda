@@ -17,8 +17,7 @@ sposConstructor :: Name -> Int -> [Pos] -> TVal -> TypeCheck ()
 sposConstructor n k spos tv = 
     do tv <- whnf tv
        case tv of
-         VClos env (Pi x a b) -> do av <- vclos env a
-                                    av <- whnf av
+         VPi x av (VClos env b) -> do 
                                     spr <- sposRecArg 0 n av
                                     spv <- sposVars (posGen 0spos) av
                                     case (spr,spv) of
@@ -44,9 +43,8 @@ sposVar :: Int -> Int -> TVal -> TypeCheck Bool
 sposVar k i tv = -- trace ("sposVar " ++ show tv) $
     do tv <- whnf tv 
        case tv of
-         VClos env (Pi x a b) ->
-              do av <- vclos env a
-                 av <- whnf av
+         VPi x av (VClos env b) ->
+              do 
                  n <- noccVar k i av
                  case n of
                    True -> do
@@ -79,10 +77,8 @@ noccVar :: Int -> Int -> TVal -> TypeCheck Bool
 noccVar k i tv = -- trace ("noccVar " ++ show tv) $
     do tv <- whnf tv
        case tv of
-         VClos env (Pi x a b) -> 
-             do av <- vclos env a
-                av <- whnf av
-                n <- noccVar k i av
+         VPi x av (VClos env b) -> 
+             do n <- noccVar k i av
                 case n of 
                   True -> do
                       bv <- vclos (update env x (VGen k)) b
@@ -104,10 +100,8 @@ sposRecArg :: Int -> Name -> TVal -> TypeCheck Bool
 sposRecArg k n tv = -- trace ("sposRecArg " ++ show tv) $
     do tv <- whnf tv 
        case tv of
-         VClos env (Pi x a b) ->
-              do av <- vclos env a
-                 av <- whnf av
-                 no <- noccRecArg k n av
+         VPi x av (VClos env b) ->
+              do no <- noccRecArg k n av
                  case no of
                    True -> do
                         bv <- vclos (update env x (VGen k)) b
@@ -146,10 +140,8 @@ noccRecArg :: Int -> Name -> TVal -> TypeCheck Bool
 noccRecArg k n tv = -- trace ("noccRecArg " ++ show tv) $
     do tv <- whnf tv
        case tv of
-         VClos env (Pi x a b) -> 
-             do av <- vclos env a
-                av <- whnf av
-                no <- noccRecArg k n av
+         VPi x av (VClos env b) -> 
+             do no <- noccRecArg k n av
                 case no of 
                   True -> do
                       bv <- vclos (update env x (VGen k)) b

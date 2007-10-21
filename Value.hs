@@ -11,11 +11,6 @@ import Control.Monad.Error
 
 import Debug.Trace
 
-{-
-data Clos = Clos Env Expr 
-          deriving (Eq)
--}
-
 -- reader monad for local environment (not used right now)
 -- state monad for global signature
 type TypeCheck a = ReaderT Env (StateT Signature (ErrorT TraceError Identity)) a 
@@ -43,10 +38,13 @@ data Val =   VSet
            | VCon Co Name
            | VDef Name
            | VGen Int
+           | VPi Name Val Clos
+           | VLam Name Clos
            | VClos Env Expr 
              deriving (Eq)
 
-type Clos = Val 
+type Clos = Val -- VClos
+
 type TVal = Val
 
 instance Show Val where
@@ -66,6 +64,8 @@ showVal (VCon _ n) = n
 showVal (VDef n) = n
 showVal (VGen k) = show k
 showVal (VClos env e) = showEnv env ++ prettyExpr e
+showVal (VPi x av cl) = "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showVal cl ++ ")"
+showVal (VLam x cl) = "(\\" ++ x ++ " -> " ++ showVal cl ++ ")" 
 
 showEnv :: Env -> String
 showEnv [] = ""
@@ -91,7 +91,7 @@ prettyVal v = do v' <- whnf v
                                 return $ "($" ++ pv ++ ")" 
       -- don't whnf arguments of a coinductive constructor
       prettyVal' (VApp v@(VCon CoInd _) vl) = do pv <- prettyVal v
-                                                 pvl <- mapM prettyVal' vl
+                                                 pvl <- mapM prettyClos vl
                                                  let pvl' = showStrs pvl
                                                  return $ "(" ++ pv ++ " " ++ pvl' ++ ")"
       prettyVal' (VApp v vl) = do pv <- prettyVal v
@@ -101,7 +101,10 @@ prettyVal v = do v' <- whnf v
       prettyVal' (VCon _ n) = return n
       prettyVal' (VDef n) = return n
       prettyVal' (VGen k) = return $ show k
-      prettyVal' (VClos env e) = return $ showEnv env ++ prettyExpr e
+      prettyVal' (VPi x av cl) = return $ "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showVal cl ++ ")"
+      prettyVal' (VLam x cl) = return $ "(\\" ++ x ++ " -> " ++ showVal cl ++ ")"
+      
+      prettyClos (VClos env e) = return $ showEnv env ++ prettyExpr e
       
       showStrs :: [String] -> String
       showStrs [] = ""
@@ -134,7 +137,7 @@ data Sized = Sized | NotSized
 
 
 
-data SigDef = FunSig Co TVal Int [Clause] --type , co , arity , clauses
+data SigDef = FunSig Co TVal [Clause] --type , co , clauses
             | ConstSig TVal Expr -- type , expr 
             | ConSig TVal -- type   
             | DataSig Int [Pos] Sized Co TVal -- # parameters, positivity of parameters  , sized , co , type  
@@ -157,14 +160,15 @@ whnf :: Val -> TypeCheck Val
 whnf v = 
     --trace ("whnf " ++ show v) $
     case v of
-      (VClos _ (Lam _ _)) -> return v
-      (VClos _ (Pi _ _ _)) -> return v
       VClos env e ->
             case e of
+               Lam x e1 -> return $ VLam x (VClos env e1)
+               Pi x a b -> do av <- whnf (VClos env a)
+                              return $ VPi x av (VClos env b)
                Set -> return  VSet
                Infty -> return VInfty
-               Succ e -> do v <- whnf (VClos env e)
-                            vsucc v
+               Succ e1 -> do v <- whnf (VClos env e1)
+                             vsucc v
                Size -> return VSize
                Con co n -> return $ VCon co n
                App e1 e2 -> do v1 <- whnf (VClos env e1)
@@ -188,16 +192,15 @@ vsucc v = do v <- whnf v
 vclos :: Env -> Expr -> TypeCheck Val
 vclos env e = return $ VClos env e
 
-
 app :: Val -> [Clos] -> TypeCheck Val
 app u [] = return $ u
 app u v = do  
          case (u,v) of
             (VApp u2 v2,_) -> app u2 (v2 ++ v)
-            (VClos env (Lam x e),(v:vl))  -> do v' <- whnf (VClos (update env x v) e)
-                                                app v' vl
-            (VClos env (Pi x _ e),(v:vl)) -> do v' <- whnf (VClos (update env x v) e)
-                                                app v' vl
+            (VLam x (VClos env e),(v:vl))  -> do v' <- whnf (VClos (update env x v) e)
+                                                 app v' vl
+            (VPi x _ (VClos env e),(v:vl)) -> do v' <- whnf (VClos (update env x v) e)
+                                                 app v' vl
             (VDef n,_) -> appDef n v
             _ -> return $ VApp u v
 
@@ -206,18 +209,18 @@ force :: Val -> TypeCheck Val
 force v@ (VDef n) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t arity cl) | arity == 0 -> do m <- matchClauses n cl []
-                                                      case m of
-                                                        Just v' -> return v'
-                                                        _ -> return v
+         (FunSig CoInd t cl) -> do m <- matchClauses n cl []
+                                   case m of
+                                     Just v' -> return v'
+                                     _ -> return v
          _ -> return v
 force v@(VApp (VDef n) vl) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t arity cl) | arity <= (length vl) -> do m <- matchClauses n cl vl
-                                                                case m of 
-                                                                  Just v' -> return v'
-                                                                  _ -> return v
+         (FunSig CoInd t cl) -> do m <- matchClauses n cl vl
+                                   case m of 
+                                     Just v' -> return v'
+                                     _ -> return v
          _ -> return v
 force v = return v
 
@@ -226,18 +229,18 @@ canForce :: Val -> TypeCheck Bool
 canForce v@ (VDef n) =  
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t arity cl) | arity <= 0 -> do m <- matchClauses n cl []
-                                                      case m of
-                                                        Nothing -> return False
-                                                        Just v2 -> return True
+         (FunSig CoInd t cl) -> do m <- matchClauses n cl []
+                                   case m of
+                                     Nothing -> return False
+                                     Just v2 -> return True
          _ -> return False 
 canForce v@(VApp (VDef n) vl) =
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t arity cl) | arity <= (length vl) -> do m <- matchClauses n cl vl
-                                                                case m of 
-                                                                  Nothing -> return False
-                                                                  Just v2 -> return True
+         (FunSig CoInd t cl) -> do m <- matchClauses n cl vl
+                                   case m of 
+                                     Nothing -> return False
+                                     Just v2 -> return True
          _ -> return False
 canForce v = return False
 
@@ -247,10 +250,10 @@ appDef n vl = --trace ("appDef " ++ n) $
     do
       sig <- get
       case lookupSig n sig of
-        (FunSig Ind t arity cl) -> do m <- matchClauses n cl vl
-                                      case m of
-                                        Nothing -> return $ VApp (VDef n) vl
-                                        Just v2 -> return v2
+        (FunSig Ind t cl) -> do m <- matchClauses n cl vl
+                                case m of
+                                  Nothing -> return $ VApp (VDef n) vl
+                                  Just v2 -> return v2
         _ -> case vl of 
                [] -> return $ VDef n  
                _ -> return $ VApp (VDef n) vl   
