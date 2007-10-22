@@ -36,13 +36,13 @@ main = do
   
 
 -- all constants
-allConst :: Signature -> [Declaration] -> [(Name,Val)]
+allConst :: Signature -> [Declaration] -> [(Name,Clos)]
 allConst sig [] = []
 allConst sig (decl:xs) =
     case decl of
       (ConstDecl True (TypeSig n t) e) -> 
-          let v = VClos [] e in
-          (n,v):(allConst sig xs)
+          let c = VClos [] e in
+          (n,c):(allConst sig xs)
       _ -> allConst sig xs 
 
 
@@ -50,8 +50,8 @@ showAll :: Signature -> [Declaration] -> IO ()
 showAll sig decl = let ls = map (showConst sig) (allConst sig decl) in
                   sequence_ (map putStrLn ls)
 
-showConst :: Signature -> (Name,Val) -> String
-showConst sig (n,v) = let Right (str,_) = doPrettyVal sig v 
+showConst :: Signature -> (Name,Clos) -> String
+showConst sig (n,v) = let Right (str,_) = whnfClos sig v 
                       in
                         n ++ " evaluates to " ++ str
 

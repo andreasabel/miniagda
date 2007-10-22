@@ -1,5 +1,71 @@
 \chapter{Basic MiniAgda}
 
+% Inference rules
+\newcommand{\rulename}[1]{\ensuremath{\mbox{\sc#1}}}
+\newcommand{\ru}{\dfrac}
+\newcommand{\rux}[3]{\ru{#1}{#2}\ #3}
+\newcommand{\nru}[3]{#1\ \ru{#2}{#3}}
+\newcommand{\nrux}[4]{#1\ \ru{#2}{#3}\ #4}
+\newcommand{\dstack}[2]{\begin{array}[b]{c}#1\\#2\end{array}}
+\newcommand{\ndru}[4]{#1\ \ru{\dstack{#2}{#3}}{#4}}
+\newcommand{\ndrux}[5]{#1\ \ru{\dstack{#2}{#3}}{#4}\ #5}
+
+% rule names
+
+\newcommand{\infvar}{\rulename{inf-var}}
+\newcommand{\infset}{\rulename{inf-set}}
+\newcommand{\infsize}{\rulename{inf-size}}
+\newcommand{\infinfty}{\rulename{inf-infty}}
+\newcommand{\infappa}{\rulename{inf-app-i}}
+\newcommand{\infappb}{\rulename{inf-app-ii}}
+\newcommand{\infcon}{\rulename{inf-con}}
+\newcommand{\infdef}{\rulename{inf-def}}
+\newcommand{\infconst}{\rulename{inf-const}}
+
+\newcommand{\chklam}{\rulename{chk-lam}}
+\newcommand{\chkpi}{\rulename{chk-pi}}
+\newcommand{\chksucc}{\rulename{chk-succ}}
+\newcommand{\chkinf}{\rulename{chk-inf}}
+
+\newcommand{\eqnf}{\rulename{eq-nf}}
+\newcommand{\eqlf}{\rulename{eq-lf}}
+\newcommand{\eqrf}{\rulename{eq-rf}}
+
+\newcommand{\eqset}{\rulename{eq-set}}
+\newcommand{\eqsize}{\rulename{eq-size}}
+\newcommand{\eqsuc}{\rulename{eq-succ}}
+\newcommand{\eqinfty}{\rulename{eq-infty}}
+\newcommand{\eqapp}{\rulename{eq-app}}
+\newcommand{\eqgen}{\rulename{eq-gen}}
+\newcommand{\eqpi}{\rulename{eq-pi}}
+\newcommand{\eqlam}{\rulename{eq-lam}}
+\newcommand{\eqdef}{\rulename{eq-def}}
+\newcommand{\eqcon}{\rulename{eq-con}}
+
+\newcommand{\leqnf}{\rulename{leq-nf}}
+\newcommand{\leqlf}{\rulename{leq-lf}}
+\newcommand{\leqrf}{\rulename{leq-rf}}
+
+\newcommand{\leqset}{\rulename{leq-set}}
+\newcommand{\leqsize}{\rulename{leq-size}}
+\newcommand{\leqsuc}{\rulename{leq-succ}}
+\newcommand{\leqinfty}{\rulename{leq-infty}}
+\newcommand{\leqappco}{\rulename{leq-co}}
+\newcommand{\leqappind}{\rulename{leq-ind}}
+\newcommand{\leqappd}{\rulename{leq-data}}
+\newcommand{\leqapp}{\rulename{leq-app}}
+\newcommand{\leqgen}{\rulename{leq-gen}}
+\newcommand{\leqpi}{\rulename{leq-pi}}
+\newcommand{\leqlam}{\rulename{leq-lam}}
+\newcommand{\leqdef}{\rulename{leq-def}}
+\newcommand{\leqcon}{\rulename{leq-con}}
+
+\newcommand{\sleqinfty}{\rulename{sleq-infty}}
+
+\newcommand{\sleqsucci}{\rulename{sleq-succ-i}}
+\newcommand{\sleqsuccii}{\rulename{sleq-succ-ii}}
+\newcommand{\sleqgen}{\rulename{sleq-gen}}
+
 \newcommand{\dd}{\mathsf{d}}
 \newcommand{\DD}{\mathsf{D}}
 \newcommand{\cc}{\mathsf{c}}
@@ -14,6 +80,10 @@
 \newcommand{\cS}{\mathcal{S}}
 \newcommand{\cN}{\mathcal{N}}
 \newcommand{\cI}{\mathcal{I}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\nF}{\mathbf{N}}
+\newcommand{\lF}{\mathbf{L}}
+\newcommand{\rF}{\mathbf{R}}
 
 \newcommand{\sz}{\mathbf{sz}}
 \newcommand{\ns}{\mathbf{nosz}}
@@ -22,12 +92,29 @@
 
 \newcommand{\Expr}{\mathrm{Expr}}
 \newcommand{\Val}{\mathrm{Val}}
+\newcommand{\vlam}{\mathrm{Lam}}
+\newcommand{\vpi}{\mathrm{Pi}}
+\newcommand{\Clos}{\mathrm{Clos}}
+\newcommand{\Env}{\mathrm{Env}}
+\newcommand{\wh}{\mathrm{eval}}
+\newcommand{\ap}{\mathrm{app}}
+\newcommand{\apf}{\mathrm{appFun}}
+\newcommand{\sinfty}{\mathrm{sinfty}}
+\newcommand{\lkup}{\mathrm{lkup}}
+\newcommand{\ins}{\mathrm{ins}}
+\newcommand{\forc}{\mathrm{force}}
+\newcommand{\matchcls}{\mathrm{matchcls}}
+\newcommand{\matchcl}{\mathrm{matchcl}}
+\newcommand{\match}{\mathrm{match}}
+\newcommand{\matchf}{\mathrm{match'}}
+\newcommand{\matchList}{\mathrm{matchList}}
+\newcommand{\matchInfty}{\mathrm{matchInfty}}
+\newcommand{\nothing}{\;\Uparrow}
 \newcommand{\Clause}{\mathrm{Clause}}
 \newcommand{\Decl}{\mathrm{Decl}}
 \newcommand{\Pat}{\mathrm{Pat}}
-\newcommand{\Env}{\mathrm{Env}}
 
-\newcommand{\Sig}{\Sigma\;}
+\newcommand{\Sig}{\mathrm{\Sigma}}
 
 \begin{figure}[p]
 \caption{MiniAgda syntax}
@@ -41,7 +128,6 @@ The current version of Agda is described by Ulf Norell in his thesis \cite{norel
 
 
 \section{Syntax}
-
 First, let us denote the following sets:
 \begin{itemize}
 \item
@@ -148,33 +234,32 @@ is only declared once and only used after declaration and variables are bound by
 For $\mutual$ declarations, we only allow either multiple $\fun$ or $\cofun$ declarations.
 Each declaration adds newly defined constructs to the signature $\Sig$.
 The signature is empty at the beginning.
-\subsection{Values}
-Values are the semantical interpretation of expressions.
-For the interpretation of abstraction and the depentend function space, closures are used.
-Values $ v \in \Val$:\\
-\[v := \Set \vsp \Size \vsp v \; \vec{v} \vsp \s v \vsp \infty \vsp \cc \vsp \ff \vsp \ e \; \rho \vsp k\]
+\subsection{Semantic}
+We simultanously define closures, values, environments and signatures.
+\begin{description}
+\item[Closure]
+$ c \in \Clos $:
+\[ c := e \rho \]
+\item[Values]
+$ v \in \Val $:
+\[v := \Set \vsp \Size \vsp v \; \vec{c} \vsp \s v \vsp \infty \vsp \cc \vsp \ff \vsp \vlam \; x \; \rho \vsp \vpi \; x \; v \rho \]
+Of special interested are:
 \begin{itemize}
 \item
-the closure value $e \rho $
+generic variables $k \in \cN $ that are introduced as fresh variables during type checking.
 \item
-generic variables $k$ that are introduced during type checking.
-\item
-Application on values $ v \; \vec{v}$
-\item
-the rest of values are corresponding directly to their expression counterpart.
+lazy application of a value to closures  $ v \; \vec{c}$
 \end{itemize}
-Environments: $ \rho \in \Env$ \\
-$ \rho := \diamond \vsp (x,v) \rho $
-Looking up the corresponding value for a variable in the environment is defined as usual.
-\subsection{Signature}
-
-The signature $\Sig$ provides information for the user-defined constants.
+\item[Environments]
+$ \rho \in \Env$ \\
+\[ \rho := \diamond \vsp (x,v) \rho \vsp (x,c) \]
+\item[Signature]
+The signature carries information about the user-defined constants
 We define it as a overloaded function:
 \begin{itemize}
 \item
-$ \Sig : \cff \ra \cI \times \Val \times \cN \times \vec{\Clause}$\\
-recording for a function symbol the rcursion kind, the type and the arity,
-and the defining clauses
+$ \Sig : \cff \ra \cI \times \Val \times \vec{\Clause}$\\
+recording for a function symbol the recursion kind, the type and the defining clauses.
 \item
 $ \Sig : \cll \ra \Expr \times \Val $ \\
 recording for a const definition the expression and its type. 
@@ -184,11 +269,179 @@ recording for a constructor its type.
 \item
 $ \Sig : \cdd \ra \cN \times \vec{\cN} \times \cS \times \cI \times \Val $\\
 recording for a data type the number of parameters, the indices of the strictly positive arguments,
-the size and induction kinds and its type.
+the size kind, the induction kinds and its type.
 \end{itemize}
+\end{description}
+Now we define a few operations:
+A fixed signature argument is assumed.
+\begin{description}
+\item[weak-head evaluation]:
+\begin{description}
+\item
+$ \wh : \Clos \ra \Val $
+\item
+$ \wh \; \lam{x}{e} \; \rho = \vlam \; x \; (e \rho) $
+\item
+$ \wh \; \EPi{x}{a}{b} \; \rho = \vpi \; x \; v_a (b \rho) $ \\
+where $ v_a = \wh \; a \; \rho $ 
+\item
+$ \wh \; e \vec{e} \; \rho = \ap v \vec{v} $\\
+where $ \vec{v} = \vec{e} \rho $
+\item
+$ \wh \; \Set \; \rho = \Set $ 
+\item
+$ \wh \; \Size \; \rho= \Size $
+\item
+$ \wh \; \infty \; \rho= \infty $ 
+\item
+$ \wh \; \s e \; \rho= \sinfty \; v $ where $ v = \wh \; e $ 
+\item
+$ \wh \; \cc \; \rho= \cc $ 
+\item
+$ \wh \; \ff \; \rho= \ff $
+\item
+$ \wh \; \dd \; \rho = \wh \; e \; \diamond $ where $ \Sig \; \dd = (e,\_) $
+\item
+$ \wh \; x \; \rho = \lkup \; \rho \; x $
+\end{description}
+\item[Infty succesor]:
+\begin{description}
+\item
+$\sinfty : \Val \ra \Val$
+\item
+$\sinfty \; \infty = \infty$
+\item
+$\sinfty \;  x = \s x $ else 
+\end{description}
+\item[Value application]:
+\begin{description}
+\item
+$ \ap : \Val \ra \vec{\Clos} \ra Val$
+\item
+$ \ap \; u \; \diamond = u$
+\item
+$ \ap \; (u \; \vec{c_1}) \; \vec{c_2} = \ap \; u (\vec{c_1}\;\vec{c_2})$
+\item
+$ \ap \; (\vlam \; x \; (e \; \rho)) \; (c \vec{c}) = \ap \; v \; \vec{c}$ \\
+where $ v = \wh \; ( e \; (\ins \; \rho \; x \; c)) $ 
+\item
+$ \ap \; \ff \; \vec{c} = \apf \; \ff \; \vec{c} $ if $ \Sig \; \ff = (\ind,\_)$
+\item
+$ \ap \; v \; \vec{c} = v \; \vec{c} $ if no other rules apply 
+\end{description}
+\item[Environment insert]:  
+\begin{description}
+\item
+$ \ins : \Env \ra \cV \ra ( \Val \cup \Clos ) \ra \Env$ 
+\item
+$ \ins \; \rho \; x \; y = (x,y) \rho$
+\end{description}
+\item[Environment lookup]:
+is guaranteed to suceed if program is well scoped.
+\begin{description}
+\item
+$ \lkup : \Env \ra \cV \ra \Val$
+\item
+$ \lkup \; ((x,v) \rho) \; x = v$ if $v$ is a value
+\item
+$ \lkup \; ((x,c) \rho) \; x = \wh \; c $ if $c$ is a closure
+\item
+$ \lkup \; ((y,z) \rho) \; x = \lkup \; \rho$ if $y \neq x $ 
+\end{description}
+\item[Inductive funcion matching]:
+\begin{description}
+\item
+$\apf : \cV \ra \vec{\Clos} \ra \Val $
+\item
+$\apf \; \ff \; \vec{c} = \matchcls \vec{l} \vec{c} $ if $ \Sig \; \ff = (\ind,\_,\vec{l}) $
+\end{description}
+\item[Corecursive unrolling]:
+\begin{description}
+\item
+$ \forc : \Val \ra \Val $
+\item
+$ \forc \; \ff = \matchcls \vec{l} \diamond$ if $\Sig \; \ff = (\co,\_,\vec{l}) $ 
+\item
+$ \forc \; \ff \; \vec{c} = \matchcls \vec{l} \vec{c}$ $\Sig \; \ff = (\co,\_,\vec{l})$ 
+\item
+$ \forc \; v = v $ otherwise
+\end{description}
+\item[clauses matching]:
+\begin{description}
+\item
+$\matchcls : \vec{\Clause} \ra \vec{\Clos} \ra \Val$
+\item
+$\matchcls \; \_ \; \diamond = \nothing$
+\item
+$\matchcls \;  ((\vec{p} \; e)\;\vec{l}) \vec{c} = v $ 
+if $ v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} $ succeeds
+\item
+$ \matchcls \; ((\vec{p} \; e)\;\vec{l}) \vec{c} = \matchcls \vec{l} \vec{c} $ otherwise  
+\end{description}
+\item[clause matching]:
+\begin{description}
+\item
+$\matchcl : \vec{Clause} \ra \vec{\Pat} \ra \Expr \ra \vec{\Clos} \ra \Val$
+\item
+$\matchcl \; \rho \; \diamond \; e \; \vec{c} = \ap \; v_1 \; \vec{c} $\\
+where $ v = \wh \; e \; \rho$
+\item
+$\matchcl \; \_ \; \_\; \_ \; \diamond = \nothing$
+\item
+$\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) = \matchcl \; \rho_2 \; \vec{p} \; vec{c} $ \\
+if $ \rho_2 = \match p (\wh \; c) $  
+\end{description}
+\item[pattern matching]:
+\begin{description}
+\item
+$\match : \Env \ra \Pat \ra \Val \ra \Env$
+\item
+$\match \; \rho \; p \; v = \matchf \; \rho \; p \; (\forc \; v) $\\
+ if $ p = \cc \dots $ where $\cc$ is a coinductive constructor
+\item
+$\match \; \rho \; p \; v = \matchf \; \rho \; p \; v $ otherwise
+\item
+$\matchf : \Env \ra \Pat \ra \Val \ra Env $
+\item
+$\matchf \; \rho \; \inacc{e} \; v = \rho $
+\item
+$\matchf \; \rho \; x \; v = (x,v)\; \rho $
+\item
+$\matchf \; \rho \; (\cc \diamond) \; (\cc) = \rho $
+\item
+$\matchf \; \rho \; (\cc \vec{p}) (\cc \vec{v}) = \matchList \; \rho \; \vec{p} \; \vec{v} $
+\item
+$\matchf \; \rho \; p \; \infty = \matchInfty \, \rho \; p $
+\item
+$\matchf \; \rho \; (\s p) \; (\s v) = \match \rho \rho \; p \; v $
+\item
+$\matchf \; \_ \; \_ \; \_ = \nothing $ otherwise
+\end{description}
+\item[pattern matching against infty]:
+\begin{description}
+\item
+$\matchInfty : \Env \ra \Pat \ra \Env$
+\item
+$\matchInfty \; \rho \; \inacc{e} = \rho$
+\item
+$\matchInfty \; \rho \; x = (x,\infty)\; \rho$
+\item
+$\matchInfty \; \rho \; (\s p)  = \matchInfty \; \rho \; p$
+\item
+$\matchInfty \; \_ \; \_ \; \_ = \nothing $ otherwise
+\end{description}
+\item[pattern matching list]:
+\begin{description}
+\item
+$\matchList : \Env \ra \vec{\Pat} \ra \vec{\Clos} \ra \Env  $
+\item
+$\matchList \; \rho \; \diamond \; \diamond = \rho $
+\item
+$\matchList \; \rho \; (p \; vec{p}) \; (c \; vec{c} = \matchList \rho_2 \vec{p} \vec{v} $\\
+where $ \rho_2 \; = matchList \; \rho \; p \; v $
+\end{description}
 
-
-
+\end{description}
 \section{Examples}
 \subsection{Identity function}
 Without defining new data types, we still can define some useful non recursive functions.
@@ -322,309 +575,189 @@ To keep MiniAgda simple, these features were not implemented.
 
 \section{Type Checking}
 
-\renewcommand\Check[4]{#1,#2\;\vdash\;#3\uparrow#4}
-\newcommand\Infer[4]{#1,#2\;\vdash\;#3\downarrow#4}
-\newcommand\IsType[3]{#1,#2\;\vdash\;#3\uparrow\Set}
-\newcommand\EqVal[2]{\vdash\;#1\leftrightarrow#2}
-\newcommand\Eval[3]{\mathrm{eval}\;#1\;#2\leadsto#3}
-\newcommand\App[3]{\mathrm{app}#1\;#2\leadsto#3}
-\newcommand\AppFun[3]{\mathrm{appFun}\;#1,#2,\leadsto#3}
-\newcommand\Fapp[6]{\mathrm{fapp}\;#1,#2,#3,#4,#5\leadsto#6}
-\newcommand\Whnf[2]{\mathrm{whnf}\;#1\leadsto#2}
-\newcommand\Force[2]{\mathrm{force}\;#1\leadsto#2}
-\newcommand\Lookup[3]{#1(#2) = #3}
-\newcommand\LeqVal[2]{\vdash\;#1\leq#2}
-
-\subsection{Computation during type checking}
-First of all, as types can depent on terms, it becomes necessary to perfom computation on terms during type checking.
-The mutually recursive pair of functions 
-\textbf{eval} and \textbf{app} do the job.
-eval computes the weak head normal form of a expression.
-\[\Eval{\_}{\_}{\_} : \Env \times \Expr \ra \Val \]
-application is the equivalent of beta reduction on values
-\[\App{\_}{\_}{\_} : \Val \times \vec{Val} \ra \Val\]
-weak head normal form: 
-\[\Whnf{\_}{\_} : \Val \ra \Val\]
-force
-\[\Force{\_}{\_} : \Val \ra \Val \] 
-
-\begin{figure}[p]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{\Set}{\Set}} 
-          {} 
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-	  \infer{\Eval{\rho}{\cc}{\cc}} 
-          {}
-
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{\ff}{\ff}} 
-          {} 
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{\dd}{v}} 
-          {\Lookup{\Sig}{\dd}{e} & \Eval{\rho}{e}{v}} 
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{x}{v}} 
-          {\Lookup{\rho}{\dd}{v}} 
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{\EPi{x}{t}{t'}{\EPi{x}{v}{t'}{\rho}}}}
-          {\Eval{\rho}{t}{v}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Eval{\rho}{\lam x . e}{\lam{x}{e}{\rho}}}
-		{} 
-\end{array}
-\]
-
-
-\[
-\begin{array}{c}
-          
-	  \infer{\Eval{\rho}{e \vec{e}}{v \vec{v}}}
-          {\Eval{\rho}{e}{v} & \Eval{\rho}{\vec{e}}{\vec{v}}}
-\end{array}
-\]
-\caption{Evaluation of expressions}
-\end{figure}
-
-\begin{figure}[p]
-
-\[
-\begin{array}{c}
-          
-	  \infer{\App{\lam{x}{e}{\rho}}{v \; \vec{v}}{v''}}
-          {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-          
-	  \infer{\App{\EPi{x}{w}{e}{\rho}}{v \; \vec{v}}{v''}}
-          {\Eval{(x,v)\rho}{e}{v'} & \App{v'}{\vec{v}}{v''}}
-
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-          
-	  \infer{\App{\ff}{\vec{v}}{v'}}
-          {\AppFun{\ff}{\vec{v}}{v'}}
-\end{array}
-\]
-
-\caption{application of values}
-\end{figure}
-
-
-\begin{figure}[p]
-\[
-\begin{array}{c}
-
-\infer{\Whnf{\lam x . e \; \rho}{\lam x . e \; \rho}}{}
-
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-\infer{\Whnf{\EPi{x}{A}{B} \; \rho}{\EPi{x}{A}{B} \; \rho}}{}
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-\infer{\Whnf{e \; \rho}{v''}}
-{\Eval{\rho}{e}{v'}
-& \Whnf{v'}{v''} 
-}
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-\infer{\Whnf{v \; \vec{v}}{v''}}
-{
-\Whnf{v}{v'}
-& \Whnf{\vec{v}}{\vec{v}'}
-& {\App{v'}{\vec{v}'}{v''}}
-}
-\end{array}
-\]
-
-\caption{weak head normal form}
-\end{figure}
+\renewcommand\Check[5]{#1,#2,#3\vdash#4\leftleftarrows#5}
+\newcommand\IsType[4]{\Check{#1}{#2}{#3}{#4}{\Set}}
+\newcommand\Infer[5]{#1,#2,#3\vdash#4\rightrightarrows#5}
+\newcommand\EqVal[4]{#1,#2\vdash#3\Leftrightarrow#4}
+\newcommand\FeqVal[4]{#1,#2\vdash#3{\;\leftrightarrow\;}#4}
+\newcommand\DeqVal[2]{\vdash#1\leftrightarrow#2}
+\newcommand\LeqVal[4]{#1,#2,\vdash#3\leq#4}
+\newcommand\FleqVal[4]{#1,#2\vdash#3{\;\ll\;}#4}
+\newcommand\DLeqVal[2]{\vdash#1\leq#2}
+\newcommand\SzLeq[2]{\vdash#1\sqsubseteq#2}
 
 \subsection{Bidirectional type checking} 
 For depentend types, a practice called \emph{bidirectional type checking} is used.
 This means that the type checker has two modes:
 one for checking that an expression has a certain type and one for infering the type of an expression.
-These modes are again implement as functions
-\[ \mathrm{check expression} :  \Check{\_}{\_}{\_}{\_} \subset \Env \times \Env \times \Expr \times Val\]
 
-and
+\begin{description}
+\item[check expression]:
+\[\Check{k}{\rho_1}{\rho_2}{e}{v} \subseteq \cN \times \Env \times \Env \times \Expr \times \Val\]
+\item[infer expression]:
+\[\Infer{k}{\rho_1}{\rho_2}{e}{v} : \cN \times \Env \times \Env \times \Expr \ra \Val\]
+\item[is type]:
+\[\IsType{k}{\rho_1}{\rho_2}{e} \subseteq \cN \times \Env \times \Env \times \Expr\]
+\end{description}
 
-\[ \mathrm{infer expression} : \Infer{\_}{\_}{\_}{\_} : \Env \times \Env \times \Expr \ra \Val\]
-
-in checking mode, the type checker might have to infer the type of the expression and then check that the infered
-type is equal (convertible) against the proposed type.
-
-Also, as a special case of check expression, the judgment 
-
-\[ \IsType{\_}{\_}{\_} \subset \Env \times \Env \times \Expr\]
-which checks that an expression is a type, i.e has type $\Set$.
-
-so one needs equality between values, which is handled by the function
-
-\[\EqVal{\_}{\_} \subset \Val \times \Val \]
-
+The environment $\rho_1$ will be used to bind fresh generic values to variables, and $\rho_2$ will have the type correspoding to this variables. in checking mode, the type checker might have to infer the type of the expression and then verify that the infered value is equal to the one to be checked against.
+So one needs equality between two values.
+We want to strengthen equality of coinducive values by allowing the type checker to unroll ($\forc$) a corecusive definition. We cannot allow unlimit unfolding, thus we keep track of unfolding and only allow one of the values to be unrolled.
+We introduce the set $ \cF = \{\lF, \rF, \nF \} $ to keep track if we have unrolled the left or right value or not at all.
+Thus we introduce simulataneously two judgements, the latter one operating on already unrolled values.
+\[\EqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times \Val \times \Val \]
+\[\FeqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times\Val \times \Val \]
 
 \begin{figure}[p]
-\[\begin{array}{c}
-	  \infer{\Check{\rho_1}{\rho_2}{\lam x . e}{\EPi{y}{v}{e'}{\rho}}}
-          { \Eval{(x,k)\;\rho}{e}{v'} & \Check{(x,k)\;\rho_1}{(x,v)\;\rho_2}{e'}{v'}} 
-\end{array}
-\]
 
-\[\begin{array}{c}
-	  \infer{\Check{\rho_1}{\rho_2}{\EPi{x}{t}{t'}}{\Set}}
-          {\IsType{\rho_1}{\rho_2}{t}  
-	    & \Eval{(x,k)\;\rho_1}{t}{v}
-	    & \IsType{(x,k)\rho}{{x,v}\rho_2}{t'}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Check{\rho_1}{\rho_2}{e}{v}} 
-          { \Infer{\rho_1}{\rho_2}{e}{v'} & \EqVal{\rho_1}{\rho_2}{e}{v'}} 
-\end{array}
-\]
+\begin{gather*}
+%%Lam
+\nru{\chklam}
+{\Check{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,v_a)}{e}{\wh \; (t \; \ins \rho (x,k))}}
+{\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \; x \; v_a \; (t \; \rho)}}
+%% Pi
+\\[2ex]
+\nru{\chkpi}
+{\IsType{k}{\rho_1}{\rho_2}{t_1}
+\qquad
+\IsType{k+1}{\ins \; \rho_1 \; (x,k)} {\ins \; \rho_2 \; (x, t_1 \rho)}{t2}
+}
+{\Check{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}{\Set}}
+\\[2ex]
+%% Succ
+\nru{\chksucc}
+{\Check{k}{\rho_1}{\rho_2}{\s e}{\Size}} 
+{\Check{k}{\rho_1}{\rho_2}{e}{\Size}}
+%% Inf
+\qquad
+\nru{\chkinf}
+{\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
+\qquad
+\EqVal{\nF}{k}{v_2}{v_1}} 
+{\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
+\end{gather*}
 \caption{Checking expressions}
 \end{figure}
 
 \begin{figure}[p]
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{x}{v}} 
-          {\Lookup{\rho_2}{x}{v}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{\Set}{\Set}} 
-          {}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{\ff}{v}} 
-          {\Lookup{\Sig}{\ff}{v}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{\cc}{v}} 
-          {\Lookup{\Sig}{\cc}{v}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{\DD}{v}} 
-          {\Lookup{\Sig}{\dd}{v}}
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{e_1 \; e_2}{v''}}
-{\Infer{\rho_1}{\rho_2}{e1}{\EPi{x}{v'}{e_3}{\rho}}
-& \Check{\rho_1}{\rho_2}{e_2}{w}
-& \Eval{\rho_1}{e_2}{v'}
-& \Eval{(x,v')\rho}{e_3}{v''}}
-
-\end{array}
-\]
-
-\[\begin{array}{c}
-	  \infer{\Infer{\rho_1}{\rho_2}{e_1 \; e_2 \vec{e}}{v}
-	  } 
-          {\Infer{\rho_1}{\rho_2}{(e_1 \; e_2) \vec{e}}{v}}
-\end{array}
-\]
-
-
+\begin{gather*}
+%% Var
+	  \nru{\infvar}{\lkup \; \rho_2 \; x \; v}{\Infer{k}{\rho_1}{\rho_2}{x}{v}}
+%% Set
+\qquad	  \nru{\infset}{} {\Infer{k}{\rho_1}{\rho_2}{\Set}{\Set}}   
+\\[2ex]
+%% Size
+	  \nru{\infsize}{}{\Infer{k}{\rho_1}{\rho_2}{\Size}{\Set}}
+\qquad
+%% Infty
+	  \nru{\infinfty}{}{\Infer{k}{\rho_1}{\rho_2}{\infty}{\Size}} 
+\\[2ex]
+%% App-1
+\nru{\infappa}
+{\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \; x \; v_a \; (b \; \rho)}
+\qquad \Check{k}{\rho_1}{\rho_2}
+{e_2}{v_a}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh \; b \; (\ins \; \rho \; (e_2 \; \rho_1))}}
+%% App-2
+\\[2ex]
+\nru{\infappb}
+{\Infer{k}{\rho_1}{\rho_2}{(e_1 \; e_2)\;\vec{e}}{v}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \; (e_2 \vec{e})}{v}}
+\qquad
+%% Def	
+\nru{\infdef}
+{\Sig \; \ff \; = (\_,v,\_) }
+{\Infer{k}{\rho_1}{\rho_2}{\ff}{v}}
+%% Con 
+\\[2ex]
+\nru{\infcon}
+{\Sig \; \cc \; = v}
+{\Infer{k}{\rho_1}{\rho_2}{\cc}{v}} 
+%% Const
+\qquad
+\nru{\infconst}
+{\Sig \; \dd \; = (\_,\_,\_,v,\_)}
+{\Infer {k}{\rho_1}{\rho_2}{\dd}{v}}
+\end{gather*}
 
 \caption{Infering type of expressions}
 \end{figure}
 
 \begin{figure}[p]
-\caption{Untypes value equality checking}
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\Set}{\Set}}
-          {}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{k_n}{k_n}}
-          {}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\EPi{x}{v_1}{e_1}{\rho_1}}{\EPi{y}{v_2}{e_2}{\rho_2}}}
-          {   \EqVal{v_1}{v} 
-& \Eval{(x,k)\rho_1}{e_2}{v'_1}
-& \Eval{(x,k)\rho_2}{e_2}{v'_2}
-& \EqVal{v'_1}{v'_2}}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\EPi{x}{v_1}{e_1}{\rho_1}}{\EPi{y}{v_2}{e_2}{\rho_2}}}
-          {
-\Eval{(x,k)\rho_1}{e_2}{v'_1}
-& \Eval{(x,k)\rho_2}{e_2}{v'_2}
-& \EqVal{v'_1}{v'_2}}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\cc}{\cc}}
-          {}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\ff}{\ff}}
-          {}
-\end{array}\]
-
-\[\begin{array}{c}
-	  \infer{\EqVal{\DD}{\DD}}
-          {}
-\end{array}\]
-
-
-\[\begin{array}{c}
-	  \infer{\EqVal{v_1 \; \vec{v_1}}{v_2 \; \vec{v_2}}}
-          {\EqVal{v_1}{v_2} & \EqVal{\vec{v_1}}{\vec{v_2}}}
-\end{array}\]
-
-
+\begin{gather*}
+%% Force L
+\nru{\eqlf}
+{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \nothing 
+\qquad
+f \neq \rF \qquad \FeqVal{\lF}{k}{u_1}{v_2}}
+{ \EqVal{f}{k}{v_1}{v_2}}
+%% Force R
+\\[2ex]
+\nru{\eqrf}
+{\forc \; v_1 = \nothing \qquad \forc \; v_2 = u_2 
+\qquad
+f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
+{ \EqVal{f}{k}{v_1}{v_2}}
+\\[2ex]
+%% Force N
+\nru{\eqnf}
+{\FeqVal{f}{k}{v_1}{v_2}}
+{ \EqVal{f}{k}{v_1}{v_2}}
+\qquad
+%% Set
+\nru{\eqset}
+{}
+{\FeqVal{f}{k}{\Set}{\Set}}
+%% Size
+\\[2ex]
+\nru{\eqsize}
+{}
+{\FeqVal{f}{k}{\Size}{\Size}}
+%% Infty
+\qquad
+\nru{\eqinfty}
+{}
+{\FeqVal{f}{k}{\infty}{\infty}}
+%% Succ
+\\[2ex]
+\nru{\eqsuc}
+{\EqVal{f}{k}{v_1}{v_2}}
+{\FeqVal{f}{k}{\s v_1}{\s v_2}}
+%% App
+\qquad
+%% Gen
+\nru{\eqgen}
+{}
+{\EqVal{f}{k}{k'}{k'}}
+\\[2ex]
+\nru{\eqapp}
+{\EqVal{f}{k}{v_1}{v_2} \qquad
+\EqVal{f}{k}{c_1}{d_1} \ldots \EqVal{f}{k}{c_n}{d_n}}
+{\FeqVal{f}{k}{v_1 (c_1 \ldots c_n)}{v_2 (d_1 \ldots d_n)}}
+%% Pi
+\\[2ex]
+\nru{\eqpi}
+{\EqVal{f}{k}{a_1}{a_2}
+\qquad
+\EqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FeqVal{f}{k}{\vpi \; x_1 a_1 (b_1 \rho_1)}{\vpi \; x_2 a_2 (b_2 \rho_2)}}
+%% Lam
+\\[2ex]
+\nru{\eqlam}
+{\EqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FeqVal{f}{k}{\vlam \; x_1 (b_1 \rho_1)}{\vlam \; x_2 (b_2 \rho_2)}}
+%% Def
+\\[2ex]
+\nru{\eqdef}
+{}
+{\FeqVal{f}{k}{\ff}{\ff}}
+%% Con
+\qquad
+\nru{\eqcon}
+{}
+{\FeqVal{f}{k}{\cc}{\cc}}
+\end{gather*}
+\caption{equality checking}
 \end{figure}
 
 \subsubsection{Datatype declarations}
@@ -975,6 +1108,43 @@ $\suc : \EPi{i}{\Size}{ \Nat \; i \ra \Nat \; (\s i)} $
 \subsection{Great common divisor}
 
 \subsection{Quicksort}
+\begin{bsp}
+$\data \ProdT ( + A : \Set) : \Set$\\
+$\spc  \prd : A \ra A \ra \ProdT A$\\
+$\fun \pra : ( A : \Set ) \ra \ProdT A\; \ra A$\\
+$\spc \pra \inacc{A}\; (\prd A\; a b) = a$\\
+$\fun \prb : ( A : \Set ) \ra \ProdT A\; \ra A$\\
+$\spc \prb \inacc{A}\; (\prod A\; a b) = b$\\
+$\fun \ite : (A : \Set ) \ra \Bool \ra A \ra A \ra A$\\
+$\spc \ite A\; \tt x\; y\; = x$\\
+$\spc \ite A\; \ff x\; y\; = y$\\
+%%
+$\fun \pivot : (i : \Size ) \ra (A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
+$\spcx	\ra A \ra \List A\; i\; \ra \ProdT (\List A\; i)$\\
+$\spc\pivot \inacc{\s i}\;     \inacc{A}\; \lleq a\; (\nil A\; i) = \prd (\List A\; (\s i))\;(\nil A\; i)\;(\nil A\; i)$\\
+$\spc \pivot \inacc{\s i}\;    \inacc{A}\; \lleq a\; (\cons A\; i x\; xs) =$\\ 
+$\spcx     \ite (\ProdT (\List A\; (\s i)))\; (\lleq a\; x)$\\ 
+$\spcx    (\prd (\List A\; (\s i))$\\
+$\spcx \spc       (\pra (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)) $\\
+$\spcx \spc	(\cons A\; i\; x\; (\prb (\List A\; i) \; (\pivot i\; A\; \lleq a\; xs))))$\\ 
+$\spcx     (\prd (\List A\; (\s i))$\\
+$\spcx	\spc (\cons A\; i\; x\; (\pra (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)))$\\
+$\spcx  \spc (\prb (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)))$\\
+%%
+$ \fun \qsapp : (i : \Size ) \ra ( A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
+$\spcx	\ra \List A\; i \ra \List A\; \infty \ra \List A\; \infty$\\
+$\spc \qsapp \inacc{\s i}\; \inacc{A}\; \lleq (\nil A\; i) \;      ys = ys;$\\
+$\spc \qsapp \inacc{\s i}\; \inacc{A}\; \lleq (\cons A\; i\; x\; xs) \; ys = \qsapp i\; A\; \lleq$\\ 
+%%
+$\spcx	(\pra (\List A\; i) (\pivot i\; A\; \lleq x\; xs))$\\
+%%    	
+$\spcx	(\cons A\; \infty \; x\; $\\
+$\spcx	\spc   (\qsapp i\; A\; \lleq (\prb (\List A\; i) \; (\pivot i\; A\; \lleq x\; xs))\; ys))$\\
+%%
+$\fun \quicksort : (i : \Size ) \ra (A : \Set ) \ra (\lleq : A \ra A \ra \Bool)$\\ 
+$\spcx	\ra \List A\; i \ra \List A\; \infty$\\
+$\spc \quicksort i\; A\; \lleq l = \qsapp i\; A\; \lleq l (\nil A\; \infty)$ 
+\end{bsp}
 
 \subsection{Sized ordinal numbers}
 Note that sized types are quite powerful. 
@@ -988,8 +1158,8 @@ $\spc \olim : (\Nat \ra \Ord ) \ra \Ord $
 Now we don't kneed Axiom 2 of the structual ordering to see that addition is terminating:
 \begin{bsp}
 $\fun \addOrd : \Ord \infty \ra \EPi{i}{\Size}{\Ord i \ra \Ord \infty }$\\
-$\spc \addOrd x \inacc{\s i}\; (\ozero i) = \ozero i $\\
-$\spc \addOrd x \inacc{\s i}\; (\olim f)  = \olim \infty ( \lam{y} \addOrd  x \; i \; (f \; y))  $
+$\spc \addOrd x\; \inacc{\s i}\; (\ozero i) = \ozero i $\\
+$\spc \addOrd x\; \inacc{\s i}\; (\olim f)  = \olim \infty ( \lam{y} \addOrd  x \; i \; (f \; y))  $
 \end{bsp}
 
 \section{Admissibility}
@@ -1018,10 +1188,10 @@ Abel and Pareto have worked on criterions based on continuity.
 A Type $A$ is \emph{inductive in i} if it is of the form $ \DD \vec{p} \; i \: \vec{v} $ and $\DD$ is a sized inductive type
 \end{definition}
 \begin{definition}
-A type $A$ is \emph{monotone in i} if $ \LeqVal{A}{A[i \ra \s i ]}$ 
+A type $A$ is \emph{monotone in i} if $ \DLeqVal{A}{A[i \ra \s i ]}$ 
 \end{definition}
 \begin{definition}
-A type $A$ is \emph{antitone in i} if $ \LeqVal{A[i \ra \s i ]}{A}$ 
+A type $A$ is \emph{antitone in i} if $ \DLeqVal{A[i \ra \s i ]}{A}$ 
 \end{definition}
 Note that if a type is inductive in $i$, it is also monotone in $i$. 
 Now we give a criterion for when a $\fun$ declaration is admissible.
@@ -1065,47 +1235,147 @@ As we are only interested in size arguments getting smaller,
 In one call to the function, the size might decrease by one, in another clause, by two.
 It is enough for termination to decrease by one.
 There is natural order on size expressions.
-The special rules for subtyping are given in table x.
-There are rules for function type and data types.
-Otherwise, it's identical to convetability of types.  
+We define a substage relation on size values:
+\[\SzLeq{v_1}{v_2} \subseteq Val \times Val \]
+Now we the subtype relation similar to the equality relation by two simulatemous judgements:
+\[\LeqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times \Val \times \Val \]
+\[\FleqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times\Val \times \Val \]
+Of special interest are the rules:
+\begin{itemize}
+\item
+$\leqappind$: subtyping for sized inductiv type 
+\item
+$\leqappco$: subtyping for sized coinductive type
+\item
+$\leqappd$: subtyping for other data types
+\item
+$\leqpi$: subtyping for function space. 
+\end{itemize}
 \begin{figure}[p]
-\[
-\begin{array}{c}
-	  \infer{i \preceq \infty}
-          {}
-\end{array}
-\]
-\[
-\begin{array}{c}
-	  \infer{i \preceq \s i}
-          {}
-\end{array}
-\]
-\[
-\begin{array}{c}
-	  \infer{i \preceq k}
-          {i \preceq j & j \preceq k}
-\end{array}
-\]
+\begin{gather*}
+\nru{\sleqinfty}
+{}
+{\SzLeq{v}{\infty}}
+\qquad
+\nru{\sleqgen}
+{}
+{\SzLeq{k}{k}}
+\\[2ex]
+\nru{\sleqsucci}
+{\SzLeq{v_1}{v_2}}
+{\SzLeq{\s v_1}{\s v_2}}
+\qquad
+\nru{\sleqsuccii}
+{\SzLeq{v_1}{v_2}}
+{\SzLeq{v_1}{\s v_2}}
+\end{gather*}
 \caption{Size comparison}
 \end{figure}
 
-
 \begin{figure}[p]
-\[
-\begin{array}{c}
-	  \infer{\LeqVal{\dd \vec{v1} \; i \; \vec{v2}}{\dd \vec{v1'} \; j \; \vec{v2'}}}
-	      {i \preceq j & \EqVal{\vec{v1}}{\vec{v1'}}}
-\end{array}\dd \; \data
-\]
-\[
-\begin{array}{c}
-	  \infer{\LeqVal{\dd \vec{v1} \; i \; \vec{v2}}{\dd \vec{v1'} \; j \; \vec{v2'}}}
-	      {j \preceq i & \EqVal{\vec{v1}}{\vec{v1'}}}
-\end{array}
-\dd \; \codata
-\]
-\caption{Subtyping for sized types}
+\begin{gather*}
+%% Force L
+\nru{\leqlf}
+{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \nothing 
+\qquad
+f \neq \rF \qquad \FleqVal{\lF}{k}{u_1}{v_2}}
+{ \LeqVal{f}{k}{v_1}{v_2}}
+%% Force R
+\\[2ex]
+\nru{\leqrf}
+{\forc \; v_1 = \nothing \qquad \forc \; v_2 = u_2 
+\qquad
+f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
+{ \LeqVal{f}{k}{v_1}{v_2}}
+\\[2ex]
+%% Force N
+\nru{\leqnf}
+{\FleqVal{f}{k}{v_1}{v_2}}
+{ \LeqVal{f}{k}{v_1}{v_2}}
+\qquad
+%% Set
+\nru{\leqset}
+{}
+{\FleqVal{f}{k}{\Set}{\Set}}
+%% Size
+\\[2ex]
+\nru{\leqsize}
+{}
+{\FleqVal{f}{k}{\Size}{\Size}}
+%% Infty
+\qquad
+\nru{\leqinfty}
+{}
+{\FleqVal{f}{k}{\infty}{\infty}}
+%% Succ
+\\[2ex]
+\nru{\leqsuc}
+{\LeqVal{f}{k}{v_1}{v_2}}
+{\FleqVal{f}{k}{\s v_1}{\s v_2}}
+\qquad
+%% Gen
+\nru{\leqgen}
+{}
+{\FleqVal{f}{k}{k'}{k'}}
+\\[2ex]
+%% Ind Data
+\ndru{\leqappind}
+{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+\qquad
+\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j} 
+}
+{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
+\qquad
+\SzLeq s t }
+{\FleqVal{f}{k}{\DD p_1 \ldots p_n s v_1 \ldots v_m}{\DD q_1 \ldots q_n t w_1 \ldots w_m}}
+%% Co Data
+\\[2ex]
+\ndru{\leqappco}
+{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+\qquad
+\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j}}
+{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
+\qquad
+\SzLeq t s }
+{\FleqVal{f}{k}{\DD p_1 \ldots p_n s v_1 \ldots v_m}{\DD q_1 \ldots q_n s w_1 \ldots w_m}}
+%% Data
+\\[2ex]
+\ndru{\leqappd}
+{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+\qquad
+\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j}}
+{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}}
+{\FleqVal{f}{k}{\DD p_1 \ldots p_n v_1 \ldots v_m}{\DD q_1 \ldots q_n w_1 \ldots w_m}}
+%%App
+\\[2ex]
+\nru{\leqapp}
+{\LeqVal{f}{k}{v_1}{v_2} \qquad
+\EqVal{f}{k}{c_1}{d_1} \ldots \EqVal{f}{k}{c_n}{d_n}}
+{\FleqVal{f}{k}{v_1 (c_1 \ldots c_n)}{v_2 (d_1 \ldots d_n)}}
+%% Pi
+\\[2ex]
+\nru{\leqpi}
+{\LeqVal{f}{k}{a_2}{a_1}
+\qquad
+\LeqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FleqVal{f}{k}{\vpi \; x_1 a_1 (b_1 \rho_1)}{\vpi \; x_2 a_2 (b_2 \rho_2)}}
+%% Lam
+\\[2ex]
+\nru{\leqlam}
+{\LeqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FleqVal{f}{k}{\vlam \; x_1 (b_1 \rho_1)}{\vlam \; x_2 (b_2 \rho_2)}}
+%% Def
+\\[2ex]
+\nru{\leqdef}
+{}
+{\FleqVal{f}{k}{\ff}{\ff}}
+%% Con
+\qquad
+\nru{\leqcon}
+{}
+{\FleqVal{f}{k}{\cc}{\cc}}
+\end{gather*}
+\caption{subtype checking}
 \end{figure}
 
 \chapter{Adding coinductive types}
@@ -1135,8 +1405,6 @@ coinductive function:
 \section{Lazy values}
 Unrolling of corecursive functions needs to be restricted.
 Force is used in specific places.
-
-\section{Arity}
 
 \section{Examples}
 
@@ -1203,7 +1471,7 @@ $\spc \head \; .i \; (\cons A \; i \; n \; ns) = n$
 Note that these a $\norec$ functions because they are not recursive. Besides, their type would not be admissble as a $\fun$.
 We can now define looking up the nth element of a Stream.
 \begin{bsp}
-$\fun nth : \Nat -> \Stream \infty -> \Nat$\\
+$\fun nth : \Nat \ra \Stream \infty \ra \Nat$\\
 $\nth \zero ns = \head \infty ns$\\
 $\nth (\suc n) \; ns = nth n (\tail \infty ns)$\\
 \end{bsp}
@@ -1317,7 +1585,7 @@ cofun fibs : ( i : Size ) -> Stream i
 
 const 4 : Nat = (succ (succ (succ (succ zero))))
 -- fib(4) = 3 
-eval const fib4 : Nat = nth 4 (fibs #) 
+eval const fib4 : Nat = nth 4 (fibs ) 
 
 \end{verbatim}
 Running \texttt{Main examples/fib.ma} yields the console output:

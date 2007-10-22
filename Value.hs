@@ -40,10 +40,13 @@ data Val =   VSet
            | VGen Int
            | VPi Name Val Clos
            | VLam Name Clos
-           | VClos Env Expr 
              deriving (Eq)
 
-type Clos = Val -- VClos
+data Clos = VClos Env Expr -- VClos
+          deriving (Eq)
+
+instance Show Clos where
+    show = showClos
 
 type TVal = Val
 
@@ -55,79 +58,89 @@ showVal VSet = "Set"
 showVal VSize = "Size"
 showVal VInfty = "#"
 showVal (VSucc v) = "($ " ++ showVal v ++ ")" 
-showVal (VApp v vl) = "(" ++ showVal v ++ " " ++ showVals vl ++ ")"
+showVal (VApp v cls) = "(" ++ showVal v ++ " " ++ showCloss cls ++ ")"
     where
-      showVals :: [Val] -> String
-      showVals [] = ""
-      showVals (v:vs) = showVal v ++ (if null vs then "" else " " ++ showVals vs)   
+      showCloss :: [Clos] -> String
+      showCloss [] = ""
+      showCloss (cl:cls) = showClos cl ++ (if null cls then "" else " " ++ showCloss cls)   
 showVal (VCon _ n) = n
 showVal (VDef n) = n
 showVal (VGen k) = show k
-showVal (VClos env e) = showEnv env ++ prettyExpr e
-showVal (VPi x av cl) = "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showVal cl ++ ")"
-showVal (VLam x cl) = "(\\" ++ x ++ " -> " ++ showVal cl ++ ")" 
+
+showVal (VPi x av cl) = "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showClos cl ++ ")"
+showVal (VLam x cl) = "(\\" ++ x ++ " -> " ++ showClos cl ++ ")" 
+
+showClos :: Clos -> String
+showClos (VClos env e) = showEnv env ++ prettyExpr e
 
 showEnv :: Env -> String
 showEnv [] = ""
 showEnv x = "{" ++ showEnv' x ++ "} " where
-showEnv' [] = []
-showEnv' ((n,v):env) = "(" ++ n ++ " = " ++ showVal v ++ ")" ++ showEnv' env 
+    showEnv' [] = []
+    showEnv' ((n,V v):env) = "(" ++ n ++ " = " ++ showVal v ++ ")" ++ showEnv' env 
+    showEnv' ((n,C c):env) = "(" ++ n ++ " = " ++ showClos c ++ ")" ++ showEnv' env                           
 
-
-runPrettyVal :: Env -> Signature -> TypeCheck a -> Either TraceError (a,Signature)
-runPrettyVal env sig tc = runIdentity (runErrorT (runStateT (runReaderT tc env) sig)) 
+runWhnfClos :: Env -> Signature -> TypeCheck a -> Either TraceError (a,Signature)
+runWhnfClos env sig tc = runIdentity (runErrorT (runStateT (runReaderT tc env) sig)) 
  
-doPrettyVal sig v = runPrettyVal emptyEnv sig (prettyVal v)
+whnfClos sig v = runWhnfClos emptyEnv sig (prettyVal =<< whnf v)
+
 
 prettyVal :: Val  -> TypeCheck String
-prettyVal v = do v' <- whnf v
-                 prettyVal' v'
-    where
-      prettyVal' :: Val -> TypeCheck String
-      prettyVal' VSet = return "Set"
-      prettyVal' VSize = return "Size"
-      prettyVal' VInfty = return "#"
-      prettyVal' (VSucc v) = do pv <- prettyVal v
-                                return $ "($" ++ pv ++ ")" 
-      -- don't whnf arguments of a coinductive constructor
-      prettyVal' (VApp v@(VCon CoInd _) vl) = do pv <- prettyVal v
-                                                 pvl <- mapM prettyClos vl
-                                                 let pvl' = showStrs pvl
-                                                 return $ "(" ++ pv ++ " " ++ pvl' ++ ")"
-      prettyVal' (VApp v vl) = do pv <- prettyVal v
-                                  pvl <- mapM prettyVal vl
-                                  let pvl' = showStrs pvl
-                                  return $ "(" ++ pv ++ " " ++ pvl' ++ ")"
-      prettyVal' (VCon _ n) = return n
-      prettyVal' (VDef n) = return n
-      prettyVal' (VGen k) = return $ show k
-      prettyVal' (VPi x av cl) = return $ "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showVal cl ++ ")"
-      prettyVal' (VLam x cl) = return $ "(\\" ++ x ++ " -> " ++ showVal cl ++ ")"
+prettyVal VSet = return "Set"
+prettyVal VSize = return "Size"
+prettyVal VInfty = return "#"
+prettyVal (VSucc v) = do pv <- prettyVal v
+                         return $ "($" ++ pv ++ ")" 
+-- don't whnf arguments of a coinductive constructor
+prettyVal (VApp v@(VCon CoInd _) cls) = do pv <- prettyVal v
+                                           pcls <- mapM prettyClos cls
+                                           let pcls' = showStrs pcls
+                                           return $ "(" ++ pv ++ " " ++ pcls' ++ ")"
+prettyVal (VApp v cls) = do pv <- prettyVal v
+                            vl <- mapM whnf cls
+                            pvl <- mapM prettyVal vl
+                            let pvl' = showStrs pvl
+                            return $ "(" ++ pv ++ " " ++ pvl' ++ ")"
+prettyVal (VCon _ n) = return n
+prettyVal (VDef n) = return n
+prettyVal (VGen k) = return $ show k
+prettyVal (VPi x av cl) = return $ "( " ++ x  ++ " : " ++ showVal av ++ ") ->" ++ showClos cl ++ ")"
+prettyVal (VLam x cl) = return $ "(\\" ++ x ++ " -> " ++ showClos cl ++ ")"
+
+prettyClos (VClos env e) = return $ showEnv env ++ prettyExpr e
       
-      prettyClos (VClos env e) = return $ showEnv env ++ prettyExpr e
-      
-      showStrs :: [String] -> String
-      showStrs [] = ""
-      showStrs (s:sl) = s ++ (if null sl then "" else " " ++ showStrs sl)
+showStrs :: [String] -> String
+showStrs [] = ""
+showStrs (s:sl) = s ++ (if null sl then "" else " " ++ showStrs sl)
 
 ----
 
-type Env = [(Name,Val)]
+data ClosVal = V Val | C Clos
+               deriving Eq
+
+type Env = [(Name,ClosVal)]
 
 emptyEnv = []
 
-update :: Env -> Name -> Val -> Env
-update env "" v = env
-update env n v = (n,v):env
+updateC :: Env -> Name -> Clos -> Env
+updateC env "" c = env
+updateC env n c = (n,C c):env
 
-lookupEnv :: Env -> Name -> Val
-lookupEnv [] n = error $ "lookup env error " ++ n 
-lookupEnv ((x,v):xs) n = if x == n then v else lookupEnv xs n
+updateV :: Env -> Name -> Val -> Env
+updateV env "" v = env
+updateV env n v = (n,V v):env
+
+lookupEnv :: Env -> Name -> TypeCheck Val
+lookupEnv [] n = throwErrorMsg $ "lookup env error " ++ n 
+lookupEnv ((x,cv):xs) n = if x == n then case cv of
+                                           V v -> return v
+                                           C c -> do v <- whnf c
+                                                     return v
+                          else lookupEnv xs n
 
 
-
-
----
+--
 
 
 type Signature = Map.Map Name SigDef
@@ -156,93 +169,60 @@ addSig sig n def = Map.insert n def sig
 ---
 
 
-whnf :: Val -> TypeCheck Val
-whnf v = 
-    --trace ("whnf " ++ show v) $
-    case v of
-      VClos env e ->
-            case e of
-               Lam x e1 -> return $ VLam x (VClos env e1)
-               Pi x a b -> do av <- whnf (VClos env a)
-                              return $ VPi x av (VClos env b)
-               Set -> return  VSet
-               Infty -> return VInfty
-               Succ e1 -> do v <- whnf (VClos env e1)
-                             vsucc v
-               Size -> return VSize
-               Con co n -> return $ VCon co n
-               App e1 e2 -> do v1 <- whnf (VClos env e1)
-                               app v1 (map (VClos env) e2)
-               Def n -> return $ VDef n
-               Const n -> do sig <- get 
-                             let (ConstSig _ e) = lookupSig n sig
-                             whnf (VClos [] e)
-               Var y -> do let v' = lookupEnv env y
-                           whnf v'
-      _ -> return v
+whnf :: Clos -> TypeCheck Val
+whnf c@(VClos env e) = --trace ("whnf " ++ show
+  case e of
+    Lam x e1 -> return $ VLam x (VClos env e1)
+    Pi x a b -> do av <- whnf (VClos env a)
+                   return $ VPi x av (VClos env b)
+    App e1 e2 -> do v1 <- whnf (VClos env e1)
+                    app v1 (map (VClos env) e2)
+    Set -> return  VSet
+    Infty -> return VInfty
+    Succ e1 -> do v <- whnf (VClos env e1)
+                  return $ sinfty v
+                
+    Size -> return VSize
+    Con co n -> return $ VCon co n
+    
+    Def n -> return $ VDef n
+    Const n -> do sig <- get 
+                  let (ConstSig _ e) = lookupSig n sig
+                  whnf (VClos [] e)
+    Var y -> lookupEnv env y
 
-vsucc :: Val -> TypeCheck Val
-vsucc v = do v <- whnf v 
-             case v of
-               VInfty -> return VInfty
-               VSucc x' -> do x'' <- vsucc x'
-                              return $ VSucc x''
-               _ -> return $ VSucc v
+sinfty :: Val -> Val
+sinfty v = case v of
+            VInfty -> VInfty
+            _ -> VSucc v               
 
-vclos :: Env -> Expr -> TypeCheck Val
+vclos :: Env -> Expr -> TypeCheck Clos
 vclos env e = return $ VClos env e
 
 app :: Val -> [Clos] -> TypeCheck Val
 app u [] = return $ u
-app u v = do  
-         case (u,v) of
-            (VApp u2 v2,_) -> app u2 (v2 ++ v)
-            (VLam x (VClos env e),(v:vl))  -> do v' <- whnf (VClos (update env x v) e)
-                                                 app v' vl
-            (VPi x _ (VClos env e),(v:vl)) -> do v' <- whnf (VClos (update env x v) e)
-                                                 app v' vl
-            (VDef n,_) -> appDef n v
-            _ -> return $ VApp u v
+app u c = do  
+         case (u,c) of
+            (VApp u2 c2,_) -> app u2 (c2 ++ c)
+            (VLam x (VClos env e),(cl:cls))  -> do v' <- whnf (VClos (updateC env x cl) e)
+                                                   app v' cls
+            (VDef n,_) -> appDef n c
+            _ -> return $ VApp u c
 
 -- unroll a corecursive definition once
-force :: Val -> TypeCheck Val
+force :: Val -> TypeCheck (Maybe Val)
 force v@ (VDef n) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t cl) -> do m <- matchClauses n cl []
-                                   case m of
-                                     Just v' -> return v'
-                                     _ -> return v
-         _ -> return v
+         (FunSig CoInd t cl) -> matchClauses cl []
+                                  
+         _ -> return Nothing
 force v@(VApp (VDef n) vl) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t cl) -> do m <- matchClauses n cl vl
-                                   case m of 
-                                     Just v' -> return v'
-                                     _ -> return v
-         _ -> return v
-force v = return v
-
-
-canForce :: Val -> TypeCheck Bool
-canForce v@ (VDef n) =  
-    do sig <- get
-       case lookupSig n sig of
-         (FunSig CoInd t cl) -> do m <- matchClauses n cl []
-                                   case m of
-                                     Nothing -> return False
-                                     Just v2 -> return True
-         _ -> return False 
-canForce v@(VApp (VDef n) vl) =
-    do sig <- get
-       case lookupSig n sig of
-         (FunSig CoInd t cl) -> do m <- matchClauses n cl vl
-                                   case m of 
-                                     Nothing -> return False
-                                     Just v2 -> return True
-         _ -> return False
-canForce v = return False
+         (FunSig CoInd t cl) -> matchClauses cl vl
+         _ -> return Nothing
+force v = return Nothing
 
 
 appDef :: Name -> [Clos] -> TypeCheck Val
@@ -250,67 +230,71 @@ appDef n vl = --trace ("appDef " ++ n) $
     do
       sig <- get
       case lookupSig n sig of
-        (FunSig Ind t cl) -> do m <- matchClauses n cl vl
+        (FunSig Ind _ cl) -> do m <- matchClauses cl vl
                                 case m of
                                   Nothing -> return $ VApp (VDef n) vl
                                   Just v2 -> return v2
-        _ -> case vl of 
-               [] -> return $ VDef n  
-               _ -> return $ VApp (VDef n) vl   
+        _ -> return $ VApp (VDef n) vl   
 
 ---- Pattern Matching ----
 
-matches :: Name -> Env -> Pattern -> Val -> TypeCheck (Maybe Env)
-matches n env p v = --trace (n ++ " :" ++ show p ++ show v) $ 
-  do 
-    v <- whnf v
-    -- force against coinductive constructor pattern
-    v <- case p of
-           ConP CoInd _ _ -> do v' <- force v
-                                return $ v' 
-           _ -> return v
-    case (p,v) of
-      (DotP _,_) -> return $ Just env
-      (VarP x,_) -> return $ Just (update env x v)
-      (ConP _ x [],VCon _ y) | x== y -> return $ Just env
-      (ConP _ x pl,VApp (VCon _ y) vl) | x == y -> matchesList n env pl vl
-      (_,VInfty) -> matchesInfty env p 
-      (SuccP p',VSucc v') -> matches n env p' v'
-      _ -> return Nothing
-
-matchesInfty :: Env -> Pattern -> TypeCheck (Maybe Env)
-matchesInfty env p = 
-    case p of
-        VarP x -> return $ Just $ update env x VInfty
-        SuccP p' -> matchesInfty env p'
-        _ -> return Nothing
-
-matchesList :: Name -> Env -> [Pattern] -> [Val] -> TypeCheck (Maybe Env)
-matchesList n env [] [] = return $ Just env
-matchesList n env (p:pl) (v:vl) = do m <- matches n env p v 
-                                     case m of 
-                                       Just env' -> matchesList n env' pl vl
-                                       Nothing -> return Nothing
-matchesList _ _ _ _ = return Nothing
-
-matchClauses :: Name -> [Clause] -> [Clos] -> TypeCheck (Maybe Val)
-matchClauses n cl vl = loop cl
+matchClauses :: [Clause] -> [Clos] -> TypeCheck (Maybe Val)
+matchClauses cl cll = loop cl
     where loop [] = return Nothing
           loop  (Clause pl rhs : cl2) = 
-              do x <- matchClause n [] pl rhs vl 
+              do x <- matchClause [] pl rhs cll 
                  case x of
                    Nothing -> loop cl2
                    Just v -> return $ Just v
 
-matchClause :: Name -> Env -> [Pattern] -> Expr -> [Clos] -> TypeCheck (Maybe Val)
-matchClause n env [] rhs vl = do v <- whnf (VClos env rhs)
-                                 v2 <- app v vl
-                                 return $ Just v2
-matchClause n env (p:pl) rhs (v:vl) =
- do  m <- matches n env p v 
+matchClause :: Env -> [Pattern] -> Expr -> [Clos] -> TypeCheck (Maybe Val)
+matchClause env [] rhs cll = do v <- whnf (VClos env rhs)
+                                v2 <- app v cll
+                                return $ Just v2
+matchClause env (p:pl) rhs (cl:cls) =
+ do  v <- whnf cl
+     m <- match env p v 
      case m of
-       Just env ->
-         matchClause n env pl rhs vl
+       Just env' ->
+         matchClause env' pl rhs cls
        Nothing -> return Nothing
 -- too few arguments
-matchClause _ _ _ _ [] = return Nothing
+matchClause _ _ _ [] = return Nothing
+
+match :: Env -> Pattern -> Val-> TypeCheck (Maybe Env)
+match env p v = --trace (n ++ " :" ++ show p ++ show v) $ 
+  do 
+    -- force against coinductive constructor pattern
+    v <- case p of
+           ConP CoInd _ _ -> do f <- force v
+                                case f of
+                                  Nothing -> return v
+                                  Just v' -> return v'
+           _ -> return v
+    case (p,v) of
+      (DotP _,_) -> return $ Just env
+      (VarP x,_) -> return $ Just (updateV env x v)
+      (ConP _ x [],VCon _ y) | x== y -> return $ Just env
+      (ConP _ x pl,VApp (VCon _ y) cll) | x == y -> matchList env pl cll
+      (_,VInfty) -> matchInfty env p 
+      (SuccP p',VSucc v') -> match env p' v'
+      _ -> return Nothing
+
+matchInfty :: Env -> Pattern -> TypeCheck (Maybe Env)
+matchInfty env p = 
+    case p of
+        DotP _ -> return $ Just env
+        VarP x -> return $ Just $ updateV env x VInfty
+        SuccP p' -> matchInfty env p'
+        _ -> return Nothing
+
+matchList :: Env -> [Pattern] -> [Clos] -> TypeCheck (Maybe Env)
+matchList env [] [] = return $ Just env
+matchList env (p:pl) (cl:cll) = do v <- whnf cl
+                                   m <- match env p v 
+                                   case m of 
+                                     Just env' -> matchList env' pl cll
+                                     Nothing -> return Nothing
+matchList _ _ _ = return Nothing
+
+

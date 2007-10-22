@@ -88,7 +88,7 @@ const one : Nat = succ zero
 const two : Nat = succ one
 const three : Nat = succ two
 
-const l1 : List Nat # = cons Nat # two (cons Nat # three (cons Nat # one (nil Nat #)))
+eval const l1 : List Nat # = cons Nat # two (cons Nat # three (cons Nat # one (nil Nat #)))
  
-const sl1 : List Nat # = quicksort # Nat leqN l1
+eval const sl1 : List Nat # = quicksort # Nat leqN l1
 

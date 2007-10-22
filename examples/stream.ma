@@ -158,4 +158,9 @@ twozeroes (cons .Nat .# (succ x) str) = ff
 
 eval const twozeroes'zeroes : Bool = twozeroes (zeroes #) 
 
+data Eq ( A : Set ) : A -> A -> Set
+{
+refl : (a : A) -> Eq A a a 
+}
 
+const zz : Eq (Stream Nat #) (zeroes #) (cons Nat # zero (zeroes #)) = refl (Stream Nat #) (zeroes #) 
