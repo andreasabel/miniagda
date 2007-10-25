@@ -15,10 +15,8 @@ terminationCheckDecl (FunDecl co funs) =
            nl2 = [ n | (n,b) <- tl , b == False ]
        case (and bl) of
          True -> case nl of
-                   [f] -> --do putStrLn ("Termination check for " ++ f ++ " ok")
-                             return True
-                   _ -> --do putStrLn ("Termination check for mutual block" ++ show nl ++ " ok")
-                           return True
+                   [f] -> return True
+                   _ -> return True
          False -> case nl of
                     [f] -> do putStrLn ("Termination check for function " ++ f ++ " fails ") 
                               return False

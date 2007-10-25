@@ -1,12 +1,12 @@
 
-\documentclass[a4paper,11pt]{report}
+\documentclass[a4paper,11pt,openright]{report}
 \usepackage[latin1]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath, amsthm, amssymb}
 \usepackage{graphicx}
 \usepackage{latexsym}
-\usepackage{subfig}
-\usepackage{proof}
+
+\pagestyle{headings}
 
 \newtheorem{thm}{Theorem}[section]
 \newtheorem{cor}[thm]{Corollary}
@@ -25,7 +25,8 @@
 \theoremstyle{remark}
 \newtheorem{rem}[thm]{Remark}
 
-\renewcommand\vec[1]{\overrightarrow{#1}} 
+\newcommand{\vex}[1]{\overrightarrow{#1}} 
+\newcommand{\ves}[1]{{#1}^{\ast}} 
 
 \newcommand{\vsp}{\;\vert\;}
 \newcommand{\Set}{\mathsf{Set}}
@@ -97,6 +98,16 @@
 \newcommand{\Stream}{\mathsf{Stream}\;}
 \newcommand{\tail}{\mathsf{tail}\;}
 \newcommand{\nth}{\mathsf{nth}\;}
+
+\newcommand{\SNat}{\mathsf{SNat}\;}
+\newcommand{\Maybe}{\mathsf{Maybe}\;}
+\newcommand{\nothing}{\mathsf{nothing}\;}
+\newcommand{\just}{\mathsf{just}\;}
+\newcommand{\shift}{\mathsf{shift}\;}
+\newcommand{\shiftcase}{\mathsf{shift\_case}\;}
+\newcommand{\inc}{\mathsf{inc}\;}
+\newcommand{\lop}{\mathsf{loop}\;}
+\newcommand{\lopcase}{\mathsf{loop\_case}\;}
 
 \newcommand{\ones}{\mathsf{ones}\;}
 \newcommand{\unp}{\mathsf{unp}\;}

@@ -57,6 +57,7 @@ typeCheckDeclaration (NoRecDecl (TypeSig n t) cl) =
       checkFun t cl
       sig <- get
       vt <- whnf $ VClos [] t
+      szCheckNoRec 0 vt
       put (addSig sig n (FunSig Ind vt cl) )
   ) `throwTrace` n
 typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs
@@ -561,7 +562,6 @@ flatten subst n =
       do
         let f = map fst subst
         let s = map snd subst
-        let bla = subst !! n
         s' <- mapM (substVal ([subst !! n]) ) s
         let subst' = zip f s'
         flatten subst' (n + 1)
@@ -674,9 +674,10 @@ doParams p k (VPi x av (VClos env b)) = do
 --------------------------------------
 -- check if sizes used correctly in funs and cofuns
 
--- for inductive funs, every size has to be used at least once in a inductive argument
--- and every argument needs to be either inductive or antitone in the size 
--- the result needs to be monotone in the size
+-- for inductive fun, for every size i
+-- - every argument needs to be either inductive or antitone in i 
+-- - the result needs to be monotone or coinductive in i 
+-- - there is at least one argument inductive in i 
 szCheckIndFun :: Int -> TVal -> TypeCheck ()
 szCheckIndFun k tv = 
       case tv of
@@ -690,6 +691,22 @@ szCheckIndFun k tv =
                                            _ -> return ()
                                     szCheckIndFun k' bv
        _ -> return ()
+
+-- for nonrecursive fun, for every size i
+-- - every argument needs to be either inductive or antitone in i 
+-- - the result needs to be monotone or coinductive in i 
+szCheckNoRec :: Int -> TVal -> TypeCheck ()
+szCheckNoRec k tv = 
+      case tv of
+       VPi x av (VClos env b) -> do bv <- whnf $ VClos (updateV env x (VGen k)) b
+                                    let k' = k + 1 
+                                    _ <- case av of
+                                           VSize -> do g <- szCheckIndFunSize k' k 0 bv
+                                                       return ()
+                                           _ -> return ()
+                                    szCheckNoRec k' bv
+       _ -> return ()
+
 
 -- check and return number of "good" (inductive) arguments
 szCheckIndFunSize :: Int -> Int -> Int -> TVal -> TypeCheck Int
@@ -715,8 +732,9 @@ szCheckIndFunSize k i good tv = do
                                False -> throwErrorMsg $ "result not monotone or inductive in size" ++ show i 
 
 
--- for a cofun, the size has to be used in a coinductive result type.
--- and all the arguments are either antitone or inductive in the size
+-- for nonrecursive fun, for every size i
+-- - every argument needs to be either inductive or antitone in i 
+-- - the result needs to be coinductive in i 
 szCheckCoFun :: Int -> TVal -> TypeCheck ()
 szCheckCoFun k tv = 
       case tv of

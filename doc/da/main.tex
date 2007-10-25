@@ -71,16 +71,16 @@
 \newcommand{\cc}{\mathsf{c}}
 \newcommand{\ff}{\mathsf{f}}
 
-\newcommand{\cll}{\mathcal{L}}
-\newcommand{\cdd}{\mathcal{D}}
-\newcommand{\ccc}{\mathcal{C}}
-\newcommand{\cff}{\mathcal{F}}
-\newcommand{\cV}{\mathcal{V}}
+\newcommand{\cll}{\mathbb{L}}
+\newcommand{\cdd}{\mathbb{D}}
+\newcommand{\ccc}{\mathbb{C}}
+\newcommand{\cff}{\mathbb{F}}
+\newcommand{\cV}{\mathbb{V}}
 
-\newcommand{\cS}{\mathcal{S}}
-\newcommand{\cN}{\mathcal{N}}
-\newcommand{\cI}{\mathcal{I}}
-\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cS}{\mathbb{S}}
+\newcommand{\cN}{\mathbb{N}}
+\newcommand{\cI}{\mathbb{I}}
+\newcommand{\cF}{\mathbb{F}}
 \newcommand{\nF}{\mathbf{N}}
 \newcommand{\lF}{\mathbf{L}}
 \newcommand{\rF}{\mathbf{R}}
@@ -95,8 +95,10 @@
 \newcommand{\vlam}{\mathrm{Lam}}
 \newcommand{\vpi}{\mathrm{Pi}}
 \newcommand{\Clos}{\mathrm{Clos}}
+\newcommand{\cl}[2]{#1^{#2}}
+\newcommand{\clp}[2]{\cl{(#1)}{#2}}
 \newcommand{\Env}{\mathrm{Env}}
-\newcommand{\wh}{\mathrm{eval}}
+\newcommand{\wh}{\searrow}
 \newcommand{\ap}{\mathrm{app}}
 \newcommand{\apf}{\mathrm{appFun}}
 \newcommand{\sinfty}{\mathrm{sinfty}}
@@ -109,7 +111,7 @@
 \newcommand{\matchf}{\mathrm{match'}}
 \newcommand{\matchList}{\mathrm{matchList}}
 \newcommand{\matchInfty}{\mathrm{matchInfty}}
-\newcommand{\nothing}{\;\Uparrow}
+\newcommand{\stuck}{\;\Uparrow}
 \newcommand{\Clause}{\mathrm{Clause}}
 \newcommand{\Decl}{\mathrm{Decl}}
 \newcommand{\Pat}{\mathrm{Pat}}
@@ -118,8 +120,8 @@
 
 \begin{figure}[p]
 \caption{MiniAgda syntax}
-Expressions : \[e,t :  \lam x . e \vsp \EPi{x}{t}{t} \vsp e \; \vec{e} \vsp  \Set \vsp x \vsp \cc \vsp \DD \vsp \ff \vsp \dd\]
-Patterns: \[ x  \vsp \cc \; \vec{p} \]
+Expressions : \[e,t :  \lam x . e \mid \EPi{x}{t}{t} \mid e \; \vec{e} \mid  \Set \mid x \mid \cc \mid \DD \mid \ff \mid \dd\]
+Patterns: \[ x  \mid \cc \; \vec{p} \]
 \end{figure}
 
 MiniAgda is a small experimental version of Agda.
@@ -139,95 +141,83 @@ inductive or coinductive
 $ \cS = \{ \sz, \ns \} $ of size kinds to distinguish wether a data type is sized or not
 \end{itemize}
 
-Let $\vec{a}$ denote a (possible empty) list of elements of category $a$
+Let $\vec{a} \in \ves{A} $ denote a (possible empty) list of elements of a set $A$
 and $\diamond$ denote the empty list. $\#\vec{a}$ denotes the size of vector $\vec{a}$.
 
-In the following, we assume sets of identifiers:
-\begin{itemize}
-\item for constructors : $\ccc \ni \cc$ 
-\item for data types : $\cdd \ni \DD $
-\item for functions : $\cff \ni ff$
-\item for defined constants : $\cll \ni \dd$
-\item for variables : $\cV \ni x,y,i$
-\end{itemize}
-Now the various syntactical categories can be defined.
-\\
-Expressions (terms and types) $e,A,B \in \Expr$:  
-\begin{itemize}
-\item
-abstraction: $ \lam x . e $ 
-\item
-dependent function space: $\EPi{x}{A}{B}$ 
-\item 
-application: $ e \; \vec{e} $ 
-\item
-type of all types: $ \Set $ 
-\item
-size type: $ \Size $ 
-\item
-size succesor: $\s e $ 
-\item
-infinity: $\infty$ 
-\item
-variables: $x$
-\item
-defined constructors, data types, functions and constants:
-$ \cc \vsp \DD \vsp \ff \vsp \dd$
-\end{itemize}
-Patterns $p \in \Pat$:
-\begin{itemize}
-\item
-variable pattern: $x$ 
-\item
-constructor pattern:$ \cc \; \vec{p} $ 
-\item
-size succesor pattern:$ \s p $ 
-\item
-inaccessible pattern: $ \inacc{e} $ 
-\end{itemize}
-Declarations $\delta \in \Decl$:
-\begin{itemize}
-\item
-inductive datatype:\\ 
-$\data \; \DD \; \tau : A $\\ 
-$\spc \vec{\gamma}$  
-\item
-coinductive datatype:\\
-$\codata \; \DD \; \tau : A $\\
-$\spc \vec{\gamma}$  
-\item
-inductive function:\\
-$\fun \; \ff \; : \; A$\\
-$\spc \vec{\kappa}$
-\item
-nonrecursive function:\\
-$\norec \; \ff \; : \; A $\\ 
-$\spc \vec{\kappa}$
-\item
-coinductive function:\\
-$\cofun \; \ff \; : \; A $\\
-$\spc \vec{\kappa}$
-\item
-constant:\\
-\[\const \;  \dd \; : A \; = \; e \]
-\item
-mutual declaration:\\
-$\mutual$\\
-$\spc \vec{\delta}$
-\end{itemize}
-Constructor definition $\gamma$:
-\begin{itemize}
-\item
-$ \cc \; : \; A $ 
-\end{itemize}
-Function clause definition $\kappa \in \Clause$:
-\begin{itemize}
-\item
-$\ff \; \vec{p} = e$ 
-\end{itemize}
-Telescopes:
-\[ \tau := \diamond \vsp ( x : t ) \; \tau \vsp ( + \; x : t ) \; \tau \]
+First we assume the following disjunct sets of identifiers.
+\[
+\begin{array}{ll}
+\ccc \ni \cc & \mbox{for constructors}\\
+\cdd \ni \DD & \mbox{for data types}\\
+\cff \ni \ff & \mbox{for functions}\\
+\cll \ni \dd & \mbox{for constants}\\
+\cV \ni x,y,i & \mbox{vor variables}
+\end{array}
+\]
 
+\paragraph*{Expressions}
+\[
+\begin{array}{lrll}
+\Expr \ni e,A,B & ::= & \lam{x}{e} & \mbox{abstraction}\\
+& \mid & \EPi{x}{A}{B} & \mbox{dep function type}\\
+& \mid & e \; \vec{e} & \mbox{application}\\
+& \mid & \Set & \mbox{type of types}\\
+& \mid & \Size & \mbox{size type} \\
+& \mid & \s e  & \mbox{size succesor}\\ 
+& \mid & \infty & \mbox{limit size}\\
+& \mid & x & \mbox{variable}\\
+& \mid & \cc & \mbox{constructor}\\
+& \mid & \DD & \mbox{data type}\\
+& \mid & \ff & \mbox{function}\\
+& \mid & \dd & \mbox{const}
+\end{array}
+\]
+
+\paragraph*{Patterns}
+\[
+\begin{array}{lrll}
+\Pat \ni p & ::= & x & \mbox{variable pattern}\\
+& \mid & \cc \; \vec{p} & \mbox{constructor pattern}\\
+& \mid & \s p & \mbox{size succesor pattern}\\
+& \mid & \inacc{e} & \mbox{inaccessible pattern}\\
+\end{array}
+\]
+
+\paragraph*{Constructor definitions}
+\[
+\begin{array}{lrll}
+\gamma &  ::= & \cc \; : \; A & 
+\end{array}
+\]
+
+\paragraph*{Clause definitions}
+\[
+\begin{array}{lrll}
+\Clause \ni \kappa & ::= & \ff \; \vec{p} = e & 
+\end{array}
+\]
+
+\paragraph*{Data Telescopes}
+\[
+\begin{array}{lrll}
+\tau & ::= & \diamond & \mbox{empty telescope}\\
+& \mid & ( x : t ) \; \tau & \mbox{parameter}\\
+& \mid & ( + \; x : t ) \; \tau & \mbox{strictly positive paramter}
+\end{array}
+\]
+
+\paragraph*{Declarations}
+\[
+\begin{array}{lrll}
+\Decl \ni \delta & ::= & \data \DD \tau : A \vec{\gamma} & \mbox{inductive datatype}\\ 
+& \mid & \codata \DD \tau : A \vec{\gamma} & \mbox{coinductive data type} \\
+& \mid & \fun \ff : A \; \vec{\kappa} & \mbox{recursive function}\\
+& \mid & \norec \ff : A \; \vec{\kappa} & \mbox{nonrecursive function}\\
+& \mid & \cofun \ff : A \; \vec{\kappa} & \mbox{corecursive function}\\ 
+& \mid & \const \dd : A \; = e & \mbox{constant}\\
+& \mid & \mutual \vec{\delta} & \mbox{mutual declaration}
+\end{array}
+\]
 A MiniAgda program $\vec{\delta}$ is a list of declarations.
 We assume a MiniAgda program is correctly scoped, i.e every identifier
 is only declared once and only used after declaration and variables are bound by lambda or variable patterns.
@@ -236,29 +226,46 @@ Each declaration adds newly defined constructs to the signature $\Sig$.
 The signature is empty at the beginning.
 \subsection{Semantic}
 We simultanously define closures, values, environments and signatures.
-\begin{description}
-\item[Closure]
-$ c \in \Clos $:
-\[ c := e \rho \]
-\item[Values]
-$ v \in \Val $:
-\[v := \Set \vsp \Size \vsp v \; \vec{c} \vsp \s v \vsp \infty \vsp \cc \vsp \ff \vsp \vlam \; x \; \rho \vsp \vpi \; x \; v \rho \]
-Of special interested are:
-\begin{itemize}
-\item
-generic variables $k \in \cN $ that are introduced as fresh variables during type checking.
-\item
-lazy application of a value to closures  $ v \; \vec{c}$
-\end{itemize}
-\item[Environments]
-$ \rho \in \Env$ \\
-\[ \rho := \diamond \vsp (x,v) \rho \vsp (x,c) \]
-\item[Signature]
+
+\paragraph*{Closures}
+\[
+\begin{array}{lrll}
+\Clos \ni c & ::= & \cl{e}{\rho} & 
+\end{array}
+\]
+
+\paragraph*{Values}
+\[
+\begin{array}{lrll}
+\Val \ni v & ::= & v \; \vec{c} & \mbox{lazy application}\\
+& \mid & \vlam \; x \; \rho & \mbox{abstraction closure}\\
+& \mid & \vpi \; x \; v \rho & \mbox{dependent function type closure}\\
+& \mid & k & \mbox{generic variables}\\
+& \mid & \Set & \mbox{type of types} \\
+& \mid & \Size & \mbox{size type value}\\
+& \mid & \s v & \mbox{size succesor}\\
+& \mid & \infty & \mbox{size limit}\\
+& \mid & \cc & \mbox{constructor}\\
+& \mid & \ff & \mbox{function symbol}\\
+\end{array}
+\]
+The generic variables $k \in \cN $ are used as fresh variables during type checking.
+Environments
+\paragraph*{Environments}
+\[
+\begin{array}{lrll}
+\Env \ni \rho & ::= & \diamond & \mbox{empty environment}\\
+& \mid & (x,v) \rho & \mbox{extension with value}\\
+& \mid & (x,c) \rho & \mbox{environment wih closure} 
+\end{array}
+\]
+
+\paragraph*{Signatures}
 The signature carries information about the user-defined constants
 We define it as a overloaded function:
 \begin{itemize}
 \item
-$ \Sig : \cff \ra \cI \times \Val \times \vec{\Clause}$\\
+$ \Sig : \cff \ra \cI \times \Val \times \ves{\Clause}$\\
 recording for a function symbol the recursion kind, the type and the defining clauses.
 \item
 $ \Sig : \cll \ra \Expr \times \Val $ \\
@@ -267,181 +274,146 @@ recording for a const definition the expression and its type.
 $ \Sig : \ccc \ra \Val $
 recording for a constructor its type.
 \item
-$ \Sig : \cdd \ra \cN \times \vec{\cN} \times \cS \times \cI \times \Val $\\
+$ \Sig : \cdd \ra \cN \times \ves{\cN} \times \cS \times \cI \times \Val $\\
 recording for a data type the number of parameters, the indices of the strictly positive arguments,
 the size kind, the induction kinds and its type.
 \end{itemize}
-\end{description}
-Now we define a few operations:
-A fixed signature argument is assumed.
-\begin{description}
-\item[weak-head evaluation]:
-\begin{description}
-\item
-$ \wh : \Clos \ra \Val $
-\item
-$ \wh \; \lam{x}{e} \; \rho = \vlam \; x \; (e \rho) $
-\item
-$ \wh \; \EPi{x}{a}{b} \; \rho = \vpi \; x \; v_a (b \rho) $ \\
-where $ v_a = \wh \; a \; \rho $ 
-\item
-$ \wh \; e \vec{e} \; \rho = \ap v \vec{v} $\\
-where $ \vec{v} = \vec{e} \rho $
-\item
-$ \wh \; \Set \; \rho = \Set $ 
-\item
-$ \wh \; \Size \; \rho= \Size $
-\item
-$ \wh \; \infty \; \rho= \infty $ 
-\item
-$ \wh \; \s e \; \rho= \sinfty \; v $ where $ v = \wh \; e $ 
-\item
-$ \wh \; \cc \; \rho= \cc $ 
-\item
-$ \wh \; \ff \; \rho= \ff $
-\item
-$ \wh \; \dd \; \rho = \wh \; e \; \diamond $ where $ \Sig \; \dd = (e,\_) $
-\item
-$ \wh \; x \; \rho = \lkup \; \rho \; x $
-\end{description}
-\item[Infty succesor]:
-\begin{description}
-\item
-$\sinfty : \Val \ra \Val$
-\item
-$\sinfty \; \infty = \infty$
-\item
-$\sinfty \;  x = \s x $ else 
-\end{description}
-\item[Value application]:
-\begin{description}
-\item
-$ \ap : \Val \ra \vec{\Clos} \ra Val$
-\item
-$ \ap \; u \; \diamond = u$
-\item
-$ \ap \; (u \; \vec{c_1}) \; \vec{c_2} = \ap \; u (\vec{c_1}\;\vec{c_2})$
-\item
-$ \ap \; (\vlam \; x \; (e \; \rho)) \; (c \vec{c}) = \ap \; v \; \vec{c}$ \\
-where $ v = \wh \; ( e \; (\ins \; \rho \; x \; c)) $ 
-\item
-$ \ap \; \ff \; \vec{c} = \apf \; \ff \; \vec{c} $ if $ \Sig \; \ff = (\ind,\_)$
-\item
-$ \ap \; v \; \vec{c} = v \; \vec{c} $ if no other rules apply 
-\end{description}
-\item[Environment insert]:  
-\begin{description}
-\item
-$ \ins : \Env \ra \cV \ra ( \Val \cup \Clos ) \ra \Env$ 
-\item
-$ \ins \; \rho \; x \; y = (x,y) \rho$
-\end{description}
-\item[Environment lookup]:
-is guaranteed to suceed if program is well scoped.
-\begin{description}
-\item
-$ \lkup : \Env \ra \cV \ra \Val$
-\item
-$ \lkup \; ((x,v) \rho) \; x = v$ if $v$ is a value
-\item
-$ \lkup \; ((x,c) \rho) \; x = \wh \; c $ if $c$ is a closure
-\item
-$ \lkup \; ((y,z) \rho) \; x = \lkup \; \rho$ if $y \neq x $ 
-\end{description}
-\item[Inductive funcion matching]:
-\begin{description}
-\item
-$\apf : \cV \ra \vec{\Clos} \ra \Val $
-\item
-$\apf \; \ff \; \vec{c} = \matchcls \vec{l} \vec{c} $ if $ \Sig \; \ff = (\ind,\_,\vec{l}) $
-\end{description}
-\item[Corecursive unrolling]:
-\begin{description}
-\item
-$ \forc : \Val \ra \Val $
-\item
-$ \forc \; \ff = \matchcls \vec{l} \diamond$ if $\Sig \; \ff = (\co,\_,\vec{l}) $ 
-\item
-$ \forc \; \ff \; \vec{c} = \matchcls \vec{l} \vec{c}$ $\Sig \; \ff = (\co,\_,\vec{l})$ 
-\item
-$ \forc \; v = v $ otherwise
-\end{description}
-\item[clauses matching]:
-\begin{description}
-\item
-$\matchcls : \vec{\Clause} \ra \vec{\Clos} \ra \Val$
-\item
-$\matchcls \; \_ \; \diamond = \nothing$
-\item
-$\matchcls \;  ((\vec{p} \; e)\;\vec{l}) \vec{c} = v $ 
-if $ v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} $ succeeds
-\item
-$ \matchcls \; ((\vec{p} \; e)\;\vec{l}) \vec{c} = \matchcls \vec{l} \vec{c} $ otherwise  
-\end{description}
-\item[clause matching]:
-\begin{description}
-\item
-$\matchcl : \vec{Clause} \ra \vec{\Pat} \ra \Expr \ra \vec{\Clos} \ra \Val$
-\item
-$\matchcl \; \rho \; \diamond \; e \; \vec{c} = \ap \; v_1 \; \vec{c} $\\
-where $ v = \wh \; e \; \rho$
-\item
-$\matchcl \; \_ \; \_\; \_ \; \diamond = \nothing$
-\item
-$\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) = \matchcl \; \rho_2 \; \vec{p} \; vec{c} $ \\
-if $ \rho_2 = \match p (\wh \; c) $  
-\end{description}
-\item[pattern matching]:
-\begin{description}
-\item
-$\match : \Env \ra \Pat \ra \Val \ra \Env$
-\item
-$\match \; \rho \; p \; v = \matchf \; \rho \; p \; (\forc \; v) $\\
- if $ p = \cc \dots $ where $\cc$ is a coinductive constructor
-\item
-$\match \; \rho \; p \; v = \matchf \; \rho \; p \; v $ otherwise
-\item
-$\matchf : \Env \ra \Pat \ra \Val \ra Env $
-\item
-$\matchf \; \rho \; \inacc{e} \; v = \rho $
-\item
-$\matchf \; \rho \; x \; v = (x,v)\; \rho $
-\item
-$\matchf \; \rho \; (\cc \diamond) \; (\cc) = \rho $
-\item
-$\matchf \; \rho \; (\cc \vec{p}) (\cc \vec{v}) = \matchList \; \rho \; \vec{p} \; \vec{v} $
-\item
-$\matchf \; \rho \; p \; \infty = \matchInfty \, \rho \; p $
-\item
-$\matchf \; \rho \; (\s p) \; (\s v) = \match \rho \rho \; p \; v $
-\item
-$\matchf \; \_ \; \_ \; \_ = \nothing $ otherwise
-\end{description}
-\item[pattern matching against infty]:
-\begin{description}
-\item
-$\matchInfty : \Env \ra \Pat \ra \Env$
-\item
-$\matchInfty \; \rho \; \inacc{e} = \rho$
-\item
-$\matchInfty \; \rho \; x = (x,\infty)\; \rho$
-\item
-$\matchInfty \; \rho \; (\s p)  = \matchInfty \; \rho \; p$
-\item
-$\matchInfty \; \_ \; \_ \; \_ = \nothing $ otherwise
-\end{description}
-\item[pattern matching list]:
-\begin{description}
-\item
-$\matchList : \Env \ra \vec{\Pat} \ra \vec{\Clos} \ra \Env  $
-\item
-$\matchList \; \rho \; \diamond \; \diamond = \rho $
-\item
-$\matchList \; \rho \; (p \; vec{p}) \; (c \; vec{c} = \matchList \rho_2 \vec{p} \vec{v} $\\
-where $ \rho_2 \; = matchList \; \rho \; p \; v $
-\end{description}
+Now we define evaluation. A fixed signature $\Sig$ is assumed.
+\paragraph*{weak-head evaluation}
 
-\end{description}
+
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\wh \; : \Clos \ra \Val}\\
+\wh \clp{\lam{x}{e}}{\rho} & = \vlam \; x \; \cl{e}{\rho} \\
+\wh \clp{\EPi{x}{a}{b}}{\rho} &= \vpi \; x \; v_a \; \cl{b}{\rho} \mbox{ where } v_a = \wh \cl{a}{\rho} \\
+\wh \clp{e \; e_1 \ldots e_n}{\rho} &= \ap \; v \; v_1 \ldots v_n \mbox{ where } v_i = \wh \cl{(e_i)}{\rho} \\
+\wh \cl{\Set}{\rho} & = \Set \\ 
+\wh \cl{\Size}{\rho} & = \Size \\
+\wh \cl{\infty}{\rho} & = \infty  \\
+\wh \clp{\s e}{\rho} & = \sinfty \; v \mbox{ where } \; v = \wh \cl{e}{\rho} \\ 
+\wh \cl{\cc}{\rho} & = \cc  \\
+\wh \cl{\ff}{\rho} & = \ff \\
+\wh \cl{\dd}{\rho} & = \wh \cl{e}{\diamond} \mbox{ where } \; \Sig \; \dd = (e,\_)\\
+\wh \cl{x}{\rho} & = \lkup \; \rho \; x \\
+\end{array}
+\]
+
+\paragraph*{size succesor}
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\sinfty : \Val \ra \Val}\\ 
+\sinfty \; \infty & = \infty\\
+\sinfty \;  x & = \s x  \mbox{ otherwise}\\ 
+\end{array}
+\]
+\paragraph*{application}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\ap : \Val \ra \ves{\Clos} \ra \Val}\\
+\ap \; u \; \diamond & = u \\
+\ap \; (u \; \vec{c_1}) \; \vec{c_2} & = \ap \; u (\vec{c_1}\;\vec{c_2})\\
+\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins \; \rho \; (x,c)} \\ 
+\ap \; \ff \; \vec{c} & = \apf \; \ff \; \vec{c} \mbox{ if } \Sig \; \ff = (\ind,\_) \\
+\ap \; v \; \vec{c} & = v \; \vec{c} \mbox{ otherwise } \\
+\end{array}
+\]
+
+\paragraph*{Environment insert}  
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\ins : \Env \ra \cV \ra ( \Val \cup \Clos ) \ra \Env}\\
+\ins \; \rho \; x \; y & = (x,y) \rho
+\end{array}
+\]
+
+\paragraph*{Environment lookup}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\lkup : \Env \ra \cV \ra \Val }\\
+\lkup \; ((x,v) \rho) \; x & = v \mbox{ if } v \mbox{ is a value} \\
+\lkup \; ((x,c) \rho) \; x & = \wh c \mbox{ if } c \mbox{ is a closure} \\
+\lkup \; ((y,z) \rho) \; x & = \lkup \; \rho \mbox{ if } y \neq x  
+\end{array}
+\]
+
+\paragraph*{Inductive funcion matching}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\apf : \cV \ra \ves{\Clos} \ra \Val}\\
+\apf \; \ff \; \vec{c} & = \matchcls \; \vec{l} \vec{c} \mbox{ if } \Sig \; \ff = (\ind,\_,\vec{l}) 
+\end{array}
+\]
+
+\paragraph*{Corecursive unrolling}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\forc : \Val \ra \Val }\\
+\forc \; \ff & = \matchcls \vec{l} \diamond \mbox{ if } \Sig \; \ff = (\co,\_,\vec{l})  \\
+\forc \; \ff \; \vec{c} & = \matchcls \vec{l} \vec{c} \mbox{ if } \Sig \; \ff = (\co,\_,\vec{l})\\ 
+\forc \; v & = \stuck \mbox{ otherwise}
+\end{array}
+\]
+
+\paragraph*{clauses matching}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\matchcls : \ves{\Clause} \ra \ves{\Clos} \ra \Val}\\
+\matchcls \; \_ \; \diamond & = \stuck \\
+\matchcls \;  ((\vec{p} \; e)\;\vec{l}) \vec{c} & = v \mbox{ if } v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} \\
+\matchcls \; ((\vec{p} \; e)\;\vec{l}) \vec{c} & = \matchcls \vec{l} \vec{c} \mbox{ otherwise}  
+\end{array}
+\]
+
+\paragraph*{clause matching}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\matchcl : \ves{\Clause} \ra \ves{\Pat} \ra \Expr \ra \ves{\Clos} \ra \Val}\\
+\matchcl \; \rho \; \diamond \; e \; \vec{c} & = \ap \; v_1 \; \vec{c} \mbox{ where } v = \wh e \; \rho \\
+\matchcl \; \_ \; \_\; \_ \; \diamond & = \stuck \\
+\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) & = \matchcl \; \rho_2 \; \vec{p} \; vec{c} \mbox{ if } \rho_2 = \match \; p (\wh c)   
+\end{array}
+\]
+
+\paragraph*{pattern matching}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\match : \Env \ra \Pat \ra \Val \ra \Env}\\
+\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v' \\
+& \mbox{ if } p = \cc \vec{p} \mbox{ where } \cc  \mbox{ is a coinductive constructor}\\
+& \mbox{ where } v' = \forc v \\
+\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v \mbox{ otherwise}\\
+\multicolumn{2}{l}{\matchf : \Env \ra \Pat \ra \Val \ra \Env}\\
+\matchf \; \rho \; \inacc{e} \; v & = \rho \\
+\matchf \; \rho \; x \; v & = (x,v)\; \rho \\
+\matchf \; \rho \; (\cc \diamond) \; (\cc) & = \rho \\
+\matchf \; \rho \; (\cc \vec{p}) (\cc \vec{v}) & = \matchList \; \rho \; \vec{p} \; \vec{v} \\
+\matchf \; \rho \; p \; \infty & = \matchInfty \, \rho \; p \\
+\matchf \; \rho \; (\s p) \; (\s v) & = \match \rho \rho \; p \; v \\
+\matchf \; \_ \; \_ \; \_ & = \stuck \mbox{ otherwise}
+\end{array}
+\]
+
+\paragraph*{pattern matching against infty}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\matchInfty : \Env \ra \Pat \ra \Env}\\
+\matchInfty \; \rho \; \inacc{e} & = \rho\\
+\matchInfty \; \rho \; x & = (x,\infty)\; \rho \\
+\matchInfty \; \rho \; (\s p)  & = \matchInfty \; \rho \; p \\
+\matchInfty \; \_ \; \_ \; \_ & = \stuck \mbox{ otherwise}
+\end{array}
+\]
+\paragraph*{pattern matching list}
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\matchList : \Env \ra \ves{\Pat} \ra \ves{\Clos} \ra \Env }\\
+\matchList \; \rho \; \diamond \; \diamond & = \rho \\
+\matchList \; \rho \; (p \; vec{p}) \; (c \; vec{c} & = \matchList \rho_2 \vec{p} \vec{v} \mbox{ where } \rho_2 \; = matchList \; \rho \; p \; v \\
+\end{array}
+\]
+
 \section{Examples}
 \subsection{Identity function}
 Without defining new data types, we still can define some useful non recursive functions.
@@ -613,14 +585,14 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{gather*}
 %%Lam
 \nru{\chklam}
-{\Check{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,v_a)}{e}{\wh \; (t \; \ins \rho (x,k))}}
-{\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \; x \; v_a \; (t \; \rho)}}
+{\Check{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,v_a)}{e}{\wh (t \; \ins \rho (x,k))}}
+{\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \; x \; v_a \; \cl{t}{\rho}}}
 %% Pi
 \\[2ex]
 \nru{\chkpi}
 {\IsType{k}{\rho_1}{\rho_2}{t_1}
 \qquad
-\IsType{k+1}{\ins \; \rho_1 \; (x,k)} {\ins \; \rho_2 \; (x, t_1 \rho)}{t2}
+\IsType{k+1}{\ins \; \rho_1 \; (x,k)} {\ins \; \rho_2 \; (x,\cl{(t_1)}{\rho})}{t2}
 }
 {\Check{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}{\Set}}
 \\[2ex]
@@ -654,10 +626,10 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \\[2ex]
 %% App-1
 \nru{\infappa}
-{\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \; x \; v_a \; (b \; \rho)}
+{\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \; x \; v_a \; \cl{b}{\rho}}
 \qquad \Check{k}{\rho_1}{\rho_2}
 {e_2}{v_a}}
-{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh \; b \; (\ins \; \rho \; (e_2 \; \rho_1))}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh b \; (\ins \; \rho \; \cl{{e_2}}{\rho_1})}}
 %% App-2
 \\[2ex]
 \nru{\infappb}
@@ -687,14 +659,14 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{gather*}
 %% Force L
 \nru{\eqlf}
-{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \nothing 
+{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \stuck 
 \qquad
 f \neq \rF \qquad \FeqVal{\lF}{k}{u_1}{v_2}}
 { \EqVal{f}{k}{v_1}{v_2}}
 %% Force R
 \\[2ex]
 \nru{\eqrf}
-{\forc \; v_1 = \nothing \qquad \forc \; v_2 = u_2 
+{\forc \; v_1 = \stuck \qquad \forc \; v_2 = u_2 
 \qquad
 f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 { \EqVal{f}{k}{v_1}{v_2}}
@@ -739,13 +711,13 @@ f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 \nru{\eqpi}
 {\EqVal{f}{k}{a_1}{a_2}
 \qquad
-\EqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FeqVal{f}{k}{\vpi \; x_1 a_1 (b_1 \rho_1)}{\vpi \; x_2 a_2 (b_2 \rho_2)}}
+\EqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FeqVal{f}{k}{\vpi \; x_1 \; a_1 \; \cl{b_1}{\rho_1}}{\vpi \; x_2 \; a_2 \; \cl{b_2}{\rho_2}}}
 %% Lam
 \\[2ex]
 \nru{\eqlam}
-{\EqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FeqVal{f}{k}{\vlam \; x_1 (b_1 \rho_1)}{\vlam \; x_2 (b_2 \rho_2)}}
+{\EqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FeqVal{f}{k}{\vlam \; x_1 \; \cl{b_1}{\rho_1}}{\vlam \; x_2 \; \cl{b_2}{\rho_2}}}
 %% Def
 \\[2ex]
 \nru{\eqdef}
@@ -763,22 +735,74 @@ f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 \subsubsection{Datatype declarations}
 We require that datatype delcarations are strictly positive.
 Otherwise there are inconsistencys (\cite{paulinmohring93inductive}).
+\newcommand{\nocc}[3]{#1\vdash#2\:\mbox{nocc}\:#3}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{\nocc{k}{i}{v_a} \qquad \nocc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\nocc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+\\[2ex]
+\nru{}
+{\nocc{k}{i}{v} \qquad \nocc{k}{i}{\wh c_j} \mbox{ for all } j \in \{1 \ldots n \}}
+{\nocc{k}{i}{v \; c_1 \ldots c_n}}
+\qquad
+\nru{}
+{\nocc{k}{i}{v}}
+{\nocc{k}{i}{\s v}}
+\\[2ex]
+\nru{}
+{i \neq i'}
+{\nocc{k}{i}{i'}}
+\qquad
+\nrux{}
+{}
+{\nocc{k}{i}{v}}
+{\mbox{otherwise}}
+\end{gather*}
+\caption{Nonoccurence of generic variable i}
+\end{figure}
+
+\newcommand{\spos}[3]{#1\vdash#2\:\mbox{spos}\:#3}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{ \nocc{k}{i}{v_a} \qquad \spos{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\spos{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+\\[2ex]
+\ndru{}
+{\Sig \DD = (\mbox{Pos},\_,\_,\_) \qquad \nocc{k}{i}{\wh v_j} \mbox{ for all } j \in \{1 \ldots m \}} 
+{\spos{k}{i}{\wh p_j} \mbox{ for all } j \in \mbox{Pos} \qquad \nocc{k}{i}{\wh p_j} \mbox{ for all } j \notin \mbox{Pos} } 
+{\spos{k}{i}{\DD p_1 \ldots p_n \; c_1 \ldots c_m}}
+\\[2ex]
+\nru{}
+{\spos{k}{i}{v} \qquad \nocc{k}{i}{\wh c_j} \mbox{ for all } j \in \{1 \ldots n \}}
+{\spos{k}{i}{v \; c_1 \ldots c_n}}
+\\[2ex]
+\nru{}
+{\spos{k}{i}{v}}
+{\spos{k}{i}{\s v}}
+\qquad
+\nrux{}
+{}
+{\spos{k}{i}{v}}
+{\mbox{otherwise}}
+\end{gather*}
+\caption{Strictly positive occurence of generic variable i}
+\end{figure}
+
+In table x we give rules for the strict positiv occurence of a generic variable $i$ in a type value.
+It relies on the non-occurence defined in table y.
+These judgement can be defined analougsly for the occurence of a data identifier $\DD$.
 \begin{definition}
-X appears strictly positive in A if and only if
-\begin{itemize}
-\item
-$ A = X$
-\item
-$ A = ( x : A' ) \ra B $ and X does not occur in $A'$  and appears strictly positive in B
-\item
-$ A = \DD \vec{p} \vec{v} $ and $X$ appears strictly positive in the parameters $\vec{p}$ 
-and $X$ does not occur in $\vec{v}$.
-\end{itemize}
+A constructor $v$ for $\DD$ is strictly positive, if $\spos{0}{\DD}{v}$ and 
+$\spos{0}{i}{v}$ for every $i \in \mbox{Pos}\; {\DD}$  
 \end{definition}
-A delaration for $\DD$ is strictly positive if the $\dd$ and all parameters appear only
-strictly positive in every constructor argument.
-Our definition requires that datatypes are positivly parametrized.
-Later this will be helpfull for subtyping.
+
+Later the information about positive parameters will be usefull for subtyping.
+
+
 
 \begin{bsp}
 $\data \Bad : \Set $ \\
@@ -787,9 +811,8 @@ $\spc \bad : ((\Nat \ra \Bad) \ra \Bad) \ra \Bad  $
 \end{bsp}
 is not allowed because of the non-positive occurence of $\Bad$ in the argument of $\bad$.
 
-
 \begin{bsp}
-$\data \Bad : ( A : \Set ) : \Set $\\
+$\data \Bad : ( + A : \Set ) : \Set $\\
 $\spc \ok : \Bad A$\\
 $\spc \bad : (A \ra \Bad) \ra \Bad A$
 \end{bsp}
@@ -1100,9 +1123,9 @@ For example, splitting a vector of length n, we need to show that there exist j,
 With sized type, we don't need to be that exact.
 \subsection{Sized natural numbers}
 \begin{bsp}
-$\data \Nat : \Size \ra \Set $ \\
-$\zero : \EPi{i}{\Size}{ \Nat \; (\s i)} $\\
-$\suc : \EPi{i}{\Size}{ \Nat \; i \ra \Nat \; (\s i)} $
+$\data \SNat : \Size \ra \Set $ \\
+$\zero : \EPi{i}{\Size}{ \SNat \; (\s i)} $\\
+$\suc : \EPi{i}{\Size}{ \SNat \; i \ra \SNat \; (\s i)} $
 \end{bsp}
 
 \subsection{Great common divisor}
@@ -1169,18 +1192,43 @@ Consider for example the function definition
 
 \begin{bsp}
 $\fun \bad : \EPi{i}{\Size}{\Nat}$\\
-$\spc \bad (\s i) = bad i $ 
+$\spc \bad (\s i) = \bad i $ 
 \end{bsp}
 The termination checker will hapilly tell you that $\bad$ is terminating.
 The issue here is that the size argument is not really bound to any sized data type.
 But there are more subtile difficulties with using the size type.
-See the example in the appendix, due to A. Abel,
-the type of the function shift
+The type of the function $\lop$
 \begin{bsp}
-$\EPi{i}{Size}{\Nat i \ra Maybe (\Nat (s i)) \ra (Nat \ra Maybe (Nat i))} $ 
+$\EPi{i}{\Size}{\SNat i \ra \Maybe (\SNat (\s i)) \ra (Nat \ra \Maybe (\SNat i))} $ 
 \end{bsp}
 needs to be rejected by an admissibility checker.
-Otherwise, a non terminating term can be constructed.
+\begin{figure}
+$\data \Maybe (A : \Set ) : \Set$\\
+$\spc  \nothing : \Maybe A$\\
+$\spc  \just : A \ra\Maybe A$\\
+$\const \Nat : \Set = \SNat \infty$\\
+$\norec \shiftcase : (i : \Size) \ra\Maybe (\SNat (\s i)) \ra\Maybe (\SNat i)$\\
+$\spc \shiftcase i (\nothing .(\SNat (\s i))) = \nothing (\SNat i)$\\
+$\spc \shiftcase .i (\just .(\SNat (\s i)) (\zero i)) = \nothing (\SNat i)$\\
+$\spc \shiftcase .i (\just .(\SNat (\s i)) (\suc i x)) = \just (\SNat i) x$\\
+$\const \shift : (i : \Size) \ra(\Nat \ra\Maybe (\SNat (\s i))) \ra\Nat \ra\Maybe (\SNat i) =$\\ 
+$\spcx \lam{i}{\lam{f}{\lam{n}{\shiftcase i (f (\suc \infty n))}}}$\\
+$\const \inc : \Nat \ra\Maybe \Nat = \lam{n}{\just \Nat (\suc \infty n)}$\\
+$\mutual$\\
+$\spc \fun \lop : (i : \Size ) \ra\SNat i \ra(\Nat \ra\Maybe (\SNat i)) \ra\Bool$\\
+$\spc \spc \lop .(\s i) (\zero i) f = \lopcase (\s i) (\zero i) f (f (\zero i))$\\
+$\spc \spc \lop .(\s i) (\suc i n) f = \lop i n (\shift i f)$\\
+$\spc \fun \lopcase : (i : \Size ) \ra\SNat i \ra(\Nat \ra\Maybe (\SNat i)) \ra\Maybe (\SNat i) \ra\Bool$\\
+$\spc \spc \lopcase i       x f (\nothing .(\SNat i)) = \tt$\\
+$\spc \spc \lopcase .(\s i)  x f (\just .(\SNat (\s i))  (\zero i)) = \tt$\\
+$\spc \spc \lopcase .(\s i)  x f (\just .(\SNat (\s i)) (\suc i y)) = \lop i y (\shift i f) $\\
+$\const diverge : Unit = \lop \infty\; (\zero \infty) \; \inc$\\
+\caption{Loop example}
+\label{loop}
+\end{figure}
+
+Otherwise, the non terminating term diverge can be constructed.
+
 \subsection{Admissibility criterion}
 Gimenez and Barthe deal with monotonicity criterions.
 Abel and Pareto have worked on criterions based on continuity.
@@ -1202,11 +1250,24 @@ for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ th
 \item
 every argument $A_k$ is antitone or inductive in $i$
 \item
+the result $R$ is monotone in $i$  
+\item
 at least one argument $A_k$ is inductive in $i$
+\end{itemize}
+\end{definition}
+For non-recursive definitions, even though they might seem innocent,
+we still have a weakened admissiblity criterion, dropping the last requirement from the above definiton:
+\begin{definition}
+A non-recursive function with type $ A_1 \ra \dots A_n \ra R $ is admissible, if
+for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ the following holds 
+\begin{itemize}
+\item
+every argument $A_k$ is antitone or inductive in $i$
 \item
 the result $R$ is monotone in $i$  
 \end{itemize}
 \end{definition}
+We note that for the rejected example(Figure \ref{loop}) the argument \[\Maybe (\SNat (\s i)\] is not antitone in $i$, which rrenders the functions $\lop$ (and both $ \shiftcase$ and $\lopcase$) non-admissible.
 \subsection{Examples}
 We first give an example to show why we limit the form of what a sized type is.
 Had we definied the sized natural numbers this way:
@@ -1224,16 +1285,34 @@ $\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i \; x$
 In our system, the $\BadNat$ type above is not a sized type, so the function $\foo$ is not admissible because $\BadNat i$ is not inductive in $i$.\\
 For the same reason, the following function definition is also not admissible:
 \begin{bsp}
-$\fun \foo : \EPi{i}{\Size}{\Nat (\s i) \ra \Empty}$\\
+$\fun \foo : \EPi{i}{\Size}{\SNat (\s i) \ra \Empty}$\\
 $\spc \foo \inacc{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$\\
 $\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i x; l$
 \end{bsp}
-While $\Nat$ is a sized type, $\Nat (\s i)$ is not inductive in $i$.
+While $\SNat$ is a sized type, $\SNat (\s i)$ is not inductive in $i$.
 \section{Subtyping for size}
 It would be quite nice to have subtyping on sized data types.
 As we are only interested in size arguments getting smaller, 
 In one call to the function, the size might decrease by one, in another clause, by two.
 It is enough for termination to decrease by one.
+For inductive sized types like $\List$ we want for every size $i$
+\begin{bsp}
+$\List A\; i$ is a subtype of $\List A \; (\s i)$
+\end{bsp}
+and
+\begin{bsp}
+$\List A\; i$ is a subtype of $\List A \; \infty$.
+\end{bsp}
+because for inductive types the size is an upper bound for its height.
+For coinductive sized types like $\Stream$ we want for every size $i$
+\begin{bsp}
+$\Stream (\s i) $ is a subtype of $\Stream i$
+\end{bsp}
+and
+\begin{bsp}
+$\Stream \infty$ is a subtype of $\Stream i$.
+\end{bsp}
+because for coinductive types the size is a lower bound for its definedness.
 There is natural order on size expressions.
 We define a substage relation on size values:
 \[\SzLeq{v_1}{v_2} \subseteq Val \times Val \]
@@ -1251,7 +1330,7 @@ $\leqappd$: subtyping for other data types
 \item
 $\leqpi$: subtyping for function space. 
 \end{itemize}
-\begin{figure}[p]
+\begin{figure}
 \begin{gather*}
 \nru{\sleqinfty}
 {}
@@ -1276,14 +1355,14 @@ $\leqpi$: subtyping for function space.
 \begin{gather*}
 %% Force L
 \nru{\leqlf}
-{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \nothing 
+{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \stuck 
 \qquad
 f \neq \rF \qquad \FleqVal{\lF}{k}{u_1}{v_2}}
 { \LeqVal{f}{k}{v_1}{v_2}}
 %% Force R
 \\[2ex]
 \nru{\leqrf}
-{\forc \; v_1 = \nothing \qquad \forc \; v_2 = u_2 
+{\forc \; v_1 = \stuck \qquad \forc \; v_2 = u_2 
 \qquad
 f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 { \LeqVal{f}{k}{v_1}{v_2}}
@@ -1357,13 +1436,13 @@ f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 \nru{\leqpi}
 {\LeqVal{f}{k}{a_2}{a_1}
 \qquad
-\LeqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FleqVal{f}{k}{\vpi \; x_1 a_1 (b_1 \rho_1)}{\vpi \; x_2 a_2 (b_2 \rho_2)}}
+\LeqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FleqVal{f}{k}{\vpi \; x_1 \; a_1 \; \cl{b_1}{\rho_1}}{\vpi \; x_2 \; a_2 \; \cl{b_2}{\rho_2}}}
 %% Lam
 \\[2ex]
 \nru{\leqlam}
-{\LeqVal{f}{k+1}{\wh \; b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh \; b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FleqVal{f}{k}{\vlam \; x_1 (b_1 \rho_1)}{\vlam \; x_2 (b_2 \rho_2)}}
+{\LeqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\FleqVal{f}{k}{\vlam \; x_1 \; \cl{b_1}{\rho_1}}{\vlam \; x_2 \; (\cl{b_2}{\rho_2}}}
 %% Def
 \\[2ex]
 \nru{\leqdef}

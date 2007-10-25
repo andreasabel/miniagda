@@ -7,6 +7,8 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Error
 
+import Debug.Trace
+
 --scope checker
 -- check if all identifiers are "in scope"
 -- and
@@ -74,13 +76,14 @@ scopeCheckDeclaration (DataDecl n co pos tel t cs) =
        let names = collectTelescopeNames tel
        cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs )
        return $ DataDecl n co pos tel' t' cs'
-scopeCheckDeclaration (FunDecl co funs) = do mapM (scopeCheckFunName . fst ) funs
+scopeCheckDeclaration (FunDecl co funs) = 
+                                          do mapM (scopeCheckFunName . fst ) funs
                                              tsl' <- mapM (scopeCheckFunSig . fst ) funs  
                                              cll' <- mapM ((mapM scopeCheckClause) . snd ) funs
                                              return $ FunDecl co (zip tsl' cll') 
-scopeCheckDeclaration (ConstDecl b ts e) =  do ts' <- scopeCheckTypeSig ConstK ts
-                                               e' <- scopeCheckExpr e
-                                               return $ ConstDecl b ts' e'
+scopeCheckDeclaration (ConstDecl b ts e) =  do  e' <- scopeCheckExpr e
+                                                ts' <- scopeCheckTypeSig ConstK ts
+                                                return $ ConstDecl b ts' e'
 scopeCheckDeclaration (NoRecDecl ts cs) = do cs' <- mapM scopeCheckClause cs
                                              scopeCheckFunName ts
                                              ts' <- scopeCheckFunSig ts  

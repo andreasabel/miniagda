@@ -1,4 +1,4 @@
--- incomplete pattern match
+-- size no used
 fun foo : Size -> Set
 {
 foo ($ i) = foo i

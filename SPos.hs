@@ -18,7 +18,7 @@ sposConstructor n k spos tv =
     case tv of
          VPi x av (VClos env b) -> do 
                                     spr <- sposRecArg 0 n av
-                                    spv <- sposVars (posGen 0spos) av
+                                    spv <- sposVars (posGen 0 spos) av
                                     case (spr,spv) of
                                       (True,True) -> do bv <- vclos (updateV env x (VGen k)) b
                                                         bv <- whnf bv
@@ -47,8 +47,7 @@ sposVar k i tv = -- trace ("sposVar " ++ show tv) $
                  n <- noccVar k i av
                  case n of
                    True -> do
-                        bv <- vclos (updateV env x (VGen k)) b
-                        bv <- whnf bv
+                        bv <- whnf $ VClos (updateV env x (VGen k)) b
                         sposVar (k+1) i bv
                    False -> return False
          (VApp (VDef m) cls) -> do
@@ -65,10 +64,10 @@ sposVar k i tv = -- trace ("sposVar " ++ show tv) $
                       _ -> do nl <- mapM (noccVar k i) vl
                               return $ and nl
          (VApp v cls) -> do
-                 no <- noccVar k i v
+                 sp <- sposVar k i v
                  vl <- mapM whnf cls
                  nl <- mapM (noccVar k i) vl
-                 return $ no && and nl
+                 return $ sp && and nl
          (VSucc v) -> sposVar k i v
          _ -> return $ True
 

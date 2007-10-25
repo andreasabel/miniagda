@@ -44,6 +44,11 @@ norec tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 tail .A .i (cons A i a as) = as
 }
 
+norec bad : ( A : Set ) -> (i : Size ) -> Stream A i -> Stream A i
+{
+tail .A .($ i) (cons A i a as) = as
+}
+
 eval const twos' : Stream Nat # = tail Nat # twos
 
 norec head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
