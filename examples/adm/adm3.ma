@@ -17,3 +17,13 @@ loop ($ i) x = loop i (bla i x)
 }
 
 eval const diverge : Set = loop # (zero #)
+
+{- -- case nat
+
+nonrec deconstruct_nat : (i : Size) -> SNat ($ i) -> Maybe (SNat i)
+{
+ deconstruct_nat i (zero i) = nothing;
+ deconstruct_nat i (succ i n) = just n
+}
+
+-}

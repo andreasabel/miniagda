@@ -41,3 +41,20 @@ mutual
 }
 
 const revlist : List Enum = rev Enum list
+
+{-
+
+fun vecToList : {A : Set} -> {n : Nat} -> Vec A n -> List A
+{
+  vecToList {A} {.zero}     (nil {A}) = (nil {A});
+  vecToList {A} {.(succ n)} (cons {A} {n} a as) 
+    = cons {A} a (vecToList {A} {n} as)
+} 
+
+fun listToVec : {A : Set} -> (l : List A) -> Vec A {length l}
+{
+  listToVec {A} (nil {A}) = nil {A};
+  listToVec {A} (cons {A} a as) = cons {A} {length as} a (listToVec {A} as)
+}
+
+-}

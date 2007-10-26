@@ -12,10 +12,14 @@ add (succ x) y = succ (add x y)
 
 data Vec (A : Set ) : Nat -> Set
 {
-	nil : Vec A zero;
+	nil  : Vec A zero;
 	cons : (n : Nat) -> A -> Vec A n -> Vec A (succ n)
 }
 
+norec length : (A : Set) -> (n : Nat) -> Vec A n -> Nat
+{
+  length A n v = n
+}
 
 fun head : (A : Set ) -> (n : Nat ) -> Vec A (succ n) -> A 
 {

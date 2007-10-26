@@ -8,11 +8,14 @@ module Lexer where
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
+$u = [\0-\255]                  -- universal: any character
 
 tokens :-
 
 $white+				;
 "--".*				;
+"{-" ([$u # \-] | \- [$u # \}])* ("-")+ "}" ; 
+
 
 
 data				{ tok (\p s -> Data p) }
