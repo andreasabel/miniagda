@@ -22,7 +22,6 @@ data				{ tok (\p s -> Data p) }
 codata				{ tok (\p s -> CoData p) }
 fun				{ tok (\p s -> Fun p) }
 cofun				{ tok (\p s -> CoFun p) }
-norec				{ tok (\p s -> NoRec p) }
 const				{ tok (\p s -> Const p) }
 eval				{ tok (\p s -> Eval p)}
 mutual				{ tok (\p s -> Mutual p) }
@@ -54,8 +53,7 @@ data Token = Id String AlexPosn
 	   | Mutual AlexPosn
            | Fun AlexPosn
            | CoFun AlexPosn
-	   | NoRec AlexPosn
-           | Const AlexPosn
+	   | Const AlexPosn
            | Set AlexPosn 
 	   | Eval AlexPosn
            -- size type
@@ -86,7 +84,6 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Mutual p -> ("mutual",p)
     Fun p -> ("fun",p)
     CoFun p -> ("cofun",p)
-    NoRec p -> ("norec",p)
     Const p -> ("const",p)
     Eval p -> ("eval",p)
     Set p -> ("Set",p)

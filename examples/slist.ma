@@ -35,8 +35,6 @@ mutual
 
 	}
 
-
-
 	fun rev2 : ( i : Size ) -> (A : Set ) -> A -> SList A i -> SList A i
 	{
 
@@ -78,14 +76,12 @@ ite A tt x y = x;
 ite A ff x y = y
 }
 
--- merge sort
-
 fun split : (A : Set) -> 
             (i : Size) -> SList A i -> Prod (SList A i)
 {
 split .A .($ i) (nil A i) = prod (SList A ($ i)) (nil A i) (nil A i);
 
-splt .A .($ ($ i)) (cons .A .($ i) a (nil A i)) = prod (SList A ($ ($ i))) (cons A ($ i) a (nil A i)) (nil A i);
+split .A .($ ($ i)) (cons .A .($ i) a (nil A i)) = prod (SList A ($ ($ i))) (cons A ($ i) a (nil A i)) (nil A i);
 
 split .A .($ ($ i)) (cons A .($ i) a (cons .A i b as)) = prod (SList A ($( $ i)))
 	(cons A ($ i) a (pr1 (SList A (i)) (split A i as)))
@@ -109,11 +105,13 @@ fun msort : (A : Set) -> (leq : A -> A -> Bool) ->
 {
   msort .A leq .($ j) (nil A j) = nil A # ;
 
-  msort .A leq .($ ($ i)) (cons A ($ i) a (nil .A .i)) = (cons A ($ i) a (nil A i)) ;
+  msort .A leq .($ ($ i)) (cons .A .($ i) a (nil A i)) = (cons A ($ i) a (nil A i)) ;
 
-  msort .A leq .($ ($ i)) (cons A ($ i) a (cons .A .i b as)) =
+  msort .A leq .($ ($ i)) (cons .A .($ i) a (cons A i b as)) =
     merge A leq (msort A leq ($ i) (cons A i a (pr1 (SList A i) (split A i as))))
                 (msort A leq ($ i) (cons A i b (pr2 (SList A i) (split A i as))))
 
 }
+
+
 

@@ -1,6 +1,6 @@
 # Makefile for miniagda
 
-files=Tokens Lexer Parser Abstract ScopeChecker TypeChecker Value Termination TermCheck2 SPos
+files=Tokens Lexer Parser Abstract ScopeChecker TypeChecker Value Termination SPos
 hsfiles=$(foreach file,$(files),$(file).hs)
 ghcflags=
 

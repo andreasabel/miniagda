@@ -16,7 +16,7 @@ data Vec (A : Set ) : Nat -> Set
 	cons : (n : Nat) -> A -> Vec A n -> Vec A (succ n)
 }
 
-norec length : (A : Set) -> (n : Nat) -> Vec A n -> Nat
+fun length : (A : Set) -> (n : Nat) -> Vec A n -> Nat
 {
   length A n v = n
 }

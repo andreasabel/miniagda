@@ -28,41 +28,38 @@ wkNatInfty .($ i) (zero i) = zero #;
 wkNatInfty .($ i) (succ i n) = succ # (wkNatInfty i n)
 }
 
---fun add : ( i : Size) -> SNat i -> SNat # -> SNat #
-fun add : ( i : Size) -> ( j : Size ) -> SNat i -> SNat j -> SNat #
+fun add : ( i : Size) -> SNat i -> SNat # -> SNat #
 {
 
-add .($ i) j (zero i) y = y; 
-add .($ i) j (succ i x) y = succ # (add i j x y) 
+add .($ i) (zero i) y = y; 
+add .($ i) (succ i x) y = succ # (add i x y) 
 
 }
 
-eval const four : SNat # = add # # two two
-const six : SNat # = add # # four two
+eval const four : SNat # = add # two two
+const six : SNat # = add # four two
 
--- fun minus : (i : Size ) -> SNat i -> SNat # -> SNat i
-fun minus : (i : Size ) -> (j : Size ) -> SNat i -> SNat j -> SNat i
+fun minus : (i : Size ) -> SNat i -> SNat # -> SNat i
 {
 
-minus .($ i) j       (zero i)    y           = zero i;
-minus i      .($ j)  x           (zero j )  = x ;
-minus .($ i) .($ j)  (succ i x)  (succ j y) = minus i j x y
+minus .($ i) (zero i)    y          = zero i;
+minus i      x           (zero .#)  = x ;
+minus .($ i) (succ i x)  (succ .# y) = minus i x y
 
 }
 
-const min4_2 : SNat # = minus # #  four two
+const min4_2 : SNat # = minus #  four two
 
 -- not structurally recursive without sizes ... 
-fun div : ( i : Size ) -> ( j : Size ) ->  SNat i -> SNat j -> SNat i
+fun div : ( i : Size )  ->  SNat i -> SNat # -> SNat i
 {
-
-div .($ i) j      (zero i)   y           = zero i ;
-div .($ i) .($ j) (succ i x) (zero j)    = zero i ;
-div .($ i) .($ j) (succ i x) (succ j y)  = succ i (div i ($ j) (minus i j x y) (succ j y))
+div ($ .i) (zero i)   y            = zero i ;
+div ($ .i) (succ i x) (zero .#)    = zero i ;
+div ($ .i) (succ i x) (succ .# y)  = succ i (div i (minus i x y) (succ # y))
 
 }
 
-eval const div4_4 : SNat # = div # # four four
+eval const div4_4 : SNat # = div # four four
 
 
 fun compare : (i : Size ) -> (j : Size ) -> (SNat i) -> (SNat j)
@@ -79,8 +76,8 @@ gcd .($ i)  j      (zero i)   y          = y;
 gcd .($ i)  .($ j) (succ i x) (zero j)   = x ;
 gcd .($ i)  .($ j) (succ i x) (succ j y) = 
     compare i j x y (SNat #)
-               (gcd i ($ j) (minus i j x y) (succ j y))         
-               (gcd ($ i) j (succ i x) (minus j i y x))
+               (gcd i ($ j) (minus i x y) (succ j y))         
+               (gcd ($ i) j (succ i x) (minus j y x))
 }
 
 const gcd6_4 : SNat # = gcd # # six four
@@ -97,7 +94,7 @@ subst .A P .a .a (refl A a) p = p
 }
 
 const Nat : Set = SNat #
-const add' : Nat -> Nat -> Nat = add # #
+const add' : Nat -> Nat -> Nat = add #
 
 const plus_1_0_is_1 : Eq Nat (add' one z) one = refl Nat one
 

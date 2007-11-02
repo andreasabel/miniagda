@@ -8,7 +8,6 @@ import Abstract
 import ScopeChecker
 import TypeChecker
 import Value
-import TermCheck2
 
 import System
 
@@ -25,8 +24,6 @@ main = do
   ast <- return $ parse t
   putStrLn ("--- scope checking ---")
   ast2 <- return $ doScopeCheck ast
-  putStrLn ("--- termination checking ---")
-  _ <- termCheckAll ast2  
   putStrLn ("--- type checking ---")
   tc <- doTypeCheck ast2
   case tc of
@@ -54,10 +51,6 @@ showConst :: Signature -> (Name,Clos) -> String
 showConst sig (n,v) = let Right (str,_) = whnfClos sig v 
                       in
                         n ++ " evaluates to " ++ str
-
-termCheckAll :: [Declaration] -> IO ()
-termCheckAll dl = do _ <- mapM terminationCheckDecl dl
-                     return  ()
 
 doTypeCheck :: [Declaration] -> IO (Maybe Signature)
 doTypeCheck decl = do let k = typeCheck decl

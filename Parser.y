@@ -18,7 +18,6 @@ codata  { T.CoData _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
-norec   { T.NoRec _ }
 const   { T.Const _ }
 eval    { T.Eval _ }
 set     { T.Set _ }
@@ -53,7 +52,6 @@ Declaration : Data { $1 }
            | CoData { $1 }
            | mFun { $1 }
            | mCoFun { $1 }
-           | NoRec { $1}
            | Const { $1 }
 
 Data :: { A.Declaration }
@@ -68,9 +66,6 @@ CoData : codata Id DataTelescope ':' Expr '{' Constructors '}'
 
 Fun :: { (A.TypeSig,[A.Clause]) }
 Fun : fun TypeSig '{' Clauses '}' { ($2,(reverse $4)) }
-
-NoRec :: { A.Declaration}
-NoRec : norec TypeSig '{' Clauses '}' { A.NoRecDecl $2 (reverse $4) }  
 
 Funs :: { [(A.TypeSig,[A.Clause])] }
 Funs : Fun { [$1] }

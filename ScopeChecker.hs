@@ -84,10 +84,6 @@ scopeCheckDeclaration (FunDecl co funs) =
 scopeCheckDeclaration (ConstDecl b ts e) =  do  e' <- scopeCheckExpr e
                                                 ts' <- scopeCheckTypeSig ConstK ts
                                                 return $ ConstDecl b ts' e'
-scopeCheckDeclaration (NoRecDecl ts cs) = do cs' <- mapM scopeCheckClause cs
-                                             scopeCheckFunName ts
-                                             ts' <- scopeCheckFunSig ts  
-                                             return $ NoRecDecl ts' cs'
 
 scopeCheckFunName :: TypeSig -> ScopeCheck ()
 scopeCheckFunName a@(TypeSig n t) = 

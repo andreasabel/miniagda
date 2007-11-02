@@ -34,7 +34,6 @@ instance Show Expr where
 data Declaration = DataDecl Name Co [Pos] Telescope Type [Constructor]
                  | FunDecl Co [(TypeSig,[Clause])] -- may be mutually recursive
                  | ConstDecl Bool TypeSig Expr -- bool = if eval
-                 | NoRecDecl TypeSig [Clause]
                    deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type

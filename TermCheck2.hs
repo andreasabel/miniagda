@@ -5,29 +5,31 @@ import Abstract
 import Termination
 
 import qualified Data.Set as Set
+import qualified Data.List as List
 import Debug.Trace
 
-terminationCheckDecl :: Declaration -> IO Bool
-terminationCheckDecl (FunDecl co funs) =
-    do let tl = terminationCheckFuns funs
+terminationCheckDecl :: Declaration -> [[Int]] -> Bool
+terminationCheckDecl (FunDecl co funs) adml =
+    trace ("adm " ++ show adml) $
+       let tl = terminationCheckFuns funs adml
            nl = map fst tl
            bl = map snd tl
            nl2 = [ n | (n,b) <- tl , b == False ]
-       case (and bl) of
-         True -> case nl of
-                   [f] -> return True
-                   _ -> return True
-         False -> case nl of
-                    [f] -> do putStrLn ("Termination check for function " ++ f ++ " fails ") 
-                              return False
-                    _   -> do putStrLn ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2)
-                              return False
-terminationCheckDecl _ = return True
+       in case (and bl) of
+            True -> case nl of
+                      [f] -> True
+                      _ -> True
+            False -> case nl of
+                    [f] -> trace ("Termination check for function " ++ f ++ " fails ") $
+                                    False
+                    _   -> trace ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) $
+                                    False
 
 
-terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [(Name,Bool)]
-terminationCheckFuns funs =
-    let beh = recBehaviours funs
+
+terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [[Int]] -> [(Name,Bool)]
+terminationCheckFuns funs adml =
+    let beh = recBehaviours funs adml
     in
       zip (map fst beh) (map (checkAll . snd ) beh )
 ---
@@ -89,54 +91,58 @@ isDecrO Lt = True
 isDecrO (Mat m) = any isDecrO (diag m)
 isDecrO _ = False
 
-recBehaviours :: [ (TypeSig, [Clause] ) ] -> [(Name,[CallGraph])]
-recBehaviours funs = let names = collectNames (map fst funs)
-                         cg = ccFunDecl funs
-                     in groupCalls names [ c | c <- cg , (target c == source c) ]
+recBehaviours :: [ (TypeSig, [Clause] ) ] -> [[Int]] -> [(Name,[CallGraph])]
+recBehaviours funs adml = let names = collectNames (map fst funs)
+                              cg = ccFunDecl funs adml
+                          in groupCalls names [ c | c <- cg , (target c == source c) ]
 
 groupCalls :: [Name] -> [CallGraph] -> [(Name,[CallGraph])]
 groupCalls [] _ = []
 groupCalls (n:nl) cl = (n, [ c | c <- cl , (source c == n) ]) : groupCalls nl cl
 
-ccFunDecl :: [ ( TypeSig,[Clause]) ] -> [CallGraph]
-ccFunDecl = Set.toList . complete . Set.fromList . collectCGFunDecl
+ccFunDecl :: [ ( TypeSig,[Clause]) ] -> [[Int]] -> [CallGraph]
+ccFunDecl funs adml = Set.toList $ complete $ Set.fromList $ collectCGFunDecl funs adml
 
-collectCGFunDecl :: [(TypeSig,[Clause])] -> [CallGraph]
-collectCGFunDecl funs =
+collectCGFunDecl :: [(TypeSig,[Clause])] -> [[Int]] -> [CallGraph]
+collectCGFunDecl funs adml =
     let names = collectNames (map fst funs)
     in
       concatMap (collectClauses names) funs
           where
             collectClauses names ((TypeSig n _),cll) = collectClause names n cll
             collectClause names n ((Clause pl rhs):rest) = 
-                (collectCallsExpr names n pl rhs) ++ (collectClause names n rest) 
+                (collectCallsExpr names n adml pl rhs) ++ (collectClause names n rest) 
             collectClause names n [] = []
 
 collectNames [] = []                                     
 collectNames ((TypeSig n e):rest) = n : collectNames rest
 
 -- pre : all clauses have same pattern length
-collectCallsExpr :: [Name] -> Name -> [Pattern] -> Expr -> [CallGraph]
-collectCallsExpr nl f pl e =
+collectCallsExpr :: [Name] -> Name -> [[Int]] -> [Pattern] -> Expr -> [CallGraph]
+collectCallsExpr nl f adml pl e =
     case e of
-      (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f pl) args
+      (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f adml pl) args
                                 gIn = elem g nl 
                             in
                               case gIn of
                                 False -> calls
-                                True -> let m = compareArgs pl args
+                                True -> let (Just f') = List.elemIndex f nl
+                                            (Just g') = List.elemIndex g nl
+                                            admf = adml !! f'
+                                            admg = adml !! g'
+                                            m = compareArgs pl args admf admg
                                             el = Set.fromList $ matrixToEdges m 
                                             cg = CG { source = f
                                                     , target =  g
                                                     , edges = el
                                                     , path = ["<" ++ f ++ g ++ ">" ]}
                                         in cg:calls
-      (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
-      (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
-      (Lam _ e1) -> collectCallsExpr nl f pl e1
-      (Pi _ e1 e2) -> (collectCallsExpr nl f pl e1) ++
-                              (collectCallsExpr nl f pl e2)
-      (Succ e1) -> collectCallsExpr nl f pl e1
+      (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) []) 
+      (App e args) -> concatMap (collectCallsExpr nl f adml pl) (e:args)
+      (Lam _ e1) -> collectCallsExpr nl f adml pl e1
+      (Pi _ e1 e2) -> (collectCallsExpr nl f adml pl e1) ++
+                              (collectCallsExpr nl f adml pl e2)
+      (Succ e1) -> collectCallsExpr nl f adml pl e1
       _ -> []
 
 matrixToEdges :: [[Order]] -> [Edge]

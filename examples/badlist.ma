@@ -8,22 +8,12 @@ data Empty : Set
 {
 }
 
-fun foo : (i : Size ) -> List i -> Empty
+fun foo : (i : Size ) -> List i -> List i
 {
-foo .($ i) (nil ($ i)) = foo i (nil i);
-foo .($ i) (cons i l) = foo i l
+foo .i (nil i) = foo i (nil i);
+foo .($ i) (cons .i (nil i)) = foo i (nil i);
+foo .($ i) (cons i xl) = foo i xl
 }
 
-eval const loop : Empty = foo # (nil #)
+eval const loop : List # = foo # (nil #)
 
-data Bla : Set
-{
-bla : Bla
-}
-
-fun b : Bla -> Bla
-{
-b x = b x
-}
-
---eval const loop2 : Bla = b bla

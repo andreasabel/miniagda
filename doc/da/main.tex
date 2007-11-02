@@ -7,8 +7,11 @@
 \newcommand{\nru}[3]{#1\ \ru{#2}{#3}}
 \newcommand{\nrux}[4]{#1\ \ru{#2}{#3}\ #4}
 \newcommand{\dstack}[2]{\begin{array}[b]{c}#1\\#2\end{array}}
+\newcommand{\xstack}[3]{\begin{array}[b]{c}#1\\#2\\#3\end{array}}
 \newcommand{\ndru}[4]{#1\ \ru{\dstack{#2}{#3}}{#4}}
+\newcommand{\nxru}[5]{#1\ \ru{\xstack{#2}{#3}{#4}}{#5}}
 \newcommand{\ndrux}[5]{#1\ \ru{\dstack{#2}{#3}}{#4}\ #5}
+
 
 % rule names
 
@@ -41,6 +44,11 @@
 \newcommand{\eqlam}{\rulename{eq-lam}}
 \newcommand{\eqdef}{\rulename{eq-def}}
 \newcommand{\eqcon}{\rulename{eq-con}}
+
+\newcommand{\chkpvar}{\rulename{chkp-var}}
+\newcommand{\chkpcon}{\rulename{chkp-con}}
+\newcommand{\chkpsucc}{\rulename{chkp-succ}}
+\newcommand{\chkpinacc}{\rulename{chkp-inacc}}
 
 \newcommand{\leqnf}{\rulename{leq-nf}}
 \newcommand{\leqlf}{\rulename{leq-lf}}
@@ -802,8 +810,6 @@ $\spos{0}{i}{v}$ for every $i \in \mbox{Pos}\; {\DD}$
 
 Later the information about positive parameters will be usefull for subtyping.
 
-
-
 \begin{bsp}
 $\data \Bad : \Set $ \\
 $\spc \ok : \Bad$\\
@@ -820,6 +826,357 @@ is not allowed because of the negative occurence of $A$ in the argument of $\bad
 
 \subsubsection{Function declarations}
 
+\newcommand{\subst}[2]{#1\{#2\}}
+\newcommand{\substClos}[2]{#1\{#2\}}
+\newcommand{\substEnv}[2]{#1\{#2\}}
+\newcommand{\compS}[2]{\mathrm{compS}#1\;#2}
+
+\begin{definition}
+A substitution $\sigma : \ves{(\cN \times \Val)} $ denotes a partial mapping of generic variables to values.
+$\diamond$ is the empty substitution.
+$\sigma[k \rightarrow v] $ maps $k$ to $v$ and all other variables according to $\sigma$
+\end{definition}
+We define simultaneously the application of a substitution on values,closures and environments.
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\subst{\_}{\_} : \ves{(\cN \times \Val)} \ra \Val \ra \Val} \\
+\subst{\sigma}{k} & = v \mbox{ if } (k,v) \in \sigma \\
+\subst{\sigma}{v cl_1 \ldots cl_n} & = \subst{\sigma}{v} \substClos{\sigma}{c_1} \ldots \substClos{\sigma}{c_n}\\
+\subst{\sigma}{\s v} & = \s \subst{\sigma}{v} \\
+\subst{\sigma}{\vpi x v_a \cl{b}{\rho}} & = \vpi x \subst{\sigma}{a_v} \cl{b}{\subst{\sigma}{\rho}} \\
+\subst{\sigma}{\vlam x \cl{b}{\rho}} & = \vpi x \cl{b}{\subst{\sigma}{\rho}} \\
+\subst{\sigma}{v} & = v \mbox{ othewise }
+\end{array}
+\]
+
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\substClos{\_}{\_} : \ves{(\cN \times \Val)} \ra \Clos \ra \Clos} \\
+\substClos{\sigma}{\cl{e}{\rho}} & = \cl{e}{\substEnv{\sigma}{\rho}} 
+\end{array}
+\]
+
+
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\substEnv{\_}{\_} : \ves{(\cN \times \Val)} \ra \Env \ra \Val} \\
+\substEnv{\sigma}{\diamond} & = \diamond \\
+\substEnv{\sigma}{(x,v)\rho} & = (x,\subst{\sigma}{v}) \substEnv{\sigma}{\rho} \\
+\substEnv{\sigma}{(x,c)\rho} & = (x,\substClos{\sigma}{c}) \substEnv{\sigma}{\rho}
+\end{array}
+\]
+
+Now we define composition of two substitutions $\sigma_1$ and $\sigma_2$.
+It is assumed that the domains of the substituions are disjunct and
+ther are no occurences of the variables of $\sigma_1$ in the values of the codomain of $\sigma_2$.  
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\compS : \ves{(\cN \times \Val)} \ra \ves{(\cN \times \Val)} \ra \ves{(\cN \times \Val)}} \\
+\compS{\sigma_1}{\sigma_2} & =  \sigma'_1 \sigma_2 \mbox{ where } (x,\subst{\sigma_2}{v}) \in \sigma'_1 \mbox{ iff } (x,v) \in \sigma_1 \\
+\end{array}
+\]
+
+\newcommand\checkcl[2]{#1\mbox{ \textbf{checkcl}}#2}
+\newcommand\checkp[5]{(#1)\vdash#2\mbox{ \textbf{checkp} }#3\Rightarrow (#4),#5}
+\newcommand\checkps[5]{(#1)\vdash#2\mbox{ \textbf{checkps} }#3\Rightarrow (#4),#5}
+\newcommand\checkinacc[2]{(#1)\vdash\mbox{ \textbf{checkinaccs} }#2}
+\newcommand\inst[5]{#1,#2\vdash#3\mbox{ \textbf{inst} }#4\Rightarrow #5}
+\newcommand\instlist[5]{#1,#2\vdash#3\mbox{ \textbf{instList} }#4\Rightarrow #5}
+
+\newcommand\ptc{\mathrm{p2c}}
+\newcommand\inaccenv{\mathrm{inaccEnv}}
+\newcommand\pte{\mathrm{p2e}}
+\newcommand\pstes{\mathrm{ps2es}}
+
+
+\[
+\checkp{(k,f,\sigma,\rho_1,\rho_2)}{p}{v}{(k',f',\sigma',\rho'_1,\rho'_2,v')}
+\]
+
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\ptc : \cN \times \Env \times \ves{\cN} \times \Pat \ra \Clos}\\
+\ptc k \rho f p & = \cl{e}{\rho_2} \mbox{ where } \\
+& (e,k') = \pte k p \\
+& \rho_2 = \inaccenv \rho k f \\
+\multicolumn{2}{l}{\pte : \cN \times \Pat \ra (\Expr,k)}\\
+\pte k x & = (x,k+1) \\
+\pte k (\cc \diamond) & = (\cc,k) \\
+\pte k (\cc \vec{p}) & = (\cc \vec{e},k') \mbox{ where } (\vec{e},k') = \pstes k \vec{p}\\
+\pte k (\s p) & = (\s e,k') \mbox{ where } (e,k') = \pte k p\\
+\pte k \inacc{e} & = (i_k,k+1) \\
+\multicolumn{2}{l}{\inaccenv : \Env \times \cN \times \ves{cN} \ra \Env}\\
+\inaccenv \rho k \diamond & = \rho \\
+\inaccenv \rho k (f \vec{f}) & = \inaccenv \rho k \vec{f} \mbox{ if } f < k  \\
+\inaccenv \rho k (f \vec{f}) & = \ins (i_f,f) (\inaccenv \rho k \vec{k}) \mbox { if } f \geq k 
+\end{array}
+\]
+
+\begin{figure}
+\begin{gather*}
+\ndru{}
+{\checkps
+{0,\diamond,\diamond,\diamond,\diamond}
+{\vec{p}}{v_t}{k,f,\sigma,\rho_1,\rho_2}{v_e}}
+{\checkinacc{k,\sigma,\rho_2}{f} 
+\qquad
+\Check{k}{\rho_1}{\rho_2}{e}{v_e}
+}
+{
+\checkcl{v_t}{\ff \vec{p} e}
+}
+\end{gather*}
+\caption{Checking a clause}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+% VAR
+\nru{\chkpvar}
+{v_b = \wh \cl{b}{\ins \rho (x,k)}}
+{
+\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{y}
+{\vpi x v_a \cl{b}{\rho}}
+{k+1,f,\sigma,\ins \rho_1 (y,k),\rho_2 (y,v_a)}
+{v_b}}
+% CON
+\\[2ex]
+\nxru{\chkpcon}
+{\Sig{\cc}=v_c \qquad
+\checkps{k,f,\sigma,\rho_1,\rho_2}
+{\vec{p}}
+{v_c}
+{k',f',\sigma',\rho'_1,rho'_2}
+{v'_c}
+}
+{\inst{k}{f}{v'_c}{v_a}{\sigma_2} \qquad
+\ptc k \rho'_1 f p =  c}
+{\sigma'' = \compS{\sigma'}{\sigma_2} \qquad
+\rho''_2 = \substEnv{\sigma''}{\rho'_2} \qquad
+v_b = \subst{\sigma''}{\wh \ins \rho (x,c)}
+}
+{\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{\cc \vec{p}}
+{\vpi x v_a \cl{b}{\rho}}
+{k',f',\sigma'',\rho'_1,\rho''_2}
+{v_b}
+}
+% SUCC
+\\[2ex]
+\ndru{\chkpsucc}
+{
+\checkp{k,f,\sigma,\rho_1,\rho_2}{p}{\wh \clp{\Size \ra \Size}{\diamond}}
+{k',f',\sigma',\rho'_1,\rho'_2}{v'}}
+{
+\EqVal{k'}{\nF}{v_a}{v'} \qquad
+\ptc k \rho'_1 f p = c
+}
+{
+\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{\s p}
+{\vpi x v_a \cl{b}{\rho}}
+{k',f,\sigma,\ins \rho_1 (y,k),\rho_2 (y,v_a)}
+{v_b}}
+% DOT
+\\[2ex]
+\nru{\chkpinacc}
+{v_b = \wh \cl{b}{\ins \rho (x,k)}}
+{
+\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{\inacc{e}}
+{\vpi x v_a \cl{b}{\rho}}
+{k+1,(k,e)f,\sigma,\rho_1,\rho_2}
+{v_b}}
+\end{gather*}
+\caption{Checking a pattern}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{}
+{
+\checkps
+{k,f,\sigma,\rho_1\rho_2}
+{\diamond}
+{v}
+{k,f,\sigma,\rho_1,\rho_2}
+{v}}
+\\[2ex]
+\ndru{}
+{\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{p}
+{v}
+{k',f',\sigma',\rho'_1,\rho'_2}
+{v'}
+}
+{\checkps
+{k',f',\sigma',\rho'_1,\rho'_2}
+{\vec{p}}
+{v'}
+{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{v''}
+}
+{
+\checkps
+{k,f,\sigma,\rho_1\rho_2}
+{p \vec{p}}
+{v}
+{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{v''}}
+\end{gather*}
+\caption{Checking multiple patterns}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{\diamond}
+}
+\\[2ex]
+\ndru{}
+{
+(i,v) \in \sigma \qquad
+\EqVal{k}{v}{\wh \cl{e}{\rho_1}}{v}
+}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{\vec{f}}
+}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{(i,e) \vec{f}}
+}
+\end{gather*}
+\caption{Checking inaccesible patterns}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{}
+{
+\checkps
+{k,f,\sigma,\rho_1\rho_2}
+{\diamond}
+{v}
+{k,f,\sigma,\rho_1,\rho_2}
+{v}}
+\\[2ex]
+\ndru{}
+{\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{p}
+{v}
+{k',f',\sigma',\rho'_1,\rho'_2}
+{v'}
+}
+{\checkps
+{k',f',\sigma',\rho'_1,\rho'_2}
+{\vec{p}}
+{v'}
+{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{v''}
+}
+{
+\checkps
+{k,f,\sigma,\rho_1\rho_2}
+{p \vec{p}}
+{v}
+{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{v''}}
+\end{gather*}
+\caption{Checking multiple patterns}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{\diamond}
+}
+\\[2ex]
+\ndru{}
+{
+(i,v) \in \sigma \qquad
+\EqVal{k}{v}{\wh \cl{e}{\rho_1}}{v}
+}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{\vec{f}}
+}
+{
+\checkinacc
+{k,\sigma,\rho_1}
+{(i,e) \vec{f}}
+}
+\end{gather*}
+\caption{Checking inaccesible patterns}
+\end{figure}
+
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{}
+{\inst{k}{f}{k'}{v}{(k',v)}}
+%
+\nru{}
+{}
+{\inst{k}{f}{v}{k'}{(k',v)}}
+%
+\\[2ex]
+\nru{}
+{{\instlist{k}{f}{\wh{c_1} \ldots \wh{c_n}}{\wh{d_1} \ldots \wh{d_n}}{\sigma}}}
+{\inst{k}{f}{\DD c_1 \ldots c_n}{\DD d_1 \ldots d_n}{\sigma}
+}
+\\[2ex]
+\nru{}
+{{\instlist{k}{f}{\wh{c_1} \ldots \wh{c_n}}{\wh{d_1} \ldots \wh{d_n}}{\sigma}}}
+{\inst{k}{f}{\cc c_1 \ldots c_n}{\cc d_1 \ldots d_n}{\sigma}
+}
+\\[2ex]
+\nru{}
+{\inst{k}{f}{v_1}{v_2}{\sigma}}
+{\inst{k}{f}{\s v_1}{\s v_2}{\sigma}
+}
+\nru{}
+{\inst{k}{f}{v_1}{\infty}{\sigma}}
+{\inst{k}{f}{\s v_1}{\infty}{\sigma}
+}
+\\[2ex]
+\nru{}
+{\EqVal{k}{N}{v_1}{v_2}}
+{\inst{k}{f}{v_1}{v_2}{\diamond}
+}
+\nru{}
+{}
+{\instlist{k}{f}{\diamond}{\diamond}{\diamond}}
+\\[2ex]
+\ndru{}
+{\inst{k}{f}{v_1}{w_1}{\sigma}}
+{\instlist{k}{f}{\subst{\sigma}{v_2} \ldots \subst{\sigma}{v_n}}{\subst{\sigma}{w_2} \ldots \subst{\sigma}{w_n}}{\sigma'}}
+{\instlist{k}{f}{v_1 v_2 \ldots v_n}{w_1 w_2 \ldots w_n}{\compS \sigma \sigma'}}
+\end{gather*}
+\caption{Instantiating flexible variables}
+\end{figure}
+
 \subsubsection{Constant declaration}
 
 \section{Pattern matching}
@@ -829,6 +1186,7 @@ it is guaranteed that matching always succeeds.
 
 \chapter{Termination Checking}
 
+\newcommand{\order}{\mathrm{Order}}
 \section{Structural recursion}
 
 \begin{definition}[Order]
@@ -875,12 +1233,133 @@ Axiom 2 is needed for higher order data types like $\Ord$.
 The following definitons are taken from \cite{abelAltenkirch:predStRec}
 
 \begin{definition}
-CallMatrix
-A call matrix collects the comparisons of arguments and patterns of single call from function $f$ to function $g$
+An expression of the form $\ff \vec{e}$ is called a call.
+\end{definition}
+
+\newcommand{\mino}{\mathrm{min}\;}
+\newcommand{\maxo}{\mathrm{max}\;}
+\newcommand{\supo}{\mathrm{sup}\;}
+\newcommand{\info}{\mathrm{inf}\;}
+
+\begin{definition}[Order minimum]
+\[
+\begin{array}{l | c |c | c}
+ \mino &  <      &  \leq    & ? \\
+\hline
+  <    & <       &  \leq    &   ? \\
+ \leq  & \leq    &  \leq    &   ?  \\
+ ?     & ?       &  ?       &   ?
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}[Order maximum]
+\[
+\begin{array}{l | c |c | c}
+ \maxo & <      &  \leq    &   ? \\
+\hline
+  <    & <       & <       &   <    \\
+ \leq  & <       & \leq    &   \leq  \\
+ ?     & <       & \leq    &   ?
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}[Order supremum]
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\supo : \ves{\order} \ra \order}\\ 
+\supo \diamond = ? \\
+\supo (o \vec{o} ) = \maxo o \; (\supo \vec{o}) \\
+\end{array}
+\]
+\end{definition}
+
+\begin{definition}[Order infimum]
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\info : \ves{\order} \ra \order}\\ 
+\info \diamond = < \\
+\info (o \vec{o} ) = \mino o \; (\info \vec{o}) \\
+\end{array}
+\]
+\end{definition}
+
+\newcommand{\cmp}{\mathrm{compare}\;}
+\newcommand{\cmpv}{\mathrm{compareVar}}
+\newcommand{\cmps}{\mathrm{compareSize}}
+\newcommand{\cmpsv}{\mathrm{compareSizeVar}}
+\newcommand{\etp}{\mathrm{etp}\;}
+
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\cmp : \Expr \times \Pat \ra \order}\\ 
+\cmp e_1 \; \inacc{e_2} & = \cmp e_1 \; p \mbox{ if } \etp e_2 = p \\
+\cmp x \; p & = \cmpv x \;p  \mbox{ where } x \in \cV \\
+\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
+& \; \mbox { where } m = min\{i,j\}\\ 
+\cmp \cc \; (\cc \diamond) & = \leq \\
+\cmp (\s e_1) \; (\s e_2) & = \cmp e_1 \; e_2 \\
+\cmp (f \vec{e}) \; f & = \leq \mbox{ where } f \in \cV \\
+\cmp e \; p & = ? \mbox{ otherwise}
+\end{array}
+\]
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\etp : \Expr \ra \Pat}\\ 
+\etp x & = x \mbox{ where } x \in \cV \\
+\etp (\cc e_1 \ldots e_n ) & = \cc (\etp e_1) \ldots (\etp e_n) \\
+\etp \cc  & = \cc \diamond \\
+\etp (\s e) = \s (\etp e) \\
+\etp e = \stuck \mbox{ otherwise}
+\end{array}
+\]
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\cmpv : \cV \ra \Pat \ra \order}\\ 
+\cmpv x \; x & = \leq \\
+\cmpv x \; (\cc p_1 \ldots p_n ) & = < * \; \supo (\cmpv p_1) \ldots (\cmpv p_n) \mbox{ if } \cc \mbox{ is inductive }\\   \\
+\cmpv x \; \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
+\cmpv x \; \s p & = ? \\
+\cmpv x \; (\cc \vec{p}) & = ? \mbox{ where } \cc \mbox{ is coinductive}\\
+\cmpv x \; p & = ? \mbox{ otherwise}
+\end{array}
+\]
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\cmps : \Expr \ra \Pat \ra \order}\\ 
+\cmps e_1 \; \inacc{e_2} & = \cmp e_1 \; p \mbox{ if } \etp e_2 = p \\
+\cmps x \; p & = \cmpsv x \;p  \mbox{ where } x \in \cV \\
+\cmps (\s e_1) \; (\s e_2) & = \cmps e_1 \; e_2 \\
+\cmps e \; p & = ? \mbox{ otherwise}
+\end{array}
+\]
+
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\cmpsv : \cV \ra \Pat \ra \order}\\ 
+\cmpsv x \; x & = \leq \\
+\cmpsv x \; \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
+\cmpsv x \; \s p & = < * \; \cmpsv x \; p \\
+\cmpsv x \; p & = ? \mbox{ otherwise}
+\end{array}
+\]
+
+Note that coinductive objects are not well-founded. So we do have $\cmp x (\cc x) = ? $ when $\cc$ is a coinductive construcotor.
+Also we have $\cmp x \; (\s x) = ? $ because the size type is not well-founded.
+We will later allow the judgment $x < \s x$ for admissble size arguments.
+
+\begin{definition}
+CallMatrix. Let $f (p_1 \ldots p_n) e$ be a function clause and $g (e_1 \ldots e_n$ be a call in $e$.
+The associated call matrix is defined by $(f,M,g)$ where
+\[ M(i,j) = \cmp p_i e_j \]
 \end{definition}
 
 \begin{definition}[Call Matrix multiplication]
-
 \[(f,M_1,g) \times (g,M_2,h) := (f,M_1 \times M_2,h)\]
 \end{definition}
 
@@ -1232,6 +1711,72 @@ Otherwise, the non terminating term diverge can be constructed.
 \subsection{Admissibility criterion}
 Gimenez and Barthe deal with monotonicity criterions.
 Abel and Pareto have worked on criterions based on continuity.
+
+\newcommand{\mon}[3]{#1\vdash#2\mbox{ \textbf{mon} }#3}
+\newcommand{\anti}[3]{#1\vdash#2\mbox{ \textbf{anti} }#3}
+\newcommand{\indu}[3]{#1\vdash#2\mbox{ \textbf{ind} }#3}
+\newcommand{\coind}[3]{#1\vdash#2\mbox{ \textbf{coind} }#3}
+\newcommand{\admIndSize}[3]{#1\vdash#2\mbox{ \textbf{admIndSize} }#3}
+\newcommand{\admCoSize}[3]{#1\vdash#2\mbox{ \textbf{admCoSize} }#3}
+\newcommand{\admArg}[3]{#1\vdash#2\mbox{ \textbf{admArg} }#3}
+\newcommand{\admIndRes}[3]{#1\vdash#2\mbox{ \textbf{admIndRes} }#3}
+\newcommand{\admCoRes}[3]{#1\vdash#2\mbox{ \textbf{admCoRes} }#3}
+
+\begin{figure}
+\begin{gather*}
+\nru{}
+{\LeqVal{k}{\nF}{v}{\subst{(i,\s i)}{v}}}
+{\mon{k}{v}{i}}
+\qquad
+\nru{}
+{\LeqVal{k}{\nF}{\subst{(i,\s i)}{v}}{v}}
+{\anti{k}{v}{i}}
+\\[2ex]
+\ndru{}
+{\DD \mbox{ sized inductive type}}
+{\EqVal{k}{N}{\wh s_i}{i}}
+{\indu{k}{\DD p_1 \ldots p_n s_i v_1 \ldots v_m}{i}}
+\qquad
+\ndru{}
+{\DD \mbox{ sized coinductive type}}
+{\EqVal{k}{N}{\wh s_i}{i}}
+{\coind{k}{\DD p_1 \ldots p_n s_i v_1 \ldots v_m}{i}}
+\\[2ex]
+\nru{}
+{\anti{k}{v}{i} \; \mbox{ or } \indu{k}{v}{i}}
+{\admArg{k}{v}{i}}
+\\[2ex]
+\nru{}
+{\mon{k}{v}{i} \; \mbox{ or } \coind{k}{v}{i}}
+{\admIndRes{k}{v}{i}}
+\qquad
+\nru{}
+{\coind{k}{v}{i}}
+{\admCoRes{k}{v}{i}}
+\\[2ex]
+\nru{}
+{\admArg{k}{v_a}{i} 
+\qquad
+{\admIndSize{k+1}{\wh \cl{b}{\ins (x,k) \rho}}{i}}}
+{\admIndSize{k}{\vpi x v_a \cl{b}{\rho}}{i}}
+\qquad
+\nru{}
+{\admIndRes{k}{v}{i}}
+{\admIndSize{k}{v}{i}}
+\\[2ex]
+\nru{}
+{\admArg{k}{v_a}{i} 
+\qquad
+{\admCoSize{k+1}{\wh \cl{b}{\ins (x,k) \rho}}{i}}}
+{\admCoSize{k}{\vpi x v_a \cl{b}{\rho}}{i}}
+\qquad
+\nru{}
+{\admCoRes{k}{v}{i}}
+{\admCoSize{k}{v}{i}}
+\end{gather*}
+\caption{Admissiblity}
+\end{figure}
+
 \begin{definition}
 A Type $A$ is \emph{inductive in i} if it is of the form $ \DD \vec{p} \; i \: \vec{v} $ and $\DD$ is a sized inductive type
 \end{definition}

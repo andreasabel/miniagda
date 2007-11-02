@@ -1,3 +1,4 @@
+
 data Nat : Set  
 {
 	zero : Nat ;
@@ -27,7 +28,6 @@ cofun ones : (i : Size) -> Stream Nat i
 ones ($ i) = cons Nat i one (ones i)
 }
 
-
 eval const ones' : Stream Nat # = ones #
 
 cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
@@ -38,20 +38,16 @@ map .A B .($ i) f (cons A i a as) = cons B i (f a) (map A B i f as)
 
 eval const twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 
--- tail is a norec
-norec tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
+-- tail is a fun
+fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
 tail .A .i (cons A i a as) = as
 }
 
-norec bad : ( A : Set ) -> (i : Size ) -> Stream A i -> Stream A i
-{
-tail .A .($ i) (cons A i a as) = as
-}
 
 eval const twos' : Stream Nat # = tail Nat # twos
 
-norec head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
+fun head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
 {
 head .A .i (cons A i a as) = a
 }
@@ -102,12 +98,15 @@ eval const nats' : Stream Nat # = tail Nat # (nats # zero)
 eval const wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i = \ A -> \ i -> \ s -> s
 
 
--- bad 
--- not admissble
---cofun wkStream2 : ( A : Set ) -> ( i : Size ) -> Stream A i -> Stream A ($ i)
---{
---wkStream2 .A .($ i) (cons A i x xs) = cons A ($ i) x (wkStream2 A i xs)
---}
+{-
+
+--bad 
+--not admissble
+cofun wkStream2 : ( A : Set ) -> ( i : Size ) -> Stream A i -> Stream A ($ i)
+{
+wkStream2 .A .($ i) (cons A i x xs) = cons A ($ i) x (wkStream2 A i xs)
+}
+
 
 -- an unproductive stream
 cofun unp : (i : Size ) -> Stream Nat i 
@@ -122,8 +121,10 @@ unp2 ($ i) = cons Nat i zero (tail Nat i (unp2 ($ i)))
 }
 
 
---eval const bla : Nat = nth one (unp2 #)
---eval const bla2 : Nat = nth four (unp #)
+eval const bla : Nat = nth one (unp2 #)
+eval const bla2 : Nat = nth four (unp #)
+
+-}
 
 mutual
 {
@@ -154,7 +155,7 @@ ff : Bool
 }
 
 -- tt if a stream starts with 2 zeroes
-norec twozeroes : Stream Nat # -> Bool
+fun twozeroes : Stream Nat # -> Bool
 {
 twozeroes (cons .Nat .# zero (cons .Nat .# zero str)) = tt;
 twozeroes (cons .Nat .# zero (cons .Nat .# (succ x) str)) = ff;
@@ -169,3 +170,9 @@ refl : (a : A) -> Eq A a a
 }
 
 const zz : Eq (Stream Nat #) (zeroes #) (cons Nat # zero (zeroes #)) = refl (Stream Nat #) (zeroes #) 
+
+
+cofun unp3 : (i : Size ) -> Stream Nat ($ i) -> Stream Nat i 
+{
+unp3 .i (cons .Nat i x xl) = xl
+}

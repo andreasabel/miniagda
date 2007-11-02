@@ -12,11 +12,11 @@ codata Stream : Size -> Set {
   cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
 }
  
-norec tail : (i : Size) -> Stream ($ i) -> Stream i {
+fun tail : (i : Size) -> Stream ($ i) -> Stream i {
   tail .i (cons i n ns) = ns
 }
 
-norec head : (i : Size) -> Stream ($ i) -> Nat {
+fun head : (i : Size) -> Stream ($ i) -> Nat {
   head .i (cons i n ns) = n
 }
 

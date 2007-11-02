@@ -117,7 +117,7 @@ showStrs (s:sl) = s ++ (if null sl then "" else " " ++ showStrs sl)
 ----
 
 data ClosVal = V Val | C Clos
-               deriving Eq
+               deriving (Eq,Show)
 
 type Env = [(Name,ClosVal)]
 
