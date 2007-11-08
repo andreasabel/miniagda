@@ -6,8 +6,9 @@ import SPos
 
 import Termination
 
+import Completness
+
 import Control.Monad.Identity
-import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Error
 
@@ -15,10 +16,10 @@ import Debug.Trace
 
 
 
-runTypeCheck :: Env -> Signature -> TypeCheck a -> Either TraceError (a,Signature)
-runTypeCheck env sig tc = runIdentity (runErrorT (runStateT (runReaderT tc env) sig)) 
+runTypeCheck :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
+runTypeCheck sig tc = (runErrorT (runStateT tc sig)) 
  
-typeCheck dl = runTypeCheck emptyEnv emptySig (typeCheckDecls dl)
+typeCheck dl = runTypeCheck emptySig (typeCheckDecls dl)
                
 typeCheckDecls :: [Declaration] -> TypeCheck ()
 typeCheckDecls [] = return ()
@@ -27,74 +28,51 @@ typeCheckDecls (d:ds) = do typeCheckDeclaration d
                            return ()
 
 typeCheckDeclaration :: Declaration -> TypeCheck ()
-typeCheckDeclaration (DataDecl n co pos tel t cs) = 
-   (
-    do sig <- get
-       let dt = (teleToType tel t)
-       let params = length tel
-       checkType 0 [] [] dt 
-       v <- whnf $ VClos [] dt
-       checkTargetSet 0 v
-       b <- szType params v
-       put (addSig sig n (DataSig params pos NotSized co v))
-       bl <- mapM (typeCheckConstructor n pos tel t) cs
-       case (b && and bl) of
-         True -> trace (n ++ " is a sized type ") $ do
-                            sig <- get
-                            put (addSig sig n (DataSig params pos Sized co v)) -- update signature 
-         False -> return ()
-   ) `throwTrace` n
+typeCheckDeclaration (DataDecl l) = 
+    do bl <- mapM typeCheckDataType l
+       zipWithM typeCheckConstructors l bl
+       return ()
+
 typeCheckDeclaration (ConstDecl _ (TypeSig n t) e ) = 
    (
     do sig <- get
-       checkType 0 [] [] t 
+       checkType t 
        vt <- whnf $ VClos [] t
        checkExpr 0 [] [] e vt
        put (addSig sig n (ConstSig vt e))
    ) `throwTrace` n
-typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs
 
-typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
-typeCheckFuns co funs = do addFunSig funs
-                           adml <- typeCheckFunSig funs
-                           let b = terminationCheckDecl (FunDecl co funs) adml 
-                           case b of 
-                             True -> typeCheckFunClause 1 funs
-                             False -> typeCheckFunClause 1 funs 
-  where
-    addFunSig :: [(TypeSig,[Clause])] -> TypeCheck ()
-    addFunSig [] = return ()
-    addFunSig ((TypeSig n t,cl):rest) = 
-        do
-          sig <- get 
-          vt <- whnf $ VClos [] t
-          put (addSig sig n (FunSig co vt cl))
-          addFunSig rest
-    typeCheckFunSig :: [(TypeSig,[Clause])] -> TypeCheck [[Int]] 
-    typeCheckFunSig [] = return []
-    typeCheckFunSig ((TypeSig n t,cl):rest) = 
-       (
-        do checkType 0 [] [] t
-           vt <- whnf $ VClos [] t
-           adm <- case co of
-                    Ind -> szCheckIndFun 0 [] vt
-                    CoInd -> szCheckCoFun 0 [] vt
-           admr <- typeCheckFunSig rest
-           return $ adm:admr
-       ) `throwTrace` ("type of " ++ n)
-    typeCheckFunClause :: Int -> [(TypeSig,[Clause])] -> TypeCheck ()
-    typeCheckFunClause k [] = return ()
-    typeCheckFunClause k ((TypeSig n t,cl):rest) =
-       (do checkFun t cl 
-           typeCheckFunClause (k+1) rest         
-       ) `throwTrace` n         
-typeCheckConstructor :: Name -> [Pos] -> Telescope -> Type -> Constructor -> TypeCheck Bool
-typeCheckConstructor d pos tel tg (TypeSig n t) = 
+typeCheckDeclaration (FunDecl funs) = typeCheckFuns funs
+
+
+typeCheckDataType :: (Name,Co,[Pos],Telescope,Type,[Constructor]) -> TypeCheck Bool
+typeCheckDataType (n,co,pos,tel,t,_) = 
+    do sig <- get
+       let dt = (teleToType tel t)
+       let params = length tel
+       checkType dt 
+       v <- whnf $ VClos [] dt
+       checkTargetSet 0 v
+       put $ addSig sig n (DataSig params pos NotSized co v)
+       szType params v
+
+typeCheckConstructors :: (Name,Co,[Pos],Telescope,Type,[Constructor]) -> Bool -> TypeCheck ()
+typeCheckConstructors (n,co,pos,tel,t,cs) b =
+    do bl <- mapM (typeCheckConstructor n pos tel) cs 
+       case (b && and bl) of 
+             True -> trace (n ++ " is a sized type ") $
+                     do sig <- get
+                        let DataSig p1 p2 _ p4 p5 = lookupSig n sig
+                        put $ addSig sig n (DataSig p1 p2 Sized p4 p5) -- update signature 
+             False -> return ()
+
+typeCheckConstructor :: Name -> [Pos] -> Telescope -> Constructor -> TypeCheck Bool
+typeCheckConstructor d pos tel (TypeSig n t) = 
    ( 
    do sig <- get 
       let tt = teleToType tel t
       let (_,target) = typeToTele tt
-      checkType 0 [] [] tt
+      checkType tt
       checkTarget d tel target 
       vt <- whnf $ VClos [] tt
       sposConstructor d 0 pos vt
@@ -102,6 +80,50 @@ typeCheckConstructor d pos tel tg (TypeSig n t) =
       szConstructor d (length tel) vt
    ) `throwTrace` n
 
+
+typeCheckFuns :: [(TypeSig,Co, [Clause])] -> TypeCheck ()
+typeCheckFuns funs = do mapM addFunSig funs
+                        adml <- mapM typeCheckFunSig funs
+                        zipWithM typeCheckFunClause [1..] funs 
+                        liftIO $ terminationCheck funs adml 
+                        mapM enableSig funs      
+                        return ()
+  where
+    addFunSig :: (TypeSig,Co,[Clause]) -> TypeCheck ()
+    addFunSig (TypeSig n t,co,cl) = 
+        do
+          sig <- get 
+          vt <- whnf $ VClos [] t
+          put (addSig sig n (FunSig co vt cl False)) --not yet type checked / termination checked
+    typeCheckFunSig :: (TypeSig,Co,[Clause]) -> TypeCheck [Int] 
+    typeCheckFunSig (TypeSig n t,co,cl) =   
+       (
+        do checkType t
+           vt <- whnf $ VClos [] t
+           adm <- case co of
+                    Ind -> szCheckIndFun 0 [] vt
+                    CoInd -> szCheckCoFun 0 [] vt
+           b <- case co of
+                  Ind -> return $ completeFun cl
+                  CoInd -> case adm of 
+                    [x] -> return $ completeCoFun cl x
+                    _ -> return $ completeFun cl
+           case b of
+             False -> do 
+               liftIO $ putStrLn $ show n ++ " : size pattern incomplete"  
+             True -> return ()
+           return adm
+       ) `throwTrace` ("type of " ++ n)
+    typeCheckFunClause :: Int -> (TypeSig,Co,[Clause]) -> TypeCheck ()
+    typeCheckFunClause k (TypeSig n t,_,cl) =
+       (do checkFun t cl 
+       ) `throwTrace` n         
+    enableSig :: (TypeSig,Co,[Clause]) -> TypeCheck ()
+    enableSig (TypeSig n _,_,_) = do 
+                    sig <- get 
+                    let (FunSig co vt cl _) = lookupSig n sig 
+                    put (addSig sig n (FunSig co vt cl True))
+    
 
 
 -- check that the data type and the parameter arguments fit 
@@ -298,9 +320,9 @@ checkExpr k rho gamma e v = --trace ("checkExpr " ++ show e ++ " " ++ show v) $
             val <- whnf $ VClos (updateV env x (VGen k)) t1
             checkExpr (k+1) (updateV rho n (VGen k)) (updateV gamma n va) e1 val  
       (Pi n t1 t2,VSet) ->
-          do checkType k rho gamma t1
+          do checkExpr k rho gamma t1 VSet
              cl <- vclos rho t1 
-             checkType (k+1) (updateV rho n (VGen k)) (updateC gamma n cl) t2
+             checkExpr (k+1) (updateV rho n (VGen k)) (updateC gamma n cl) t2 VSet
       (Succ e2,VSize) -> checkExpr k rho gamma e2 VSize
       _ -> do v2 <- inferExpr k rho gamma e
               leqVal k v2 v
@@ -326,7 +348,7 @@ inferExpr k rho gamma e =
       (Def n) -> do sig <- get 
                     case (lookupSig n sig) of
                       (DataSig _ _ _ _ tv) -> return tv
-                      (FunSig _ tv _) -> return tv
+                      (FunSig _ tv _ _) -> return tv
       (Con _ n) -> do sig <- get
                       case (lookupSig n sig) of
                         (ConSig tv) -> return tv
@@ -337,8 +359,9 @@ inferExpr k rho gamma e =
 
       
 
-checkType :: Int -> Env -> Env -> Expr -> TypeCheck ()
-checkType k rho gamma e = checkExpr k rho gamma e VSet 
+checkType :: Expr -> TypeCheck ()
+checkType e = checkExpr 0 [] [] e VSet
+
 
 -- type check a funtion
 
@@ -350,9 +373,9 @@ checkFun' i t (c:cl) = do checkClause i t c
                           checkFun' (i + 1) t cl
 
 checkClause :: Int -> Type -> Clause -> TypeCheck ()
-checkClause i t (Clause pl rhs) = 
+checkClause i t (Clause pl rhs) =
     (
-    do
+    do 
       v <- whnf $ VClos [] t
       (k,flex,ins,rho,gamma,vt) <- checkPatterns 0 [] [] [] [] v pl
       mapM (checkDot k rho gamma ins) flex
@@ -362,7 +385,7 @@ checkClause i t (Clause pl rhs) =
 type Substitution = [(Int,TVal)]
 
 
-checkPatterns :: Int -> [(Int,Expr)] -> Substitution -> Env -> Env -> TVal -> [Pattern] -> TypeCheck (Int,[(Int,Expr)],Substitution,Env,Env,TVal)
+checkPatterns :: Int -> [(Int,(Expr,TVal))] -> Substitution -> Env -> Env -> TVal -> [Pattern] -> TypeCheck (Int,[(Int,(Expr,TVal))],Substitution,Env,Env,TVal)
 checkPatterns k flex ins rho gamma v pl = 
     case pl of
       [] -> return (k,flex,ins,rho,gamma,v)
@@ -374,7 +397,7 @@ checkPattern k flex subst rho gamma v p = (k', flex', subst', rho', gamma', v')
 
 Input : 
   k     : next free generic value
-  flex  : list of pairs (flexible variable, its dot pattern)
+  flex  : list of pairs (flexible variable, its dot pattern + supposed type)
   subst : list of pairs (flexible variable, its valuation)
   rho   : binding of variables to values
   gamma : binding of variables to their types
@@ -385,7 +408,7 @@ Output
   v'    : type of t
 -}
 
-checkPattern :: Int -> [(Int,Expr)] -> Substitution -> Env -> Env -> TVal -> Pattern -> TypeCheck (Int,[(Int,Expr)],Substitution,Env,Env,TVal)
+checkPattern :: Int -> [(Int,(Expr,TVal))] -> Substitution -> Env -> Env -> TVal -> Pattern -> TypeCheck (Int,[(Int,(Expr,TVal))],Substitution,Env,Env,TVal)
 checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show flex ++ " " ++ show rho ++ " " ++ show gamma ++ " " ++ show v ++ " " ++ show p) $ 
  (
  do 
@@ -423,7 +446,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                          return (k',flex',ins',rho',gamma',vb)
           DotP e -> do vb <- whnf $ VClos (updateV env x (VGen k)) b
                        return (k+1
-                              ,(k,e):flex
+                              ,(k,(e,av)):flex
                               ,ins
                               ,rho
                               ,gamma
@@ -464,12 +487,14 @@ patternsToExpr k (p:pl) = do (e,k') <- patternToExpr k p
                              return (e:el,k'')
 
 
-checkDot :: Int -> Env -> Env -> Substitution -> (Int,Expr) -> TypeCheck()
-checkDot k rho gamma subst (i,e) =  --trace ("checking dot pattern " ++ show e) $ 
+checkDot :: Int -> Env -> Env -> Substitution -> (Int,(Expr,TVal)) -> TypeCheck()
+checkDot k rho gamma subst (i,(e,tv)) =  --trace ("checking dot pattern " ++ show e) $ 
                                          (
                                          case (lookup i subst) of
                                            Nothing -> throwErrorMsg $ "not instantiated "
-                                           Just v -> do v' <-  whnf $ VClos rho e
+                                           Just v -> do tv <- substVal subst tv
+                                                        checkExpr k rho gamma e tv
+                                                        v' <-  whnf $ VClos rho e
                                                         eqVal k v v'
                                          ) `throwTrace` ("dot pattern " ++ show e )            
 checkRHS :: Int -> Env -> Env -> Expr -> TVal -> TypeCheck ()
@@ -675,40 +700,39 @@ szCheckIndFun k adm tv =
        VPi x av (VClos env b) -> do bv <- whnf $ VClos (updateV env x (VGen k)) b
                                     let k' = k + 1 
                                     adm' <- case av of
-                                              VSize -> do g <- szCheckIndFunSize k' k 0 bv
+                                              VSize -> do g <- szCheckIndFunSize k' k bv
                                                           case g of
-                                                            0 -> return adm
-                                                            _ -> return $ k:adm
+                                                            True  -> return $ k:adm
+                                                            False -> return adm
                                               _ -> return adm
                                     szCheckIndFun k' adm' bv
        _ -> return adm
 
-szCheckIndFunSize :: Int -> Int -> Int -> TVal -> TypeCheck Int
-szCheckIndFunSize k i good tv = do
+szCheckIndFunSize :: Int -> Int -> TVal -> TypeCheck Bool
+szCheckIndFunSize k i tv = do
   case tv of 
        VPi x av (VClos env b) ->  do 
                                    bv <- whnf $ VClos (updateV env x (VGen k)) b
                                    let k' = k + 1 
                                    ind <- szInductive k i av
                                    case ind of
-                                     True -> szCheckIndFunSize k i (good + 1) bv
+                                     True -> szCheckIndFunSize k i bv
                                      False -> do anti <- szAntitone k i av
                                                  case anti of
-                                                   True -> szCheckIndFunSize k i good bv
-                                                   False -> return 0
+                                                   True -> szCheckIndFunSize k i bv
+                                                   False -> return False
        _ -> do mon <- szMonotone k i tv
                case mon of
-                 True -> return good
-                 False -> do coind <- szInductive k i tv
-                             case coind of
-                               True -> return good
-                               False -> return 0
+                 True -> return True
+                 False -> szInductive k i tv
+                             
 
 
 -- for nonrecursive fun, for every admissble size argument i
 -- every argument needs to be either inductive or antitone in i 
 
--- returns the indices of the adm size arguments
+-- returns the indices of the adm size arguments 
+-- (either empty or a singleton list)
 szCheckCoFun :: Int -> [Int] -> TVal -> TypeCheck [Int]
 szCheckCoFun k adm tv = 
       case tv of
@@ -764,7 +788,7 @@ szMonotone k i tv =
               ) (\_ -> return False)
 
 szAntitone :: Int -> Int -> TVal -> TypeCheck Bool
-szAntitone k i tv = 
+szAntitone k i tv =  
  do
    let si = VSucc (VGen i)
    tv' <- substVal [(i,si)] tv

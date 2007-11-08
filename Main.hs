@@ -4,7 +4,9 @@ import Tokens
 import Lexer
 import Parser
 
-import Abstract
+import qualified Concrete as C
+import qualified Abstract as A
+import Abstract (Name)
 import ScopeChecker
 import TypeChecker
 import Value
@@ -17,7 +19,7 @@ import System.IO (stdout, hSetBuffering, BufferMode(..))
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  putStrLn $ "***** MiniAgda v1.0 *****"
+  putStrLn $ "***** Mugda v1.0 *****"
   args <- getArgs
   file <- readFile (args !! 0)
   t <- return $ alexScanTokens file 
@@ -33,33 +35,32 @@ main = do
   
 
 -- all constants
-allConst :: Signature -> [Declaration] -> [(Name,Clos)]
+allConst :: Signature -> [A.Declaration] -> [(Name,Clos)]
 allConst sig [] = []
 allConst sig (decl:xs) =
     case decl of
-      (ConstDecl True (TypeSig n t) e) -> 
+      (A.ConstDecl True (A.TypeSig n t) e) -> 
           let c = VClos [] e in
           (n,c):(allConst sig xs)
       _ -> allConst sig xs 
 
 
-showAll :: Signature -> [Declaration] -> IO ()
-showAll sig decl = let ls = map (showConst sig) (allConst sig decl) in
-                  sequence_ (map putStrLn ls)
+showAll :: Signature -> [A.Declaration] -> IO ()
+showAll sig decl = do ls <- mapM (showConst sig) (allConst sig decl) 
+                      sequence_ (map putStrLn ls)
 
-showConst :: Signature -> (Name,Clos) -> String
-showConst sig (n,v) = let Right (str,_) = whnfClos sig v 
-                      in
-                        n ++ " evaluates to " ++ str
+showConst :: Signature -> (Name,Clos) -> IO String
+showConst sig (n,v) = do Right (str,_) <- whnfClos sig v 
+                         return $ n ++ " evaluates to " ++ str
 
-doTypeCheck :: [Declaration] -> IO (Maybe Signature)
-doTypeCheck decl = do let k = typeCheck decl
+doTypeCheck :: [A.Declaration] -> IO (Maybe Signature)
+doTypeCheck decl = do k <- typeCheck decl
                       case k of
                         Left err -> do putStrLn $ "error during typechecking:\n" ++ show err
                                        return Nothing
                         Right (_,sig) -> do return $ Just sig
 
-doScopeCheck :: [Declaration] -> [Declaration]
+doScopeCheck :: [C.Declaration] -> [A.Declaration]
 doScopeCheck decl = let k = scopeCheck decl 
                     in
                       case k of

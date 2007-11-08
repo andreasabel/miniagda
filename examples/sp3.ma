@@ -34,12 +34,13 @@ head .i (cons i a as) = a
 
 mutual {
 
-data ISP : Size -> Set
+data ISP (i : Size ) : Set
 {
-put : (i : Size ) -> Nat -> SP i -> ISP i; 
-get : (i : Size ) -> (Nat -> ISP i) -> ISP i; 
+put : Nat -> SP i -> ISP i ; 
+get : (Nat -> ISP i) -> ISP i; 
 }
 
+-- nice, but currently not a sized type
 codata SP : Size -> Set
 {
 isp : (i : Size ) -> ISP i -> SP ($ i);

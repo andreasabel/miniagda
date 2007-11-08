@@ -25,7 +25,7 @@ data Eq ( A : Set ) : A -> A -> Set
 refl : (a : A) -> Eq A a a 
 }
 
---const proof : (x : Nat ) -> Eq Nat (add x zero) x = \ y -> refl Nat y  
+const proof : (x : Nat ) -> Eq Nat (add x zero) x = \ y -> refl Nat y  
 
 -- does not type check
 --const proof2 : ( x : Nat ) -> Eq Nat (add zero x) x = \ y -> refl Nat y
@@ -40,3 +40,26 @@ fun proof2 : ( x : Nat ) -> Eq Nat (add zero x) x
 proof2 zero = refl Nat zero;
 proof2 (succ x) = eqsucc (add zero x) x (proof2 x)
 } 
+
+
+data Bool : Set
+{
+tt : Bool;
+ff : Bool
+}
+
+mutual{
+
+fun even : Nat -> Bool
+{
+  even zero = tt;
+  even (succ x) = odd x ;
+}
+
+fun odd : Nat -> Bool
+{
+  odd zero = ff;
+  odd (succ x) = even x ;
+}
+
+}

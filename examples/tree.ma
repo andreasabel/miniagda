@@ -1,4 +1,4 @@
-data List (A : Set ) : Set
+data List ( + A : Set ) : Set
 {
 nil : List A;
 cons : A -> List A -> List A
@@ -10,7 +10,7 @@ mapL .A B f (nil A) = (nil B);
 mapL .A B f (cons A x xl) = cons B (f x) (mapL A B f xl)
 }
 
-data Tree (A : Set) : Set 
+data Tree (+ A : Set) : Set 
 {
   leaf : A -> Tree A;
   node : List (Tree A) -> Tree A

@@ -66,6 +66,7 @@ madd :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
 madd sem v1 v2 = [ vadd sem x y | (x,y) <- zip v1 v2]
 
 transp :: Matrix a -> Matrix a 
+trans [] = []
 transp y = [[ z!!j | z<-y] | j<-[0..s]]
     where
     s = length (head y)-1
@@ -74,6 +75,7 @@ mmul :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
 mmul sem m1 m2 = [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
 
 diag :: Matrix a -> Vector a
+diag [] = []
 diag m = [ (m !! j) !! j | j <- [ 0..s] ] 
    where
      s = length (head m) - 1
@@ -82,17 +84,20 @@ elems :: Matrix a -> Vector a
 elems m = concat m
 
 
-
-
 ---
 
-
-compareArgs :: [Pattern] -> [Expr] -> [Int] -> [Int] -> Matrix Order
-compareArgs [] [] _ _ = [[]]
-compareArgs pl el admf admg = let pl' = zip pl [0..]
-                                  el' = zip el [0..]
-                              in
-                                map (\ e -> (map (compareExpr' e admf admg) pl')) el'   
+compareArgs :: [Pattern] -> [Expr] -> [Int] -> [Int] -> Int -> Matrix Order
+compareArgs _ [] _ _ _ = [[]]
+compareArgs [] _ _ _ _ = [[]]
+compareArgs pl el admf admg ar_g = let pl' = zip pl [0..]
+                                       el' = zip el [0..]
+                                       diff = ar_g - length el 
+                                       fill = if diff > 0 then
+                                                 replicate diff (replicate (length pl) Un)
+                                                 else []
+                                       cmp = map (\ e -> (map (compareExpr' e admf admg) pl')) el'
+                                  in
+                                       cmp ++ fill
             
              
 compareExpr' :: (Expr,Int) -> [Int] -> [Int] -> (Pattern,Int) -> Order
@@ -111,11 +116,11 @@ compareExpr e p =
                        Nothing -> Un
                        Just p' -> compareExpr e p'
       (Var i,p) -> compareVar i p 
+      (App (Var i) _,p) -> compareVar i p 
       (App (Con _ n) args,(ConP _ n2 pl))| n == n2 -> infimum $ zipWith compareExpr args pl
       (Con _ n,ConP _ n2 []) | n == n2 -> Le     
+      (_,ConP Ind n pl) -> comp Lt $ infimum $ map (compareExpr e) pl 
       (Succ e2,SuccP p2) -> compareExpr e2 p2     
-      (App (Var f) args,VarP g) | f == g -> Le
-
       _ -> Un
 
 compareVar :: Name -> Pattern -> Order
@@ -153,7 +158,7 @@ exprsToPatterns (e:el) = case exprToPattern e of
 
 
 compareSize :: Expr -> Pattern -> Order
-compareSize e p = -- trace ("compareSize " ++ show (e,p)) $
+compareSize e p = 
     case (e,p) of 
       (_,DotP e') -> case exprToPattern e' of
                        Nothing -> Un
@@ -175,126 +180,112 @@ compareSizeVar n p =
 
 -------------------
 
-terminationCheckDecl :: Declaration -> [[Int]] -> Bool
-terminationCheckDecl (FunDecl co funs) adml =
+terminationCheck :: [(TypeSig,Co,[Clause])] -> [[Int]] -> IO ()
+terminationCheck funs adml =
        let tl = terminationCheckFuns funs adml
            nl = map fst tl
            bl = map snd tl
            nl2 = [ n | (n,b) <- tl , b == False ]
        in case (and bl) of
             True -> case nl of
-                      [f] -> True
-                      _ -> True
+                      [f] -> return ()
+                      _ -> return ()
             False -> case nl of
-                    [f] -> trace ("Termination check for function " ++ f ++ " fails ") $
-                                    False
-                    _   -> trace ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) $
-                                    False
+                    [f] -> putStrLn ("Termination check for function " ++ f ++ " fails ") 
+                    _   -> putStrLn ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) 
+                                   
 
-
-
-terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [[Int]] -> [(Name,Bool)]
+terminationCheckFuns :: [ (TypeSig,Co , [Clause]) ] -> [[Int]] -> [(Name,Bool)]
 terminationCheckFuns funs adml =
     let beh = recBehaviours funs adml
     in
       zip (map fst beh) (map (checkAll . snd ) beh )
 ---
 
-type Edge = (Int,Int,Order)
+type Index = Name
 
-type Path = [Name]
+data Call = Call { source :: Index , target :: Index , matrix :: CallMatrix }  
+            deriving (Eq,Show,Ord)
 
-data CallGraph = CG { source :: Name , target :: Name , edges :: Set.Set Edge , path :: Path }
-               deriving (Show)
-
-instance Eq CallGraph where
-    (CG s t e _) == (CG s2 t2 e2 _) = (s,t,e) == (s2,t2,e2)  
-
-instance Ord CallGraph where
-    (CG s t e _) <= (CG s2 t2 e2 _) = (s,t,e) <= (s2,t2,e2) 
-
-composeCG :: CallGraph -> CallGraph -> CallGraph
-composeCG cg1 cg2 =
-        let l3 = [ ( s1 , t2 , comp o1 o2) | 
-                   (s1,t1,o1) <- Set.toList $ edges cg1
-                 , (s2,t2,o2) <- Set.toList $ edges cg2
-                 , t1 == s2 ]
-        in  CG { source = (source cg1)
-               , target = (target cg2)
-               , edges = Set.fromList l3
-               , path = (path cg1) ++ (path cg2)}
-
-cgComb :: Set.Set CallGraph -> Set.Set CallGraph -> Set.Set CallGraph
-cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 | 
-                                  c1 <- (Set.toList cg1)
-                                , c2 <- (Set.toList cg2)
-                                , (target c1 == source c2)])
-
-complete :: Set.Set CallGraph -> Set.Set CallGraph
-complete cg = let cg' = Set.union cg (cgComb cg cg) 
-              in
-                if (cg' == cg) then cg' else complete cg'
+type CallMatrix = Matrix Order
 
 
-checkAll :: [CallGraph] -> Bool
+
+callComb :: Call -> Call -> Call
+callComb (Call s1 t1 m1) (Call s2 t2 m2) = Call s2 t1 (mmul ordRing m1 m2)
+
+cgComb :: [Call] -> [Call] -> [Call]
+cgComb cg1 cg2 = [ callComb c1 c2 | c1 <- cg1 , c2 <- cg2 , (source c1 == target c2)]
+
+complete :: [Call] -> [Call]
+complete cg =
+              let cg' = Set.fromList cg
+                  cg'' = Set.union cg' (Set.fromList $ cgComb cg cg ) in
+              if (cg'' == cg') then Set.toList cg'' else complete (Set.toList cg'')
+
+checkAll :: [Call] -> Bool
 checkAll x = all checkIdem x
 
-checkIdem :: CallGraph -> Bool
-checkIdem cg = let cgcg = composeCG cg cg
-                   el = Set.toList $ edges cg
-                   containsDecr = any isDecr el
+checkIdem :: Call -> Bool
+checkIdem cg = let cgcg = callComb cg cg
+                   d = diag (matrix cgcg)
+                   containsDecr = any isDecr d
                in (not (cg == cgcg)) || containsDecr
 
-isDecr :: Edge -> Bool
-isDecr (k1,k2,o) = k1 == k2 && case o of
-                                  Lt -> True
-                                  _ -> False
+isDecr :: Order -> Bool
+isDecr o = case o of
+             Lt -> True
+             _ -> False
              
-recBehaviours :: [ (TypeSig, [Clause] ) ] -> [[Int]] -> [(Name,[CallGraph])]
-recBehaviours funs adml = let names = collectNames (map fst funs)
+recBehaviours :: [ (TypeSig, Co , [Clause] ) ] -> [[Int]] -> [(Name,[Call])]
+recBehaviours funs adml = let names = map fst $ collectNames funs
                               cg = ccFunDecl funs adml
                           in groupCalls names [ c | c <- cg , (target c == source c) ]
 
-groupCalls :: [Name] -> [CallGraph] -> [(Name,[CallGraph])]
+groupCalls :: [Name] -> [Call] -> [(Name,[Call])]
 groupCalls [] _ = []
 groupCalls (n:nl) cl = (n, [ c | c <- cl , (source c == n) ]) : groupCalls nl cl
 
-ccFunDecl :: [ ( TypeSig,[Clause]) ] -> [[Int]] -> [CallGraph]
-ccFunDecl funs adml = Set.toList $ complete $ Set.fromList $ collectCGFunDecl funs adml
+ccFunDecl :: [ ( TypeSig, Co , [Clause]) ] -> [[Int]] -> [Call]
+ccFunDecl funs adml = complete $ collectCGFunDecl funs adml
 
-collectCGFunDecl :: [(TypeSig,[Clause])] -> [[Int]] -> [CallGraph]
+collectCGFunDecl :: [(TypeSig, Co , [Clause])] -> [[Int]] -> [Call]
 collectCGFunDecl funs adml =
-    let names = collectNames (map fst funs)
+    let names = collectNames funs
     in
       concatMap (collectClauses names) funs
           where
-            collectClauses names ((TypeSig n _),cll) = collectClause names n cll
+            collectClauses names ((TypeSig n _),_,cll) = collectClause names n cll
             collectClause names n ((Clause pl rhs):rest) = 
                 (collectCallsExpr names n adml pl rhs) ++ (collectClause names n rest) 
             collectClause names n [] = []
 
-collectNames [] = []                                     
-collectNames ((TypeSig n e):rest) = n : collectNames rest
+arity :: [Clause] -> Int
+arity [] = 0
+arity (Clause pl e:l) = length pl
 
-collectCallsExpr :: [Name] -> Name -> [[Int]] -> [Pattern] -> Expr -> [CallGraph]
+collectNames [] = []                
+collectNames ((TypeSig n _,_,cl):rest) = (n,arity cl) : (collectNames rest)
+
+
+collectCallsExpr :: [(Name,Int)] -> Name -> [[Int]] -> [Pattern] -> Expr -> [Call]
 collectCallsExpr nl f adml pl e =
     case e of
       (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f adml pl) args
-                                gIn = elem g nl 
+                                gIn = lookup g nl 
                             in
                               case gIn of
-                                False -> calls
-                                True -> let (Just f') = List.elemIndex f nl
-                                            (Just g') = List.elemIndex g nl
-                                            admf = adml !! f'
-                                            admg = adml !! g'
-                                            m = compareArgs pl args admf admg
-                                            el = Set.fromList $ matrixToEdges m 
-                                            cg = CG { source = f
-                                                    , target =  g
-                                                    , edges = el
-                                                    , path = ["<" ++ f ++ g ++ ">" ]}
-                                        in cg:calls
+                                Nothing -> calls
+                                Just ar_g -> let (Just ar_f) = lookup f nl
+                                                 (Just f') = List.elemIndex (f,ar_f) nl
+                                                 (Just g') = List.elemIndex (g,ar_g) nl
+                                                 admf = adml !! f'
+                                                 admg = adml !! g'
+                                                 m = compareArgs pl args admf admg ar_g
+                                                 cg = Call { source = f
+                                                           , target =  g
+                                                           , matrix = m }
+                                             in cg:calls
       (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) []) 
       (App e args) -> concatMap (collectCallsExpr nl f adml pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f adml pl e1
@@ -303,16 +294,3 @@ collectCallsExpr nl f adml pl e =
       (Succ e1) -> collectCallsExpr nl f adml pl e1
       _ -> []
 
-matrixToEdges :: [[Order]] -> [Edge]
-matrixToEdges m = concat $ mte 0 m
-    where
-      mte _ [] = []
-      mte k (r:rs) = rowToEdges k r : (mte (k + 1) rs) where
-          rowToEdges :: Int -> [Order] -> [Edge]
-          rowToEdges k1 r = te 0 r
-              where
-                te _ [] = []
-                te k2 (o:os) = let ys = te (k2 + 1) os 
-                               in case o of
-                                    Un -> ys
-                                    _ -> (k1,k2,o) : ys

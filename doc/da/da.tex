@@ -1,6 +1,4 @@
-
-\documentclass[a4paper,11pt,openright]{report}
-\usepackage[latin1]{inputenc}
+\documentclass[a4paper,11pt]{report}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath, amsthm, amssymb}
 \usepackage{graphicx}
@@ -37,7 +35,6 @@
 \newcommand{\fun}{\mathrm{fun}\;}
 \newcommand{\codata}{\mathrm{codata}\;}
 \newcommand{\cofun}{\mathrm{cofun}\;}
-\newcommand{\norec}{\mathrm{norec}\;}
 \newcommand{\const}{\mathrm{const}\;}
 \newcommand{\mutual}{\mathrm{mutual}\;}
 \newcommand{\lam}[1]{\lambda\; #1 .\;}
@@ -49,6 +46,10 @@
 \newcommand{\zero}{\mathsf{zero}\;}
 \newcommand{\suc}{\mathsf{succ}\;}
 \newcommand{\add}{\mathsf{add}\;}
+\newcommand{\addt}{\mathsf{add_2}\;}
+
+\newcommand{\even}{\mathsf{even}\;}
+\newcommand{\odd}{\mathsf{odd}\;}
 
 \newcommand{\Bool}{\mathsf{Bool}\;}
 \newcommand{\ttt}{\mathsf{tt}\;}
@@ -99,6 +100,8 @@
 \newcommand{\tail}{\mathsf{tail}\;}
 \newcommand{\nth}{\mathsf{nth}\;}
 
+\newcommand{\wkSNat}{\mathsf{wkSNat}\;}
+
 \newcommand{\SNat}{\mathsf{SNat}\;}
 \newcommand{\Maybe}{\mathsf{Maybe}\;}
 \newcommand{\nothing}{\mathsf{nothing}\;}
@@ -109,7 +112,7 @@
 \newcommand{\lop}{\mathsf{loop}\;}
 \newcommand{\lopcase}{\mathsf{loop\_case}\;}
 
-\newcommand{\ones}{\mathsf{ones}\;}
+\newcommand{\zeroes}{\mathsf{zeroes}\;}
 \newcommand{\unp}{\mathsf{unp}\;}
 \newcommand{\zipWith}{\mathsf{zipWith}\;}
 \newcommand{\fib}{\mathsf{fib}\;}
@@ -119,6 +122,20 @@
 \newcommand{\BadNat}{\mathsf{BadNat}\;}
 \newcommand{\foo}{\mathsf{foo}\;}
 
+
+\newcommand{\ispd}{\mathsf{ISP}\;}
+\newcommand{\spd}{\mathsf{SP}\;}
+\newcommand{\putd}{\mathsf{put}\;}
+\newcommand{\getd}{\mathsf{get}\;}
+\newcommand{\isp}{\mathsf{isp}\;}
+\newcommand{\ieat}{\mathsf{ieat}\;}
+\newcommand{\eat}{\mathsf{eat}\;}
+
+\newcommand{\eqo}{\mathsf{eq_0}\;}
+\newcommand{\zeroest}{\mathsf{zeroes_2}\;}
+\newcommand{\beqd}{\mathsf{Beq}\;}
+\newcommand{\beq}{\mathsf{beq}\;}
+\newcommand{\eqt}{\mathsf{eq_1}\;}
 
 \newcommand{\ra}{\rightarrow}
 

@@ -1,10 +1,10 @@
--- size no used
+-- incomplete pattern
 fun foo : Size -> Set
 {
 foo ($ i) = foo i
 }
 
--- const foos : Set = foo #
+eval const foos : Set = foo #
 
 
 data Bla : Set 
@@ -12,15 +12,13 @@ data Bla : Set
 bla : Bla
 }
 
-
-
--- size not used
+-- incomplete pattern
 fun foo2 : Size -> Bla -> Set
 {
 foo2 ($ i) bla = foo2 i bla
 }  
 
--- const foos2 : Set = foo2 # bla
+-- eval const foos2 : Set = foo2 # bla
 
 
 data SBla : Size -> Set

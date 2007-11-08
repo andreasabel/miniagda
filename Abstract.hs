@@ -31,9 +31,9 @@ data Expr = Set
 instance Show Expr where
     show = prettyExpr
 
-data Declaration = DataDecl Name Co [Pos] Telescope Type [Constructor]
-                 | FunDecl Co [(TypeSig,[Clause])] -- may be mutually recursive
-                 | ConstDecl Bool TypeSig Expr -- bool = if eval
+data Declaration = DataDecl [(Name,Co,[Pos],Telescope,Type,[Constructor])] --may be mutual
+                 | FunDecl [(TypeSig,Co,[Clause])]  -- may be mutual
+                 | ConstDecl Bool TypeSig Expr --bool for eval
                    deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type

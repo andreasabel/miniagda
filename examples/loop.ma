@@ -48,4 +48,4 @@ loop_case .($ i)  x f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f)
 }
 }
 
-eval const diverge : Unit = loop # (zero #) inc
+const diverge : Unit = loop # (zero #) inc

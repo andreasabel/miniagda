@@ -3,9 +3,8 @@ module Value where
 import Abstract
 
 import qualified Data.Map as Map
-import Control.Monad.Error
+
 import Control.Monad.Identity
-import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Error
 
@@ -13,7 +12,7 @@ import Debug.Trace
 
 -- reader monad for local environment (not used right now)
 -- state monad for global signature
-type TypeCheck a = ReaderT Env (StateT Signature (ErrorT TraceError Identity)) a 
+type TypeCheck a = StateT Signature (ErrorT TraceError IO) a 
 
 data TraceError = Err String | TrErr String TraceError
 
@@ -80,10 +79,10 @@ showEnv x = "{" ++ showEnv' x ++ "} " where
     showEnv' ((n,V v):env) = "(" ++ n ++ " = " ++ showVal v ++ ")" ++ showEnv' env 
     showEnv' ((n,C c):env) = "(" ++ n ++ " = " ++ showClos c ++ ")" ++ showEnv' env                           
 
-runWhnfClos :: Env -> Signature -> TypeCheck a -> Either TraceError (a,Signature)
-runWhnfClos env sig tc = runIdentity (runErrorT (runStateT (runReaderT tc env) sig)) 
+runWhnfClos :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
+runWhnfClos sig tc = (runErrorT (runStateT tc  sig)) 
  
-whnfClos sig v = runWhnfClos emptyEnv sig (prettyVal =<< whnf v)
+whnfClos sig v = runWhnfClos sig (prettyVal =<< whnf v)
 
 
 prettyVal :: Val  -> TypeCheck String
@@ -150,7 +149,7 @@ data Sized = Sized | NotSized
 
 
 
-data SigDef = FunSig Co TVal [Clause] --type , co , clauses
+data SigDef = FunSig Co TVal [Clause] Bool --type , co , clauses , wether its type checked
             | ConstSig TVal Expr -- type , expr 
             | ConSig TVal -- type   
             | DataSig Int [Pos] Sized Co TVal -- # parameters, positivity of parameters  , sized , co , type  
@@ -214,13 +213,13 @@ force :: Val -> TypeCheck (Maybe Val)
 force v@ (VDef n) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t cl) -> matchClauses cl []
+         (FunSig CoInd t cl True) -> matchClauses cl []
                                   
          _ -> return Nothing
 force v@(VApp (VDef n) vl) = --trace ("force " ++ show v) $
     do sig <- get
        case lookupSig n sig of
-         (FunSig CoInd t cl) -> matchClauses cl vl
+         (FunSig CoInd t cl True) -> matchClauses cl vl
          _ -> return Nothing
 force v = return Nothing
 
@@ -230,10 +229,10 @@ appDef n vl = --trace ("appDef " ++ n) $
     do
       sig <- get
       case lookupSig n sig of
-        (FunSig Ind _ cl) -> do m <- matchClauses cl vl
-                                case m of
-                                  Nothing -> return $ VApp (VDef n) vl
-                                  Just v2 -> return v2
+        (FunSig Ind _ cl True) -> do m <- matchClauses cl vl
+                                     case m of
+                                       Nothing -> return $ VApp (VDef n) vl
+                                       Just v2 -> return v2
         _ -> return $ VApp (VDef n) vl   
 
 ---- Pattern Matching ----
