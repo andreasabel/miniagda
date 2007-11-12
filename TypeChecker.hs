@@ -700,7 +700,7 @@ szCheckIndFun k adm tv =
        VPi x av (VClos env b) -> do bv <- whnf $ VClos (updateV env x (VGen k)) b
                                     let k' = k + 1 
                                     adm' <- case av of
-                                              VSize -> do g <- szCheckIndFunSize k' k bv
+                                              VSize -> do g <- szCheckIndFunSize k' False k bv
                                                           case g of
                                                             True  -> return $ k:adm
                                                             False -> return adm
@@ -708,24 +708,28 @@ szCheckIndFun k adm tv =
                                     szCheckIndFun k' adm' bv
        _ -> return adm
 
-szCheckIndFunSize :: Int -> Int -> TVal -> TypeCheck Bool
-szCheckIndFunSize k i tv = do
+-- g == true if at leat one argument was inductive in i 
+szCheckIndFunSize :: Int -> Bool -> Int -> TVal -> TypeCheck Bool
+szCheckIndFunSize k g i tv = do
   case tv of 
        VPi x av (VClos env b) ->  do 
                                    bv <- whnf $ VClos (updateV env x (VGen k)) b
                                    let k' = k + 1 
                                    ind <- szInductive k i av
                                    case ind of
-                                     True -> szCheckIndFunSize k i bv
+                                     True -> szCheckIndFunSize k True i bv
                                      False -> do anti <- szAntitone k i av
                                                  case anti of
-                                                   True -> szCheckIndFunSize k i bv
+                                                   True -> szCheckIndFunSize k g i bv
                                                    False -> return False
        _ -> do mon <- szMonotone k i tv
                case mon of
-                 True -> return True
-                 False -> szInductive k i tv
-                             
+                 True -> return g
+                 False -> do ind <- szCoInductive k i tv
+                             case ind of
+                               True -> return g
+                               False -> return False
+                                      
 
 
 -- for nonrecursive fun, for every admissble size argument i
@@ -798,11 +802,11 @@ szAntitone k i tv =
 
 
 -----
--- checks if tv is a sized inductive type of height i 
+-- checks if tv is a sized inductive type of size i 
 szInductive :: Int -> Int -> TVal -> TypeCheck Bool
 szInductive k i tv = szUsed' Ind k i tv
 
--- checks if tv is a sized coinductive type of height i 
+-- checks if tv is a sized coinductive type of size i 
 szCoInductive :: Int -> Int -> TVal -> TypeCheck Bool
 szCoInductive k i tv = szUsed' CoInd k i tv
             
@@ -811,24 +815,12 @@ szUsed' co k i tv =
     case tv of
          (VApp (VDef n) cls) -> 
              do sig <- get
-                vl <- mapM whnf cls
                 case (lookupSig n sig) of
-                  (DataSig p _ Sized co _) ->                                               
-                       szSizeVarArgs k p i vl
+                  DataSig p _ Sized co' _ | co == co' && (length cls) <= p + 1 -> 
+                      do s <- whnf (cls !! p)
+                         case s of
+                           VGen i' | i == i' -> return True
+                           _ -> return False 
                   _ -> return False
          _ -> return False
-
--- check that arguments are of the form  ... i ..... 
-szSizeVarArgs :: Int -> Int -> Int -> [TVal] -> TypeCheck Bool
-szSizeVarArgs k p i vl = do case p <= length vl of
-                              True -> do 
-                                  let v0 = vl !! p
-                                  case v0 of
-                                    (VGen i') | i == i' -> do let rargs = take p vl ++ drop (p+1) vl
-                                                              bl <- mapM (szSizeVarNotUsed k i) rargs
-                                                              return $ and bl
-                                    (VSucc _) -> return False 
-                                    _ -> return False
-                              False -> return False
-
 

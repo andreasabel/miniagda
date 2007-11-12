@@ -47,9 +47,9 @@ tail .A .i (cons A i a as) = as
 
 eval const twos' : Stream Nat # = tail Nat # twos
 
-fun head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A
+fun head : (A : Set) -> (i : Size) -> Stream A i -> A
 {
-head .A .i (cons A i a as) = a
+head .A .($ i) (cons A i a as) = a
 }
 
 eval const two : Nat = head Nat # twos 

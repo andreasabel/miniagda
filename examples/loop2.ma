@@ -31,29 +31,30 @@ data Unit : Set
 	unit : Unit
 }
 
-data Bla ( u : Unit ) : Set
-{
-bla : Bla u
-}
-
 mutual 
 {
 
-fun boo : Unit -> (loop # (zero #) inc Unit) 
+fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
-boo x = bla x
-} 
-
-fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Set -> Set
-{
-loop .($ i) (zero i) f s = loop_case ($ i) (zero i) f (f (zero i)) s ;
-loop .($ i) (succ i n) f s = loop i n (shift i f) s
+loop .($ i) (zero i) f = loop_case ($ i) f (f (zero i)); 
+loop .($ i) (succ i n) f = loop i n (shift i f)
 }
 
-fun loop_case : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Set -> Set
+fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 {
-loop_case i       x f (nothing .(SNat i)) s = s;
-loop_case .($ i)  x f (just .(SNat ($ i))  (zero i)) s = s;
-loop_case .($ i)  x f (just .(SNat ($ i)) (succ i y)) s = loop i y (shift i f) s 
+loop_case i       f (nothing .(SNat i)) = unit;
+loop_case .($ i)  f (just .(SNat ($ i))  (zero i)) = unit;
+loop_case .($ i)  f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f) 
 }
+}
+
+const diverge : Unit = loop # (zero #) inc
+
+
+const inc2 : (i : Size ) -> SNat i -> SNat ($ i) = \i -> \n -> succ i n  
+
+
+fun blob : (i : Size ) -> SNat i -> (SNat i -> SNat i) -> SNat i 
+{
+blob i x f = f x
 }

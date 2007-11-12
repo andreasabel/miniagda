@@ -43,20 +43,39 @@ codata SP : Size -> Set
 isp : (i : Size ) -> ISP (SP i) -> SP ($ i);
 }
 
+
 mutual {
 
-fun ieat : (i : Size ) -> ISP (SP i) -> Stream # -> Stream ($ i)
+cofun blub : (i : Size ) -> Stream i -> Stream ($ i)
 {
-ieat i (get .(SP i) f) (cons .# a as) = ieat i (f a) as ;
-ieat i (put .(SP i) b sp) as  = cons i b (eat i sp as) 
+blub .($ i) (cons i x xs) = cons ($ i) x (bla ($ i)) 
 }
 
-cofun eat : (i : Size ) -> SP i -> Stream # -> Stream i 
+cofun bla : (i : Size ) -> Stream i 
 {
-eat .($ i) (isp i sp) as = ieat i sp as   
+bla ($ i) = blub i (bla i)
 }
 
 }
+
+
+
+mutual {
+
+fun ieat : (i : Size ) -> ISP (SP #) -> Stream # -> Stream ($ i)
+{
+ieat i (get .(SP #) f) (cons .# a as) = ieat i (f a) as ;
+ieat i (put .(SP #) b sp) as  = cons i b (eat i sp as)
+}
+
+cofun eat : (i : Size ) -> SP # -> Stream # -> Stream i 
+{
+eat ($ i) (isp .# sp) as = ieat i sp as   
+}
+
+}
+
+
 
 mutual {
 
@@ -128,3 +147,6 @@ jump' i (succ n) x= get (SP i) (\ m -> (jump' i n x))
 }
 
 }
+
+
+eval const diverge : Nat = nth two (bla #)

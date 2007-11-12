@@ -12,11 +12,11 @@ codata Colist (A : Set) : Size -> Set
 }
 
 -- not allowed because no inductive argument with i 
--- fun length : (i : Size ) -> (A : Set) -> Colist A i -> Nat i
--- {
--- length .($ i) .A (nil A i) = zero i ;
--- length .($ i) .A (cons A i a as) = succ i (length i A as)
--- }
+fun length : (i : Size ) -> (A : Set) -> Colist A i -> Nat i
+{
+length .($ i) .A (nil A i) = zero i ;
+length .($ i) .A (cons A i a as) = succ i (length i A as)
+}
 
 codata CoNat : Size -> Set
 {
@@ -39,6 +39,13 @@ omega' ($ i) = cosucc i (omega' i)
 }
 
 const omega : CoNat # = omega' #
+
+cofun olist' : ( i : Size ) -> Colist (Nat #) i
+{
+olist' ($ i) = cons (Nat #) i (zero #) (olist' i)
+}
+
+eval const diverge : Nat # = length # (Nat #) (olist' #)
 
 -- not ok because size not used in inductive argument 
 -- fun convert1 : (i : Size ) -> CoNat i -> Nat i

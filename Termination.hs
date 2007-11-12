@@ -11,6 +11,7 @@ import System
 data Order = Lt
            | Le
            | Un
+           | Mat (Matrix Order) -- square matrices only
            deriving (Show,Eq,Ord)
 
 ordRing :: SemiRing Order
@@ -18,9 +19,17 @@ ordRing = SemiRing { add = maxO , mul = comp , one = Le , zero = Un }
 
 comp :: Order -> Order -> Order
 comp Lt Un = Un
+comp Lt (Mat m) = comp Lt (collapse m)
 comp Lt _ = Lt
 comp Le o = o
 comp Un _ = Un
+comp (Mat m1) (Mat m2) = if (ok m1 m2) then
+                             Mat $ mmul ordRing m1 m2
+                         else
+                             comp (collapse m1) (collapse m2)
+comp (Mat m) Le = Mat m
+comp (Mat m) Un = Un
+comp (Mat m) Lt = comp (collapse m) Lt
 
 maxO :: Order -> Order -> Order
 maxO o1 o2 = case (o1,o2) of 
@@ -29,6 +38,12 @@ maxO o1 o2 = case (o1,o2) of
                (Un,_) -> o2
                (_,Un) -> o1
                (Le,Le) -> Le
+               (Mat m1, Mat m2) -> if (ok m1 m2) then
+                                       Mat $ madd ordRing m1 m2
+                                   else
+                                       maxO (collapse m1) (collapse m2)
+               (Mat m1,_) -> maxO (collapse m1) o2
+               (_,Mat m2) -> maxO o1 (collapse m2)
 
 minO :: Order -> Order -> Order
 minO o1 o2 = case (o1,o2) of
@@ -37,12 +52,29 @@ minO o1 o2 = case (o1,o2) of
                (Lt,_) -> o2
                (_,Lt) -> o1
                (Le,Le) -> Le
+               (Mat m1, Mat m2) -> if (ok m1 m2) then
+                                       Mat $ minM m1 m2
+                                   else
+                                       minO (collapse m1) (collapse m2)
+               (Mat m1,_) -> minO (collapse m1) o2
+               (_,Mat m2) -> minO o1 (collapse m2)
+
+minM :: Matrix Order -> Matrix Order -> Matrix Order
+minM m1 m2 = [ minV x y | (x,y) <- zip m1 m2]
+
+minV :: Vector Order -> Vector Order -> Vector Order
+minV v1 v2 = [ minO x y | (x,y) <- zip v1 v2]
 
 supremum :: [Order] -> Order
 supremum = foldr maxO Un
 
 infimum :: [Order] -> Order
 infimum = foldr minO Lt
+
+collapse :: Matrix Order -> Order
+collapse m = let d = diag m
+             in 
+               infimum d
 
 type Vector a = [a]
 type Matrix a = [Vector a]
@@ -63,7 +95,7 @@ scalarProdukt :: SemiRing a -> Vector a -> Vector a -> a
 scalarProdukt sem xs ys = ssum sem [(mul sem) x y  | (x,y) <- zip xs ys]
 
 madd :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
-madd sem v1 v2 = [ vadd sem x y | (x,y) <- zip v1 v2]
+madd sem m1 m2 = [ vadd sem x y | (x,y) <- zip m1 m2]
 
 transp :: Matrix a -> Matrix a 
 trans [] = []
@@ -83,6 +115,8 @@ diag m = [ (m !! j) !! j | j <- [ 0..s] ]
 elems :: Matrix a -> Vector a
 elems m = concat m
 
+ok :: Matrix a -> Matrix a -> Bool
+ok m1 m2 = (length m1) == length m2 
 
 ---
 
@@ -105,7 +139,7 @@ compareExpr' (e,i) admf admg (p,j) =
     let bj = elem j admf
         bi = elem i admg
     in
-      case (bj && bi) of
+      case (bi && bj) of 
         True -> compareSize e p -- both are admissble size arguments
         False -> compareExpr e p 
 
@@ -117,7 +151,12 @@ compareExpr e p =
                        Just p' -> compareExpr e p'
       (Var i,p) -> compareVar i p 
       (App (Var i) _,p) -> compareVar i p 
-      (App (Con _ n) args,(ConP _ n2 pl))| n == n2 -> infimum $ zipWith compareExpr args pl
+      (App (Con _ n) args,(ConP _ n2 pl))| n == n2 -> 
+               if (length pl == length args && length args >= 2) 
+               then 
+                   Mat (map (\ e -> (map (compareExpr e) pl)) args)
+               else
+                   infimum $ zipWith compareExpr args pl
       (Con _ n,ConP _ n2 []) | n == n2 -> Le     
       (_,ConP Ind n pl) -> comp Lt $ infimum $ map (compareExpr e) pl 
       (Succ e2,SuccP p2) -> compareExpr e2 p2     
@@ -235,6 +274,7 @@ checkIdem cg = let cgcg = callComb cg cg
 isDecr :: Order -> Bool
 isDecr o = case o of
              Lt -> True
+             (Mat m) -> any isDecr (diag m)
              _ -> False
              
 recBehaviours :: [ (TypeSig, Co , [Clause] ) ] -> [[Int]] -> [(Name,[Call])]
@@ -283,7 +323,7 @@ collectCallsExpr nl f adml pl e =
                                                  admg = adml !! g'
                                                  m = compareArgs pl args admf admg ar_g
                                                  cg = Call { source = f
-                                                           , target =  g
+                                                           , target = g
                                                            , matrix = m }
                                              in cg:calls
       (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) []) 

@@ -1243,8 +1243,18 @@ v_b = \subst{\sigma''}{\wh \ins \rho (x,c)}
 Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92pattern}.
 The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
 it is guaranteed that matching always succeeds.
+We write $\alpha_{i,j}$ for the element in the $i$-th row and $j$-th column.
 
 \chapter{Termination Checking}
+
+\section{Matrix notation}
+
+\newcommand{\diag}{\mathrm{diag}}
+
+For a set $R$ we write $R^{m,n}$ for the set of matrices with $n$ rows and $m$ columns and elements in $R$.
+We write $\alpha_{i,j}$ for the element in the $j$th row and $i$th column.
+For a matrix $\alpha \in R^{m,n}$ we define the length $|\alpha| := (m,n)$.
+For a square matrix $\beta \in R^{m,m}$ we define the set of diagonal elements $\diag \beta := \{ \beta_{i,i} \vert i \leq m\}$.
 
 \newcommand{\order}{\mathrm{Order}}
 \section{Structural recursion}
@@ -1266,8 +1276,8 @@ Axiom 2 is needed for higher order data types like $\Ord$.
 
  +    &  <   &  \leq   &  ? \\
  \hline 
- <    &  <   & <       &  < \\
- \leq &  <   & \leq    &  <  \\
+ <    &  <   & <       &  <   \\
+ \leq &  <   & \leq    &  \leq \\
  ?    &  <   & \leq    &  ?
 \end{array}
 \]
@@ -1606,38 +1616,71 @@ The corresponding call set is thus shown terminating as in the $\add$ case shown
 Definition of pair data type.
 But now, the uncurried versions do no longer termination check.
 The reason is that we need to keep the information.
-\begin{definition}[MOrder]
-\[ MO := \{ < , \leq , ? , MO^{r,n}\} \]
+
+\newcommand{\coll}{\mathrm{collapse}\;}
+
+\begin{definition}[Extended Order]
+We define the set $O^{+}$ by   
+\begin{itemize}
+\item
+$ O \subseteq O^{+}$
+\item
+if $ M \subseteq O^{+} , n \in \cN , m \in \cN $ then $M^{n,m} \in O^{+}$
+\end{itemize}
+and nothing else is in $O^{+}$.
 \end{definition}
 
-\begin{definition}[Order Addition]
+\begin{definition}[Extended Order operations]
+We extend the $ *, \mino , \maxo $ given in the previous section by the following additional clauses, using the new operation $\coll : M(O^{+}) \ra O^{+} $
 \[
-\begin{array}{l | c |c | c | c}
+\begin{array}{ll}
+\alpha * \beta = \left\{ \begin{array}{l}
+                          \alpha \times \beta \mbox{ if} |\alpha| = | \beta | \\
+                          (\coll \alpha) * (\coll \beta) \mbox{ otherwise}  
+                          \end{array}\right. \\
+\alpha * \leq = \alpha \\
+\alpha * ? = ? \\
+\alpha * < = (\coll \alpha) * < \\
 
- +    &  <   &  \leq   &  ? & M \\
- \hline 
- <    &  <   & <       &  < &  \\
- \leq &  <   & \leq    &  < &  \\
- ?    &  <   & \leq    &  ? &  \\
- M    &      &         &  M &  
+\maxo \alpha  \beta =  \left\{ \begin{array}{l}
+                          \gamma \mbox{ with } \gamma_{i,j} = \maxo \alpha_{i,j} \beta_{i,j} \mbox{ if} |\alpha| = |\beta| \\
+                          \maxo (\coll \alpha) (\coll \beta) \mbox{ otherwise}  
+                          \end{array}\right. \\
+\maxo \alpha o = \maxo (\coll \alpha) o \mbox{ for } o \in O\\
+\maxo o \alpha = \maxo o (\coll \alpha) \mbox{ for } o \in O\\
+
+\mino \alpha  \beta =  \left\{ \begin{array}{l}
+                          \gamma \mbox{ with } \gamma_{i,j} = \mino \alpha_{i,j} \beta_{i,j} \mbox{ if} |\alpha| = |\beta| \\
+                          \mino (\coll \alpha) (\coll \beta) \mbox{ otherwise}  
+                          \end{array}\right. \\
+\mino \alpha o = \mino (\coll \alpha) o \mbox{ for } o \in O\\
+\mino o \alpha = \mino o (\coll \alpha) \mbox{ for } o \in O\\
+
+\coll \alpha = \info (\diag \alpha) 
 \end{array}
 \]
-
 \end{definition}
 
-
-\begin{definition}[Order multiplication]
+In the definiton of $\cmp$ we change the clause 
 \[
-\begin{array}{l | c |c | c| c }
- *    &  <  &  \leq &   ? & M \\
-\hline
-  <   & <    & <    &   ? &   \\
- \leq & <    & \leq &   ? &   \\
- ?    & ?    & ?    &   ? &   \\
- M    &      &      &   ? &
+\begin{array}[t]{ll}
+\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
+& \; \mbox { where } m = min\{i,j\}\\ 
 \end{array}
 \]
-\end{definition}
+to
+\[
+\begin{array}[t]{ll}
+\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = 
+\left\{\begin{array}{l} \gamma \mbox{ with } \gamma_{i,j} = \cmp e_i e_j \\
+\; \mbox{ if } i = j \geq 2 \\
+\info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
+\; \mbox { where } m = min\{i,j\} \mbox{ otherwise } 
+\end{array}
+\right.
+\end{array}
+\]
+so we can use more information about the componenets during termination checking.
 
 \begin{definition}[Completion with extended order]
 is also finite because matrices are only getting smaller or a collapsed to a single value.

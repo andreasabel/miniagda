@@ -36,15 +36,15 @@ mutual
 
 fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 {
-loop .($ i) (zero i) f = loop_case ($ i) (zero i) f (f (zero i)); --weak #
+loop .($ i) (zero i) f = loop_case ($ i) f (f (zero i)); 
 loop .($ i) (succ i n) f = loop i n (shift i f)
 }
 
-fun loop_case : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 {
-loop_case i       x f (nothing .(SNat i)) = unit;
-loop_case .($ i)  x f (just .(SNat ($ i))  (zero i)) = unit;
-loop_case .($ i)  x f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f) 
+loop_case i       f (nothing .(SNat i)) = unit;
+loop_case .($ i)  f (just .(SNat ($ i))  (zero i)) = unit;
+loop_case .($ i)  f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f) 
 }
 }
 
