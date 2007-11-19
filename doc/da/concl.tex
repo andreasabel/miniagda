@@ -1,16 +1,34 @@
 \chapter{Conclusion}
 We hope this work provides an easy access to depented types and the sized type principle.
-The pattern matching of MiniAgda is in our opinion more accessible than the traditional fix-point operator
+The pattern matching of \mugda is in our opinion more accessible than the traditional fix-point operator
 notation of previous articles about sized types.
-We think that the MiniAgda language demonstrates the usefulness of sized types.
-They are quite elegant for co-inductive definitions.
-\section{Inference}
-We should investigate the possibility of inferring the size arguments.
-This would entail completely hiding the size type from the user.
-Barthe has already developed inferences algorithm for his sized version of CIC.
-\section{Proofs of correctness}
-Obviously, proofing the correctness of the admissibility criterion is important.
-This should involve a model construction, which is not easy for a language with inductive families.
-\section{Polarized Sub-typing}
-The sub-typing could be properly extend to higher order sub-typing.
-The use of polarities could be used.
+We think that the \mugda language demonstrates the usefulness of sized types.
+To that end, we have streched Coquand simple algorithm to a quite usable system.
+\paragraph*{Inference of sizes}
+The possibility to infer all size arguments should be explored.
+The system $\mathsf{CIC\textasciicircum}$ described in \cite{bgp:lpar06} can handle the inference of size annotations. 
+
+Applying inference to our system would change the system quite a bit.
+Size annotations would not be available to the user and the size type would likely loose its first order status. Every data type would internally be represented as a sized type. The termination criterion could be simplified, where the size-change principle has to be only applied to all infered size arguments.
+\paragraph*{Implicit arguments}
+At runtime, the size arguments all end up being $\infty$.
+Thus, it would be wasteful to have this payload is kept around during runtime. 
+the removal of balast that is not needed at runtime is ongoing research (\cite{miquel01implicit,DBLP:conf/types/BradyMM03}).
+As lists, vectors and sized list carry the same payload, conversion functions can be written by the user user to change from one represenation to the other. At runtime, then these conversion routines could be safely removed because would amount to n identity function.
+\paragraph*{more mutual definitons}
+We could allow more kinds of mutual definitons.
+Defing a $\fun$ together with a $data$ amounts to the inductive-recursive defintions of \cite{dybier-}.
+Also the stream processor example could be more naturally defined by mixing coinductive and inductive definitons.
+The $\spd$ and $\ispd$ would be defined as a mutual data declaration, as well as the $\eat $ and $\ieat$ as mutual function declarations.
+
+We investigatet this approach and some adjustment of the admissibilty of sizes seems to be necesarry to handle such definitons.
+\paragraph*{Higher order subtyping and universes }
+The sub-typing relation could be extend to higher order sub-typing.
+Polarized subtyping \cite{steffen} could be used, where function arguments are labeld with polarities. 
+
+The universe hierarchy also often has subtyping ($ \mathsf{Set_i} \leq \mathsf{Set_{i+1}}$) which has to be integratet with our subtyping on sized types.
+, which could be another application of polarized subtyping.
+\paragraph*{Future of sized types}
+We think it could be worthwile to integrate a sized type approach into a full system like Agda2, especially with the extension to coinductive types in mind. Checking productivity is handled quite natually with a sized type approach. 
+Furthermore, there are plans to translate the full Agda2 to a simpler core language (\cite{mini-tt}), which can be more easily justified. Once again, a sized type approach could be looked at for this core language.
+

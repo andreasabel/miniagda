@@ -14,7 +14,6 @@
 
 
 % rule names
-
 \newcommand{\infvar}{\rulename{inf-var}}
 \newcommand{\infset}{\rulename{inf-set}}
 \newcommand{\infsize}{\rulename{inf-size}}
@@ -87,6 +86,7 @@
 
 \newcommand{\cS}{\mathbb{S}}
 \newcommand{\cN}{\mathbb{N}}
+\newcommand{\cB}{\mathbb{B}}
 \newcommand{\cI}{\mathbb{I}}
 \newcommand{\cF}{\mathbb{F}}
 \newcommand{\nF}{\mathbf{N}}
@@ -108,17 +108,17 @@
 \newcommand{\Env}{\mathrm{Env}}
 \newcommand{\wh}{\searrow}
 \newcommand{\ap}{\mathrm{app}}
-\newcommand{\apf}{\mathrm{appFun}}
-\newcommand{\sinfty}{\mathrm{sinfty}}
+\newcommand{\apf}{\mathrm{app_{fun}}}
+\newcommand{\sinfty}{\mathrm{s_{\infty}}}
 \newcommand{\lkup}{\mathrm{lkup}}
-\newcommand{\ins}{\mathrm{ins}}
+\newcommand{\ins}{}
 \newcommand{\forc}{\mathrm{force}}
-\newcommand{\matchcls}{\mathrm{matchcls}}
-\newcommand{\matchcl}{\mathrm{matchcl}}
+\newcommand{\matchcls}{\mathrm{match_{cls}}}
+\newcommand{\matchcl}{\mathrm{match_{cl}}}
 \newcommand{\match}{\mathrm{match}}
-\newcommand{\matchf}{\mathrm{match'}}
-\newcommand{\matchList}{\mathrm{matchList}}
-\newcommand{\matchInfty}{\mathrm{matchInfty}}
+\newcommand{\matchf}{\mathrm{match_f}}
+\newcommand{\matchList}{\mathrm{match_{list}}}
+\newcommand{\matchInfty}{\mathrm{match_{\infty}}}
 \newcommand{\stuck}{\;\Uparrow}
 \newcommand{\Clause}{\mathrm{Clause}}
 \newcommand{\Decl}{\mathrm{Decl}}
@@ -126,40 +126,31 @@
 
 \newcommand{\Sig}{\mathrm{\Sigma}}
 
-\begin{figure}[p]
-\caption{Mugda syntax}
-Expressions : \[e,t :  \lam x . e \mid \EPi{x}{t}{t} \mid e \; \vec{e} \mid  \Set \mid x \mid \cc \mid \DD \mid \ff \mid \dd\]
-Patterns: \[ x  \mid \cc \; \vec{p} \]
-\end{figure}
 
-Mugda is a small experimental version of Agda.
-The current version of Agda is described by Ulf Norell in his thesis \cite{norell:thesis}.
+In the following sections, we will describe in detail the syntax, semantics and type checking algorithms for \mugda.
+The starting point for this chapter was the simple dependent type checking algorithm that is given in \cite{coquand96algorithm}.
 
+\noindent First, we have to define some basics:
+\paragraph*{Natural numbers}
+$ \cN = \{ 0 , 1 , ... \} $ is the set of natural numbers.
+\paragraph*{Booleans}
+$ \cB = \{ \top, \bot \} $ is the set of boolean values.
+\paragraph*{Vectors}
+For some set $B$ we write $\ves{B}$ for the set of finite vectors over $B$.
+For the empty vector we write $\diamond$.
+We denote vectors with $\vec{b}$ or $(b_1, \ldots b_n)$.
+The length of a vector is defined as $|(b_1,\ldots, b_n|)| := n $. 
+\section{Syntax of Mugda}
 
-
-\section{Syntax}
-First, let us denote the following sets:
-\begin{itemize}
-\item
-$ \cN $ for natural numbers
-\item
-$ \cI = \{ \ind , \co \} $ of induction kinds to distinguish wether a function or data type is 
-inductive or coinductive  
-\item
-$ \cS = \{ \sz, \ns \} $ of size kinds to distinguish wether a data type is sized or not
-\end{itemize}
-
-Let $\vec{a} \in \ves{A} $ denote a (possible empty) list of elements of a set $A$
-and $\diamond$ denote the empty list. $\#\vec{a}$ denotes the size of vector $\vec{a}$.
-
+\paragraph*{Identifier}
 First we assume the following disjunct sets of identifiers.
 \[
 \begin{array}{ll}
-\ccc \ni \cc & \mbox{for constructors}\\
-\cdd \ni \DD & \mbox{for data types}\\
-\cff \ni \ff & \mbox{for functions}\\
-\cll \ni \dd & \mbox{for constants}\\
-\cV \ni x,y,i & \mbox{vor variables}
+\ccc \ni \cc & \mbox{constructors}\\
+\cdd \ni \DD & \mbox{data types}\\
+\cff \ni \ff & \mbox{functions}\\
+\cll \ni \dd & \mbox{constants}\\
+\cV \ni x,y,i & \mbox{variables}
 \end{array}
 \]
 
@@ -169,7 +160,7 @@ First we assume the following disjunct sets of identifiers.
 \Expr \ni e,A,B & ::= & \lam{x}{e} & \mbox{abstraction}\\
 & \mid & \EPi{x}{A}{B} & \mbox{dep function type}\\
 & \mid & e \; \vec{e} & \mbox{application}\\
-& \mid & \Set & \mbox{type of all types}\\
+& \mid & \Set & \mbox{universe of small types}\\
 & \mid & \Size & \mbox{size type} \\
 & \mid & \s e  & \mbox{size succesor}\\ 
 & \mid & \infty & \mbox{limit size}\\
@@ -205,7 +196,7 @@ First we assume the following disjunct sets of identifiers.
 \end{array}
 \]
 
-\paragraph*{Data Telescopes}
+\paragraph*{Telescopes}
 \[
 \begin{array}{lrll}
 \tau & ::= & \diamond & \mbox{empty telescope}\\
@@ -213,6 +204,8 @@ First we assume the following disjunct sets of identifiers.
 & \mid & ( + \; x : t ) \; \tau & \mbox{strictly positive paramter}
 \end{array}
 \]
+
+Note that in a telescope, which is basically a sequence of type bindings, the types of later declared parameters can depent on earlier parameters. The $+$ annotation will be explained in the section on \emph{type checking}. 
 
 \paragraph*{Declarations}
 \[
@@ -229,35 +222,31 @@ First we assume the following disjunct sets of identifiers.
 
 
 \paragraph*{Syntactic sugar}
-We write $A \ra B$ for $\EPi{x}{A}{B}$ when $x$ is not occuring in b.
-For a telescope $\tau = (x_1 : A_1) \ldots (x_n : A_n)$ (ignoring the $+$ annotation) we write
+We write $A \ra B$ for $\EPi{x}{A}{B}$ where $x$ is some dummy variable not occuring in $B$.
+For a telescope $\tau = (x_1 : A_1) \ldots (x_n : A_n)$ (ignoring the $+$ annotations) we write
 $\tau \ra B$ for the expression  $\EPi{x_1}{A_1}{\ldots \ra \EPi{x_n}{A_n}{B}}$.
-Accordingly write $\Gamma \ra B$ for an expression of the form $\EPi{x_1}{A_1}{\ldots \ra \EPi{x_n}{A_n}{B}}$.
+Accordingly, we write $\Gamma \ra B$ for an expression of the form $\EPi{x_1}{A_1}{\ldots \ra \EPi{x_n}{A_n}{B}}$.
+
 A Mugda program $\vec{\delta}$ is a list of declarations.
-We assume a Mugda program is correctly scoped, i.e every identifier
-is only declared once and only used after declaration and variables are bound by lambda or variable patterns.
-For $\mutual$ declarations, we only allow either multiple $\fun$ or $\cofun$ declarations.
-Each declaration adds newly defined constructs to the signature $\Sig$.
-The signature is empty at the beginning.
+For $\mutual$ declarations, we allow either multiple $\fun$ or multiple $\cofun$ declarations.
+Each declaration adds newly defined constructs to the signature $\Sig$, which is empty at the beginning.
 
-\section{Semantics}
-We simultanously define closures, values, environments and signatures.
-
-\paragraph*{Closures}
-\[
-\begin{array}{lrll}
-\Clos \ni c & ::= & \cl{e}{\rho} & 
-\end{array}
-\]
-
-\paragraph*{Values}
+\section{Semantics of Mugda expressions}
+As noted in introduction, we need computation during type checking.
+We give here a semantic that uses the main ideas of \cite{coquand96algorithm}:
+the uses of closures and generic variables. As we need to support coinductive definitons,
+the semantics has to be lazy. 
+Here we assume a fixed given signature $\Sig$ that hold information about the defined constants.
+We simultanously define values, closures and environemnts.
+ 
+\paragraph{Value}
 \[
 \begin{array}{lrll}
 \Val \ni v & ::= & v \; \vec{c} & \mbox{lazy application}\\
-& \mid & \vlam \; x \; \rho & \mbox{abstraction closure}\\
-& \mid & \vpi \; x \; v \rho & \mbox{dependent function type closure}\\
-& \mid & k & \mbox{generic variables}\\
-& \mid & \Set & \mbox{type of all types} \\
+& \mid & \vlam \; x \; c & \mbox{abstraction}\\
+& \mid & \vpi \; x \; c & \mbox{dependent function space}\\
+& \mid & k & \mbox{generic value}\\
+& \mid & \Set & \mbox{universe of small types} \\
 & \mid & \Size & \mbox{size type value}\\
 & \mid & \s v & \mbox{size succesor}\\
 & \mid & \infty & \mbox{size limit}\\
@@ -265,24 +254,37 @@ We simultanously define closures, values, environments and signatures.
 & \mid & \ff & \mbox{function symbol}\\
 \end{array}
 \]
-The generic variables $k \in \cN $ are used as fresh variables during type checking.
-Environments
-\paragraph*{Environments}
+
+\paragraph{Closure}
+\[
+\begin{array}{lrll}
+\Clos \ni c & ::= & \cl{e}{\rho} & 
+\end{array}
+\]
+
+\paragraph{Environment}
 \[
 \begin{array}{lrll}
 \Env \ni \rho & ::= & \diamond & \mbox{empty environment}\\
 & \mid & (x,v) \rho & \mbox{extension with value}\\
-& \mid & (x,c) \rho & \mbox{environment wih closure} 
+& \mid & (x,c) \rho & \mbox{extension with closure} 
 \end{array}
 \]
-
-\paragraph*{Signatures}
-The signature carries information about the user-defined constants
+Values can be seen as partially evaluated expressions.
+They are only partially evaluated because they may contain closures.
+A closure is an expression together with an environment.
+The environment contains bindings for all free variables in the expression.
+Actually, in the values $\vlam \; x \; c$ and $\vpi \; x \; c$, the closure $c$ is missing 
+a binding for x. The closure can be completed when an argument is available during evaluation. 
+During type checking, $x$ can also be bound to a fresh generic variable $ k \in \cN$. Generic variables can be 
+seen as a placeholder for any type-correct value.
+\paragraph*{Signature}
+The signature carries information about all user-defined constants.
 We define it as a overloaded function:
 \begin{itemize}
 \item
-$ \Sig : \cff \ra \cI \times \Val \times \ves{\Clause}$\\
-recording for a function symbol the recursion kind, the type and the defining clauses.
+$ \Sig : \cff \ra \times \Val \times \ves{\Clause} \times \cB $\\
+recording for a function symbol the type, the clauses and wether the clauses have been typechecked yet.
 \item
 $ \Sig : \cll \ra \Expr \times \Val $ \\
 recording for a const definition the expression and its type. 
@@ -290,20 +292,24 @@ recording for a const definition the expression and its type.
 $ \Sig : \ccc \ra \Val $
 recording for a constructor its type.
 \item
-$ \Sig : \cdd \ra \cN \times \ves{\cN} \times \cS \times \cI \times \Val $\\
-recording for a data type the number of parameters, the indices of the strictly positive arguments,
-the size kind, the induction kinds and its type.
+$ \Sig : \cdd \ra \Val \times \cN $\\
+recording for a datatype its type and the number of parameters.
 \end{itemize}
-Now we define evaluation. A fixed signature $\Sig$ is assumed.
-\paragraph*{weak-head evaluation}
 
+Now we define evaluation of a closure $\cl{e}{\rho}$ to a value. 
+A closed expression can be evaluated in an empty environment.
+We simultaneously define evaluation as a function $\wh$ along with other functions needed by $\wh$.     
+These functions are partial because only type-correct expressions should be evaluated.
+A fixed signature $\Sig$ is assumed.
+
+\paragraph*{Evaluation}
 
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\wh \; : \Clos \ra \Val}\\
 \wh \clp{\lam{x}{e}}{\rho} & = \vlam \; x \; \cl{e}{\rho} \\
 \wh \clp{\EPi{x}{a}{b}}{\rho} &= \vpi \; x \; v_a \; \cl{b}{\rho} \mbox{ where } v_a = \wh \cl{a}{\rho} \\
-\wh \clp{e \; e_1 \ldots e_n}{\rho} &= \ap \; v \; v_1 \ldots v_n \mbox{ where } v_i = \wh \cl{(e_i)}{\rho} \\
+\wh \clp{e \; e_1 \ldots e_n}{\rho} &= \ap \; v \; \cl{e_1}{\rho} \ldots \cl{e_n}{\rho} \mbox{ where } v = \wh \cl{e}{\rho} \\
 \wh \cl{\Set}{\rho} & = \Set \\ 
 \wh \cl{\Size}{\rho} & = \Size \\
 \wh \cl{\infty}{\rho} & = \infty  \\
@@ -315,32 +321,13 @@ Now we define evaluation. A fixed signature $\Sig$ is assumed.
 \end{array}
 \]
 
-\paragraph*{size succesor}
-
+\paragraph*{Size succesor}
+We should take into account that $\infty$ is the limit size, i.e the equation $\s \infty = \infty$:
 \[
 \begin{array}[t]{ll}
 \multicolumn{2}{l}{\sinfty : \Val \ra \Val}\\ 
 \sinfty \; \infty & = \infty\\
 \sinfty \;  x & = \s x  \mbox{ otherwise}\\ 
-\end{array}
-\]
-\paragraph*{application}
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\ap : \Val \ra \ves{\Clos} \ra \Val}\\
-\ap \; u \; \diamond & = u \\
-\ap \; (u \; \vec{c_1}) \; \vec{c_2} & = \ap \; u (\vec{c_1}\;\vec{c_2})\\
-\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins \; \rho \; (x,c)} \\ 
-\ap \; \ff \; \vec{c} & = \apf \; \ff \; \vec{c} \mbox{ if } \Sig \; \ff = (\ind,\_) \\
-\ap \; v \; \vec{c} & = v \; \vec{c} \mbox{ otherwise } \\
-\end{array}
-\]
-
-\paragraph*{Environment insert}  
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\ins : \Env \ra \cV \ra ( \Val \cup \Clos ) \ra \Env}\\
-\ins \; \rho \; x \; y & = (x,y) \rho
 \end{array}
 \]
 
@@ -350,85 +337,97 @@ Now we define evaluation. A fixed signature $\Sig$ is assumed.
 \multicolumn{2}{l}{\lkup : \Env \ra \cV \ra \Val }\\
 \lkup \; ((x,v) \rho) \; x & = v \mbox{ if } v \mbox{ is a value} \\
 \lkup \; ((x,c) \rho) \; x & = \wh c \mbox{ if } c \mbox{ is a closure} \\
-\lkup \; ((y,z) \rho) \; x & = \lkup \; \rho \mbox{ if } y \neq x  
+\lkup \; ((y,z) \rho) \; x & = \lkup \; \rho \; x \mbox{ if } y \neq x  
 \end{array}
 \]
 
-\paragraph*{Inductive funcion matching}
+\paragraph*{Application}
+for $\beta$-reduction and inductive function application. 
 \[
 \begin{array}{ll}
+\multicolumn{2}{l}{\ap : \Val \ra \ves{\Clos} \ra \Val}\\
+\ap \; u \; \diamond & = u \\
+\ap \; (u \; \vec{c_1}) \; \vec{c_2} & = \ap \; u \; (\vec{c_1}\;\vec{c_2})\\
+\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \; \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins \; \rho \; (x,c)} \\ 
+\ap \; \ff \; \vec{c} & = \apf \; \ff \; \vec{c} \mbox{ if } \ff \mbox{ is a } \fun \\ 
+\ap \; v \; \vec{c} & = v \; \vec{c} \mbox{ otherwise } \\
+\end{array}
+\]
+In the following, as pattern matching can fail, we use $\stuck$ to symbolize this. 
+\paragraph*{Inductive funcion application}
+We always reduce application of an inductive function if possible:\[
+\begin{array}{ll}
 \multicolumn{2}{l}{\apf : \cV \ra \ves{\Clos} \ra \Val}\\
-\apf \; \ff \; \vec{c} & = \matchcls \; \vec{l} \vec{c} \mbox{ if } \Sig \; \ff = (\ind,\_,\vec{l}) 
+\apf \; \ff \; \vec{c} & = v \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox { and } \matchcls \; \vec{\gamma} \; \vec{c} = v \neq \stuck \\ 
+\apf \; \ff \; \vec{c} & = \ff \; \vec{c} \mbox { otherwise } 
 \end{array}
 \]
 
+
 \paragraph*{Corecursive unrolling}
+An application of a corecursive definiton is lazily unrolled when needed: 
+The following unrolls a corecursive definition once, if possible :
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\forc : \Val \ra \Val }\\
-\forc \; \ff & = \matchcls \vec{l} \diamond \mbox{ if } \Sig \; \ff = (\co,\_,\vec{l})  \\
-\forc \; \ff \; \vec{c} & = \matchcls \vec{l} \vec{c} \mbox{ if } \Sig \; \ff = (\co,\_,\vec{l})\\ 
+\forc \; \ff & = \matchcls \; \vec{\gamma} \; \diamond \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox{ and } \ff \mbox { is a } \cofun \\
+\forc \; (\ff \; \vec{c}) & = \matchcls \; \vec{\gamma} \; \vec{c} \; \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox { and } \ff \mbox { is a } \cofun\\ 
 \forc \; v & = \stuck \mbox{ otherwise}
 \end{array}
 \]
 
-\paragraph*{clauses matching}
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\matchcls : \ves{\Clause} \ra \ves{\Clos} \ra \Val}\\
-\matchcls \; \_ \; \diamond & = \stuck \\
-\matchcls \;  ((\vec{p} \; e)\;\vec{l}) \vec{c} & = v \mbox{ if } v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} \\
-\matchcls \; ((\vec{p} \; e)\;\vec{l}) \vec{c} & = \matchcls \vec{l} \vec{c} \mbox{ otherwise}  
-\end{array}
-\]
 
-\paragraph*{clause matching}
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\matchcl : \ves{\Clause} \ra \ves{\Pat} \ra \Expr \ra \ves{\Clos} \ra \Val}\\
-\matchcl \; \rho \; \diamond \; e \; \vec{c} & = \ap \; v_1 \; \vec{c} \mbox{ where } v = \wh e \; \rho \\
-\matchcl \; \_ \; \_\; \_ \; \diamond & = \stuck \\
-\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) & = \matchcl \; \rho_2 \; \vec{p} \; vec{c} \mbox{ if } \rho_2 = \match \; p (\wh c)   
-\end{array}
-\]
-
-\paragraph*{pattern matching}
+\paragraph*{Pattern matching}
+Pattern matching returns an environment that binds the variables in the patterns to values.
+When matching against a coinductive constructor, the value is forced.
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\match : \Env \ra \Pat \ra \Val \ra \Env}\\
-\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v' \\
-& \mbox{ if } p = \cc \vec{p} \mbox{ where } \cc  \mbox{ is a coinductive constructor}\\
-& \mbox{ where } v' = \forc v \\
-\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v \mbox{ otherwise}\\
+\match \; \rho \; (\cc \; \vec{p}) \; v & = \matchf \; \rho \; p \; v' \spc \mbox{if  } \cc  \mbox{ is a coinductive constructor}\\
+& \spcx \spcx \spcx \mbox{and } v' = \forc \; v \neq \stuck \\
+\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v \mbox{ otherwise}
+\vs\\
 \multicolumn{2}{l}{\matchf : \Env \ra \Pat \ra \Val \ra \Env}\\
 \matchf \; \rho \; \inacc{e} \; v & = \rho \\
-\matchf \; \rho \; x \; v & = (x,v)\; \rho \\
-\matchf \; \rho \; (\cc \diamond) \; (\cc) & = \rho \\
-\matchf \; \rho \; (\cc \vec{p}) (\cc \vec{v}) & = \matchList \; \rho \; \vec{p} \; \vec{v} \\
-\matchf \; \rho \; p \; \infty & = \matchInfty \, \rho \; p \\
-\matchf \; \rho \; (\s p) \; (\s v) & = \match \rho \rho \; p \; v \\
+\matchf \; \rho \; x \; v & = \ins \rho \; (x,v) \\
+\matchf \; \rho \; (\cc \; \diamond) \; \cc & = \rho \\
+\matchf \; \rho \; (\cc \; \vec{p}) (\cc \; \vec{v}) & = \matchList \; \rho \; \vec{p} \; \vec{v} \\
+\matchf \; \rho \; (\s p) \; \infty & = \match \; \rho \; p \; \infty \\
+\matchf \; \rho \; (\s p) \; (\s v) & = \match \; \rho \; p \; v \\
 \matchf \; \_ \; \_ \; \_ & = \stuck \mbox{ otherwise}
+\vs\\
+\multicolumn{2}{l}{\matchList : \Env \ra \ves{\Pat} \ra \ves{\Clos} \ra \Env }\\
+\matchList \; \rho \; \diamond \; \diamond & = \rho \\
+\matchList \; \rho \; (p \; \vec{p}) \; (c \; \vec{c}) & = \matchList \; \rho_2 \; \vec{p} \; \vec{c} \mbox{ where } \rho_2 \; = \match \rho \; p \; v \neq \stuck \\
+\matchList \; \_ \; \_ \; \_ & = \stuck \mbox { otherwise } \\
 \end{array}
 \]
 
-\paragraph*{pattern matching against infty}
+\paragraph*{Clause matching}
+For a single clause, if all patterns of a clause match against the arguments, then the right hand side can be evaluated: 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\matchInfty : \Env \ra \Pat \ra \Env}\\
-\matchInfty \; \rho \; \inacc{e} & = \rho\\
-\matchInfty \; \rho \; x & = (x,\infty)\; \rho \\
-\matchInfty \; \rho \; (\s p)  & = \matchInfty \; \rho \; p \\
-\matchInfty \; \_ \; \_ \; \_ & = \stuck \mbox{ otherwise}
+\multicolumn{2}{l}{\matchcl : \Env \ra \ves{\Pat} \ra \Expr \ra \ves{\Clos} \ra \Val}\\
+\matchcl \; \rho \; \diamond \; e \; \vec{c} & = \ap \; v \; \vec{c} \mbox{ where } v = \wh e \; \rho \\
+
+\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) & = \matchcl \; \rho_2 \; \vec{p} \; \vec{c} \mbox{ if } \rho_2 = \match \; p (\wh c) \neq \stuck \\  
+\matchcl \; \_ \; \_\; \_ \; \_ & = \stuck \mbox{ otherwise}\\  
 \end{array}
 \]
-\paragraph*{pattern matching list}
+
+\paragraph*{Clauses matching} 
+Now we define how a set of clauses matches against arguments. 
+Each clause is tried until one is matched or there are no clauses left. We assume that clauses do not overlap, so the order in which the clauses are tried is not relevant. as at most one will match:
+Note that matching for all clauses can fail even when the coverage is complete: First, there can be too few arguments.Furthermore, generic variables (that are introduced during type checking) do not match against a constructor pattern. 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\matchList : \Env \ra \ves{\Pat} \ra \ves{\Clos} \ra \Env }\\
-\matchList \; \rho \; \diamond \; \diamond & = \rho \\
-\matchList \; \rho \; (p \; vec{p}) \; (c \; vec{c} & = \matchList \rho_2 \vec{p} \vec{v} \mbox{ where } \rho_2 \; = matchList \; \rho \; p \; v \\
+\multicolumn{2}{l}{\matchcls : \ves{\Clause} \ra \ves{\Clos} \ra \Val}\\
+\matchcls \; \diamond \; \_ & = \stuck \\
+\matchcls \;  ((\vec{p} \; e)\;\vec{\gamma}) \; \vec{c} & = v \mbox{ if } v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} \neq \stuck \\
+\matchcls \; ((\vec{p} \; e)\;\vec{\gamma}) \; \vec{c} & = \matchcls \; \vec{\gamma} \; \vec{c} \mbox{ otherwise}  
 \end{array}
 \]
+
 
 \section{Examples}
 \subsection{Identity function}
@@ -439,10 +438,7 @@ type as the first argument.
 \begin{bsp}
 $\const id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$   
 \end{bsp}
-We simple add the definition of $id$ to the signature:
-\begin{bsp}
-$\Sig := \{ id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$
-\end{bsp}
+
 \subsection{Booleans}
 The booleans are an example of a non-inductive enumeration type.
 \begin{bsp}
@@ -450,8 +446,7 @@ $\data \Bool : \Set$  \\
 $\spc \ttt : \Bool $\\
 $\spc \fff : \Bool $
 \end{bsp}
-Three new constants are added to the signature
-\[ \Sig := \{ \Bool : \Set , \ttt : \Bool , \fff : \Bool \} \]
+
 \subsection{Natural Numbers}
 First we declare the type of natural numbers:
 \begin{bsp}
@@ -479,12 +474,7 @@ $\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ \\
 $ \spc \leaf : A \ra \Tree A \; B $\\
 $ \spc \node : B \ra \Tree A \; B \ra \Tree A \; B $
 \end{bsp}
-The tree definition adds the following constants to the signature:
-\begin{bsp}
-$\Tree  : ( A : \Set ) \ra ( B : \Set ) \ra \Set$ \\
-$ \spc \leaf : ( A : \Set ) \ra ( B : \Set ) \ra A \ra \Tree A \; B $ \\
-$ \spc \node : ( A : \Set ) \ra ( B : \Set ) \ra A B \ra \Tree A \; B $
-\end{bsp}
+
 \subsection{Vectors}
 The previous data types didn't use any dependent function space. 
 Now things get more interesting. Vectors are an example of an inductive family of types.
@@ -517,50 +507,56 @@ $ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $\\
 $ \spc \head \inacc{B} \; \inacc{m} \; (\cons \; B \; m \; x \; xl) = x $
 \end{bsp}
 \subsection{Equality}
-The following is called Martin-L\"of equality.
-The equality relation is defined by reflexivity.
+The following is called Martin-L\"of equality, another important example of an inductive family.
+This equality relation is defined by a single constructor for reflexivity:
 \begin{bsp}
 $\data \Eq ( A : \Set ) : A \ra A \ra \Set $ \\
-$\spc \refl : A \ra \Eq A \; A  $
+$\spc \refl : \EPi{a}{A}{\Eq A \; a \; a}$
 \end{bsp}
-As a simple example, we can now prove that $ 0 + x = x $.
+As a simple example, we can now prove $ x + 0 = x $:
 \begin{bsp}
-$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x) x} $ \\ 
+$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)\; x} $ \\ 
 $ \spcx = \lam{y}\refl \Nat y$ 
 \end{bsp}
-Here we see that proof checking equals type checking.
-Now if we want to prove $ x + 0 = x $, we need more effort.
-The following does not pass the type checker
+Here one can see that proof checking is type checking.
+Without having formally introduced type checking, we want to give some intuition how it is done.
+This proofs passes the type checker because $\add x \; \zero$ reduces to $\zero$ and the type checker knows that $\zero$ is equal to itself.
+Now if we want to prove $ 0 +  x = x $, we need more effort.
+The following does not pass the type checker:
 \begin{bsp}
-$ \const \prof2 : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)  x} $ \\ 
+$ \const \tprof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x)\; x} $ \\ 
 $ \spcx \lam{y} \refl \Nat y$ 
 \end{bsp}
-The reason why is that type checker can only see definitional equality.
-Note that addition was defined by recursion on the second argument. 
-What we need is a recursive proof.
-
+The reason why is that the type checker can only see definitional equality.
+Note that addition was defined by recursion on the second argument.
+Technically, the generic variable introduced for $y$ does neither match against the pattern $\zero$ in the first clause
+nor against the pattern $\suc y$ in the second clause of $\add$, so $\add \zero x$ does not reduce to $x$ during type checking.
+So what we need is a recursive proof, manually doing case distinction on x:
 \begin{bsp}
 $\fun \eqsucc : \EPi{x}{\Nat}\EPi{y}{\Nat} \Eq \Nat x \; y \ra \Eq \Nat (\suc x) \; (\suc y)$ \\
-$\spc \eqsucc \inacc{x} \; \inacc{x} \; (\refl \inacc{\Nat} \; x) = \refl \Nat (\suc x)$\\
+$\spc \eqsucc \inacc{x} \; \inacc{x} \; (\refl \inacc{\Nat} \; x) = \refl \Nat (\suc x)$
+\vs\\
 $\fun \tprof : ( x : \Nat ) \ra \Eq \Nat (\add \zero x) x$\\
 $\spc \tprof \zero = \refl \Nat \zero$\\
 $\spc \tprof (\suc x) = \eqsucc (\add \zero x)\; x \; (\tprof x)$
 \end{bsp}
 
-Recursive proofs need to be total (complete pattern matching and termination) to be correct.
+Recursive proofs need to be total (complete pattern coverage and termination) to be correct.
 
 \section{Missing features}
 Due to its use for interactivly building proofs, the full Agda has meta-variables that represent parts of tge proof that are still misssing. These 
 Also, many bookkeeping arguments can be easily infered by the type checker,easying tedious pain for the user.
 The user can mark these arguments as \emph{implicit}. The type checker will automatically infer them.
 To keep Mugda simple, these features were not implemented.
-As we have $ \Set : \Set $, we are prone to paradoxoi (\cite{coquand86analysis}).
-The solution is to move to a predicative hierarchy of universes $ \Set = \Set_o , \Set_1 ... $. 
-
+Furthermore, we are limited to one universe $\Set$.
+We could easily have $\Set$ as the type of all types ($\Set : \Set$), but then we are prone to paradoxoi and inconsitencies (\cite{coquand86analysis,coquand92pattern}).
+The solution is to apply universe stratification and move to a predicative hierary of universes $ \Set = \Set_0 , \Set_1 , \Set_2 $ and so on. 
 \section{Type Checking}
 
 \renewcommand\Check[5]{#1,#2,#3\vdash#4\leftleftarrows#5}
-\newcommand\IsType[1]{\vdash#1\;\mathbf{Type}}
+\newcommand\IsType[4]{#1,#2,#3\vdash#4\;\mathbf{Type}}
+\newcommand\DataType[5]{#1,#2,#3,#4\vdash#5\;\mathbf{DataType}}
+\newcommand\ConType[5]{#1,#2,#3,#4\vdash#5\;\mathbf{ConType}}
 \newcommand\Infer[5]{#1,#2,#3\vdash#4\rightrightarrows#5}
 \newcommand\EqVal[4]{#1,#2\vdash#3\Leftrightarrow#4}
 \newcommand\FeqVal[4]{#1,#2\vdash#3{\;\leftrightarrow\;}#4}
@@ -581,7 +577,7 @@ one for checking that an expression has a certain type and one for infering the 
 \item[infer expression]:
 \[\Infer{k}{\rho_1}{\rho_2}{e}{v} : \cN \times \Env \times \Env \times \Expr \ra \Val\]
 \item[is type]:
-\[\IsType{e} \subseteq \Expr\]
+\[\IsType{k}{\rho_1}{\rho_2}{e} \subseteq \cN \times \Env \times \Env \times \Expr \]
 \end{description}
 
 The environment $\rho_1$ will be used to bind fresh generic values to variables, and $\rho_2$ will have the type correspoding to this variables. in checking mode, the type checker might have to infer the type of the expression and then verify that the infered value is equal to the one to be checked against.
@@ -628,7 +624,7 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 %% Var
 	  \nru{\infvar}{\lkup \; \rho_2 \; x \; v}{\Infer{k}{\rho_1}{\rho_2}{x}{v}}
 %% Set
-\qquad	  \nru{\infset}{} {\Infer{k}{\rho_1}{\rho_2}{\Set}{\Set}}   
+%% \qquad	  \nru{\infset}{} {\Infer{k}{\rho_1}{\rho_2}{\Set}{\Set}}   
 \\[2ex]
 %% Size
 	  \nru{\infsize}{}{\Infer{k}{\rho_1}{\rho_2}{\Size}{\Set}}
@@ -668,17 +664,17 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 
 \begin{figure}
 \begin{gather*}
-%\nru{}
-%{\IsType{k}{\rho_1}{\rho_2}{t_1}
-%\qquad
-%\IsType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\clp{t_1}{\rho})}{t_2}}
-%{\IsType{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}}
-%\\[2ex]
-%\nru{}{}{\IsType{k}{\rho_1}{\rho_2}{\Set}}
-%\qquad
 \nru{}
-{\Check{0}{\diamond}{\diamond}{t}{\Set}}
-{\IsType{t}}
+{\IsType{k}{\rho_1}{\rho_2}{t_1}
+\qquad
+\IsType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\clp{t_1}{\rho})}{t_2}}
+{\IsType{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}}
+\\[2ex]
+\nru{}{}{\IsType{k}{\rho_1}{\rho_2}{\Set}}
+\qquad
+\nru{}
+{\Check{0}{\rho_1}{\rho_2}{t}{\Set}}
+{\IsType{k}{\rho_1}{\rho_2}{t}}
 \end{gather*}
 \caption{Type judgment}
 \end{figure}
@@ -760,13 +756,14 @@ f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 \caption{equality checking}
 \end{figure}
 
+After having defined the basic building blocks, now it has to be defined how individual declarations are checked.
 \subsubsection{Constant declaration}
-
 Checking a constand declaration is straightforward.
+The steps are:
 \paragraph*{Typechecking $\const \dd : A = e $}
 \begin{enumerate}
 \item
-$\IsType{A}$
+$\IsType{0}{\diamond}{\diamond}{A}$
 \item
 $ v_a := \wh \cl{A}{\diamond}$
 \item
@@ -774,46 +771,65 @@ $\Check{0}{\diamond}{\diamond}{e}{v_a}$
 \item
 $\Sig := \Sig \cup \{\dd \ra (e,v_a)\}$
 \end{enumerate}
-
+We check that $A$ is a valid type, then check that $e$ has this type and then we update the signature.
 \subsubsection{Datatype declarations}
+We have to check that data type declarations follow the scheme of inductive families.
+Actually, we here stay closer to how data type declarations are checked in the current version Agda.
+It is a little more liberal then the schematas given in the original paper \cite{dubjier}.
+Although this is not essential, we don't require that non-recursive arguments appear before recursive ones.
+Second, as will we see, our notion of strict positiy is a little more lenient than in \cite{dubjier}.
 
-First, a data type declarations need to be of the following scheme:
+A data type declarations need to be of the following scheme:
 \begin{bsp}
-$\data \DD (p_1 : P_1) \ldots (p_n : P_n) : \Gamma \ra \Set $\\
+$\data \DD ( \{+\} p_1 : P_1) \ldots ( \{+\} p_n : P_n) : \Gamma \ra \Set $\\
 $\spc \ldots$\\
 $\spc \cc : \Delta \ra \DD p_1 \ldots p_n t_1 \ldots t_m$\\
 $\spc \ldots$\\   
 \end{bsp}
+
+\newcommand{\pos}{\mbox{pos}}
+We define $\pos(\DD) := \{ i \vert p_i \mbox{ is declared strictly positive} \}. $ 
 Note that the parameters $p_i$ have to be written down in the target of each constructor exactly as declared in the telescope.  
+The parameters can be arbitrary types, while the types in $\Gamma$ and $\Delta$ have to be set-types, i.e of type $\Set$.
 We require that datatype declarations are strictly positive.
 Otherwise there are inconsistencies (\cite{paulinmohring93inductive}), i.e one can define recursion without using a $\fun$.
 Strict positivy rougly means that in the type of the arguments $\Delta$ of every constructor , every recursive argument $\DD$ is not allowed in the domain of a function type or in a argument of an application.
-An exception to this is that it may occur as a parameter to a type that is by itself strict positiv.
-We require the user to mark these strictly positive parameters.
-The information later can be used for subtyping.
-\paragraph*{Typechecking $\data$}
+An exception to this is that it may occur as a parameter to a type that is itself declared as strictly positive.
+Of course it has to be checked that all strictly positive parameters are indeed themselves strictly positive.
 
 \newcommand{\sposc}[3]{#1\vdash#2\mbox{ \textbf{sposc} }#3}
 \newcommand{\spos}[3]{#1\vdash#2\mbox{ \textbf{spos} }#3}
 
+\paragraph*{Typechecking}
+For a data declaration  
+\[\begin{array}{l}
+\data \DD (\{+\} p_1 : P_1) \ldots (\{+\} p_n : P_n) : A \\
+\spcx \vec{\gamma}
+\end{array}
+\]
+the following steps are performed:
 \begin{enumerate}
 \item
-$\IsType{\tau \ra t}$
+$\DataType{0}{\diamond}{\diamond}{n}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra A}$
 \item
-$\Sig = \Sig \cup {\DD \ra v}$
+$v_D := \wh \cl{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}{\diamond}$
 \item
-for every constructor $\cc : A $
+$\Sig := \Sig \cup \{\DD \ra v_D\}$
+\item
+for every constructor $\cc : B  \in \vec{\gamma}$:
 \begin{enumerate} 
 \item
-$\IsType{0}{\diamond}{\diamond}{\tau \ra A}$
+$\ConType{0}{\diamond}{\diamond}{\DD p_1 \ldots p_n}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}$
 \item
-$v_c := \wh \cl{\tau \ra A}{\diamond}$
+$v_C := \wh \cl{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}{\diamond}$
 \item
-$\sposc{0}{v_c}{i}$ for every $i$ in $pos(\tau)$.
+$\pos := \{ i | p_i \mbox{ is declared strictly positive } \} $ 
 \item
-$\sposc{0}{v_c}{\DD}$
+$\sposc{0}{v_C}{i}$ for every $i \in \pos(\DD) $ 
 \item
-$\Sig := \Sig \cup {\cc \ra v}$
+$\sposc{0}{v_C}{\DD}$
+\item
+$\Sig := \Sig \cup \{\cc \ra v_C\}$
 \end{enumerate}
 \end{enumerate}
 
@@ -821,9 +837,42 @@ $\Sig := \Sig \cup {\cc \ra v}$
 
 \begin{figure}
 \begin{gather*}
+\nxru{}
+{\mbox {if } k < n \mbox{ then } \IsType{k}{\rho_1}{\rho_2}{A}}
+{\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
+{\DataType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\cl{A}{\rho})}{n}{B}}
+{\DataType{k}{\rho_1}{\rho_2}{p}{\EPi{x}{A}{B}}}
+\\[2ex]
+\nru{}
+{}
+{\DataType{k}{\rho_1}{\rho_2}{n}{\Set}}
+\end{gather*}
+\caption{Data type judgement}
+\end{figure}
+
+\begin{figure}
+\begin{gather*}
+\ndru{}
+{\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
+{\ConType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\cl{A}{\rho})}{\DD p_1 \ldots p_n}{B}}
+{\ConType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n}{\EPi{x}{A}{B}}}
+\\[2ex]
+\nru{}
+{\IsType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n t_1 \ldots t_m}}
+{\ConType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n}{\DD p_1 \ldots p_n t_1 \ldots t_m}}
+\end{gather*}
+\caption{Constructor type judgment}
+\end{figure}
+
+
+\begin{figure}
+\begin{gather*}
 \nru{}
 {\nocc{k}{i}{v_a} \qquad \nocc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
 {\nocc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+\\[2ex]
+{\nocc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\nocc{k}{i}{\vlam \; x \; \cl{b}{\rho}}  }
 \\[2ex]
 \nru{}
 {\nocc{k}{i}{v} \qquad \nocc{k}{i}{\wh c_j} \mbox{ for all } j \in \{1 \ldots n \}}
@@ -837,10 +886,9 @@ $\Sig := \Sig \cup {\cc \ra v}$
 {i \neq i'}
 {\nocc{k}{i}{i'}}
 \qquad
-\nrux{}
+\nru{}
 {}
 {\nocc{k}{i}{v}}
-{\mbox{otherwise}}
 \end{gather*}
 \caption{Nonoccurence of generic variable i}
 \end{figure}
@@ -851,9 +899,13 @@ $\Sig := \Sig \cup {\cc \ra v}$
 { \nocc{k}{i}{v_a} \qquad \spos{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
 {\spos{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
 \\[2ex]
+\nru{}
+{\spos{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\spos{k}{i}{\vlam \; x \; \; \cl{b}{\rho}}  }
+\\[2ex]
 \ndru{}
-{\Sig \DD = (\mbox{Pos},\_,\_,\_) \qquad \nocc{k}{i}{\wh v_j} \mbox{ for all } j \in \{1 \ldots m \}} 
-{\spos{k}{i}{\wh p_j} \mbox{ for all } j \in \mbox{Pos} \qquad \nocc{k}{i}{\wh p_j} \mbox{ for all } j \notin \mbox{Pos} } 
+{\nocc{k}{i}{\wh v_j} \mbox{ for all } j \in \{1 \ldots m \}} 
+{\spos{k}{i}{\wh p_j} \mbox{ for all } j \in \pos(\DD) \qquad \nocc{k}{i}{\wh p_j} \mbox{ for all } j \notin \pos(\DD) } 
 {\spos{k}{i}{\DD p_1 \ldots p_n \; c_1 \ldots c_m}}
 \\[2ex]
 \nru{}
@@ -864,29 +916,29 @@ $\Sig := \Sig \cup {\cc \ra v}$
 {\spos{k}{i}{v}}
 {\spos{k}{i}{\s v}}
 \qquad
-\nrux{}
+\nru{}
 {}
 {\spos{k}{i}{v}}
-\\[2ex]
-\nru{}
-{\spos{k}{i}{v_a} \qquad \sposc{k+1}{i}{\wh \cl{b}{\ins \rho (x,k)}}}
-{\sposc{k}{i}{\vpi x \; v_a \; \cl{b}{\rho}}}
-\qquad
-\nru{}
-{}
-{\sposc{k}{i}{v}}
 \end{gather*}
 \caption{Strictly positive occurence of generic variable i}
 \end{figure}
 
-In table x we give rules for the strict positiv occurence of a generic variable $i$ in a type value.
-It relies on the non-occurence defined in table y.
-These judgement can be defined analougsly for the occurence of a data identifier $\DD$.
-\begin{definition}
-A constructor $v$ for $\DD$ is strictly positive, if $\spos{0}{\DD}{v}$ and 
-$\spos{0}{i}{v}$ for every $i \in \mbox{Pos}\; {\DD}$  
-\end{definition}
 
+\begin{figure}
+\label{sposcf}
+\begin{gather*}
+\nru{}
+{ \spos{k}{i}{v_a} \qquad \sposc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\sposc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+\nru{}
+{}
+{\sposc{k}{i}{v}}
+\end{gather*}
+\caption{Strict positivity test for generic variable i in constructor arguments}
+\end{figure}
+
+The strict positivity test for a generic variable i is given in figure \ref{sposcf}.
+These judgement can be defined analougsly for the occurence of a data identifier $\DD$.
 Later the information about positive parameters will be usefull for subtyping.
 
 \begin{bsp}
@@ -935,10 +987,10 @@ by the user was correct.
 \newcommand\pstes{\mathrm{ps2es}}
 
 
-\paragraph*{Checking $\fun$ and $cofun$}
-
-We here handle the case of a mutual function declaration.
-Mutual $cofun$ are typecheck just the same.
+\paragraph*{Checking functions}
+We here handle the case of a mutual $\fun$ declaration.
+A mutual $\cofun$ block is typechecked just the same, and non-mutual declaration ist just a special case of a mutual declaration.
+To check a mutual declaration
 \begin{bsp}
 $\mutual$\\
 $\spcx \fun f_1 : t_1 $\\
@@ -946,24 +998,30 @@ $\spcx \spc \vec{\gamma}_1$\\
 $\spcx \ldots$\\
 $\spcx \fun f_n : t_n $\\
 $\spcx \spc \vec{\gamma}_n$
+the following steps are performed:
 \end{bsp}
 \begin{enumerate}
 \item
 for every $i \in \{1 \ldots n \} $
 \begin{enumerate}
 \item
-$\IsType{t}$
+$\IsType{0}{\diamond}{\diamond}{t_i}$
 \item
 $v_i := \wh \cl{t_i}{\diamond}$
 \item
-$\Sig := \Sig \cup (f_i \ra v_i)$
+$\Sig := \Sig \cup \{f_i \ra (v_i,\vec{\gamma_n},\bot)\}$
 \end{enumerate}
+We check every declared type. The signature is updated, 
+but only the type can be used as the clauses have yet to be checked. 
 \item
 for every $i \in \{ 1 \ldots n \} $
 \begin{enumerate}
 \item
 $\checkcl{t_i}{\gamma}$ for every $ \gamma \ni \vec{\gamma}_i$
+\item
+$\Sig := \Sig \cup \{f_i \ra (v_i,\vec{\gamma_n},\top)\}$
 \end{enumerate}
+Now that the clauses are checked, we can update the signature to enable reduction of the defined functions.
 \end{enumerate}
 
 As noted, flexible variables get instantiated by $\insŧ{}{}{}{}{}$ , returning a substitution
@@ -1243,9 +1301,8 @@ v_b = \subst{\sigma''}{\wh \ins \rho (x,c)}
 Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92pattern}.
 The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
 it is guaranteed that matching always succeeds.
-We write $\alpha_{i,j}$ for the element in the $i$-th row and $j$-th column.
 
-\chapter{Termination Checking}
+\chapter{Termination Checking with the size-change principle}
 
 \section{Matrix notation}
 
@@ -1255,6 +1312,8 @@ For a set $R$ we write $R^{m,n}$ for the set of matrices with $n$ rows and $m$ c
 We write $\alpha_{i,j}$ for the element in the $j$th row and $i$th column.
 For a matrix $\alpha \in R^{m,n}$ we define the length $|\alpha| := (m,n)$.
 For a square matrix $\beta \in R^{m,m}$ we define the set of diagonal elements $\diag \beta := \{ \beta_{i,i} \vert i \leq m\}$.
+We write $\alpha_{i,j}$ for the element in the $i$-th row and $j$-th column.
+
 
 \newcommand{\order}{\mathrm{Order}}
 \section{Structural recursion}
@@ -1736,7 +1795,7 @@ $ \spcx \rev (\suc n) A (\cons A \; n \; a (\rev \; n A \; (\revb \; n A \; x \;
 \caption{reversion on vectors}  
 \end{figure}  
 
-\chapter{Adding a Size Type}
+\chapter{Using the Size Type}
 Traditionally, size annotation have been used in the typing rules.
 We take a different approach.
 Wie add a primitive size type, and then use the current termination checker to see that the size is 
@@ -1841,6 +1900,20 @@ $\spcx	\ra \List A\; i \ra \List A\; \infty$\\
 $\spc \quicksort i\; A\; \lleq l = \qsapp i\; A\; \lleq l (\nil A\; \infty)$ 
 \end{bsp}
 
+\subsection{A higher order function}
+While somewhat artifical, the following example is interesting for two reasons:
+\begin{bsp}
+$\fun \addWith : ((k : \Size ) \ra \SNat k \ra \SNat k ) \ra (i : \Size ) \ra (j : \Size ) $\\
+$\spcx \spcx \ra  \SNat i \ra \SNat j \ra \SNat \infty $\\
+$\spc \addWith f \; \inacc{\s i} \; j \; (\zero i) \; y = y $ \\
+$\spc \addWith f \; \inacc{\s i} \; j \; (\suc i \; x) \; y = \suc \infty \; (\addWith f \; j \; i \; y \; (f \; i \; x))$
+\end{bsp}
+$\addWith$ resembles the permutating size add function we've discussed in the previous chapter.
+But it has one additional parameter that is declared to be a size-preserving function.
+This is one strength of sized types: Any function of type  $ ((k : \Size ) \ra \SNat k \ra \SNat k $ can now
+be passed along to $\addWith$.
+The second reason is that the size arguments are permutating. 
+So this is really one example that plays to the strength of our system: both the size type and the size change principle are needed.
 \subsection{Sized ordinal numbers}
 Note that sized types are quite powerful. 
 We can show the termination of ordinal addition with a decreasing size argument.
@@ -1996,7 +2069,12 @@ at least one argument $A_k$ is inductive in $i$
 We note that for the rejected example(Figure \ref{loop}) the argument \[\Maybe (\SNat (\s i)\] is not antitone in $i$, which rrenders the functions $\lop$ (and both $ \shiftcase$ and $\lopcase$) non-admissible.
 
 \subsection{Size Pattern completness}
-
+It is necessary to check that the clauses of a definition cover all possible cases.
+This is quite complicated for inductive families and will not be described here.
+But a special case is pattern completeness for the built-in $\Size$ type.
+As we have seen, without this check we would accept non-terminating function definitions.
+This is like the \emph{bottom-check} in the work of Pareto and Sabry.
+The issue is: does the pattern \[ (\s i) \] cover all possible cases ? 
 
 \subsection{Examples}
 We first give an example to show why we limit the form of what a sized type is.

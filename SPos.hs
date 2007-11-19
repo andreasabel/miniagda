@@ -80,10 +80,12 @@ noccVar k i tv = -- trace ("noccVar " ++ show tv) $
              do n <- noccVar k i av
                 case n of 
                   True -> do
-                      bv <- vclos (updateV env x (VGen k)) b
-                      bv <- whnf bv
+                      bv <- whnf $ VClos (updateV env x (VGen k)) b
                       noccVar (k+1) i bv
                   False  -> return False
+         VLam x (VClos env b) -> do
+                 bv <- whnf $ VClos (updateV env x (VGen k)) b
+                 noccVar (k+1) i bv
          VApp v1 cls -> do sp <- noccVar k i v1
                            vl <- mapM whnf cls
                            nl <- mapM (noccVar k i) vl
@@ -107,6 +109,9 @@ sposRecArg k n tv = -- trace ("sposRecArg " ++ show tv) $
                         bv <- whnf bv
                         sposRecArg (k+1) n bv
                    False -> return False
+         VLam x (VClos env b) -> do
+                 bv <- whnf $ VClos (updateV env x (VGen k)) b
+                 sposRecArg (k+1) n bv
          (VApp (VDef m) cls) -> do
                  do sig <- get
                     vl <- mapM whnf cls
@@ -147,6 +152,9 @@ noccRecArg k n tv = -- trace ("noccRecArg " ++ show tv)
                       bv <- whnf bv
                       noccRecArg (k+1) n bv
                   False  -> return False
+         VLam x (VClos env b) -> do
+                 bv <- whnf $ VClos (updateV env x (VGen k)) b
+                 noccRecArg (k+1) n bv
          VApp (VDef m) vl | n == m -> return False
          VApp v1 cls -> do no <- noccRecArg k n v1
                            vl <- mapM whnf cls

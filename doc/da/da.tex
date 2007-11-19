@@ -122,6 +122,7 @@
 \newcommand{\BadNat}{\mathsf{BadNat}\;}
 \newcommand{\foo}{\mathsf{foo}\;}
 
+\newcommand{\addWith}{\mathsf{addWith}\;}
 
 \newcommand{\ispd}{\mathsf{ISP}\;}
 \newcommand{\spd}{\mathsf{SP}\;}
@@ -141,7 +142,10 @@
 
 \newcommand{\spc}{\hspace*{3mm}}
 \newcommand{\spcx}{\hspace*{10mm}}
-\newcommand{\vs}{\vspace{2mm}}
+\newcommand{\vs}{\vspace*{2mm}}
+
+\newcommand{\mugda}{\textsf{Mugda }}
+
 \newtheorem{definition}{Definition}
 
 \begin{document}
@@ -184,46 +188,59 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \input{legal}
 
+
 \title{Termination Checking for a dependently typed language}
 \author{Karl Mehltretter}
 \date{today}
 \renewcommand{\abstractname}{Abstrakt}
 \begin{abstract}
-Abh\"angige Typen werden seit langer Zeit als Basis f\"ur viele Theorembeweiser eingesezt.
-Seit kurzem gibt es auch Bem\"uhungen, sie f\"ur allgemeine Programmiersprachen zu verwenden.
-Abh\"angige Typen erlauben das Erstellen von Programmen und Beweise darueber in einem gemeinsamen Rahmen.
+Abh\"angige Typen werden als Basis f\"ur viele interaktive Theorembeweiser eingesetzt und es gibt seit einiger Zeit Bem\"uhungen, sie f\"ur allgemeine funktionale Programmiersprachen zu verwenden.
+Eine Sprache mit abh\"angigen Typen erlaubt es, in einem gemeinsamen Rahmen sowohl Programme zu schreiben als auch Beweise zu formalisieren.
 
-Das aus der funktionalen Programmierung bekannte pattern matching wurde als Mittel zur Definition von
+Das aus der Programmierung bekannte \emph{pattern matching} wurde als Mittel zur Definition von
 rekursiven Funktionen in diesen Systemen vorgeschlagen.
-Doch erlaubt pattern matching die Definition von nicht-terminierenden Funktionen, was bei Systemen mit abh\"angin Tpen nicht erlaubt ist.
+Zwar ist pattern matching intuitiv und m\"achtig, doch muss sichergestellt sein, dass die so definierten Funktionen total sind.
 
-Es ist bekannt, dass das Halteproblem im allgemeinen Unentscheidbar ist. 
-Deswegen wird es nie einen perfekten Termination-Checker geben. Es wird Definition geben, die korrekt terminieren aber zur\\"uckgewiesen werden.
-Viele Methoden wurden vorgeschlagen, um eine m\"oglichst grosse Anzahl g\"ultiger Definitionen zuzulassen.
+Ein Aspekt einer totalen Funktion ist Terminierung: Jeder Auswertung der Funktion muss in endlicher Zeit m\"oglich sein.  Unendlich Objekte k\"onnen unterst\"utzt werden, indem jeweils nur Teile davon berechnet werden.
+G\"ultige Definitionen f\"ur unendliche Objekte m\"ussen \emph{produktiv} sein.
 
-Das Ziel dieser Arbeit war, diese Methoden fuer eine praktische Sprache basierend auf abh\"angigen Typen zu erproben.
-Als Ergebniss wurde ein System mit einem neuartigem Terminierungskriterium, das mehrer bekannte Ideen kombinert, implementiert.
+Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"oglichst viele Definition als terminierend zu erkennnen. Es gibt verschiedene Ans\"atze zum Uberpr\"ufen der Terminierung.
+Oft k\"onnen Funktionen, deren rekursive Aufrufe einem Schema wie z.B. der primitiven Rekursion folgen,
+ vom System zugelassen werden. Das \emph{size change principle} umfasst einige dieser Schemata. 
+
+Ein weiterer Vorschlag ist der Einsatz von \emph{sized types}. Information \"uber die Gr\"o\ss e von Argumenten wird im Typsystem verfolgt, um diese f\"ur das Erkennen der Terminierung zu nutzen.   
+
+Im Rahmen dieser Diplomarbeit wurde das System \mugda entwickelt und wird nachfolgend vorgestellt.
+Es basiert auf Typtheorie nach Martin-L\"of und unterst\"utzt induktive und co-induktive Typen. Funktionen werden  durch pattern matching definiert.
+Das Kriterium f\"ur Terminierung basiert auf dem \emph{size change principle}.
+Au\ss erdem stelle die Sprache Elemente bereit, um dem Benutzer die Verwendung von \emph{sized types} zu erm\"oglichen.
 \end{abstract}
 \newpage
 
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
-Dependent type theories have been used at the core of many theorem provers.
-More recently, there are efforts to extend their use to functional programming languages.
-Dependent types allow programming and reasoning about programs in one common framework.
+Dependent types have been used at the core of many proof asistants, and more recently there haven been efforts to extend their use to functional programming languages. 
+Dependent type theories allow programming and reasoning in one common framework.
 
-The well known concept of pattern matching has been proposed for defining recursive functions in such systems.
-While user-friendly and powerful, it enables the user to define non-terminating functions, i.e functions that don't compute a value in finite time. Such definitions cannot be allowed in a dependently typed system. 
+The \emph{pattern matching} notation, known from traditional programming, has been proposed for defining recursive functions in such systems.
+While pattern mathing is intuitive and powerful, it has to be ensured that the defined functions are total. 
 
-It is known that the halteproblem is, in general, undecidable. Thus, no perfect method for checking termination will ever exist. To be on the safe side, there have to be definitions that are valid but will not be accepted.
-Multiple methods have been proposed to broaden the range of allowed definitions.
+One aspect of totality is termination: each evaluation of a function must be able to be computed in finite time.
+Infinite objects can be added to the language by computing only finite parts of them as necessary.
+Valid definitions of infinite objects need to be \emph{productive}. 
 
-The goal of this thesis was to investigate their feasibilityy for a practical language based on dependent types.
-As a result, a system with a unique termination criterion that combines several ideas was implemented.
+As the Halteproblem is undecidable, the goal can only be to accept as many valid definitions as possible.
+There are many approaches to ensure termination.
+One is to allow the definition of functions where the recursive calls follow a certain scheme, for example primitive recursion.
+The \emph{size change principle} subsumes some of these schemes.
+
+With the use of \emph{sized types}, information about the height of arguments is tracked in the type system and can be used to recognize more definitions as terminating.  
+
+For this thesis, the system \mugda was developed and will subsequently be described. It is based on \emph{Martin-L\"of type theory} and supports inductive and co-inductive types. Functions are defined by pattern matching. Its termination criterion is based on the size-change principle. In  addition, the language provides elements to enable the use of sized types.
+
 \end{abstract}
 \tableofcontents
 \input{intro}
-\input{prelim}
 \input{main}
 \input{concl}
 \input{appendix}

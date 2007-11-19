@@ -275,17 +275,9 @@ match env p v = --trace (n ++ " :" ++ show p ++ show v) $
       (VarP x,_) -> return $ Just (updateV env x v)
       (ConP _ x [],VCon _ y) | x== y -> return $ Just env
       (ConP _ x pl,VApp (VCon _ y) cll) | x == y -> matchList env pl cll
-      (_,VInfty) -> matchInfty env p 
+      (SuccP p',VInfty) -> match env p' VInfty 
       (SuccP p',VSucc v') -> match env p' v'
       _ -> return Nothing
-
-matchInfty :: Env -> Pattern -> TypeCheck (Maybe Env)
-matchInfty env p = 
-    case p of
-        DotP _ -> return $ Just env
-        VarP x -> return $ Just $ updateV env x VInfty
-        SuccP p' -> matchInfty env p'
-        _ -> return Nothing
 
 matchList :: Env -> [Pattern] -> [Clos] -> TypeCheck (Maybe Env)
 matchList env [] [] = return $ Just env

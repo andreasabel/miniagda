@@ -36,7 +36,7 @@ typeCheckDeclaration (DataDecl l) =
 typeCheckDeclaration (ConstDecl _ (TypeSig n t) e ) = 
    (
     do sig <- get
-       checkType t 
+       checkT t 
        vt <- whnf $ VClos [] t
        checkExpr 0 [] [] e vt
        put (addSig sig n (ConstSig vt e))
@@ -47,14 +47,15 @@ typeCheckDeclaration (FunDecl funs) = typeCheckFuns funs
 
 typeCheckDataType :: (Name,Co,[Pos],Telescope,Type,[Constructor]) -> TypeCheck Bool
 typeCheckDataType (n,co,pos,tel,t,_) = 
-    do sig <- get
-       let dt = (teleToType tel t)
-       let params = length tel
-       checkType dt 
-       v <- whnf $ VClos [] dt
-       checkTargetSet 0 v
-       put $ addSig sig n (DataSig params pos NotSized co v)
-       szType params v
+ (    
+  do sig <- get
+     let dt = (teleToType tel t)
+     let params = length tel
+     checkDataType 0 [] [] params dt
+     v <- whnf $ VClos [] dt
+     put $ addSig sig n (DataSig params pos NotSized co v)
+     szType params v
+ ) `throwTrace` n
 
 typeCheckConstructors :: (Name,Co,[Pos],Telescope,Type,[Constructor]) -> Bool -> TypeCheck ()
 typeCheckConstructors (n,co,pos,tel,t,cs) b =
@@ -71,14 +72,17 @@ typeCheckConstructor d pos tel (TypeSig n t) =
    ( 
    do sig <- get 
       let tt = teleToType tel t
+      let params = length tel 
+      checkConType 0 [] [] params tt
       let (_,target) = typeToTele tt
-      checkType tt
-      checkTarget d tel target 
+      checkTarget d tel target
       vt <- whnf $ VClos [] tt
       sposConstructor d 0 pos vt
       put (addSig sig n (ConSig vt)) 
       szConstructor d (length tel) vt
    ) `throwTrace` n
+
+
 
 
 typeCheckFuns :: [(TypeSig,Co, [Clause])] -> TypeCheck ()
@@ -98,7 +102,7 @@ typeCheckFuns funs = do mapM addFunSig funs
     typeCheckFunSig :: (TypeSig,Co,[Clause]) -> TypeCheck [Int] 
     typeCheckFunSig (TypeSig n t,co,cl) =   
        (
-        do checkType t
+        do checkT t
            vt <- whnf $ VClos [] t
            adm <- case co of
                     Ind -> szCheckIndFun 0 [] vt
@@ -126,7 +130,24 @@ typeCheckFuns funs = do mapM addFunSig funs
     
 
 
--- check that the data type and the parameter arguments fit 
+-- check that arguments are stypes
+-- check that result is a set 
+--  ( params were already checked by checkDataType ) 
+checkConType :: Int -> Env -> Env -> Int -> Expr -> TypeCheck ()
+checkConType k rho gamma p e = 
+    case e of
+      Pi x t1 t2 -> do 
+             case k < p of
+               True -> 
+                   return ()
+               False ->
+                   checkSType k rho gamma t1    
+             cl <- vclos rho t1 
+             checkConType (k+1) (updateV rho x (VGen k)) (updateC gamma x cl) p t2  
+      _ -> checkExpr k rho gamma e VSet 
+       
+
+-- check that the data type and the parameter arguments (written down like declared in telescope) 
 checkTarget :: Name -> Telescope -> Type -> TypeCheck()
 checkTarget d tel tg =  case tg of
                            (App (Def n) al) -> if n == d then
@@ -146,14 +167,23 @@ checkTarget d tel tg =  case tg of
                                                        throwErrorMsg "target param mismatch"
           checkPs _ _ = throwErrorMsg "target param mismatch"
 
-checkTargetSet :: Int -> TVal -> TypeCheck()
-checkTargetSet k tv = ( case tv of
-                        (VPi x av (VClos env b)) -> do 
-                            bv <- whnf $ VClos (updateV env x (VGen k)) b
-                            checkTargetSet (k+1) bv 
-                        _ -> eqVal k tv VSet
-                     ) `throwTrace` "doesn't target Set "
 
+-- check that params are types
+-- check that arguments are stypes
+-- check that target is set
+checkDataType :: Int -> Env -> Env -> Int -> Expr -> TypeCheck()
+checkDataType k rho gamma p e = case e of
+                                 Pi x t1 t2 -> do 
+                                         case k < p of
+                                           True -> 
+                                                    checkType k rho gamma t1
+                                           False ->
+                                                    checkSType k rho gamma t1    
+                                         cl <- vclos rho t1 
+                                         checkDataType (k+1) (updateV rho x (VGen k)) (updateC gamma x cl) p t2  
+                                 Set -> return ()
+                                 _ -> throwErrorMsg "doesn't target Set"
+                      
 
 ------------
 
@@ -292,6 +322,8 @@ leqApp f k v1 w1 v2 w2 =  --trace ("leqApp " ++ show v1 ++ show w1 ++ "<=" ++ sh
                                                          NotSized -> 
                                                                     eqVal k (w1 !! p) (w2 !!p)
                                                    False -> return ()
+                                         _ -> do leqVal k v1 v2 
+                                                 eqVals k w1 w2
                                                 
         _ -> do leqVal k v1 v2 
                 eqVals k w1 w2
@@ -317,8 +349,8 @@ checkExpr k rho gamma e v = --trace ("checkExpr " ++ show e ++ " " ++ show v) $
     case (e,v) of
       (Lam n e1,VPi x va (VClos env t1)) -> 
           do
-            val <- whnf $ VClos (updateV env x (VGen k)) t1
-            checkExpr (k+1) (updateV rho n (VGen k)) (updateV gamma n va) e1 val  
+            v_t1 <- whnf $ VClos (updateV env x (VGen k)) t1
+            checkExpr (k+1) (updateV rho n (VGen k)) (updateV gamma n va) e1 v_t1  
       (Pi n t1 t2,VSet) ->
           do checkExpr k rho gamma t1 VSet
              cl <- vclos rho t1 
@@ -332,7 +364,6 @@ inferExpr k rho gamma e =
     --trace ("inferExpr " ++ show e) $
     case e of
       Var x -> lookupEnv gamma x
-      Set -> return VSet
       Size -> return VSet
       Infty -> return VSize
       App e1 [e2] ->
@@ -358,10 +389,23 @@ inferExpr k rho gamma e =
       _ -> throwErrorMsg $ "cannot infer type " ++ show e
 
       
+checkT :: Expr -> TypeCheck ()
+checkT e = checkType 0 [] [] e 
 
-checkType :: Expr -> TypeCheck ()
-checkType e = checkExpr 0 [] [] e VSet
+checkType :: Int -> Env -> Env -> Expr -> TypeCheck ()
+checkType k rho gamma e = case e of
+                Set -> return ()
+                Pi x t1 t2 -> do
+                    checkType k rho gamma t1
+                    cl <- vclos rho t1 
+                    checkType (k+1) (updateV rho x (VGen k)) (updateC gamma x cl) t2  
+                _ -> checkExpr k rho gamma e VSet
 
+
+-- set type
+checkSType :: Int -> Env -> Env -> Expr -> TypeCheck ()
+checkSType k rho gamma e  = (checkExpr k rho gamma e VSet) `catchError` (\_ -> throwErrorMsg $ "not a set: " ++ show e )
+     
 
 -- type check a funtion
 
@@ -591,7 +635,7 @@ compSubst subst1 subst2 =
 -- check data declaration type 
 -- parameters : number of params, type 
 szType :: Int -> TVal -> TypeCheck Bool
-szType p tv = do (tv',k) <- doParams p 0 tv
+szType p tv = do (tv',k) <- doVParams p 0 tv
                  case tv' of
                    VPi x av (VClos env e) -> do
                       case av of
@@ -601,7 +645,7 @@ szType p tv = do (tv',k) <- doParams p 0 tv
                  
 -- check data constructors
 szConstructor :: Name -> Int -> TVal -> TypeCheck Bool
-szConstructor n p tv = do (tv',k) <- doParams p 0 tv
+szConstructor n p tv = do (tv',k) <- doVParams p 0 tv
                           case tv' of
                             VPi x av (VClos env b) -> do
                                      case av of
@@ -680,11 +724,11 @@ szSizeVarNotUsed k i tv = do
                                return $ b1 && b2
     _ -> return True
 
-doParams :: Int -> Int -> TVal -> TypeCheck (TVal,Int)
-doParams 0 k tv = do return (tv,k)
-doParams p k (VPi x av (VClos env b)) = do 
+doVParams :: Int -> Int -> TVal -> TypeCheck (TVal,Int)
+doVParams 0 k tv = do return (tv,k)
+doVParams p k (VPi x av (VClos env b)) = do 
   bv <- whnf $ VClos (updateV env x (VGen k)) b
-  doParams (p - 1 ) (k + 1) bv
+  doVParams (p - 1 ) (k + 1) bv
 
 --------------------------------------
 -- check for admissible size argumments

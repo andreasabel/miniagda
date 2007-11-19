@@ -1,33 +1,3 @@
 \chapter{Preliminaries}
 
-\section{Dependent Types}
-While minimal logic corresponds nicely with the simple typed lambda calculus,
-a more complex type system needs to be used to handle quantification used in predicate logic.
 
-\section{Dependent pattern matching}
-Traditionionally,elimination rules were used for introducing new constants in type theory.
-Coquand suggested defining by pattern matching.
-This adds to the usability of the language, and it is not a conservative extension to traditional type theory
-with eleminators,as the K Axiom has to be added to the theory (\cite{hofmann95groupoid,GoguHMcBrCM2006}
-
-\section{Inductive Families}
-
-Using depentend types, you can a type Vec that is a list that carries its size with it.
-A function of type \(\Pi n : Nat . Vec n \rightarrow Vec n \) is thus known to be size preserving. 
-\section{Coinductive Types}
-
-The prime example for an coinductive type are streams, the dual to list.
-While it's always possible to apply a constructor to a list and get a bigger list, it's always
-possible to deconstruct a stream, getting an element of the stream.
-So streams are essentially infinite lists.  
-
-\section{Sized Types}
-
-Many termination checking techniques rely on \emph{terms} getting structurally smaller on recursive calls.
-The idea of sized based termination \cite{abel:PhD} is to move this to types:
-A recursive function is terminating if the \emph{type} of the recursive argument is getting smaller.
-Type based termination treats data types as a family of types indexed by it size.
-Special size expressions are introduced that decorate types.
-Type based termination plays to its strength with higher order functions. 
-Type based termination arose in the context of non-depentend lambda calulus.
-As dependent types smear the distinction between types and terms, so they already offer much of the power needed for type based termination.
