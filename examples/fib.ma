@@ -16,8 +16,8 @@ fun tail : (i : Size) -> Stream ($ i) -> Stream i {
   tail .i (cons i n ns) = ns
 }
 
-fun head : (i : Size) -> Stream ($ i) -> Nat {
-  head .i (cons i n ns) = n
+fun head : (i : Size) -> Stream i -> Nat {
+  head .($ i) (cons i n ns) = n
 }
 
 cofun zipWith :  (Nat -> Nat -> Nat ) -> ( i : Size ) 
@@ -37,6 +37,46 @@ cofun fibs : ( i : Size ) -> Stream i
 	 	(zipWith add i (fibs i) (tail i (fibs ($ i)))))
 }
 
+
+mutual {
+
+cofun fibs2 : ( i : Size ) -> Stream i
+{
+  fibs2 ($ i) = cons i zero (fibs2' i)
+}
+
+cofun fibs2' : (i : Size ) -> Stream i 
+{
+
+fibs2' ($ i) = cons i (succ zero) (zipWith add i (fibs2 i) (fibs2' i))
+}
+
+}
+
+
 const 4 : Nat = (succ (succ (succ (succ zero))))
 -- fib(4) = 3 
-eval const fib4 : Nat = nth 4 (fibs #) 
+eval const fib4 : Nat = nth 4 (fibs2 #) 
+
+data Eq (A : Set ) : A -> A -> Set
+{
+refl : (a : A ) -> Eq A a a
+}
+
+-- const proof : Eq (Stream #) (tail # (fibs2 #)) (tail # (fibs2 #)) = refl (Stream #) (tail # (fibs2 #))
+
+
+
+const double : (i : Size ) -> Stream i -> Stream ($ i) = \i -> \s -> cons i (head i s) s
+
+cofun z : (i : Size ) -> Stream i
+{
+z ($ i) = double i (z i)
+}
+
+eval const zzz : Nat = head # (z #) 
+
+
+
+
+

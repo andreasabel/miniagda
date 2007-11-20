@@ -209,6 +209,7 @@ eqVal' f k u1 u2 = --trace ("eqVal'" ++ show (u1,u2)) $
                    eqVal' L k u1' u2
       (Nothing,Just u2') | f /= L ->
                    eqVal' R k u1 u2' 
+      --(Just u1',Just u2') -> throwErrorMsg "cannot"
       _ -> case (u1,u2) of
              (VSet,VSet) -> return ()
              (VSize,VSize) -> return ()

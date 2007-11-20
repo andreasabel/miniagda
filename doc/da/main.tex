@@ -21,8 +21,9 @@
 \newcommand{\infappa}{\rulename{inf-app-i}}
 \newcommand{\infappb}{\rulename{inf-app-ii}}
 \newcommand{\infcon}{\rulename{inf-con}}
-\newcommand{\infdef}{\rulename{inf-def}}
+\newcommand{\infdef}{\rulename{inf-fun}}
 \newcommand{\infconst}{\rulename{inf-const}}
+\newcommand{\infdata}{\rulename{inf-data}}
 
 \newcommand{\chklam}{\rulename{chk-lam}}
 \newcommand{\chkpi}{\rulename{chk-pi}}
@@ -41,8 +42,9 @@
 \newcommand{\eqgen}{\rulename{eq-gen}}
 \newcommand{\eqpi}{\rulename{eq-pi}}
 \newcommand{\eqlam}{\rulename{eq-lam}}
-\newcommand{\eqdef}{\rulename{eq-def}}
+\newcommand{\eqdef}{\rulename{eq-fun}}
 \newcommand{\eqcon}{\rulename{eq-con}}
+\newcommand{\eqdata}{\rulename{eq-data}}
 
 \newcommand{\chkpvar}{\rulename{chkp-var}}
 \newcommand{\chkpcon}{\rulename{chkp-con}}
@@ -64,7 +66,7 @@
 \newcommand{\leqgen}{\rulename{leq-gen}}
 \newcommand{\leqpi}{\rulename{leq-pi}}
 \newcommand{\leqlam}{\rulename{leq-lam}}
-\newcommand{\leqdef}{\rulename{leq-def}}
+\newcommand{\leqdef}{\rulename{leq-fun}}
 \newcommand{\leqcon}{\rulename{leq-con}}
 
 \newcommand{\sleqinfty}{\rulename{sleq-infty}}
@@ -111,7 +113,7 @@
 \newcommand{\apf}{\mathrm{app_{fun}}}
 \newcommand{\sinfty}{\mathrm{s_{\infty}}}
 \newcommand{\lkup}{\mathrm{lkup}}
-\newcommand{\ins}{}
+\newcommand{\ins}[3]{#1,#2=#3}
 \newcommand{\forc}{\mathrm{force}}
 \newcommand{\matchcls}{\mathrm{match_{cls}}}
 \newcommand{\matchcl}{\mathrm{match_{cl}}}
@@ -233,16 +235,15 @@ Each declaration adds newly defined constructs to the signature $\Sig$, which is
 
 \section{Semantics of Mugda expressions}
 As noted in introduction, we need computation during type checking.
-We give here a semantic that uses the main ideas of \cite{coquand96algorithm}:
-the uses of closures and generic variables. As we need to support coinductive definitons,
-the semantics has to be lazy. 
-Here we assume a fixed given signature $\Sig$ that hold information about the defined constants.
+Thus, we need a semantic to be used during type checking.
+The main ideas of the type checking algorithm of \cite{coquand96algoritm} are based on the idea of closures and generic values.
+Closures, already introduced for computer science in \cite{Landin63}, are used for explicit substitution and to delay evaluation.
 We simultanously define values, closures and environemnts.
  
 \paragraph{Value}
 \[
 \begin{array}{lrll}
-\Val \ni v & ::= & v \; \vec{c} & \mbox{lazy application}\\
+\Val \ni v & ::= & v \; \vec{c} & \mbox{application}\\
 & \mid & \vlam \; x \; c & \mbox{abstraction}\\
 & \mid & \vpi \; x \; c & \mbox{dependent function space}\\
 & \mid & k & \mbox{generic value}\\
@@ -254,7 +255,7 @@ We simultanously define values, closures and environemnts.
 & \mid & \ff & \mbox{function symbol}\\
 \end{array}
 \]
-
+A generic value $k \in \cN$ represents the computed value of a variable during type checking.
 \paragraph{Closure}
 \[
 \begin{array}{lrll}
@@ -266,18 +267,14 @@ We simultanously define values, closures and environemnts.
 \[
 \begin{array}{lrll}
 \Env \ni \rho & ::= & \diamond & \mbox{empty environment}\\
-& \mid & (x,v) \rho & \mbox{extension with value}\\
-& \mid & (x,c) \rho & \mbox{extension with closure} 
+& \mid & \rho,x = v & \mbox{extended with value binding}\\
+& \mid & \rho,x = c & \mbox{extended with closure binding} 
 \end{array}
 \]
+
 Values can be seen as partially evaluated expressions.
 They are only partially evaluated because they may contain closures.
-A closure is an expression together with an environment.
-The environment contains bindings for all free variables in the expression.
-Actually, in the values $\vlam \; x \; c$ and $\vpi \; x \; c$, the closure $c$ is missing 
-a binding for x. The closure can be completed when an argument is available during evaluation. 
-During type checking, $x$ can also be bound to a fresh generic variable $ k \in \cN$. Generic variables can be 
-seen as a placeholder for any type-correct value.
+A closure is an expression together with an environment that provides bindings for the free variables in the expression.
 \paragraph*{Signature}
 The signature carries information about all user-defined constants.
 We define it as a overloaded function:
@@ -320,6 +317,11 @@ A fixed signature $\Sig$ is assumed.
 \wh \cl{x}{\rho} & = \lkup \; \rho \; x \\
 \end{array}
 \]
+We note that the closure $c$  in $\vlam \; x \; \cl{e}{\rho}$
+and $\vpi \; x \; v_a \; \cl{b}{\rho}$ do not have a binding for $x$.
+The missing binding has to be provided before the closure can be evaluated.
+This might be a concrete value (for example during $\beta$-reduction) or a
+fresh generic value $k$ during type checking.
 
 \paragraph*{Size succesor}
 We should take into account that $\infty$ is the limit size, i.e the equation $\s \infty = \infty$:
@@ -327,7 +329,7 @@ We should take into account that $\infty$ is the limit size, i.e the equation $\
 \begin{array}[t]{ll}
 \multicolumn{2}{l}{\sinfty : \Val \ra \Val}\\ 
 \sinfty \; \infty & = \infty\\
-\sinfty \;  x & = \s x  \mbox{ otherwise}\\ 
+\sinfty \;  v & = \s v  \mbox{ otherwise}\\ 
 \end{array}
 \]
 
@@ -335,20 +337,20 @@ We should take into account that $\infty$ is the limit size, i.e the equation $\
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\lkup : \Env \ra \cV \ra \Val }\\
-\lkup \; ((x,v) \rho) \; x & = v \mbox{ if } v \mbox{ is a value} \\
-\lkup \; ((x,c) \rho) \; x & = \wh c \mbox{ if } c \mbox{ is a closure} \\
-\lkup \; ((y,z) \rho) \; x & = \lkup \; \rho \; x \mbox{ if } y \neq x  
+\lkup \; (\ins{\rho}{x}{v}) \; x & = v \\
+\lkup \; (\ins{\rho}{x}{c}) \; x & = \wh c \\
+\lkup \; (\ins{\rho}{y}{\_}) \; x & = \lkup \; \rho \; x \mbox{ if } y \neq x  
 \end{array}
 \]
 
 \paragraph*{Application}
-for $\beta$-reduction and inductive function application. 
+does $\beta$-reduction and inductive function application. 
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\ap : \Val \ra \ves{\Clos} \ra \Val}\\
 \ap \; u \; \diamond & = u \\
 \ap \; (u \; \vec{c_1}) \; \vec{c_2} & = \ap \; u \; (\vec{c_1}\;\vec{c_2})\\
-\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \; \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins \; \rho \; (x,c)} \\ 
+\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \; \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins{\rho}{x}{c}} \\ 
 \ap \; \ff \; \vec{c} & = \apf \; \ff \; \vec{c} \mbox{ if } \ff \mbox{ is a } \fun \\ 
 \ap \; v \; \vec{c} & = v \; \vec{c} \mbox{ otherwise } \\
 \end{array}
@@ -389,7 +391,7 @@ When matching against a coinductive constructor, the value is forced.
 \vs\\
 \multicolumn{2}{l}{\matchf : \Env \ra \Pat \ra \Val \ra \Env}\\
 \matchf \; \rho \; \inacc{e} \; v & = \rho \\
-\matchf \; \rho \; x \; v & = \ins \rho \; (x,v) \\
+\matchf \; \rho \; x \; v & = \ins{\rho}{x}{v} \\
 \matchf \; \rho \; (\cc \; \diamond) \; \cc & = \rho \\
 \matchf \; \rho \; (\cc \; \vec{p}) (\cc \; \vec{v}) & = \matchList \; \rho \; \vec{p} \; \vec{v} \\
 \matchf \; \rho \; (\s p) \; \infty & = \match \; \rho \; p \; \infty \\
@@ -418,7 +420,7 @@ For a single clause, if all patterns of a clause match against the arguments, th
 \paragraph*{Clauses matching} 
 Now we define how a set of clauses matches against arguments. 
 Each clause is tried until one is matched or there are no clauses left. We assume that clauses do not overlap, so the order in which the clauses are tried is not relevant. as at most one will match:
-Note that matching for all clauses can fail even when the coverage is complete: First, there can be too few arguments.Furthermore, generic variables (that are introduced during type checking) do not match against a constructor pattern. 
+Note that matching for all clauses can fail even when the coverage is complete: First, there can be too few arguments.Furthermore, generic values (that are introduced during type checking) do not match against a constructor pattern. 
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\matchcls : \ves{\Clause} \ra \ves{\Clos} \ra \Val}\\
@@ -529,7 +531,7 @@ $ \spcx \lam{y} \refl \Nat y$
 \end{bsp}
 The reason why is that the type checker can only see definitional equality.
 Note that addition was defined by recursion on the second argument.
-Technically, the generic variable introduced for $y$ does neither match against the pattern $\zero$ in the first clause
+Technically, the generic value introduced for $y$ does neither match against the pattern $\zero$ in the first clause
 nor against the pattern $\suc y$ in the second clause of $\add$, so $\add \zero x$ does not reduce to $x$ during type checking.
 So what we need is a recursive proof, manually doing case distinction on x:
 \begin{bsp}
@@ -553,16 +555,16 @@ We could easily have $\Set$ as the type of all types ($\Set : \Set$), but then w
 The solution is to apply universe stratification and move to a predicative hierary of universes $ \Set = \Set_0 , \Set_1 , \Set_2 $ and so on. 
 \section{Type Checking}
 
-\renewcommand\Check[5]{#1,#2,#3\vdash#4\leftleftarrows#5}
-\newcommand\IsType[4]{#1,#2,#3\vdash#4\;\mathbf{Type}}
-\newcommand\DataType[5]{#1,#2,#3,#4\vdash#5\;\mathbf{DataType}}
-\newcommand\ConType[5]{#1,#2,#3,#4\vdash#5\;\mathbf{ConType}}
-\newcommand\Infer[5]{#1,#2,#3\vdash#4\rightrightarrows#5}
-\newcommand\EqVal[4]{#1,#2\vdash#3\Leftrightarrow#4}
-\newcommand\FeqVal[4]{#1,#2\vdash#3{\;\leftrightarrow\;}#4}
+\renewcommand\Check[5]{#1;#2;#3\vdash#4\leftleftarrows#5}
+\newcommand\IsType[4]{#1;#2;#3\vdash#4\;\mathbf{Type}}
+\newcommand\DataType[5]{#1;#2;#3;#4\vdash#5\;\mathbf{DataType}}
+\newcommand\ConType[5]{#1;#2;#3;#4\vdash#5\;\mathbf{ConType}}
+\newcommand\Infer[5]{#1;#2;#3\vdash#4\rightrightarrows#5}
+\newcommand\EqVal[4]{#1;#2\vdash#3\Leftrightarrow#4}
+\newcommand\FeqVal[4]{#1;#2\vdash#3{\;\leftrightarrow\;}#4}
 \newcommand\DeqVal[2]{\vdash#1\leftrightarrow#2}
-\newcommand\LeqVal[4]{#1,#2,\vdash#3\leq#4}
-\newcommand\FleqVal[4]{#1,#2\vdash#3{\;\ll\;}#4}
+\newcommand\LeqVal[4]{#1;#2;\vdash#3\leq#4}
+\newcommand\FleqVal[4]{#1;#2\vdash#3{\;\ll\;}#4}
 \newcommand\DLeqVal[2]{\vdash#1\leq#2}
 \newcommand\SzLeq[2]{\vdash#1\sqsubseteq#2}
 
@@ -593,21 +595,21 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{gather*}
 %%Lam
 \nru{\chklam}
-{\Check{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,v_a)}{e}{\wh (t \; \ins \rho (x,k))}}
+{\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{v_a}}{e}{\wh \cl{t}{\ins{\rho}{x}{k}}}}
 {\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \; x \; v_a \; \cl{t}{\rho}}}
 %% Pi
 \\[2ex]
 \nru{\chkpi}
 {\Check{k}{\rho_1}{\rho_2}{t_1}{\Set}
 \qquad
-\Check{k+1}{\ins \; \rho_1 \; (x,k)} {\ins \; \rho_2 \; (x,\cl{(t_1)}{\rho})}{t2}{\Set}
+\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{t_1}}{\rho}}{t_2}{\Set}
 }
 {\Check{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}{\Set}}
 \\[2ex]
 %% Succ
 \nru{\chksucc}
-{\Check{k}{\rho_1}{\rho_2}{\s e}{\Size}} 
 {\Check{k}{\rho_1}{\rho_2}{e}{\Size}}
+{\Check{k}{\rho_1}{\rho_2}{\s e}{\Size}} 
 %% Inf
 \qquad
 \nru{\chkinf}
@@ -623,8 +625,6 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{gather*}
 %% Var
 	  \nru{\infvar}{\lkup \; \rho_2 \; x \; v}{\Infer{k}{\rho_1}{\rho_2}{x}{v}}
-%% Set
-%% \qquad	  \nru{\infset}{} {\Infer{k}{\rho_1}{\rho_2}{\Set}{\Set}}   
 \\[2ex]
 %% Size
 	  \nru{\infsize}{}{\Infer{k}{\rho_1}{\rho_2}{\Size}{\Set}}
@@ -637,26 +637,31 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 {\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \; x \; v_a \; \cl{b}{\rho}}
 \qquad \Check{k}{\rho_1}{\rho_2}
 {e_2}{v_a}}
-{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh b \; (\ins \; \rho \; \cl{{e_2}}{\rho_1})}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh \cl{b}{\ins{\rho}{x}{\cl{e_2}{\rho_1}}}}}
 %% App-2
 \\[2ex]
 \nru{\infappb}
 {\Infer{k}{\rho_1}{\rho_2}{(e_1 \; e_2)\;\vec{e}}{v}}
-{\Infer{k}{\rho_1}{\rho_2}{e_1 \; (e_2 \vec{e})}{v}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \; (e_2 \; \vec{e})}{v}}
 \qquad
 %% Def	
 \nru{\infdef}
-{\Sig \; \ff \; = (\_,v,\_) }
+{\Sig \; \ff \; = (v,\_) }
 {\Infer{k}{\rho_1}{\rho_2}{\ff}{v}}
-%% Con 
 \\[2ex]
+\qquad
+%% Con 
 \nru{\infcon}
 {\Sig \; \cc \; = v}
 {\Infer{k}{\rho_1}{\rho_2}{\cc}{v}} 
+%% Data
+\nru{\infdata}
+{\Sig \; \cc \; = (v,\_)}
+{\Infer{k}{\rho_1}{\rho_2}{\DD}{v}} 
 %% Const
 \qquad
 \nru{\infconst}
-{\Sig \; \dd \; = (\_,\_,\_,v,\_)}
+{\Sig \; \dd \; = (\_,v)}
 {\Infer {k}{\rho_1}{\rho_2}{\dd}{v}}
 \end{gather*}
 \caption{Infering type of expressions}
@@ -667,7 +672,7 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \nru{}
 {\IsType{k}{\rho_1}{\rho_2}{t_1}
 \qquad
-\IsType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\clp{t_1}{\rho})}{t_2}}
+\IsType{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{t_1}{\rho}}}{t_2}}
 {\IsType{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}}
 \\[2ex]
 \nru{}{}{\IsType{k}{\rho_1}{\rho_2}{\Set}}
@@ -735,12 +740,12 @@ f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 \nru{\eqpi}
 {\EqVal{f}{k}{a_1}{a_2}
 \qquad
-\EqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+\EqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh \cl{b_2}{\ins{\rho_2}{x_2}{k}}}}
 {\FeqVal{f}{k}{\vpi \; x_1 \; a_1 \; \cl{b_1}{\rho_1}}{\vpi \; x_2 \; a_2 \; \cl{b_2}{\rho_2}}}
 %% Lam
 \\[2ex]
 \nru{\eqlam}
-{\EqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
+{\EqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh \cl{b_2}{\ins{\rho_2}{x_2}{k}}}}
 {\FeqVal{f}{k}{\vlam \; x_1 \; \cl{b_1}{\rho_1}}{\vlam \; x_2 \; \cl{b_2}{\rho_2}}}
 %% Def
 \\[2ex]
@@ -840,7 +845,7 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 \nxru{}
 {\mbox {if } k < n \mbox{ then } \IsType{k}{\rho_1}{\rho_2}{A}}
 {\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
-{\DataType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\cl{A}{\rho})}{n}{B}}
+{\DataType{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{A}{\rho}}}{n}{B}}
 {\DataType{k}{\rho_1}{\rho_2}{p}{\EPi{x}{A}{B}}}
 \\[2ex]
 \nru{}
@@ -854,7 +859,7 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 \begin{gather*}
 \ndru{}
 {\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
-{\ConType{k+1}{\ins \; \rho_1 \; (x,k)}{\ins \; \rho_2 \; (x,\cl{A}{\rho})}{\DD p_1 \ldots p_n}{B}}
+{\ConType{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{A}{\rho}}}{\DD p_1 \ldots p_n}{B}}
 {\ConType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n}{\EPi{x}{A}{B}}}
 \\[2ex]
 \nru{}
@@ -868,10 +873,10 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 \begin{figure}
 \begin{gather*}
 \nru{}
-{\nocc{k}{i}{v_a} \qquad \nocc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\nocc{k}{i}{v_a} \qquad \nocc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
 {\nocc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
 \\[2ex]
-{\nocc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\nocc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
 {\nocc{k}{i}{\vlam \; x \; \cl{b}{\rho}}  }
 \\[2ex]
 \nru{}
@@ -890,17 +895,17 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 {}
 {\nocc{k}{i}{v}}
 \end{gather*}
-\caption{Nonoccurence of generic variable i}
+\caption{Nonoccurence of generic value i}
 \end{figure}
 
 \begin{figure}
 \begin{gather*}
 \nru{}
-{ \nocc{k}{i}{v_a} \qquad \spos{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{ \nocc{k}{i}{v_a} \qquad \spos{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
 {\spos{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
 \\[2ex]
 \nru{}
-{\spos{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{\spos{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
 {\spos{k}{i}{\vlam \; x \; \; \cl{b}{\rho}}  }
 \\[2ex]
 \ndru{}
@@ -920,7 +925,7 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 {}
 {\spos{k}{i}{v}}
 \end{gather*}
-\caption{Strictly positive occurence of generic variable i}
+\caption{Strictly positive occurence of generic value i}
 \end{figure}
 
 
@@ -928,13 +933,13 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 \label{sposcf}
 \begin{gather*}
 \nru{}
-{ \spos{k}{i}{v_a} \qquad \sposc{k+1}{i}{\wh \cl{b}{\ins \; \rho \; (x,k)}}}
+{ \spos{k}{i}{v_a} \qquad \sposc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
 {\sposc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
 \nru{}
 {}
 {\sposc{k}{i}{v}}
 \end{gather*}
-\caption{Strict positivity test for generic variable i in constructor arguments}
+\caption{Strict positivity test for generic value i in constructor arguments}
 \end{figure}
 
 The strict positivity test for a generic variable i is given in figure \ref{sposcf}.
@@ -969,7 +974,7 @@ is not allowed because of the negative occurence of $A$ in the argument of $\bad
 We need to check every clause $\ff \vec{p} e$ of a function against the delcared type.
 For each clause, we have to check the patterns $\vec{p}$ and then the right hand side $e$.
 When checking the patterns, we first skip the inacessible patterns, 
-replacing them with \emph{flexible} generic variables.
+replacing them with \emph{flexible} generic values.
 These variables get instantiated to concrete values when matching
 the indices of a constructor pattern.
 After we are done with the accesible patterns, 
@@ -1026,7 +1031,7 @@ Now that the clauses are checked, we can update the signature to enable reductio
 
 As noted, flexible variables get instantiated by $\insŧ{}{}{}{}{}$ , returning a substitution
 \begin{definition}
-A substitution $\sigma : \ves{(\cN \times \Val)} $ denotes a partial mapping of flexible generic variables to values.
+A substitution $\sigma : \ves{(\cN \times \Val)} $ denotes a partial mapping of flexible generic values to values.
 $\diamond$ is the empty substitution.
 $\sigma[k \rightarrow v] $ maps $k$ to $v$ and all other variables according to $\sigma$
 \end{definition}
@@ -1094,7 +1099,7 @@ ther are no occurences of the variables of $\sigma_1$ in the values of the codom
 \multicolumn{2}{l}{\inaccenv : \Env \times \cN \times \ves{cN} \ra \Env}\\
 \inaccenv \rho k \diamond & = \rho \\
 \inaccenv \rho k (f \vec{f}) & = \inaccenv \rho k \vec{f} \mbox{ if } f < k  \\
-\inaccenv \rho k (f \vec{f}) & = \ins (i_f,f) (\inaccenv \rho k \vec{k}) \mbox { if } f \geq k 
+\inaccenv \rho k (f \vec{f}) & = \ins{(\inaccenv \rho k \vec{k})}{i_f}{f} \mbox { if } f \geq k 
 \end{array}
 \]
 
@@ -1119,13 +1124,13 @@ ther are no occurences of the variables of $\sigma_1$ in the values of the codom
 \begin{gather*}
 % VAR
 \nru{\chkpvar}
-{v_b = \wh \cl{b}{\ins \rho (x,k)}}
+{v_b = \wh \cl{b}{\ins{\rho}{x}{k}}}
 {
 \checkp
 {k,f,\sigma,\rho_1,\rho_2}
 {y}
 {\vpi x v_a \cl{b}{\rho}}
-{k+1,f,\sigma,\ins \rho_1 (y,k),\rho_2 (y,v_a)}
+{k+1,f,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
 {v_b}}
 % CON
 \\[2ex]
@@ -1141,7 +1146,7 @@ ther are no occurences of the variables of $\sigma_1$ in the values of the codom
 \ptc k \rho'_1 f p =  c}
 {\sigma'' = \compS{\sigma'}{\sigma_2} \qquad
 \rho''_2 = \substEnv{\sigma''}{\rho'_2} \qquad
-v_b = \subst{\sigma''}{\wh \ins \rho (x,c)}
+v_b = \subst{\sigma''}{\wh \cl{b}{\ins{\rho}{x}{c}}}
 }
 {\checkp
 {k,f,\sigma,\rho_1,\rho_2}
@@ -1165,12 +1170,12 @@ v_b = \subst{\sigma''}{\wh \ins \rho (x,c)}
 {k,f,\sigma,\rho_1,\rho_2}
 {\s p}
 {\vpi x v_a \cl{b}{\rho}}
-{k',f,\sigma,\ins \rho_1 (y,k),\rho_2 (y,v_a)}
+{k',f,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
 {v_b}}
 % DOT
 \\[2ex]
 \nru{\chkpinacc}
-{v_b = \wh \cl{b}{\ins \rho (x,k)}}
+{v_b = \wh \cl{b}{\ins{\rho}{x}{k}}}
 {
 \checkp
 {k,f,\sigma,\rho_1,\rho_2}
