@@ -120,29 +120,20 @@ ok m1 m2 = (length m1) == length m2
 
 ---
 
-compareArgs :: [Pattern] -> [Expr] -> [Int] -> [Int] -> Int -> Matrix Order
-compareArgs _ [] _ _ _ = [[]]
-compareArgs [] _ _ _ _ = [[]]
-compareArgs pl el admf admg ar_g = let pl' = zip pl [0..]
-                                       el' = zip el [0..]
-                                       diff = ar_g - length el 
-                                       fill = if diff > 0 then
-                                                 replicate diff (replicate (length pl) Un)
-                                                 else []
-                                       cmp = map (\ e -> (map (compareExpr' e admf admg) pl')) el'
-                                  in
-                                       cmp ++ fill
+compareArgs :: [Pattern] -> [Expr] -> Int -> Matrix Order
+compareArgs _ [] _ = [[]]
+compareArgs [] _ _ = [[]]
+compareArgs pl el ar_g = 
+        let 
+            diff = ar_g - length el 
+            fill = if diff > 0 then
+                       replicate diff (replicate (length pl) Un)
+                   else []
+            cmp = map (\ e -> (map (compareExpr e) pl)) el
+        in
+          cmp ++ fill
             
              
-compareExpr' :: (Expr,Int) -> [Int] -> [Int] -> (Pattern,Int) -> Order
-compareExpr' (e,i) admf admg (p,j) =  
-    let bj = elem j admf
-        bi = elem i admg
-    in
-      case (bi && bj) of 
-        True -> compareSize e p -- both are admissble size arguments
-        False -> compareExpr e p 
-
 compareExpr :: Expr -> Pattern -> Order
 compareExpr e p = 
    case (e,p) of 
@@ -167,12 +158,12 @@ compareVar n p =
     case p of
       (VarP n2) -> if n == n2 then Le else Un
       (ConP Ind c pl) -> comp Lt (supremum (map (compareVar n) pl))
-      (SuccP p2) -> Un -- not well-founded
+      (SuccP p2) -> comp Lt (compareVar n p2)
       (DotP e) -> case (exprToPattern e) of
                     Nothing -> Un
                     Just p' -> compareVar n p'
       (ConP CoInd _ _ ) -> Un -- not well-founded
-      _ -> error $ "comparevar " ++ show n ++ "\n" ++ show p
+      
 
 exprToPattern :: Expr -> Maybe Pattern
 exprToPattern e = 
@@ -195,33 +186,11 @@ exprsToPatterns (e:el) = case exprToPattern e of
                                        Nothing -> Nothing
                                        Just pl -> Just (p:pl)
 
-
-compareSize :: Expr -> Pattern -> Order
-compareSize e p = 
-    case (e,p) of 
-      (_,DotP e') -> case exprToPattern e' of
-                       Nothing -> Un
-                       Just p' -> compareSize e p'
-      (Var i,p) -> compareSizeVar i p 
-      (Succ e2,SuccP p2) -> compareSize e2 p2           
-      _ -> Un
-                                        
-compareSizeVar :: Name -> Pattern -> Order
-compareSizeVar n p = 
-    case p of
-      (VarP n2) -> if n == n2 then Le else Un
-      (SuccP p2) -> comp Lt (compareSizeVar n p2)
-      (DotP e) -> case (exprToPattern e) of
-                    Nothing -> Un
-                    Just p' -> compareSizeVar n p'
-      _ -> Un
-
-
 -------------------
 
-terminationCheck :: [(TypeSig,Co,[Clause])] -> [[Int]] -> IO ()
-terminationCheck funs adml =
-       let tl = terminationCheckFuns funs adml
+terminationCheck :: [(TypeSig,Co,[Clause])] -> IO ()
+terminationCheck funs =
+       let tl = terminationCheckFuns funs
            nl = map fst tl
            bl = map snd tl
            nl2 = [ n | (n,b) <- tl , b == False ]
@@ -234,9 +203,9 @@ terminationCheck funs adml =
                     _   -> putStrLn ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) 
                                    
 
-terminationCheckFuns :: [ (TypeSig,Co , [Clause]) ] -> [[Int]] -> [(Name,Bool)]
-terminationCheckFuns funs adml =
-    let beh = recBehaviours funs adml
+terminationCheckFuns :: [ (TypeSig,Co , [Clause]) ] -> [(Name,Bool)]
+terminationCheckFuns funs =
+    let beh = recBehaviours funs 
     in
       zip (map fst beh) (map (checkAll . snd ) beh )
 ---
@@ -277,27 +246,27 @@ isDecr o = case o of
              (Mat m) -> any isDecr (diag m)
              _ -> False
              
-recBehaviours :: [ (TypeSig, Co , [Clause] ) ] -> [[Int]] -> [(Name,[Call])]
-recBehaviours funs adml = let names = map fst $ collectNames funs
-                              cg = ccFunDecl funs adml
-                          in groupCalls names [ c | c <- cg , (target c == source c) ]
+recBehaviours :: [ (TypeSig, Co , [Clause] ) ] -> [(Name,[Call])]
+recBehaviours funs = let names = map fst $ collectNames funs
+                         cg = ccFunDecl funs
+                     in groupCalls names [ c | c <- cg , (target c == source c) ]
 
 groupCalls :: [Name] -> [Call] -> [(Name,[Call])]
 groupCalls [] _ = []
 groupCalls (n:nl) cl = (n, [ c | c <- cl , (source c == n) ]) : groupCalls nl cl
 
-ccFunDecl :: [ ( TypeSig, Co , [Clause]) ] -> [[Int]] -> [Call]
-ccFunDecl funs adml = complete $ collectCGFunDecl funs adml
+ccFunDecl :: [ ( TypeSig, Co , [Clause]) ] -> [Call]
+ccFunDecl funs = complete $ collectCGFunDecl funs
 
-collectCGFunDecl :: [(TypeSig, Co , [Clause])] -> [[Int]] -> [Call]
-collectCGFunDecl funs adml =
+collectCGFunDecl :: [(TypeSig, Co , [Clause])] -> [Call]
+collectCGFunDecl funs =
     let names = collectNames funs
     in
       concatMap (collectClauses names) funs
           where
             collectClauses names ((TypeSig n _),_,cll) = collectClause names n cll
             collectClause names n ((Clause pl rhs):rest) = 
-                (collectCallsExpr names n adml pl rhs) ++ (collectClause names n rest) 
+                (collectCallsExpr names n pl rhs) ++ (collectClause names n rest) 
             collectClause names n [] = []
 
 arity :: [Clause] -> Int
@@ -308,10 +277,10 @@ collectNames [] = []
 collectNames ((TypeSig n _,_,cl):rest) = (n,arity cl) : (collectNames rest)
 
 
-collectCallsExpr :: [(Name,Int)] -> Name -> [[Int]] -> [Pattern] -> Expr -> [Call]
-collectCallsExpr nl f adml pl e =
+collectCallsExpr :: [(Name,Int)] -> Name -> [Pattern] -> Expr -> [Call]
+collectCallsExpr nl f pl e =
     case e of
-      (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f adml pl) args
+      (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f pl) args
                                 gIn = lookup g nl 
                             in
                               case gIn of
@@ -319,18 +288,16 @@ collectCallsExpr nl f adml pl e =
                                 Just ar_g -> let (Just ar_f) = lookup f nl
                                                  (Just f') = List.elemIndex (f,ar_f) nl
                                                  (Just g') = List.elemIndex (g,ar_g) nl
-                                                 admf = adml !! f'
-                                                 admg = adml !! g'
-                                                 m = compareArgs pl args admf admg ar_g
+                                                 m = compareArgs pl args ar_g
                                                  cg = Call { source = f
                                                            , target = g
                                                            , matrix = m }
                                              in cg:calls
-      (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) []) 
-      (App e args) -> concatMap (collectCallsExpr nl f adml pl) (e:args)
-      (Lam _ e1) -> collectCallsExpr nl f adml pl e1
-      (Pi _ e1 e2) -> (collectCallsExpr nl f adml pl e1) ++
-                              (collectCallsExpr nl f adml pl e2)
-      (Succ e1) -> collectCallsExpr nl f adml pl e1
+      (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
+      (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
+      (Lam _ e1) -> collectCallsExpr nl f pl e1
+      (Pi _ e1 e2) -> (collectCallsExpr nl f pl e1) ++
+                              (collectCallsExpr nl f pl e2)
+      (Succ e1) -> collectCallsExpr nl f pl e1
       _ -> []
 

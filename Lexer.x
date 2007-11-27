@@ -18,6 +18,7 @@ $white+				;
 
 
 
+sized	    	     	   	{ tok (\p s -> Sized p) }
 data				{ tok (\p s -> Data p) }
 codata				{ tok (\p s -> CoData p) }
 fun				{ tok (\p s -> Fun p) }
@@ -48,6 +49,7 @@ Size				{ tok (\p s -> Size p) }
 
 {
 data Token = Id String AlexPosn
+     	   | Sized AlexPosn
            | Data AlexPosn
 	   | CoData AlexPosn
 	   | Mutual AlexPosn
@@ -79,6 +81,7 @@ prettyTok :: Token -> String
 prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where   
   (tk,pos) = case c of 
     (Id s p) -> (show s,p)
+    Sized p -> ("sized",p)
     Data p -> ("data",p)
     CoData p -> ("codata",p)
     Mutual p -> ("mutual",p)

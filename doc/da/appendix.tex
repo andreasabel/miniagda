@@ -1,2 +1,119 @@
-\chapter{Appendix}
-\section{Source code}
+\appendix
+\chapter{Mugda implemtation}
+Mugda was implemented in the function language Haskell \cite{haskell}.
+\section{Overview}
+\begin{itemize}
+\item
+\texttt{Lexer.x} : The alex lexer file
+\item
+\texttt{Parser.y} : The happy parser file
+\item
+\texttt{Concrete.hs} : Concrete syntax produced by the parser
+\item
+\texttt{ScopeChecker.hs} : turns concrete into abstract syntax
+\item
+\texttt{Abstract.hs} : produced by the scope checker
+\item
+\texttt{Values.hs} : Values and related functions: eval, whnf 
+\item
+\texttt{TypeChecker.hs} : Typechecking with admissiblity checking
+\item
+\texttt{Termination.hs} : structural Termination checker
+\item
+\texttt{Completness} : size pattern completness check
+\item
+\texttt{SPos.hs} : strict positivity checker
+\texttt{Main.hs} : the main module
+\item
+\texttt{example} directory: example input files
+\end{itemize}
+
+\section{Usage}
+
+\mugda as presented was translated fairly close to an ASCII syntax:
+\begin{itemize}
+\item
+lists of constructors and clauses are grouped with brackets \texttt{\{},\texttt{\}} and separated with semicolon \texttt{;}
+\item
+$\EPi{x}{A}{B}$ is written \texttt{(x : A) -> B }
+\item
+$A \ra B$ is written \texttt{A -> B}
+\item
+$ \lam{x}e$ is written \texttt{\\ x -> e }
+\item
+$ \inacc{e}$ is written \texttt {.e} 
+\item
+$ \infty$ is written \texttt{\#} 
+\item
+$\s$ is written \texttt{\$}
+\end{itemize}
+\texttt{const} can be replaced with {\texttt {eval const}}. Then the value will be evaluated after type checking is done.
+As an example showing all syntactial features, here is the fibonacci stream example (\texttt{examples/fib.ma}) in ASCII format:
+\begin{verbatim}
+data Nat : Set {
+  zero : Nat;
+  succ : Nat -> Nat 
+}
+
+fun add : Nat -> Nat -> Nat {
+  add zero = \y -> y;
+  add (succ x) = \y -> succ (add x y)
+}
+
+sized codata Stream : Size -> Set {
+  cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
+}
+ 
+fun tail : Stream # -> Stream # {
+  tail (cons .# x xs) = xs
+}
+
+fun head : Stream # -> Nat {
+  head (cons .# x xs) = x
+}
+
+fun nth : Nat -> Stream # -> Nat {
+  nth zero xs = head xs;
+  nth (succ x) xs = nth x (tail xs) 
+}
+
+const 1 : Nat = (succ zero)
+
+cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i {
+  fib' x y ($ i) = cons i x (fib' y (add x y) i)
+} 
+
+-- fib = 1, 1, 2, 3, 5 , 8 ...
+const fib : Stream # = (fib' 1 1 #)
+
+const 4 : Nat = (succ (succ (succ 1)))
+
+-- fib(4) = 5 
+eval const fib4 : Nat = nth 4 fib 
+\end{verbatim}
+Running \texttt{Main examples/fib.ma} yields the console output:
+\begin{verbatim}
+***** Mugda v1.0 *****
+--- scope checking ---
+--- type checking ---
+--- evaluating constants ---
+fib4 evaluates to (succ (succ (succ (succ (succ zero)))))
+\end{verbatim}
+
+\section{Parsing}
+The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
+
+The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
+
+\section{Scope checking}
+The first step after parsing is scope checking.
+During parsing, identifiers are left not yet classified as variables, function symbols etc.
+The syntax after parsing is called \emph{concrete syntax}.
+The scope checker handles uniqueness of names and classifies identifiers. 
+The use of linear patterns is also restricted at scope checking.
+Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
+function.
+After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+
+
+

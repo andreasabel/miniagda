@@ -5,7 +5,9 @@ data Enum : Set
 	cc : Enum 
 }
 
-data SList ( + A : Set ) : Size -> Set 
+
+
+sized data SList ( + A : Set ) : Size -> Set 
 {
 
 nil : (i : Size ) -> SList A ($ i) ;
@@ -13,7 +15,18 @@ cons : (i : Size ) -> A -> SList A i -> SList A ($ i)
 
 }
 
+
+
+fun head : (i : Size ) -> ( A : Set ) -> (a : A) -> SList A i -> A
+{
+head .($ i) .A a (nil A i) = a;
+head .($ i) .A a (cons A i x xs) = x
+}
+
+
 eval const list : SList Enum # = cons Enum # aa (cons Enum # bb (cons Enum # cc (nil Enum #))) 
+
+
 
 mutual 
 {
@@ -76,6 +89,7 @@ ite A tt x y = x;
 ite A ff x y = y
 }
 
+
 fun split : (A : Set) -> 
             (i : Size) -> SList A i -> Prod (SList A i)
 {
@@ -87,6 +101,8 @@ split .A .($ ($ i)) (cons A .($ i) a (cons .A i b as)) = prod (SList A ($( $ i))
 	(cons A ($ i) a (pr1 (SList A (i)) (split A i as)))
 	(cons A ($ i) b (pr2 (SList A (i)) (split A i as)))
 }
+
+
 
 fun merge : (A : Set) -> (leq : A -> A -> Bool) 
             -> SList A # -> SList A # -> SList A #
@@ -112,5 +128,6 @@ fun msort : (A : Set) -> (leq : A -> A -> Bool) ->
                 (msort A leq ($ i) (cons A i b (pr2 (SList A i) (split A i as))))
 
 }
+
 
 

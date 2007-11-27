@@ -3,9 +3,11 @@ module Abstract where
 
 type Name = String
 
+data Sized = Sized | NotSized 
+             deriving (Eq,Show)
+
 data Co = Ind 
         | CoInd
-        | NN -- not known , not used after scope checking
           deriving (Eq,Show)
 
 -- positivity 
@@ -25,13 +27,12 @@ data Expr = Set
           | App Expr [Expr]
           | Lam Name Expr
           | Pi Name Expr Expr
-          | Ident Name -- not used after scope checking
           deriving (Eq)
 
 instance Show Expr where
     show = prettyExpr
 
-data Declaration = DataDecl [(Name,Co,[Pos],Telescope,Type,[Constructor])] --may be mutual
+data Declaration = DataDecl Name Sized Co [Pos] Telescope Type [Constructor]
                  | FunDecl [(TypeSig,Co,[Clause])]  -- may be mutual
                  | ConstDecl Bool TypeSig Expr --bool for eval
                    deriving (Eq,Show)
@@ -54,7 +55,6 @@ data Pattern = VarP Name
              | ConP Co Name [Pattern]
              | SuccP Pattern
              | DotP Expr
-             | IdentP Name -- not used after scope checking
                deriving (Eq,Show)
 
 teleToType :: Telescope -> Type -> Type
@@ -89,8 +89,7 @@ prettyExpr e =
       Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
       Pi "" t1 t2 -> "(" ++ prettyExpr t1 ++ " -> " ++ prettyExpr t2 ++ ")" 
       Pi x t1 t2 -> "( ( " ++ x ++ " : " ++ prettyExpr t1 ++ ") -> " ++ prettyExpr t2 ++ ")"
-      Ident n -> n
-                                                                                            
+                                                                                                 
 
 prettyExprs :: [Expr] -> String
 prettyExprs [] = ""

@@ -1,4 +1,4 @@
-data List ( + A : Set ) : Size -> Set 
+sized data List ( + A : Set ) : Size -> Set 
 {
   nil : (i : Size ) -> List A ($ i);
   cons : (i : Size ) -> A -> List A i -> List A ($ i)

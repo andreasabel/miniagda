@@ -1,5 +1,6 @@
 -- not allowed to be a sized type..
-data Eq : Size -> Size -> Set
+-- but second argument has to be a Set type .. but Size is not in Set
+sized data Eq : Size -> Size -> Set
 {
 	refl : (i : Size) -> Eq i i 
 }

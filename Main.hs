@@ -35,13 +35,12 @@ main = do
   
 
 -- all constants
-allConst :: Signature -> [A.Declaration] -> [(Name,Clos)]
+allConst :: Signature -> [A.Declaration] -> [(Name,A.Expr)]
 allConst sig [] = []
 allConst sig (decl:xs) =
     case decl of
       (A.ConstDecl True (A.TypeSig n t) e) -> 
-          let c = VClos [] e in
-          (n,c):(allConst sig xs)
+          (n,e):(allConst sig xs)
       _ -> allConst sig xs 
 
 
@@ -49,9 +48,9 @@ showAll :: Signature -> [A.Declaration] -> IO ()
 showAll sig decl = do ls <- mapM (showConst sig) (allConst sig decl) 
                       sequence_ (map putStrLn ls)
 
-showConst :: Signature -> (Name,Clos) -> IO String
-showConst sig (n,v) = do Right (str,_) <- whnfClos sig v 
-                         return $ n ++ " evaluates to " ++ str
+showConst :: Signature -> (Name,A.Expr) -> IO String
+showConst sig (n,e) = do Right (v,_) <- doWhnf sig e 
+                         return $ n ++ " evaluates to " ++ show v
 
 doTypeCheck :: [A.Declaration] -> IO (Maybe Signature)
 doTypeCheck decl = do k <- typeCheck decl

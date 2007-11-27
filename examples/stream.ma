@@ -1,4 +1,3 @@
-
 data Nat : Set  
 {
 	zero : Nat ;
@@ -13,7 +12,7 @@ add x (succ y) = succ (add x y);
 
 eval const one : Nat = succ zero
 
-codata Stream (A : Set) : Size -> Set 
+sized codata Stream (A : Set) : Size -> Set 
 {
   cons : (i : Size) -> A -> Stream A i -> Stream A ($ i)
 }
@@ -31,75 +30,79 @@ ones ($ i) = cons Nat i one (ones i)
 eval const ones' : Stream Nat # = ones #
 
 cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
-          (A -> B) -> Stream A i -> Stream B i
+          (A -> B) -> Stream A # -> Stream B i
 {
-map .A B .($ i) f (cons A i a as) = cons B i (f a) (map A B i f as)
+map .A B ($ i) f (cons A .# a as) = cons B i (f a) (map A B i f as)
 } 
 
 eval const twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 
+
+
 -- tail is a fun
-fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
+fun tail : (A : Set) -> Stream A # -> Stream A #
 {
-tail .A .i (cons A i a as) = as
+tail .A (cons A .# a as) = as
 }
 
 
-eval const twos' : Stream Nat # = tail Nat # twos
+eval const twos' : Stream Nat # = tail Nat twos
 
-fun head : (A : Set) -> (i : Size) -> Stream A i -> A
+fun head : (A : Set) -> Stream A # -> A
 {
-head .A .($ i) (cons A i a as) = a
+head .A (cons A .# a as) = a
 }
 
-eval const two : Nat = head Nat # twos 
-eval const two' : Nat = head Nat # twos'
+eval const two : Nat = head Nat twos 
+eval const two' : Nat = head Nat twos'
 
 eval const twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
-eval const twos2' : Stream Nat # = tail Nat # twos2
+eval const twos2' : Stream Nat # = tail Nat twos2
 
 cofun zipWith : ( A : Set ) -> ( B : Set ) -> (C : Set) -> ( i : Size ) ->
-	(A -> B -> C) -> Stream A i -> Stream B i -> Stream C i
+	(A -> B -> C) -> Stream A # -> Stream B # -> Stream C i
 {
-zipWith A B C ($ i) f (cons .A .i a as) (cons .B .i b bs) = cons C i (f a b) (zipWith A B C i f as bs)
+zipWith A B C ($ i) f (cons .A .# a as) (cons .B .# b bs) = cons C i (f a b) (zipWith A B C i f as bs)
 }
 
 
 
 fun nth : Nat -> Stream Nat # -> Nat
 {
-nth zero ns = head Nat # ns;
-nth (succ x) ns = nth x (tail Nat # ns) 
+nth zero ns = head Nat ns;
+nth (succ x) ns = nth x (tail Nat ns) 
 }
 
 eval const fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
-eval const four : Nat = head Nat # fours
+eval const four : Nat = head Nat fours
 
 
-cofun fibs : ( i : Size ) -> Stream Nat i
+
+cofun fib : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream Nat i
 {
-fibs ($ $ i) = cons Nat ($ i) zero (cons Nat i one (zipWith Nat Nat Nat i add (fibs i) (tail Nat i (fibs ($ i)))))
-}
+fib x y ($ i) = (cons Nat ($ i) x (cons Nat i y (fib y (add x y) i)))
+} 
 
-eval const fib' : Stream Nat # = tail Nat # (fibs #) 
+eval const fib' : Stream Nat # = tail Nat (fib zero zero #) 
 
 
-eval const fib8 : Nat = nth (add four four) (fibs #) eval const fib2 : Nat  = head Nat # (tail Nat # (fibs #))
+eval const fib8 : Nat = nth (add four four) (fib zero zero #)
+
+eval const fib2 : Nat  = head Nat (tail Nat (fib zero zero #))
 
 cofun nats : (i : Size ) -> Nat -> Stream Nat i
 {
 nats ($ i) x = (cons Nat i x (nats i (succ x)))
 }
 
-eval const nats' : Stream Nat # = tail Nat # (nats # zero)
+eval const nats' : Stream Nat # = tail Nat (nats # zero)
 
 
 --- weakening
 eval const wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i = \ A -> \ i -> \ s -> s
 
 
-{-
-
+     
 --bad 
 --not admissble
 cofun wkStream2 : ( A : Set ) -> ( i : Size ) -> Stream A i -> Stream A ($ i)
@@ -114,39 +117,31 @@ cofun unp : (i : Size ) -> Stream Nat i
 unp i = unp i
 }
 
--- another one
+-- another one, not type correect
+{-
 cofun unp2 : (i : Size ) -> Stream Nat i
 {
-unp2 ($ i) = cons Nat i zero (tail Nat i (unp2 ($ i)))
+unp2 ($ i) = cons Nat i zero (tail Nat (unp2 ($ i)))
 }
+-} 
 
 
-eval const bla : Nat = nth one (unp2 #)
 eval const bla2 : Nat = nth four (unp #)
-
--}
 
 mutual
 {
 
-cofun evens : ( i : Size ) -> Stream Nat i
+cofun alt1 : ( i : Size ) -> Stream Nat i
 {
-evens ($ i) = cons Nat i zero (map Nat Nat i succ (odds i))
+alt1 ($ i) = cons Nat i zero (alt2 i)
 }
 
-cofun odds : ( i : Size ) -> Stream Nat i
+cofun alt2 : ( i : Size ) -> Stream Nat i
 {
-odds i = map Nat Nat i succ (evens i) -- not guarded
+alt2 ($ i) = cons Nat i one (alt1 i)
 }
 
 }
-
--- also not guarded by constructor
-cofun nats2 : ( i : Size) -> Stream Nat i
-{
-nats2 ($ i) = cons Nat i zero (map Nat Nat i succ (nats2 i)) 
-}
-
 
 data Bool : Set
 {
@@ -169,10 +164,23 @@ data Eq ( A : Set ) : A -> A -> Set
 refl : (a : A) -> Eq A a a 
 }
 
-const zz : Eq (Stream Nat #) (zeroes #) (cons Nat # zero (zeroes #)) = refl (Stream Nat #) (zeroes #) 
+-- hangs on unproduktive stream
+-- const zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
 
+-- fail but do not hang 
+--const zz3 : Eq (Stream Nat #) (odds #) (cons Nat # zero (odds #)) = refl (Stream Nat #) (odds #) 
+--const zz4 : Eq (Stream Nat #) (evens #) (cons Nat # zero (evens #)) = refl (Stream Nat #) (evens #) 
+--const zz5 : Eq (Stream Nat #) (tail Nat (evens #)) (cons Nat # zero (tail Nat (evens #))) = refl (Stream Nat #) (tail Nat (evens #)) 
 
-cofun unp3 : (i : Size ) -> Stream Nat ($ i) -> Stream Nat i 
+sized data Unit : Size -> Set
 {
-unp3 .i (cons .Nat i x xl) = xl
+unit : (i : Size ) -> Unit ($ i)
 }
+
+-- bad
+fun head2 : (i : Size ) -> Unit i -> Stream Nat i -> Nat
+{
+head2 .($ i) (unit i) (cons .Nat .i x xl) = x 
+}
+
+

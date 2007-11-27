@@ -78,8 +78,8 @@ In the description above, sized types sound like a very different approach compa
 But, with inductive families and pattern matching, these approaches can be naturally combined.
 
 As a result, the system \mugda\footnote{short for Munich Agda} was developed.
-It is a basic minimal language supporting inductive families, pattern matching and coinductive definitions.
-As a special feature, the language offers a \emph{size type} to form size annotations. 
+It is a basic predicative system supporting inductive families and pattern matching. 
+As a special feature, the language supports coinductive definitions and also offers \emph{size type} to form size annotations. 
 As a preview, we sketch how termination and productivity checking of defintions is handled by \mugda:
 \begin{itemize}
 \item
@@ -88,23 +88,22 @@ a syntactic termination checker based on the size-change principle is employed.
 In addition, the size type can be used to create sized data types, enabling advantages of the 
 sized type approach.
 \item
-productivity of coinductive definitons is also enabled by the size type.
+productivity of coinductive definitons is also guaranteed by the size type.
 \item
-usage of the size type has to be controlled by the type checker.
+the usage of the size type has to be controlled by the type checker.
 \end{itemize}  
 \section{Overview}
-We introduce the syntax and semantics of our \mugda language in the second chapter,
- and also detail the type checking algorithms.
+We introduce the syntax and semantics of the \mugda language in the second chapter and also detail the type checking algorithms. The language described will be missing the size type that is added in chapter 4. 
 
 In chapter 3, a basic termination criterion for inductive function definitions based on the size-change principle is presented. Then we motivate and present an extension that increases its strength for definitions involving structured objects.
 
-We show in the fourth chapter how the built-in size type can be used to define sized data types and introduce sub-typing based on sized types.
-We show how size types help to allow more valid inductive definitions from the criterion of the previous chapter,
-and, more importantly, how it allows to verify productivity for co-inductive objects.
-Last but not least we present an admissibility criterion that controls the use of the size type to valid purposes.
+In the fourth chapter we add a type of sizes to the language.
+With this type, sized data types can be formed. We show how sized data types help to allow more valid inductive definitions from the criterion of the previous chapter.
+Also, the size type will allow the verification of productivity for co-inductive objects.
+As the use of the size type has to be constrained for the system to be sound, we present an admissibilty criterion for this.
+Finally in chapter 5, we take a look back and give an overview of ideas for extensions and future research.
+In the appendix, we give details on how the system described in the previous chapters was implemented in the programming language Haskell.
 
-In chapter 5, we give details on how the system described in the previous chapter was implemented in the programming language Haskell.
-Finally in chapter 6, we take a look back and give an overview of ideas for extensions and future research.
 
 
 

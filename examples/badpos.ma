@@ -34,23 +34,31 @@ data Bad3 ( A: Set ) ( F : Set -> Set ) : Set
 -- bad3 : A -> F (Bad3 A F) -> Bad3 A F
 }
 
---------- parametes need to be strictly positive, too
 
-
-data Bad4 (A : Set ) : Set 
+-- truly nested is not allowed
+data Bush ( + A: Set ) : Set
 {
--- bad4 : (A -> Nat) -> Bad4 A -> Bad4 A
+-- bnil : A -> Bush A;
+-- bcons : Bush (Bush A) -> Bush A
+}
+
+--------- parameters that are declared to be strcicly positive need to be strictly positive ...
+
+data Bad4 ( + A : Set ) : Set 
+{
+--bad4 : (A -> Nat) -> Bad4 A -> Bad4 A
 }
 
 -- ok, of course
-data List ( A : Set ) : Set 
+data List ( + A : Set ) : Set 
 {
 nil : A -> List A;
 cons : A -> List A -> List A
 }
 
--- ok because we know List has strily pos. parameters
-data Tree ( A : Set ) : Set
+
+-- ok because we know List has strily pos. parameter
+data Tree ( + A : Set ) : Set
 {
 node : A -> List (Tree A) -> Tree A
 }

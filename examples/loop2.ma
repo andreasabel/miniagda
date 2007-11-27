@@ -1,10 +1,10 @@
-data SNat : Size -> Set
+sized data SNat : Size -> Set
 {
 	zero : (i : Size ) -> SNat ($ i);
 	succ : (i : Size) -> SNat i -> SNat ($ i)
 }
 
-data Maybe (A : Set ) : Set
+data Maybe (+ A : Set ) : Set
 {
   nothing : Maybe A;
   just : A -> Maybe A
@@ -31,30 +31,33 @@ data Unit : Set
 	unit : Unit
 }
 
+fun loopType : Unit -> Set 
+{
+loopType unit = (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+}
+
+fun loopCaseType : Unit -> Set
+{
+loopCaseType unit = (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+}
+
+
+-- hide bad types ....
 mutual 
 {
 
-fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+fun loop : (u : Unit) -> loopType u  
 {
-loop .($ i) (zero i) f = loop_case ($ i) f (f (zero i)); 
-loop .($ i) (succ i n) f = loop i n (shift i f)
+loop unit .($ i) (zero i) f = loop_case unit ($ i) f (f (zero i)); 
+loop unit .($ i) (succ i n) f = loop unit i n (shift i f)
 }
 
-fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+fun loop_case : (u : Unit ) -> loopCaseType u 
 {
-loop_case i       f (nothing .(SNat i)) = unit;
-loop_case .($ i)  f (just .(SNat ($ i))  (zero i)) = unit;
-loop_case .($ i)  f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f) 
+loop_case unit i       f (nothing .(SNat i)) = unit;
+loop_case unit .($ i)  f (just .(SNat ($ i))  (zero i)) = unit;
+loop_case unit .($ i)  f (just .(SNat ($ i)) (succ i y)) = loop unit i y (shift i f) 
 }
 }
 
-const diverge : Unit = loop # (zero #) inc
-
-
-const inc2 : (i : Size ) -> SNat i -> SNat ($ i) = \i -> \n -> succ i n  
-
-
-fun blob : (i : Size ) -> SNat i -> (SNat i -> SNat i) -> SNat i 
-{
-blob i x f = f x
-}
+eval const diverge : Unit = loop unit # (zero #) inc

@@ -13,6 +13,10 @@ codata Stream : Set
   cons : Nat -> Stream -> Stream 
 }
 
+cofun ones : Stream 
+{
+  ones = cons zero ones
+}
  
 fun tail : Stream -> Stream 
 {
@@ -24,9 +28,13 @@ fun head : Stream -> Nat
   head (cons n ns) = n
 }
 
-cofun bla : Stream 
+fun force : Stream -> Stream
 {
-bla = tail (cons zero bla)
+  force (cons n ns) = cons n ns
 }
 
-eval const div : Nat = head bla
+data Eq ( A: Set ) : A -> A -> Set
+{
+  refl : (a : A ) -> Eq A a a 
+}
+

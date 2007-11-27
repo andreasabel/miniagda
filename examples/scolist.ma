@@ -29,8 +29,8 @@ const z : CoNat # = cozero #
 -- allowed because i used in coinductive result
 cofun length2 : (i : Size ) -> ( A : Set ) -> Colist A i -> CoNat i
 {
-length .($ i) .A (nil A i) = cozero i;
-length .($ i) .A (cons A i a as) = cosucc i (length2 i A as) 
+length2 .($ i) .A (nil A i) = cozero i;
+lengt2h .($ i) .A (cons A i a as) = cosucc i (length2 i A as) 
 }
 
 cofun omega' : ( i : Size ) -> CoNat i

@@ -80,8 +80,8 @@ scopeCheckDecls = mapM scopeCheckDeclaration
                        
 
 scopeCheckDeclaration :: C.Declaration -> ScopeCheck A.Declaration
-scopeCheckDeclaration d@(C.DataDecl n co tel t cs) = scopeCheckDataDecls [d] 
-scopeCheckDeclaration d@(C.FunDecl co ts cl) =  scopeCheckFunDecls [d]
+scopeCheckDeclaration d@(C.DataDecl _ _ _ _ _ _) = scopeCheckDataDecl d 
+scopeCheckDeclaration d@(C.FunDecl _ _ _ ) =  scopeCheckFunDecls [d]
                                                
 scopeCheckDeclaration (C.ConstDecl b ts e) = do e' <- scopeCheckExpr e
                                                 ts' <- scopeCheckTypeSig ts
@@ -94,39 +94,19 @@ scopeCheckDeclaration (C.ConstDecl b ts e) = do e' <- scopeCheckExpr e
 
 scopeCheckDeclaration (C.MutualDecl []) = throwError "mutual combination not supported"
 scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl _ _ _:xl)) = scopeCheckFunDecls l 
-scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl _ _ _ _ _:xl)) = scopeCheckDataDecls l
 scopeCheckDeclaration (C.MutualDecl _) = throwError "mutual combination not supported"
                                 
-scopeCheckDataDecls l =
-       do checkDataMutual l
-          l1 <- mapM scopeCheckDataTelType l
-          mapM addDecl l
-          l2 <- mapM scopeCheckConstructors l
-          return $ A.DataDecl (zipWith z l1 l2)
-              where
-                z :: (a,b,c,d,e) -> f -> (a,b,c,d,e,f)
-                z (a,b,c,d,e) f = (a,b,c,d,e,f)
-
-scopeCheckDataTelType :: C.Declaration -> ScopeCheck (Name,Co,[Pos],A.Telescope,A.Type)
-scopeCheckDataTelType (C.DataDecl n co tel t cs) =
-    do
+scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
+scopeCheckDataDecl decl@(C.DataDecl n sz co tel t cs) = do
       let pos = posTelescope tel
       let tt = C.teleToType tel t
       (A.TypeSig _ tt') <- scopeCheckTypeSig (C.TypeSig n tt)
       let (tel',t') = A.splitTeleType (length tel) ([],tt')                
-      return (n,co,pos,tel',t')
-
-scopeCheckConstructors :: C.Declaration -> ScopeCheck [A.Constructor] 
-scopeCheckConstructors (C.DataDecl n co tel t cs) =
-   do
-     let names = collectTelescopeNames tel
-     cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs ) 
-     return cs'
-
-checkDataMutual [] = return ()
-checkDataMutual (C.DataDecl _ _ _ _ _:xl) = checkDataMutual xl
-checkDataMutual _ = throwError "mutual combination not supported"
-
+      addDecl decl
+      let names = collectTelescopeNames tel
+      cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs ) 
+      return $ A.DataDecl n sz co pos tel' t' cs'
+      
 checkFunMutual [] = return ()
 checkFunMutual (C.FunDecl _ _ _:xl) = checkFunMutual xl
 checkFunMutual _ = throwError "mutual combination not supported"
@@ -168,7 +148,7 @@ scopeCheckTypeSig a@(C.TypeSig n t) =
                        return $ A.TypeSig n t'         
 
 addDecl :: C.Declaration -> ScopeCheck ()
-addDecl (C.DataDecl n _ _ _ _) = addName DataK n
+addDecl (C.DataDecl n _ _ _ _ _) = addName DataK n
 addDecl (C.FunDecl _ ts _) = addTypeSig FunK ts
 
 addTypeSig :: Kind -> C.TypeSig -> ScopeCheck ()

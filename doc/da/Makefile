@@ -1,7 +1,7 @@
 default: da.pdf
 
 
-da.pdf : da.tex intro.tex legal.tex main.tex concl.tex bibl.tex da.bib
+da.pdf : da.tex intro.tex legal.tex main.tex concl.tex bibl.tex da.bib appendix.tex
 	pdflatex da
 	bibtex da
 	pdflatex da

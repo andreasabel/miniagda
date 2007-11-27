@@ -31,21 +31,33 @@ data Unit : Set
 	unit : Unit
 }
 
+data loopType : Set 
+{
+lt : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> loopType
+}
+
+data loopCaseType : Set
+{
+lct : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> loopCaseType
+}
+
+
+-- hide bad types ....
 mutual 
 {
 
-fun loop : (i : Size ) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+fun loop : loopType -> Unit
 {
-loop .($ i) (zero i) f = loop_case ($ i) f (f (zero i)); 
-loop .($ i) (succ i n) f = loop i n (shift i f)
+loop (lt .($ i) (zero i) f) = loop_case (lct ($ i) f (f (zero i))); 
+loop (lt .($ i) (succ i n) f) = loop (lt i n (shift i f))
 }
 
-fun loop_case : (i : Size ) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+fun loop_case : loopCaseType -> Unit 
 {
-loop_case i       f (nothing .(SNat i)) = unit;
-loop_case .($ i)  f (just .(SNat ($ i))  (zero i)) = unit;
-loop_case .($ i)  f (just .(SNat ($ i)) (succ i y)) = loop i y (shift i f) 
+loop_case (lct i f (nothing .(SNat i))) = unit;
+loop_case (lct .($ i)  f (just .(SNat ($ i))  (zero i))) = unit;
+loop_case (lct .($ i)  f (just .(SNat ($ i)) (succ i y))) = loop (lt i y (shift i f)) 
 }
 }
 
-eval const diverge : Unit = loop # (zero #) inc
+eval const diverge : Unit = loop (lt # (zero #) inc)

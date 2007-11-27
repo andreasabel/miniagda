@@ -1,8 +1,9 @@
 \documentclass[a4paper,11pt]{report}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath, amsthm, amssymb}
+\usepackage{amsmath,amsthm, amssymb}
 \usepackage{graphicx}
 \usepackage{latexsym}
+\usepackage{pxfonts}
 
 \pagestyle{headings}
 
@@ -26,123 +27,126 @@
 \newcommand{\vex}[1]{\overrightarrow{#1}} 
 \newcommand{\ves}[1]{{#1}^{\ast}} 
 
-\newcommand{\vsp}{\;\vert\;}
+\newcommand{\vsp}{\:\vert\:}
 \newcommand{\Set}{\mathsf{Set}}
-\newcommand{\s}{\mathsf{s}\;}
+\newcommand{\s}{\mathsf{s}\,}
 \newcommand{\Size}{\mathsf{Size}}
 \newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
-\newcommand{\data}{\mathrm{data}\;}
-\newcommand{\fun}{\mathrm{fun}\;}
-\newcommand{\codata}{\mathrm{codata}\;}
-\newcommand{\cofun}{\mathrm{cofun}\;}
-\newcommand{\const}{\mathrm{const}\;}
-\newcommand{\mutual}{\mathrm{mutual}\;}
-\newcommand{\lam}[1]{\lambda\; #1 .\;}
+\newcommand{\data}{\mathrm{data}\:}
+\newcommand{\sized}{\mathrm{sized}\:}
+\newcommand{\fun}{\mathrm{fun}\:}
+\newcommand{\codata}{\mathrm{codata}\:}
+\newcommand{\cofun}{\mathrm{cofun}\:}
+\newcommand{\const}{\mathrm{const}\:}
+\newcommand{\mutual}{\mathrm{mutual}\:}
+\newcommand{\lam}[1]{\lambda\: #1 .\:}
 
 \newcommand{\inacc}[1]{\underline{#1}}
 
-\newcommand{\id}{\mathsf{id}\;}
-\newcommand{\Nat}{\mathsf{Nat}\;}
-\newcommand{\zero}{\mathsf{zero}\;}
-\newcommand{\suc}{\mathsf{succ}\;}
-\newcommand{\add}{\mathsf{add}\;}
-\newcommand{\addt}{\mathsf{add_2}\;}
+\newcommand{\id}{\mathsf{id}\:}
+\newcommand{\Nat}{\mathsf{Nat}\:}
+\newcommand{\zero}{\mathsf{zero}\:}
+\newcommand{\suc}{\mathsf{succ}\:}
+\newcommand{\add}{\mathsf{add}\:}
+\newcommand{\addt}{\mathsf{add_2}\:}
 
-\newcommand{\even}{\mathsf{even}\;}
-\newcommand{\odd}{\mathsf{odd}\;}
+\newcommand{\even}{\mathsf{even}\:}
+\newcommand{\odd}{\mathsf{odd}\:}
 
-\newcommand{\Bool}{\mathsf{Bool}\;}
-\newcommand{\ttt}{\mathsf{tt}\;}
-\newcommand{\fff}{\mathsf{ff}\;}
+\newcommand{\Bool}{\mathsf{Bool}\:}
+\newcommand{\ttt}{\mathsf{tt}\:}
+\newcommand{\fff}{\mathsf{ff}\:}
 
-\newcommand{\List}{\mathsf{List}\;}
-\newcommand{\nil}{\mathsf{nil}\;}
-\newcommand{\cons}{\mathsf{cons}\;}
+\newcommand{\List}{\mathsf{List}\:}
+\newcommand{\nil}{\mathsf{nil}\:}
+\newcommand{\cons}{\mathsf{cons}\:}
 
 
-\newcommand{\Tree}{\mathsf{Tree}\;}
-\newcommand{\leaf}{\mathsf{leaf}\;}
-\newcommand{\node}{\mathsf{node}\;}
+\newcommand{\Tree}{\mathsf{Tree}\:}
+\newcommand{\leaf}{\mathsf{leaf}\:}
+\newcommand{\node}{\mathsf{node}\:}
 
-\newcommand{\vVec}{\mathsf{Vec}\;}
-\newcommand{\head}{\mathsf{head}\;}
-\newcommand{\rev}{\mathsf{rev}\;}
-\newcommand{\reva}{\mathsf{rev1}\;}
-\newcommand{\revb}{\mathsf{rev2}\;}
+\newcommand{\vVec}{\mathsf{Vec}\:}
+\newcommand{\head}{\mathsf{head}\:}
+\newcommand{\rev}{\mathsf{rev}\:}
+\newcommand{\reva}{\mathsf{rev1}\:}
+\newcommand{\revb}{\mathsf{rev2}\:}
 
-\newcommand{\Eq}{\mathsf{Eq}\;}
-\newcommand{\refl}{\mathsf{refl}\;}
+\newcommand{\Eq}{\mathsf{Eq}\:}
+\newcommand{\refl}{\mathsf{refl}\:}
 
-\newcommand{\prof}{\mathsf{proof}\;}
-\newcommand{\tprof}{\mathsf{proof2}\;}
-\newcommand{\eqsucc}{\mathsf{eqsucc}\;}
+\newcommand{\prof}{\mathsf{proof}\:}
+\newcommand{\tprof}{\mathsf{proof2}\:}
+\newcommand{\eqsucc}{\mathsf{eqsucc}\:}
 
-\newcommand{\Bad}{\mathsf{Bad}\;}
-\newcommand{\bad}{\mathsf{bad}\;}
-\newcommand{\ok}{\mathsf{ok}\;}
+\newcommand{\Bad}{\mathsf{Bad}\:}
+\newcommand{\bad}{\mathsf{bad}\:}
+\newcommand{\ok}{\mathsf{ok}\:}
 
-\newcommand{\ProdT}{\mathsf{Prod}\;}
-\newcommand{\prd}{\mathsf{prod}\;}
-\newcommand{\pra}{\mathsf{pr_1}\;}
-\newcommand{\prb}{\mathsf{pr_2}\;}
-\newcommand{\quicksort}{\mathsf{quicksort}\;}
-\newcommand{\qsapp}{\mathsf{qsapp}\;}
-\newcommand{\pivot}{\mathsf{split}\;}
-\newcommand{\lleq}{\mathit{leq}\;}
-\newcommand{\ite}{\mathsf{ite}\;}
+\newcommand{\ProdT}{\mathsf{Prod}\:}
+\newcommand{\prd}{\mathsf{prod}\:}
+\newcommand{\pra}{\mathsf{pr_1}\:}
+\newcommand{\prb}{\mathsf{pr_2}\:}
+\newcommand{\quicksort}{\mathsf{quicksort}\:}
+\newcommand{\qsapp}{\mathsf{qsapp}\:}
+\newcommand{\pivot}{\mathsf{split}\:}
+\newcommand{\lleq}{\mathit{leq}\:}
+\newcommand{\ite}{\mathsf{ite}\:}
 
-\newcommand{\Ord}{\mathsf{Ord}\;}
-\newcommand{\ozero}{\mathsf{ozero}\;}
-\newcommand{\olim}{\mathsf{olim}\;}
-\newcommand{\addOrd}{\mathsf{addOrd}\;}
+\newcommand{\Ord}{\mathsf{Ord}\:}
+\newcommand{\ozero}{\mathsf{ozero}\:}
+\newcommand{\olim}{\mathsf{olim}\:}
+\newcommand{\addOrd}{\mathsf{addOrd}\:}
 
-\newcommand{\Stream}{\mathsf{Stream}\;}
-\newcommand{\tail}{\mathsf{tail}\;}
-\newcommand{\nth}{\mathsf{nth}\;}
+\newcommand{\Stream}{\mathsf{Stream}\:}
+\newcommand{\tail}{\mathsf{tail}\:}
+\newcommand{\nth}{\mathsf{nth}\:}
 
-\newcommand{\wkSNat}{\mathsf{wkSNat}\;}
+\newcommand{\wkSNat}{\mathsf{wkSNat}\:}
 
-\newcommand{\SNat}{\mathsf{SNat}\;}
-\newcommand{\Maybe}{\mathsf{Maybe}\;}
-\newcommand{\nothing}{\mathsf{nothing}\;}
-\newcommand{\just}{\mathsf{just}\;}
-\newcommand{\shift}{\mathsf{shift}\;}
-\newcommand{\shiftcase}{\mathsf{shift\_case}\;}
-\newcommand{\inc}{\mathsf{inc}\;}
-\newcommand{\lop}{\mathsf{loop}\;}
-\newcommand{\lopcase}{\mathsf{loop\_case}\;}
+\newcommand{\SNat}{\mathsf{SNat}\:}
+\newcommand{\Maybe}{\mathsf{Maybe}\:}
+\newcommand{\nothing}{\mathsf{nothing}\:}
+\newcommand{\just}{\mathsf{just}\:}
+\newcommand{\shift}{\mathsf{shift}\:}
+\newcommand{\shiftcase}{\mathsf{shift\_case}\:}
+\newcommand{\inc}{\mathsf{inc}\:}
+\newcommand{\lop}{\mathsf{loop}\:}
+\newcommand{\lopcase}{\mathsf{loop\_case}\:}
+\newcommand{\diverge}{\mathsf{diverge}\:}
 
-\newcommand{\zeroes}{\mathsf{zeroes}\;}
-\newcommand{\unp}{\mathsf{unp}\;}
-\newcommand{\zipWith}{\mathsf{zipWith}\;}
-\newcommand{\fib}{\mathsf{fib}\;}
-\newcommand{\fibf}{\mathsf{fib4}\;}
+\newcommand{\zeroes}{\mathsf{zeroes}\:}
+\newcommand{\unp}{\mathsf{unp}\:}
+\newcommand{\zipWith}{\mathsf{zipWith}\:}
+\newcommand{\fibs}{\mathsf{fib'}\:}
+\newcommand{\fib}{\mathsf{fib}\:}
+\newcommand{\fibf}{\mathsf{fib4}\:}
 
-\newcommand{\Empty}{\mathsf{Empty}\;}
-\newcommand{\BadNat}{\mathsf{BadNat}\;}
-\newcommand{\foo}{\mathsf{foo}\;}
+\newcommand{\Empty}{\mathsf{Empty}\:}
+\newcommand{\BadNat}{\mathsf{BadNat}\:}
+\newcommand{\foo}{\mathsf{foo}\:}
 
-\newcommand{\addWith}{\mathsf{addWith}\;}
+\newcommand{\addWith}{\mathsf{addWith}\:}
 
-\newcommand{\ispd}{\mathsf{ISP}\;}
-\newcommand{\spd}{\mathsf{SP}\;}
-\newcommand{\putd}{\mathsf{put}\;}
-\newcommand{\getd}{\mathsf{get}\;}
-\newcommand{\isp}{\mathsf{isp}\;}
-\newcommand{\ieat}{\mathsf{ieat}\;}
-\newcommand{\eat}{\mathsf{eat}\;}
+\newcommand{\ispd}{\mathsf{ISP}\:}
+\newcommand{\spd}{\mathsf{SP}\:}
+\newcommand{\putd}{\mathsf{put}\:}
+\newcommand{\getd}{\mathsf{get}\:}
+\newcommand{\isp}{\mathsf{isp}\:}
+\newcommand{\ieat}{\mathsf{ieat}\:}
+\newcommand{\eat}{\mathsf{eat}\:}
 
-\newcommand{\eqo}{\mathsf{eq_0}\;}
-\newcommand{\zeroest}{\mathsf{zeroes_2}\;}
-\newcommand{\beqd}{\mathsf{Beq}\;}
-\newcommand{\beq}{\mathsf{beq}\;}
-\newcommand{\eqt}{\mathsf{eq_1}\;}
+\newcommand{\eqo}{\mathsf{eq_0}\:}
+\newcommand{\zeroest}{\mathsf{zeroes_2}\:}
+\newcommand{\beqd}{\mathsf{Beq}\:}
+\newcommand{\beq}{\mathsf{beq}\:}
+\newcommand{\eqt}{\mathsf{eq_1}\:}
 
 \newcommand{\ra}{\rightarrow}
 
 \newcommand{\spc}{\hspace*{3mm}}
 \newcommand{\spcx}{\hspace*{10mm}}
-\newcommand{\vs}{\vspace*{2mm}}
+\newcommand{\vs}{\vspace*{1mm}}
 
 \newcommand{\mugda}{\textsf{Mugda }}
 

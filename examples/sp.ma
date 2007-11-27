@@ -1,5 +1,3 @@
--- stream processors
-
 data Nat : Set
 {
 zero : Nat;
@@ -15,70 +13,76 @@ add (succ x) y = succ (add x y)
 const one : Nat = succ zero
 const two : Nat = succ one
 
-codata Stream : Size -> Set 
+sized codata Stream : Size -> Set 
 {
-  cons : (i : Size ) -> Nat -> Stream i -> Stream ($ i) 
+  cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
 }
 
-fun tail : (i : Size ) -> Stream ($ i) -> Stream i 
+fun tail : Stream # -> Stream #
 {
-tail .i (cons i a as) = as
+tail (cons .# a as) = as
 }
 
 
-fun head : (i : Size ) -> Stream ($ i) -> Nat
+fun head : Stream # -> Nat
 {
-head .i (cons i a as) = a
+head (cons .# a as) = a
 } 
 
+-- continuation style
 
-mutual {
-
-data ISP : Size -> Set
+-- inductive stream processor
+data ISP ( + K : Set) : Set
 {
-put : (i : Size ) -> Nat -> SP i -> ISP i; 
-get : (i : Size ) -> (Nat -> ISP i) -> ISP i; 
+put : Nat -> K -> ISP K; 
+get : (Nat -> ISP K) -> ISP K; 
 }
 
-codata SP : Size -> Set
+sized codata SP : Size -> Set
 {
-isp : (i : Size ) -> ISP i -> SP ($ i);
+sp : (i : Size) -> ISP (SP i) -> SP ($ i);
 }
 
-}
-
-mutual {
-
-fun ieat : (i : Size ) -> ISP # -> Stream # -> Stream ($ i)
+fun ieat : (K : Set) -> (C : Set) -> 
+           ISP K -> Stream # -> (Nat -> K -> Stream # -> C) -> C 
 {
-ieat i (get .# f) (cons .# a as) = ieat i (f a) as ;
-ieat i (put .# b sp) as  = cons i b (eat i sp as) 
+ieat .K C (get K f) (cons .# a as) h = ieat K C (f a) as h ;
+ieat .K C (put K b k)          as  h = h b k as 
 }
 
-cofun eat : (i : Size ) -> SP # -> Stream # -> Stream i 
+cofun eat : (i : Size) -> SP # -> Stream # -> Stream i
 {
-eat ($ i) (isp .# sp) as = ieat i sp as   
+eat ($ i) (sp .# isp) as 
+  = ieat (SP #) (Stream ($ i))
+         isp as (\ b -> \ k -> \ as' -> 
+                   cons i b (eat i k as'))   
 }
 
-}
-
-
-fun adder : (i : Size ) -> Nat -> Nat -> SP i -> ISP i 
+fun adder : Nat -> Nat -> (K : Set ) -> ( k : K) -> ISP K
 {
-adder i zero acc sp = put i acc sp;
-adder i (succ n) acc sp = get i (\ m -> (adder i n (add m acc) sp))
+adder zero acc K k = put K acc k;
+adder (succ n) acc K k = get K (\ m -> (adder n (add m acc) K k))
 }
 
-cofun adder' : (i : Size ) -> SP i 
+cofun adder' : (i : Size ) -> SP i
 {
-adder' ($ i) = isp i (get i (\ n -> adder i n zero (adder' i)))
+adder' ($ i) = sp i (get (SP i) (\ n -> adder n zero (SP i) (adder' i)))
 }
+
+cofun nats : (i : Size ) -> Nat -> Stream i
+{
+nats ($ i) x = (cons i x (nats i (succ x)))
+}
+
+const huge : Stream # = eat # (adder' #) (nats # zero) 
 
 fun nth : Nat -> Stream # -> Nat
 {
-nth zero ns = head # ns;
-nth (succ x) ns = nth x (tail # ns) 
+nth zero ns = head ns;
+nth (succ x) ns = nth x (tail ns) 
 }
+
+eval const big : Nat = nth (add two two) huge 
 
 cofun twos : (i : Size ) -> Stream i
 {
@@ -86,7 +90,7 @@ twos ($ i) = cons i (succ (succ zero)) (twos i)
 }
 
 -- stream of fours
-const fours : Stream # = eat # (adder' #) (twos #) 
+const fours : Stream # = eat # (adder' #) (twos #)
 
 eval const four : Nat = nth two fours
 

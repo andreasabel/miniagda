@@ -17,6 +17,7 @@ import Abstract (Name)
 id      { T.Id $$ _ }
 data    { T.Data _ }
 codata  { T.CoData _ }
+sized   { T.Sized _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
@@ -51,6 +52,8 @@ Declarations : {- empty -} { [] }
 Declaration :: { C.Declaration }
 Declaration : Data { $1 }
            | CoData { $1 }
+           | SizedData { $1 }
+           | SizedCoData { $1 }
            | Fun { $1 }
            | CoFun { $1 }
            | Mutual { $1 }
@@ -58,11 +61,19 @@ Declaration : Data { $1 }
 
 Data :: { C.Declaration }
 Data : data Id DataTelescope ':' Expr '{' Constructors '}' 
-   { C.DataDecl $2 A.Ind $3 $5 (reverse $7) }
+   { C.DataDecl $2 A.NotSized A.Ind $3 $5 (reverse $7) }
+
+SizedData :: { C.Declaration }
+SizedData : sized data Id DataTelescope ':' Expr '{' Constructors '}' 
+   { C.DataDecl $3 A.Sized A.Ind $4 $6 (reverse $8) }
 
 CoData :: { C.Declaration }
 CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' 
-       { C.DataDecl $2 A.CoInd $3 $5 (reverse $7) }
+       { C.DataDecl $2 A.NotSized A.CoInd $3 $5 (reverse $7) }
+
+SizedCoData :: { C.Declaration }
+SizedCoData : sized codata Id DataTelescope ':' Expr '{' Constructors '}' 
+       { C.DataDecl $3 A.Sized A.CoInd $4 $6 (reverse $8) }
 
 Fun :: { C.Declaration }
 Fun : fun TypeSig '{' Clauses '}' { C.FunDecl A.Ind $2 $4 }

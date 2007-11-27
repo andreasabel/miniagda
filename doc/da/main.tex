@@ -34,40 +34,35 @@
 \newcommand{\eqlf}{\rulename{eq-lf}}
 \newcommand{\eqrf}{\rulename{eq-rf}}
 
-\newcommand{\eqset}{\rulename{eq-set}}
-\newcommand{\eqsize}{\rulename{eq-size}}
 \newcommand{\eqsuc}{\rulename{eq-succ}}
-\newcommand{\eqinfty}{\rulename{eq-infty}}
 \newcommand{\eqapp}{\rulename{eq-app}}
-\newcommand{\eqgen}{\rulename{eq-gen}}
 \newcommand{\eqpi}{\rulename{eq-pi}}
 \newcommand{\eqlam}{\rulename{eq-lam}}
-\newcommand{\eqdef}{\rulename{eq-fun}}
-\newcommand{\eqcon}{\rulename{eq-con}}
-\newcommand{\eqdata}{\rulename{eq-data}}
+\newcommand{\eqatom}{\rulename{eq-atom}}
 
 \newcommand{\chkpvar}{\rulename{chkp-var}}
 \newcommand{\chkpcon}{\rulename{chkp-con}}
 \newcommand{\chkpsucc}{\rulename{chkp-succ}}
 \newcommand{\chkpinacc}{\rulename{chkp-inacc}}
 
+\newcommand{\instl}{\rulename{inst-flex-l}}
+\newcommand{\instr}{\rulename{inst-flex-r}}
+\newcommand{\instc}{\rulename{inst-con}}
+\newcommand{\instd}{\rulename{inst-data}}
+\newcommand{\inste}{\rulename{inst-eq}}
+
 \newcommand{\leqnf}{\rulename{leq-nf}}
 \newcommand{\leqlf}{\rulename{leq-lf}}
 \newcommand{\leqrf}{\rulename{leq-rf}}
 
-\newcommand{\leqset}{\rulename{leq-set}}
-\newcommand{\leqsize}{\rulename{leq-size}}
 \newcommand{\leqsuc}{\rulename{leq-succ}}
-\newcommand{\leqinfty}{\rulename{leq-infty}}
 \newcommand{\leqappco}{\rulename{leq-co}}
 \newcommand{\leqappind}{\rulename{leq-ind}}
 \newcommand{\leqappd}{\rulename{leq-data}}
 \newcommand{\leqapp}{\rulename{leq-app}}
-\newcommand{\leqgen}{\rulename{leq-gen}}
 \newcommand{\leqpi}{\rulename{leq-pi}}
 \newcommand{\leqlam}{\rulename{leq-lam}}
-\newcommand{\leqdef}{\rulename{leq-fun}}
-\newcommand{\leqcon}{\rulename{leq-con}}
+\newcommand{\leqatom}{\rulename{leq-atom}}
 
 \newcommand{\sleqinfty}{\rulename{sleq-infty}}
 
@@ -102,9 +97,9 @@
 
 \newcommand{\Expr}{\mathrm{Expr}}
 \newcommand{\Val}{\mathrm{Val}}
+\newcommand{\AVal}{\mathrm{AVal}}
 \newcommand{\vlam}{\mathrm{Lam}}
 \newcommand{\vpi}{\mathrm{Pi}}
-\newcommand{\Clos}{\mathrm{Clos}}
 \newcommand{\cl}[2]{#1^{#2}}
 \newcommand{\clp}[2]{\cl{(#1)}{#2}}
 \newcommand{\Env}{\mathrm{Env}}
@@ -121,7 +116,7 @@
 \newcommand{\matchf}{\mathrm{match_f}}
 \newcommand{\matchList}{\mathrm{match_{list}}}
 \newcommand{\matchInfty}{\mathrm{match_{\infty}}}
-\newcommand{\stuck}{\;\Uparrow}
+\newcommand{\stuck}{\:\Uparrow}
 \newcommand{\Clause}{\mathrm{Clause}}
 \newcommand{\Decl}{\mathrm{Decl}}
 \newcommand{\Pat}{\mathrm{Pat}}
@@ -137,11 +132,11 @@ The starting point for this chapter was the simple dependent type checking algor
 $ \cN = \{ 0 , 1 , ... \} $ is the set of natural numbers.
 \paragraph*{Booleans}
 $ \cB = \{ \top, \bot \} $ is the set of boolean values.
-\paragraph*{Vectors}
-For some set $B$ we write $\ves{B}$ for the set of finite vectors over $B$.
-For the empty vector we write $\diamond$.
-We denote vectors with $\vec{b}$ or $(b_1, \ldots b_n)$.
-The length of a vector is defined as $|(b_1,\ldots, b_n|)| := n $. 
+\paragraph*{Sequence}
+For some set $B$ we write $\ves{B}$ for the set of finite sequences over $B$.
+For the empty sequence we write $\diamond$.
+We denote sequences with $\vec{b}$ or $(b_1, \ldots b_n)$.
+The length of a sequence is defined as $|(b_1,\ldots, b_n|)| := n $. 
 \section{Syntax of Mugda}
 
 \paragraph*{Identifier}
@@ -161,16 +156,13 @@ First we assume the following disjunct sets of identifiers.
 \begin{array}{lrll}
 \Expr \ni e,A,B & ::= & \lam{x}{e} & \mbox{abstraction}\\
 & \mid & \EPi{x}{A}{B} & \mbox{dep function type}\\
-& \mid & e \; \vec{e} & \mbox{application}\\
+& \mid & e \: \vec{e} & \mbox{application}\\
 & \mid & \Set & \mbox{universe of small types}\\
-& \mid & \Size & \mbox{size type} \\
-& \mid & \s e  & \mbox{size succesor}\\ 
-& \mid & \infty & \mbox{limit size}\\
 & \mid & x & \mbox{variable}\\
-& \mid & \cc & \mbox{constructor}\\
-& \mid & \DD & \mbox{data type}\\
-& \mid & \ff & \mbox{function}\\
-& \mid & \dd & \mbox{const}
+& \mid & \cc & \mbox{constructor name}\\
+& \mid & \DD & \mbox{data type name}\\
+& \mid & \ff & \mbox{function name}\\
+& \mid & \dd & \mbox{const name}
 \end{array}
 \]
 
@@ -178,7 +170,7 @@ First we assume the following disjunct sets of identifiers.
 \[
 \begin{array}{lrll}
 \Pat \ni p & ::= & x & \mbox{variable pattern}\\
-& \mid & \cc \; \vec{p} & \mbox{constructor pattern}\\
+& \mid & \cc \: \vec{p} & \mbox{constructor pattern}\\
 & \mid & \s p & \mbox{size succesor pattern}\\
 & \mid & \inacc{e} & \mbox{inaccessible pattern}\\
 \end{array}
@@ -187,14 +179,14 @@ First we assume the following disjunct sets of identifiers.
 \paragraph*{Constructor definitions}
 \[
 \begin{array}{lrll}
-\gamma &  ::= & \cc \; : \; A & 
+\gamma &  ::= & \cc \: : \: A & 
 \end{array}
 \]
 
 \paragraph*{Clause definitions}
 \[
 \begin{array}{lrll}
-\Clause \ni \kappa & ::= & \ff \; \vec{p} = e & 
+\Clause \ni \kappa & ::= & \ff \: \vec{p} = e & 
 \end{array}
 \]
 
@@ -202,8 +194,8 @@ First we assume the following disjunct sets of identifiers.
 \[
 \begin{array}{lrll}
 \tau & ::= & \diamond & \mbox{empty telescope}\\
-& \mid & ( x : t ) \; \tau & \mbox{parameter}\\
-& \mid & ( + \; x : t ) \; \tau & \mbox{strictly positive paramter}
+& \mid & ( x : t ) \: \tau & \mbox{parameter}\\
+& \mid & ( + \: x : t ) \: \tau & \mbox{strictly positive paramter}
 \end{array}
 \]
 
@@ -214,9 +206,9 @@ Note that in a telescope, which is basically a sequence of type bindings, the ty
 \begin{array}{lrll}
 \Decl \ni \delta & ::= & \data \DD \tau : A \vec{\gamma} & \mbox{inductive datatype}\\ 
 & \mid & \codata \DD \tau : A \vec{\gamma} & \mbox{coinductive data type} \\
-& \mid & \fun \ff : A \; \vec{\kappa} & \mbox{recursive function}\\
-& \mid & \cofun \ff : A \; \vec{\kappa} & \mbox{corecursive function}\\ 
-& \mid & \const \dd : A \; = e & \mbox{constant}\\
+& \mid & \fun \ff : A \: \vec{\kappa} & \mbox{recursive function}\\
+& \mid & \cofun \ff : A \: \vec{\kappa} & \mbox{corecursive function}\\ 
+& \mid & \const \dd : A \: = e & \mbox{constant}\\
 & \mid & \mutual \vec{\delta} & \mbox{mutual declaration}
 \end{array}
 \]
@@ -224,7 +216,7 @@ Note that in a telescope, which is basically a sequence of type bindings, the ty
 
 
 \paragraph*{Syntactic sugar}
-We write $A \ra B$ for $\EPi{x}{A}{B}$ where $x$ is some dummy variable not occuring in $B$.
+We write $A \ra B$ for $\EPi{x}{A}{B}$ where $x$ is some variable not occuring in $B$.
 For a telescope $\tau = (x_1 : A_1) \ldots (x_n : A_n)$ (ignoring the $+$ annotations) we write
 $\tau \ra B$ for the expression  $\EPi{x_1}{A_1}{\ldots \ra \EPi{x_n}{A_n}{B}}$.
 Accordingly, we write $\Gamma \ra B$ for an expression of the form $\EPi{x_1}{A_1}{\ldots \ra \EPi{x_n}{A_n}{B}}$.
@@ -236,45 +228,39 @@ Each declaration adds newly defined constructs to the signature $\Sig$, which is
 \section{Semantics of Mugda expressions}
 As noted in introduction, we need computation during type checking.
 Thus, we need a semantic to be used during type checking.
-The main ideas of the type checking algorithm of \cite{coquand96algoritm} are based on the idea of closures and generic values.
-Closures, already introduced for computer science in \cite{Landin63}, are used for explicit substitution and to delay evaluation.
-We simultanously define values, closures and environemnts.
+The main ideas of the type checking algorithm of \cite{coquand96algorithm} are based on the idea of closures and generic values.
+Closures, already introduced for computer science in \cite{Landin63}, are used for explicit substitution.
+We simultanously define values environemnts.
  
-\paragraph{Value}
+\paragraph{Values}
 \[
 \begin{array}{lrll}
-\Val \ni v & ::= & v \; \vec{c} & \mbox{application}\\
-& \mid & \vlam \; x \; c & \mbox{abstraction}\\
-& \mid & \vpi \; x \; c & \mbox{dependent function space}\\
-& \mid & k & \mbox{generic value}\\
+\Val \ni v & ::= & v \: \vec{v} & \mbox{application}\\
+& \mid & \vlam \: x \: \cl{e}{\rho} & \mbox{abstraction}\\
+& \mid & \vpi \: x \: v \: \cl{e}{\rho} & \mbox{dependent function space}\\
+& \mid & a & \mbox{atomic value}\\
+\vs\\
+\AVal \ni a & ::= & k & \mbox{generic value}\\
 & \mid & \Set & \mbox{universe of small types} \\
-& \mid & \Size & \mbox{size type value}\\
-& \mid & \s v & \mbox{size succesor}\\
-& \mid & \infty & \mbox{size limit}\\
-& \mid & \cc & \mbox{constructor}\\
-& \mid & \ff & \mbox{function symbol}\\
+& \mid & \cc & \mbox{constructor name}\\
+& \mid & \ff & \mbox{function name}\\
+& \mid & \DD & \mbox{data name}\\
 \end{array}
 \]
 A generic value $k \in \cN$ represents the computed value of a variable during type checking.
-\paragraph{Closure}
-\[
-\begin{array}{lrll}
-\Clos \ni c & ::= & \cl{e}{\rho} & 
-\end{array}
-\]
 
-\paragraph{Environment}
+\paragraph{Environments}
 \[
 \begin{array}{lrll}
 \Env \ni \rho & ::= & \diamond & \mbox{empty environment}\\
-& \mid & \rho,x = v & \mbox{extended with value binding}\\
-& \mid & \rho,x = c & \mbox{extended with closure binding} 
+& \mid & \rho,x = v & \mbox{extended with binding}\\
 \end{array}
 \]
 
 Values can be seen as partially evaluated expressions.
 They are only partially evaluated because they may contain closures.
-A closure is an expression together with an environment that provides bindings for the free variables in the expression.
+A closure $\cl{e}{\rho}$ is a pair of an expression $e$ and an environent $\rho$.
+The environment provides bindings of the free variables in $e$.
 \paragraph*{Signature}
 The signature carries information about all user-defined constants.
 We define it as a overloaded function:
@@ -303,43 +289,29 @@ A fixed signature $\Sig$ is assumed.
 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\wh \; : \Clos \ra \Val}\\
-\wh \clp{\lam{x}{e}}{\rho} & = \vlam \; x \; \cl{e}{\rho} \\
-\wh \clp{\EPi{x}{a}{b}}{\rho} &= \vpi \; x \; v_a \; \cl{b}{\rho} \mbox{ where } v_a = \wh \cl{a}{\rho} \\
-\wh \clp{e \; e_1 \ldots e_n}{\rho} &= \ap \; v \; \cl{e_1}{\rho} \ldots \cl{e_n}{\rho} \mbox{ where } v = \wh \cl{e}{\rho} \\
+\multicolumn{2}{l}{\wh \: : \Expr \times \Env \ra \Val}\\
+\wh \clp{\lam{x}{e}}{\rho} & = \vlam \: x \: \cl{e}{\rho} \\
+\wh \clp{\EPi{x}{A}{B}}{\rho} &= \vpi \: x \: v_A \: \cl{B}{\rho} \mbox{ where } v_A = \wh \cl{A}{\rho} \\
+\wh \clp{e \: e_1 \ldots e_n}{\rho} &= \ap \: v \: v_1 \ldots v_n \mbox{ where } v = \wh \cl{e}{\rho} , v_i = \wh \cl{e_i}{\rho}\\
 \wh \cl{\Set}{\rho} & = \Set \\ 
-\wh \cl{\Size}{\rho} & = \Size \\
-\wh \cl{\infty}{\rho} & = \infty  \\
-\wh \clp{\s e}{\rho} & = \sinfty \; v \mbox{ where } \; v = \wh \cl{e}{\rho} \\ 
 \wh \cl{\cc}{\rho} & = \cc  \\
 \wh \cl{\ff}{\rho} & = \ff \\
-\wh \cl{\dd}{\rho} & = \wh \cl{e}{\diamond} \mbox{ where } \; \Sig \; \dd = (e,\_)\\
-\wh \cl{x}{\rho} & = \lkup \; \rho \; x \\
+\wh \cl{\dd}{\rho} & = \wh \cl{e}{\diamond} \mbox{ where } \: \Sig \: \dd = (e,v_t)\\
+\wh \cl{x}{\rho} & = \lkup \: \rho \: x \\
 \end{array}
 \]
-We note that the closure $c$  in $\vlam \; x \; \cl{e}{\rho}$
-and $\vpi \; x \; v_a \; \cl{b}{\rho}$ do not have a binding for $x$.
+We note that the closure $c$  in $\vlam \: x \: \cl{e}{\rho}$
+and $\vpi \: x \: v_a \: \cl{b}{\rho}$ do not have a binding for $x$.
 The missing binding has to be provided before the closure can be evaluated.
 This might be a concrete value (for example during $\beta$-reduction) or a
 fresh generic value $k$ during type checking.
 
-\paragraph*{Size succesor}
-We should take into account that $\infty$ is the limit size, i.e the equation $\s \infty = \infty$:
-\[
-\begin{array}[t]{ll}
-\multicolumn{2}{l}{\sinfty : \Val \ra \Val}\\ 
-\sinfty \; \infty & = \infty\\
-\sinfty \;  v & = \s v  \mbox{ otherwise}\\ 
-\end{array}
-\]
-
 \paragraph*{Environment lookup}
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\lkup : \Env \ra \cV \ra \Val }\\
-\lkup \; (\ins{\rho}{x}{v}) \; x & = v \\
-\lkup \; (\ins{\rho}{x}{c}) \; x & = \wh c \\
-\lkup \; (\ins{\rho}{y}{\_}) \; x & = \lkup \; \rho \; x \mbox{ if } y \neq x  
+\multicolumn{2}{l}{\lkup : \Env \times \cV \ra \Val }\\
+\lkup \: (\ins{\rho}{x}{v}) \: x & = v \\
+\lkup \: (\ins{\rho}{y}{v}) \: x & = \lkup \: \rho \: x \mbox{ if } y \neq x  
 \end{array}
 \]
 
@@ -347,21 +319,21 @@ We should take into account that $\infty$ is the limit size, i.e the equation $\
 does $\beta$-reduction and inductive function application. 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\ap : \Val \ra \ves{\Clos} \ra \Val}\\
-\ap \; u \; \diamond & = u \\
-\ap \; (u \; \vec{c_1}) \; \vec{c_2} & = \ap \; u \; (\vec{c_1}\;\vec{c_2})\\
-\ap \; (\vlam \; x \; \cl{e}{\rho}) \; (c \; \vec{c}) & = \ap \; v \; \vec{c} \mbox{ where } v = \wh \cl{e}{\ins{\rho}{x}{c}} \\ 
-\ap \; \ff \; \vec{c} & = \apf \; \ff \; \vec{c} \mbox{ if } \ff \mbox{ is a } \fun \\ 
-\ap \; v \; \vec{c} & = v \; \vec{c} \mbox{ otherwise } \\
+\multicolumn{2}{l}{\ap : \Val \times \ves{\Val} \ra \Val}\\
+\ap \: u \: \diamond & = u \\
+\ap \: (u \: \vec{c_1}) \: \vec{c_2} & = \ap \: u \: (\vec{c_1}\:\vec{c_2})\\
+\ap \: (\vlam \: x \: \cl{e}{\rho}) \: (v \: \vec{v}) & = \ap \: v \: \vec{v} \mbox{ where } v = \wh \cl{e}{\ins{\rho}{x}{v}} \\ 
+\ap \: \ff \: \vec{v} & = \apf \: \ff \: \vec{v} \mbox{ if } \ff \mbox{ is a } \fun \\ 
+\ap \: v \: \vec{v} & = v \: \vec{v} \mbox{ otherwise } \\
 \end{array}
 \]
 In the following, as pattern matching can fail, we use $\stuck$ to symbolize this. 
 \paragraph*{Inductive funcion application}
 We always reduce application of an inductive function if possible:\[
 \begin{array}{ll}
-\multicolumn{2}{l}{\apf : \cV \ra \ves{\Clos} \ra \Val}\\
-\apf \; \ff \; \vec{c} & = v \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox { and } \matchcls \; \vec{\gamma} \; \vec{c} = v \neq \stuck \\ 
-\apf \; \ff \; \vec{c} & = \ff \; \vec{c} \mbox { otherwise } 
+\multicolumn{2}{l}{\apf : \cV \times \ves{\Val} \ra \Val}\\
+\apf \: \ff \: \vec{v} & = v \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox { and } \matchcls \: \vec{\gamma} \: \vec{v} = v \neq \stuck \\ 
+\apf \: \ff \: \vec{v} & = \ff \: \vec{v} \mbox { otherwise } 
 \end{array}
 \]
 
@@ -372,9 +344,9 @@ The following unrolls a corecursive definition once, if possible :
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\forc : \Val \ra \Val }\\
-\forc \; \ff & = \matchcls \; \vec{\gamma} \; \diamond \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox{ and } \ff \mbox { is a } \cofun \\
-\forc \; (\ff \; \vec{c}) & = \matchcls \; \vec{\gamma} \; \vec{c} \; \mbox{ if } \Sig \; \ff = (\vec{\gamma},\top) \mbox { and } \ff \mbox { is a } \cofun\\ 
-\forc \; v & = \stuck \mbox{ otherwise}
+\forc \: \ff & = \matchcls \: \vec{\gamma} \: \diamond \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox{ and } \ff \mbox { is a } \cofun \\
+\forc \: (\ff \: \vec{v}) & = \matchcls \: \vec{\gamma} \: \vec{v} \: \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox { and } \ff \mbox { is a } \cofun\\ 
+\forc \: v & = \stuck \mbox{ otherwise}
 \end{array}
 \]
 
@@ -384,24 +356,22 @@ Pattern matching returns an environment that binds the variables in the patterns
 When matching against a coinductive constructor, the value is forced.
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\match : \Env \ra \Pat \ra \Val \ra \Env}\\
-\match \; \rho \; (\cc \; \vec{p}) \; v & = \matchf \; \rho \; p \; v' \spc \mbox{if  } \cc  \mbox{ is a coinductive constructor}\\
-& \spcx \spcx \spcx \mbox{and } v' = \forc \; v \neq \stuck \\
-\match \; \rho \; p \; v & = \matchf \; \rho \; p \; v \mbox{ otherwise}
+\multicolumn{2}{l}{\match : \Env \times \Pat \times \Val \ra \Env}\\
+\match \: \rho \: (\cc \: \vec{p}) \: v & = \matchf \: \rho \: p \: v' \spc \mbox{if  } \cc  \mbox{ is a coinductive constructor}\\
+& \spcx \spcx \spcx \mbox{and } v' = \forc \: v \neq \stuck \\
+\match \: \rho \: p \: v & = \matchf \: \rho \: p \: v \mbox{ otherwise}
 \vs\\
-\multicolumn{2}{l}{\matchf : \Env \ra \Pat \ra \Val \ra \Env}\\
-\matchf \; \rho \; \inacc{e} \; v & = \rho \\
-\matchf \; \rho \; x \; v & = \ins{\rho}{x}{v} \\
-\matchf \; \rho \; (\cc \; \diamond) \; \cc & = \rho \\
-\matchf \; \rho \; (\cc \; \vec{p}) (\cc \; \vec{v}) & = \matchList \; \rho \; \vec{p} \; \vec{v} \\
-\matchf \; \rho \; (\s p) \; \infty & = \match \; \rho \; p \; \infty \\
-\matchf \; \rho \; (\s p) \; (\s v) & = \match \; \rho \; p \; v \\
-\matchf \; \_ \; \_ \; \_ & = \stuck \mbox{ otherwise}
+\multicolumn{2}{l}{\matchf : \Env \times \Pat \times \Val \ra \Env}\\
+\matchf \: \rho \: \inacc{e} \: v & = \rho \\
+\matchf \: \rho \: x \: v & = \ins{\rho}{x}{v} \\
+\matchf \: \rho \: (\cc \: \diamond) \: \cc & = \rho \\
+\matchf \: \rho \: (\cc \: \vec{p}) (\cc \: \vec{v}) & = \matchList \: \rho \: \vec{p} \: \vec{v} \\
+\matchf \: \rho \: p \: v & = \stuck \mbox{ otherwise}
 \vs\\
-\multicolumn{2}{l}{\matchList : \Env \ra \ves{\Pat} \ra \ves{\Clos} \ra \Env }\\
-\matchList \; \rho \; \diamond \; \diamond & = \rho \\
-\matchList \; \rho \; (p \; \vec{p}) \; (c \; \vec{c}) & = \matchList \; \rho_2 \; \vec{p} \; \vec{c} \mbox{ where } \rho_2 \; = \match \rho \; p \; v \neq \stuck \\
-\matchList \; \_ \; \_ \; \_ & = \stuck \mbox { otherwise } \\
+\multicolumn{2}{l}{\matchList : \Env \times \ves{\Pat} \times \ves{\Val} \ra \Env }\\
+\matchList \: \rho \: \diamond \: \diamond & = \rho \\
+\matchList \: \rho \: (p \: \vec{p}) \: (v \: \vec{v}) & = \matchList \: \rho_2 \: \vec{p} \: \vec{v} \mbox{ where } \rho_2 \: = \match \rho \: p \: v \neq \stuck \\
+\matchList \: \rho \: p \: v & = \stuck \mbox { otherwise } \\
 \end{array}
 \]
 
@@ -409,11 +379,10 @@ When matching against a coinductive constructor, the value is forced.
 For a single clause, if all patterns of a clause match against the arguments, then the right hand side can be evaluated: 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\matchcl : \Env \ra \ves{\Pat} \ra \Expr \ra \ves{\Clos} \ra \Val}\\
-\matchcl \; \rho \; \diamond \; e \; \vec{c} & = \ap \; v \; \vec{c} \mbox{ where } v = \wh e \; \rho \\
-
-\matchcl \; \rho \; (p \; \vec{p}) \; e \; (c \; \vec{c}) & = \matchcl \; \rho_2 \; \vec{p} \; \vec{c} \mbox{ if } \rho_2 = \match \; p (\wh c) \neq \stuck \\  
-\matchcl \; \_ \; \_\; \_ \; \_ & = \stuck \mbox{ otherwise}\\  
+\multicolumn{2}{l}{\matchcl : \Env \times \ves{\Pat} \times \Expr \times \ves{\Val} \ra \Val}\\
+\matchcl \: \rho \: \diamond \: e \: \vec{v} & = \ap \: v \: \vec{v} \mbox{ where } v = \wh e \: \rho \\
+\matchcl \: \rho \: (p \: \vec{p}) \: e \: (v \: \vec{v}) & = \matchcl \: \rho_2 \: \vec{p} \: \vec{v} \mbox{ if } \rho_2 = \match \: p v \neq \stuck \\  
+\matchcl \: \rho \: \vec{p}\: e \: \vec{v} & = \stuck \mbox{ otherwise}\\  
 \end{array}
 \]
 
@@ -423,10 +392,10 @@ Each clause is tried until one is matched or there are no clauses left. We assum
 Note that matching for all clauses can fail even when the coverage is complete: First, there can be too few arguments.Furthermore, generic values (that are introduced during type checking) do not match against a constructor pattern. 
 \[
 \begin{array}{ll}
-\multicolumn{2}{l}{\matchcls : \ves{\Clause} \ra \ves{\Clos} \ra \Val}\\
-\matchcls \; \diamond \; \_ & = \stuck \\
-\matchcls \;  ((\vec{p} \; e)\;\vec{\gamma}) \; \vec{c} & = v \mbox{ if } v = \matchcl \; \diamond \; \vec{p} \; e \;  \vec{c} \neq \stuck \\
-\matchcls \; ((\vec{p} \; e)\;\vec{\gamma}) \; \vec{c} & = \matchcls \; \vec{\gamma} \; \vec{c} \mbox{ otherwise}  
+\multicolumn{2}{l}{\matchcls : \ves{\Clause} \times \ves{\Val} \ra \Val}\\
+\matchcls \: \diamond \: \vec{v} & = \stuck \\
+\matchcls \:  ((\vec{p} \: e)\:\vec{\gamma}) \: \vec{v} & = v \mbox{ if } v = \matchcl \: \diamond \: \vec{p} \: e \:  \vec{v} \neq \stuck \\
+\matchcls \: ((\vec{p} \: e)\:\vec{\gamma}) \: \vec{v} & = \matchcls \: \vec{\gamma} \: \vec{v} \mbox{ otherwise}  
 \end{array}
 \]
 
@@ -459,74 +428,74 @@ $\spc \suc : \Nat \ra \Nat$
 then we declare the addition function by pattern matching:
 \begin{bsp}
 $\fun \add : \Nat \ra \Nat \ra \Nat$\\
-$\spc \add x \; \zero = x $\\
-$\spc \add x \; (\suc y) = \suc (\add x \; y)  $
+$\spc \add x \: \zero = x $\\
+$\spc \add x \: (\suc y) = \suc (\add x \: y)  $
 \end{bsp}
 \subsection{Lists}
 Lists are an example of a parameterized data type:
 \begin{bsp}
-$\data \List ( A : \Set ) : \Set $ \\
+$\data \List ( + A : \Set ) : \Set $ \\
 $ \spc \nil : \List A  $\\
 $ \spc \cons : A \ra \List A \ra \List A $
 \end{bsp}
-\subsection{Binary Trees}
-The following introduces binary trees with leaf labeled with elements of $A$ and nodes labeled with elements of $B$:
+\subsection{Finitely branching trees}
+\label{tre}
+The following introduces finitly braching trees where leafs contain elements of $A$ and nodes are contain elements of of $B$:
 \begin{bsp}
-$\data \Tree ( A : \Set ) ( B : \Set ) : \Set $ \\
-$ \spc \leaf : A \ra \Tree A \; B $\\
-$ \spc \node : B \ra \Tree A \; B \ra \Tree A \; B $
+$\data \Tree ( + A : \Set ) ( + B : \Set ) : \Set $ \\
+$ \spc \leaf : A \ra \Tree A \: B $\\
+$ \spc \node : B \ra \List (\Tree A \: B) \ra \Tree A \: B $
 \end{bsp}
 
 \subsection{Vectors}
-The previous data types didn't use any dependent function space. 
 Now things get more interesting. Vectors are an example of an inductive family of types.
 They can be imagined as lists that store their length.
 \begin{bsp}
-$\data \vVec ( A : \Set ) : \Nat \ra \Set $ \\
-$\spc \nil : \vVec A \; \zero  $\\
-$ \spc \cons : \EPi{n}{\Nat}{ A \ra \vVec A \; n \ra \vVec A \; (\suc n)} $
+$\data \vVec ( + A : \Set ) : \Nat \ra \Set $ \\
+$\spc \nil : \vVec A \: \zero  $\\
+$ \spc \cons : \EPi{n}{\Nat}{ A \ra \vVec A \: n \ra \vVec A \: (\suc n)} $
 \end{bsp}
 Now let's define the $\head$ function that returns the first element of an vector. This operation should only be allowed for a non-empty vector.
 With dependent types, we can express this in the type signature
 \begin{bsp}
-$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \: (\suc n) \ra A $
 \end{bsp}
 Now to the clause definition. We can explain the use inaccessible patterns here.
 We need to pattern match to get the head element.
 \begin{bsp}
-$\head ? \; ? \; (\cons \; B \; m \; x \; xl) = x $
+$\head ? \: ? \: (\cons \: B \: m \: x \: xl) = x $
 \end{bsp}
 First, let's note that we don't need to pattern match against $\nil$.
 Now what about the ? above. 
 One might be inclined to use non-linear patterns:
 \begin{bsp}
-$\head \; B \; m \; (\cons  B \; m \; x \; xl) = x $
+$\head \: B \: m \: (\cons  B \: m \: x \: xl) = x $
 \end{bsp}
 But we really don't have to check at runtime that the values at the corresponding arguments match -- it's guaranteed for a well-typed program.
 So to really capture the notion that the first two arguments are automatically instantiated by pattern matching against the inductive family argument, we use the inaccessible pattern notation. The final definition is:
 \begin{bsp}
-$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \; (\suc n) \ra A $\\
-$ \spc \head \inacc{B} \; \inacc{m} \; (\cons \; B \; m \; x \; xl) = x $
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \: (\suc n) \ra A $\\
+$ \spc \head \inacc{B} \: \inacc{m} \: (\cons \: B \: m \: x \: xl) = x $
 \end{bsp}
 \subsection{Equality}
 The following is called Martin-L\"of equality, another important example of an inductive family.
 This equality relation is defined by a single constructor for reflexivity:
 \begin{bsp}
 $\data \Eq ( A : \Set ) : A \ra A \ra \Set $ \\
-$\spc \refl : \EPi{a}{A}{\Eq A \; a \; a}$
+$\spc \refl : \EPi{a}{A}{\Eq A \: a \: a}$
 \end{bsp}
 As a simple example, we can now prove $ x + 0 = x $:
 \begin{bsp}
-$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \; \zero)\; x} $ \\ 
+$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\ 
 $ \spcx = \lam{y}\refl \Nat y$ 
 \end{bsp}
 Here one can see that proof checking is type checking.
 Without having formally introduced type checking, we want to give some intuition how it is done.
-This proofs passes the type checker because $\add x \; \zero$ reduces to $\zero$ and the type checker knows that $\zero$ is equal to itself.
+This proofs passes the type checker because $\add x \: \zero$ reduces to $\zero$ and the type checker knows that $\zero$ is equal to itself.
 Now if we want to prove $ 0 +  x = x $, we need more effort.
 The following does not pass the type checker:
 \begin{bsp}
-$ \const \tprof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x)\; x} $ \\ 
+$ \const \tprof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x)\: x} $ \\ 
 $ \spcx \lam{y} \refl \Nat y$ 
 \end{bsp}
 The reason why is that the type checker can only see definitional equality.
@@ -535,12 +504,12 @@ Technically, the generic value introduced for $y$ does neither match against the
 nor against the pattern $\suc y$ in the second clause of $\add$, so $\add \zero x$ does not reduce to $x$ during type checking.
 So what we need is a recursive proof, manually doing case distinction on x:
 \begin{bsp}
-$\fun \eqsucc : \EPi{x}{\Nat}\EPi{y}{\Nat} \Eq \Nat x \; y \ra \Eq \Nat (\suc x) \; (\suc y)$ \\
-$\spc \eqsucc \inacc{x} \; \inacc{x} \; (\refl \inacc{\Nat} \; x) = \refl \Nat (\suc x)$
+$\fun \eqsucc : \EPi{x}{\Nat}\EPi{y}{\Nat} \Eq \Nat x \: y \ra \Eq \Nat (\suc x) \: (\suc y)$ \\
+$\spc \eqsucc \inacc{x} \: \inacc{x} \: (\refl \inacc{\Nat} \: x) = \refl \Nat (\suc x)$
 \vs\\
 $\fun \tprof : ( x : \Nat ) \ra \Eq \Nat (\add \zero x) x$\\
 $\spc \tprof \zero = \refl \Nat \zero$\\
-$\spc \tprof (\suc x) = \eqsucc (\add \zero x)\; x \; (\tprof x)$
+$\spc \tprof (\suc x) = \eqsucc (\add \zero x)\: x \: (\tprof x)$
 \end{bsp}
 
 Recursive proofs need to be total (complete pattern coverage and termination) to be correct.
@@ -556,15 +525,15 @@ The solution is to apply universe stratification and move to a predicative hiera
 \section{Type Checking}
 
 \renewcommand\Check[5]{#1;#2;#3\vdash#4\leftleftarrows#5}
-\newcommand\IsType[4]{#1;#2;#3\vdash#4\;\mathbf{Type}}
-\newcommand\DataType[5]{#1;#2;#3;#4\vdash#5\;\mathbf{DataType}}
-\newcommand\ConType[5]{#1;#2;#3;#4\vdash#5\;\mathbf{ConType}}
+\newcommand\IsType[4]{#1;#2;#3\vdash#4\:\mathbf{Type}}
+\newcommand\DataType[5]{#1;#2;#3;#4\vdash#5\:\mathbf{DataType}}
+\newcommand\ConType[5]{#1;#2;#3;#4\vdash#5\:\mathbf{ConType}}
 \newcommand\Infer[5]{#1;#2;#3\vdash#4\rightrightarrows#5}
 \newcommand\EqVal[4]{#1;#2\vdash#3\Leftrightarrow#4}
-\newcommand\FeqVal[4]{#1;#2\vdash#3{\;\leftrightarrow\;}#4}
+\newcommand\FeqVal[4]{#1;#2\vdash#3{\:\leftrightarrow\:}#4}
 \newcommand\DeqVal[2]{\vdash#1\leftrightarrow#2}
 \newcommand\LeqVal[4]{#1;#2;\vdash#3\leq#4}
-\newcommand\FleqVal[4]{#1;#2\vdash#3{\;\ll\;}#4}
+\newcommand\FleqVal[4]{#1;#2\vdash#3{\:\ll\:}#4}
 \newcommand\DLeqVal[2]{\vdash#1\leq#2}
 \newcommand\SzLeq[2]{\vdash#1\sqsubseteq#2}
 
@@ -596,26 +565,21 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 %%Lam
 \nru{\chklam}
 {\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{v_a}}{e}{\wh \cl{t}{\ins{\rho}{x}{k}}}}
-{\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \; x \; v_a \; \cl{t}{\rho}}}
+{\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \: x \: v_a \: \cl{t}{\rho}}}
 %% Pi
 \\[2ex]
 \nru{\chkpi}
 {\Check{k}{\rho_1}{\rho_2}{t_1}{\Set}
 \qquad
-\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{t_1}}{\rho}}{t_2}{\Set}
+\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{t_1}}{\rho_1}}{t_2}{\Set}
 }
 {\Check{k}{\rho_1}{\rho_2}{\EPi{x}{t_1}{t_2}}{\Set}}
 \\[2ex]
-%% Succ
-\nru{\chksucc}
-{\Check{k}{\rho_1}{\rho_2}{e}{\Size}}
-{\Check{k}{\rho_1}{\rho_2}{\s e}{\Size}} 
-%% Inf
-\qquad
+%% Infer-mode
 \nru{\chkinf}
 {\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
 \qquad
-\EqVal{\nF}{k}{v_2}{v_1}} 
+{\EqVal{\nF}{k}{v_2}{v_1}}} 
 {\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
 \end{gather*}
 \caption{Checking expressions}
@@ -623,51 +587,45 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 
 \begin{figure}[p]
 \begin{gather*}
-%% Var
-	  \nru{\infvar}{\lkup \; \rho_2 \; x \; v}{\Infer{k}{\rho_1}{\rho_2}{x}{v}}
-\\[2ex]
-%% Size
-	  \nru{\infsize}{}{\Infer{k}{\rho_1}{\rho_2}{\Size}{\Set}}
-\qquad
-%% Infty
-	  \nru{\infinfty}{}{\Infer{k}{\rho_1}{\rho_2}{\infty}{\Size}} 
-\\[2ex]
 %% App-1
 \nru{\infappa}
-{\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \; x \; v_a \; \cl{b}{\rho}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1}{\vpi \: x \: v_a \: \cl{b}{\rho}}
 \qquad \Check{k}{\rho_1}{\rho_2}
 {e_2}{v_a}}
-{\Infer{k}{\rho_1}{\rho_2}{e_1 \; e_2}{\wh \cl{b}{\ins{\rho}{x}{\cl{e_2}{\rho_1}}}}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \: e_2}{\wh \cl{b}{\ins{\rho}{x}{\cl{e_2}{\rho_1}}}}}
 %% App-2
 \\[2ex]
 \nru{\infappb}
-{\Infer{k}{\rho_1}{\rho_2}{(e_1 \; e_2)\;\vec{e}}{v}}
-{\Infer{k}{\rho_1}{\rho_2}{e_1 \; (e_2 \; \vec{e})}{v}}
+{\Infer{k}{\rho_1}{\rho_2}{(e_1 \: e_2)\:\vec{e}}{v}}
+{\Infer{k}{\rho_1}{\rho_2}{e_1 \: (e_2 \: \vec{e})}{v}}
 \qquad
+%% Var
+\nru{\infvar}{\lkup \: \rho_2 \: x \: v}{\Infer{k}{\rho_1}{\rho_2}{x}{v}}
+\\[2ex]
 %% Def	
 \nru{\infdef}
-{\Sig \; \ff \; = (v,\_) }
+{\Sig \: \ff \: = (v,\vec{\gamma}) }
 {\Infer{k}{\rho_1}{\rho_2}{\ff}{v}}
-\\[2ex]
 \qquad
 %% Con 
 \nru{\infcon}
-{\Sig \; \cc \; = v}
-{\Infer{k}{\rho_1}{\rho_2}{\cc}{v}} 
+{\Sig \: \cc \: = v}
+{\Infer{k}{\rho_1}{\rho_2}{\cc}{v}}
+\\[2ex] 
 %% Data
 \nru{\infdata}
-{\Sig \; \cc \; = (v,\_)}
+{\Sig \: \DD \: = (v,n)}
 {\Infer{k}{\rho_1}{\rho_2}{\DD}{v}} 
 %% Const
 \qquad
 \nru{\infconst}
-{\Sig \; \dd \; = (\_,v)}
+{\Sig \: \dd \: = (e,v)}
 {\Infer {k}{\rho_1}{\rho_2}{\dd}{v}}
 \end{gather*}
 \caption{Infering type of expressions}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \nru{}
 {\IsType{k}{\rho_1}{\rho_2}{t_1}
@@ -678,7 +636,7 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \nru{}{}{\IsType{k}{\rho_1}{\rho_2}{\Set}}
 \qquad
 \nru{}
-{\Check{0}{\rho_1}{\rho_2}{t}{\Set}}
+{\Check{k}{\rho_1}{\rho_2}{t}{\Set}}
 {\IsType{k}{\rho_1}{\rho_2}{t}}
 \end{gather*}
 \caption{Type judgment}
@@ -688,14 +646,14 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{gather*}
 %% Force L
 \nru{\eqlf}
-{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \stuck 
+{\forc \: v_1 = u_1 \qquad \forc \: v_2 = \stuck 
 \qquad
 f \neq \rF \qquad \FeqVal{\lF}{k}{u_1}{v_2}}
 { \EqVal{f}{k}{v_1}{v_2}}
 %% Force R
 \\[2ex]
 \nru{\eqrf}
-{\forc \; v_1 = \stuck \qquad \forc \; v_2 = u_2 
+{\forc \: v_1 = \stuck \qquad \forc \: v_2 = u_2 
 \qquad
 f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 { \EqVal{f}{k}{v_1}{v_2}}
@@ -704,147 +662,120 @@ f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
 \nru{\eqnf}
 {\FeqVal{f}{k}{v_1}{v_2}}
 { \EqVal{f}{k}{v_1}{v_2}}
-\qquad
-%% Set
-\nru{\eqset}
-{}
-{\FeqVal{f}{k}{\Set}{\Set}}
-%% Size
 \\[2ex]
-\nru{\eqsize}
-{}
-{\FeqVal{f}{k}{\Size}{\Size}}
-%% Infty
-\qquad
-\nru{\eqinfty}
-{}
-{\FeqVal{f}{k}{\infty}{\infty}}
-%% Succ
-\\[2ex]
-\nru{\eqsuc}
-{\EqVal{f}{k}{v_1}{v_2}}
-{\FeqVal{f}{k}{\s v_1}{\s v_2}}
 %% App
-\qquad
-%% Gen
-\nru{\eqgen}
-{}
-{\EqVal{f}{k}{k'}{k'}}
-\\[2ex]
 \nru{\eqapp}
-{\EqVal{f}{k}{v_1}{v_2} \qquad
-\EqVal{f}{k}{c_1}{d_1} \ldots \EqVal{f}{k}{c_n}{d_n}}
-{\FeqVal{f}{k}{v_1 (c_1 \ldots c_n)}{v_2 (d_1 \ldots d_n)}}
+{\EqVal{f}{k}{v}{w} \qquad
+\EqVal{f}{k}{v_1}{w_1} \qquad \ldots \qquad \EqVal{f}{k}{v_n}{w_n}}
+{\FeqVal{f}{k}{v \: v_1 \ldots v_n}{w \: w_1 \ldots w_n}}
 %% Pi
 \\[2ex]
 \nru{\eqpi}
 {\EqVal{f}{k}{a_1}{a_2}
 \qquad
 \EqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh \cl{b_2}{\ins{\rho_2}{x_2}{k}}}}
-{\FeqVal{f}{k}{\vpi \; x_1 \; a_1 \; \cl{b_1}{\rho_1}}{\vpi \; x_2 \; a_2 \; \cl{b_2}{\rho_2}}}
+{\FeqVal{f}{k}{\vpi \: x_1 \: a_1 \: \cl{b_1}{\rho_1}}{\vpi \: x_2 \: a_2 \: \cl{b_2}{\rho_2}}}
 %% Lam
 \\[2ex]
 \nru{\eqlam}
 {\EqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh \cl{b_2}{\ins{\rho_2}{x_2}{k}}}}
-{\FeqVal{f}{k}{\vlam \; x_1 \; \cl{b_1}{\rho_1}}{\vlam \; x_2 \; \cl{b_2}{\rho_2}}}
-%% Def
-\\[2ex]
-\nru{\eqdef}
-{}
-{\FeqVal{f}{k}{\ff}{\ff}}
-%% Con
+{\FeqVal{f}{k}{\vlam \: x_1 \: \cl{b_1}{\rho_1}}{\vlam \: x_2 \: \cl{b_2}{\rho_2}}}
+%% Atom
 \qquad
-\nru{\eqcon}
+\nru{\eqatom}
 {}
-{\FeqVal{f}{k}{\cc}{\cc}}
+{\FeqVal{f}{k}{a}{a}}
 \end{gather*}
 \caption{equality checking}
 \end{figure}
 
 After having defined the basic building blocks, now it has to be defined how individual declarations are checked.
-\subsubsection{Constant declaration}
+\subsection{Checking constant declarations}
 Checking a constand declaration is straightforward.
 The steps are:
 \paragraph*{Typechecking $\const \dd : A = e $}
 \begin{enumerate}
 \item
-$\IsType{0}{\diamond}{\diamond}{A}$
+$\IsType{1}{\diamond}{\diamond}{A}$
 \item
 $ v_a := \wh \cl{A}{\diamond}$
 \item
-$\Check{0}{\diamond}{\diamond}{e}{v_a}$
+$\Check{1}{\diamond}{\diamond}{e}{v_a}$
 \item
-$\Sig := \Sig \cup \{\dd \ra (e,v_a)\}$
+$\Sig := \Sig \cup \{\dd \mapsto (e,v_a)\}$
 \end{enumerate}
 We check that $A$ is a valid type, then check that $e$ has this type and then we update the signature.
-\subsubsection{Datatype declarations}
+\subsection{Checking Datatype declarations}
 We have to check that data type declarations follow the scheme of inductive families.
 Actually, we here stay closer to how data type declarations are checked in the current version Agda.
-It is a little more liberal then the schematas given in the original paper \cite{dubjier}.
-Although this is not essential, we don't require that non-recursive arguments appear before recursive ones.
-Second, as will we see, our notion of strict positiy is a little more lenient than in \cite{dubjier}.
+It is a more liberal then the schematas given in the original paper \cite{dubjier}: our notion of strict positiy is a more lenient than in \cite{dubjier}.
+Also \mugda supports coinductive types with the $\codata$ construct.
 
-A data type declarations need to be of the following scheme:
-\begin{bsp}
-$\data \DD ( \{+\} p_1 : P_1) \ldots ( \{+\} p_n : P_n) : \Gamma \ra \Set $\\
+A valid data type declarations first needs to have this syntactic form:
+\begin{quote}
+$\data \DD ( p_1 : P_1) \ldots ( p_n : P_n) : \Gamma \ra \Set $\\
 $\spc \ldots$\\
 $\spc \cc : \Delta \ra \DD p_1 \ldots p_n t_1 \ldots t_m$\\
 $\spc \ldots$\\   
-\end{bsp}
-
+\end{quote}
 \newcommand{\pos}{\mbox{pos}}
-We define $\pos(\DD) := \{ i \vert p_i \mbox{ is declared strictly positive} \}. $ 
-Note that the parameters $p_i$ have to be written down in the target of each constructor exactly as declared in the telescope.  
-The parameters can be arbitrary types, while the types in $\Gamma$ and $\Delta$ have to be set-types, i.e of type $\Set$.
+where each $(p_i : P_1) $ can be marked with a $+$ to denote strict positivy.
+\begin{definition}
+$\pos(\DD) \subseteq \cN := \{ i \vert p_i \mbox{ is declared strictly positive} \}. $ 
+\end{definition}
+The parameter types $P_i$ can be arbitrary types, while the types in $\Gamma$ and $\Delta$ need to be small types, i.e of type $\Set$. Also, the parameters $p_i$ have to be written down in the target of each constructor exactly as declared in the telescope.
+
 We require that datatype declarations are strictly positive.
-Otherwise there are inconsistencies (\cite{paulinmohring93inductive}), i.e one can define recursion without using a $\fun$.
-Strict positivy rougly means that in the type of the arguments $\Delta$ of every constructor , every recursive argument $\DD$ is not allowed in the domain of a function type or in a argument of an application.
-An exception to this is that it may occur as a parameter to a type that is itself declared as strictly positive.
-Of course it has to be checked that all strictly positive parameters are indeed themselves strictly positive.
+Otherwise there are inconsistencies (\cite{paulinmohring93inductive}), i.e non-terminating terms could be constructed.
+Strict positivity rougly means that in the type of the arguments $\Delta$ of every constructor , every recursive argument $\DD$ is not allowed in the domain of a function type or as an a argument of an application.
+
+An exception to this that is allowed in \mugda is that parameters that are for themselves strictly positive can be marked with a $+$ and will then preserve strict positivity. 
+This allows the definition of the $\Tree$ type in section \ref{tre} to pass the strict positivy test. In that regard, \mugda 's data types are closer to the \emph{strictly positve families} described in \cite{alti:cats07}.
+In the following, we describe the checking of $\data$ declarations, but $\codata$ are checked just the same.
 
 \newcommand{\sposc}[3]{#1\vdash#2\mbox{ \textbf{sposc} }#3}
 \newcommand{\spos}[3]{#1\vdash#2\mbox{ \textbf{spos} }#3}
 
-\paragraph*{Typechecking}
-For a data declaration  
+\paragraph*{Typechecking data declaration}
+
+
+To check that the data declaration
 \[\begin{array}{l}
-\data \DD (\{+\} p_1 : P_1) \ldots (\{+\} p_n : P_n) : A \\
+\data \DD \: \tau : A \\
 \spcx \vec{\gamma}
 \end{array}
 \]
-the following steps are performed:
+is valid, the following steps are performed: 
 \begin{enumerate}
 \item
-$\DataType{0}{\diamond}{\diamond}{n}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra A}$
+$\DataType{1}{\diamond}{\diamond}{\vert\tau\vert}{ \tau \ra A}$
 \item
-$v_D := \wh \cl{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}{\diamond}$
+$v_D := \wh \clp{\tau \ra A}{\diamond}$
 \item
-$\Sig := \Sig \cup \{\DD \ra v_D\}$
+$\Sig := \Sig \cup \{\DD \mapsto v_D\}$
 \item
-for every constructor $\cc : B  \in \vec{\gamma}$:
+for every constructor declaration $\cc : B  \in \vec{\gamma}$:
 \begin{enumerate} 
 \item
-$\ConType{0}{\diamond}{\diamond}{\DD p_1 \ldots p_n}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}$
+$\ConType{1}{\diamond}{\diamond}{n}{\tau \ra B}$
 \item
-$v_C := \wh \cl{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}{\diamond}$
+$v_C := \wh \clp{\tau \ra B}{\diamond}$
 \item
-$\pos := \{ i | p_i \mbox{ is declared strictly positive } \} $ 
+$\sposc{1}{v_C}{i}$ for every $i \in \pos(\DD) $ 
 \item
-$\sposc{0}{v_C}{i}$ for every $i \in \pos(\DD) $ 
+$\sposc{1}{v_C}{\DD}$
 \item
-$\sposc{0}{v_C}{\DD}$
-\item
-$\Sig := \Sig \cup \{\cc \ra v_C\}$
+$\Sig := \Sig \cup \{\cc \mapsto v_C\}$
 \end{enumerate}
 \end{enumerate}
 
 \newcommand{\nocc}[3]{#1\vdash#2\mbox{ \textbf{nocc} }#3}
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \nxru{}
 {\mbox {if } k < n \mbox{ then } \IsType{k}{\rho_1}{\rho_2}{A}}
-{\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
+{\mbox {if } k \geq n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
 {\DataType{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{A}{\rho}}}{n}{B}}
 {\DataType{k}{\rho_1}{\rho_2}{p}{\EPi{x}{A}{B}}}
 \\[2ex]
@@ -855,147 +786,218 @@ $\Sig := \Sig \cup \{\cc \ra v_C\}$
 \caption{Data type judgement}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \ndru{}
-{\mbox {if } k >= n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
+{\mbox {if } k \geq n \mbox { then } \Check{k}{\rho_1}{\rho_2}{A}{\Set}}
 {\ConType{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{\cl{A}{\rho}}}{\DD p_1 \ldots p_n}{B}}
-{\ConType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n}{\EPi{x}{A}{B}}}
+{\ConType{k}{\rho_1}{\rho_2}{n}{\EPi{x}{A}{B}}}
 \\[2ex]
 \nru{}
 {\IsType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n t_1 \ldots t_m}}
-{\ConType{k}{\rho_1}{\rho_2}{\DD p_1 \ldots p_n}{\DD p_1 \ldots p_n t_1 \ldots t_m}}
+{\ConType{k}{\rho_1}{\rho_2}{n}{\DD p_1 \ldots p_n t_1 \ldots t_m}}
 \end{gather*}
 \caption{Constructor type judgment}
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \nru{}
-{\nocc{k}{i}{v_a} \qquad \nocc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
-{\nocc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
-\\[2ex]
-{\nocc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
-{\nocc{k}{i}{\vlam \; x \; \cl{b}{\rho}}  }
-\\[2ex]
-\nru{}
-{\nocc{k}{i}{v} \qquad \nocc{k}{i}{\wh c_j} \mbox{ for all } j \in \{1 \ldots n \}}
-{\nocc{k}{i}{v \; c_1 \ldots c_n}}
+{\nocc{k}{a}{v_a} \qquad \nocc{k+1}{a}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\nocc{k}{a}{\vpi \: x \: v_a \: \cl{b}{\rho}}  }
 \qquad
 \nru{}
-{\nocc{k}{i}{v}}
-{\nocc{k}{i}{\s v}}
+{\nocc{k+1}{a}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\nocc{k}{a}{\vlam \: x \: \cl{b}{\rho}}  }
 \\[2ex]
 \nru{}
-{i \neq i'}
-{\nocc{k}{i}{i'}}
+{\nocc{k}{a}{v} \qquad \nocc{k}{a}{v_j} \mbox{ for all } j \in \{1 \ldots n \}}
+{\nocc{k}{a}{v \: v_1 \ldots v_n}}
 \qquad
 \nru{}
-{}
-{\nocc{k}{i}{v}}
+{a \neq a'}
+{\nocc{k}{a}{a'}}
 \end{gather*}
-\caption{Nonoccurence of generic value i}
+\caption{Nonoccurence of atomic value a}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \nru{}
-{ \nocc{k}{i}{v_a} \qquad \spos{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
-{\spos{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+{ \nocc{a}{a}{v_a} \qquad \spos{k+1}{a}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\spos{a}{a}{\vpi \: x \: v_a \: \cl{b}{\rho}}  }
+\qquad
+\nru{}
+{\spos{k+1}{a}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\spos{k}{a}{\vlam \: x \: \: \cl{b}{\rho}}  }
 \\[2ex]
 \nru{}
-{\spos{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
-{\spos{k}{i}{\vlam \; x \; \; \cl{b}{\rho}}  }
+{\nocc{k}{a}{v_j} \mbox{ for all } j \in \{1 \ldots n \}} 
+{\spos{k}{a}{a \: v_1 \ldots v_n}}
 \\[2ex]
 \ndru{}
-{\nocc{k}{i}{\wh v_j} \mbox{ for all } j \in \{1 \ldots m \}} 
-{\spos{k}{i}{\wh p_j} \mbox{ for all } j \in \pos(\DD) \qquad \nocc{k}{i}{\wh p_j} \mbox{ for all } j \notin \pos(\DD) } 
-{\spos{k}{i}{\DD p_1 \ldots p_n \; c_1 \ldots c_m}}
+{\nocc{k}{a}{v_j} \mbox{ for all } j \in \{ 1 \ldots m\} , j \notin \pos(\DD)}
+{\spos{k}{a}{v_k} \mbox{ for all } k \in \pos(\DD) \qquad}
+{\spos{k}{a}{\DD \: v_1 \ldots v_m}}
 \\[2ex]
 \nru{}
-{\spos{k}{i}{v} \qquad \nocc{k}{i}{\wh c_j} \mbox{ for all } j \in \{1 \ldots n \}}
-{\spos{k}{i}{v \; c_1 \ldots c_n}}
-\\[2ex]
-\nru{}
-{\spos{k}{i}{v}}
-{\spos{k}{i}{\s v}}
+{\spos{k}{a}{v} \qquad \nocc{k}{a}{v_j} \mbox{ for all } j \in \{1 \ldots n \}}
+{\spos{k}{a}{v \: v_1 \ldots v_n}}
 \qquad
 \nru{}
 {}
-{\spos{k}{i}{v}}
+{\spos{k}{a}{v}}
 \end{gather*}
-\caption{Strictly positive occurence of generic value i}
+\caption{Strictly positive occurence of atomic value a}
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[p]
 \label{sposcf}
 \begin{gather*}
 \nru{}
-{ \spos{k}{i}{v_a} \qquad \sposc{k+1}{i}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
-{\sposc{k}{i}{\vpi \; x \; v_a \; \cl{b}{\rho}}  }
+{ \spos{k}{a}{v_a} \qquad \sposc{k+1}{a}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\sposc{k}{a}{\vpi \: x \: v_a \: \cl{b}{\rho}}  }
 \nru{}
 {}
-{\sposc{k}{i}{v}}
+{\sposc{k}{a}{v}}
 \end{gather*}
-\caption{Strict positivity test for generic value i in constructor arguments}
+\caption{strict positivity test for atomic value a in constructor arguments}
 \end{figure}
 
-The strict positivity test for a generic variable i is given in figure \ref{sposcf}.
-These judgement can be defined analougsly for the occurence of a data identifier $\DD$.
-Later the information about positive parameters will be usefull for subtyping.
-
+The strict positivity test for a constructor is given in figure \ref{sposcf}.
+The following declaration is rejected because of the non-positive occurence of $\Bad$ in the argument of $\bad$.
 \begin{bsp}
 $\data \Bad : \Set $ \\
 $\spc \ok : \Bad$\\
 $\spc \bad : ((\Nat \ra \Bad) \ra \Bad) \ra \Bad  $
 \end{bsp}
-is not allowed because of the non-positive occurence of $\Bad$ in the argument of $\bad$.
 
+Also, the declaration 
 \begin{bsp}
 $\data \Bad : ( + A : \Set ) : \Set $\\
 $\spc \ok : \Bad A$\\
 $\spc \bad : (A \ra \Bad) \ra \Bad A$
 \end{bsp}
-is not allowed because of the negative occurence of $A$ in the argument of $\bad$.
+is not valid because of the negative occurence of $A$ in the argument of $\bad$.
+\subsection{Checking function declarations}
 
-\subsubsection{Function declarations}
-
-\newcommand\checkcl[2]{#1\mbox{ \textbf{checkcl}}#2}
-\newcommand\checkp[5]{(#1)\vdash#2\mbox{ \textbf{checkp} }#3\Rightarrow (#4),#5}
-\newcommand\checkps[5]{(#1)\vdash#2\mbox{ \textbf{checkps} }#3\Rightarrow (#4),#5}
-\newcommand\checkinacc[2]{(#1)\vdash\mbox{ \textbf{checkinaccs} }#2}
-\newcommand\inst[5]{#1,#2\vdash#3\mbox{ \textbf{inst} }#4\Rightarrow #5}
-\newcommand\instlist[5]{#1,#2\vdash#3\mbox{ \textbf{instList} }#4\Rightarrow #5}
+\newcommand\checkcl[2]{#1\:\mathbf{checkcl}\:#2}
+\newcommand\checkp[5]{(#1)\vdash#2\:\mathbf{Pat}\:#3\Rightarrow (#4),#5}
+\newcommand\checkps[5]{(#1)\vdash#2\:\mathbf{Pats}\:#3\Rightarrow (#4),#5}
+\newcommand\checkinacc[4]{(#1)\vdash#2\:\mathbf{checkinacc}\:#3 : #4}
+\newcommand\inst[5]{#1,#2\vdash#3\:\mathbf{inst}\:#4\Rightarrow #5}
+\newcommand\instlist[5]{#1,#2\vdash#3\:\mathbf{inst_{list}}\:#4\Rightarrow #5}
 
 
 \paragraph*{Overview}
-We need to check every clause $\ff \vec{p} e$ of a function against the delcared type.
-For each clause, we have to check the patterns $\vec{p}$ and then the right hand side $e$.
-When checking the patterns, we first skip the inacessible patterns, 
-replacing them with \emph{flexible} generic values.
-These variables get instantiated to concrete values when matching
-the indices of a constructor pattern.
-After we are done with the accesible patterns, 
-we then check that the inacessible patterns written down 
-by the user was correct.
+We need to check each clause $\ff \vec{p} e$ of a function separatly against the declared type.
+So for each clause, we have to check the patterns $\vec{p}$ and then the right hand side $e$.
+Checking the patterns $\vec{p}$ will yield an environment for the free variables in $e$.
+
+Because of the inacessible patterns, checking $\vec{p}$ will need two phases.
+In the first phase, we will skip checking of inacessible patterns.
+They will be represented by fresh \emph{flexible} generic values.
+These flexible generic values will be \emph{instanitated} to concrete values when matching against the constructor patterns.
+Then in thee second phase, it is verified that the expressions of the inacessible patterns are equal to those instantiated in the first phase.
 \newcommand{\subst}[2]{#1\{#2\}}
-\newcommand{\substClos}[2]{#1\{#2\}}
 \newcommand{\substEnv}[2]{#1\{#2\}}
-\newcommand{\compS}[2]{\mathrm{compS}#1\;#2}
+\newcommand{\compS}[2]{\mathrm{comp}\:#1\:#2}
+\newcommand\ptv[2]{#1\Searrow#2}
+\newcommand\ptvx{\mathrm{p2v}}
+\newcommand\pstvs{\mathrm{p_{s}2v_{s}}}
 
+Instantiation by matching will yield a substitution:
 
-\newcommand\ptc{\mathrm{p2c}}
-\newcommand\inaccenv{\mathrm{inaccEnv}}
-\newcommand\pte{\mathrm{p2e}}
-\newcommand\pstes{\mathrm{ps2es}}
+\paragraph*{Substitutions}
+A substitution is a list $\sigma : \ves{(\cN \times \Val)} $ and denotes a partial mapping of generic values to values.
+$\diamond$ is the empty substitution.
+$\sigma[k \rightarrow v] $ is the substitution where $k$ is mapped to $v$ and others according to $\sigma$ .
 
+\paragraph*{Application of a substitution}
+Now we define simultaneously the application of a substitution on values and environments.
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\subst{\_}{\_} : \ves{(\cN \times \Val)} \times \Val \ra \Val} \\
+\subst{\sigma}{k} & = v \mbox{ if } (k,v) \in \sigma \\
+\subst{\sigma}{v v_1 \ldots v_n} & = \subst{\sigma}{v} \subst{\sigma}{v_1} \ldots \subst{\sigma}{v_n}\\
+\subst{\sigma}{\vpi \: x \: v_a \: \cl{b}{\rho}} & = \vpi \: x \: \subst{\sigma}{a_v} \: \cl{b}{\subst{\sigma}{\rho}} \\
+\subst{\sigma}{\vlam \: x \: \cl{b}{\rho}} & = \vlam \: x \: \cl{b}{\subst{\sigma}{\rho}} \\
+\subst{\sigma}{v} & = v \mbox{ othewise }
+\vs\\
+\multicolumn{2}{l}{\substEnv{\_}{\_} : \ves{(\cN \times \Val)} \times \Env \ra \Val} \\
+\substEnv{\sigma}{\diamond} & = \diamond \\
+\substEnv{\sigma}{(x,v)\rho} & = (x,\subst{\sigma}{v}) \substEnv{\sigma}{\rho} \\
+\end{array}
+\]
+
+Now we define composition $\compS{\sigma_1}{\sigma_2}$ of two substitutions $\sigma_1$ and $\sigma_2$.
+It is assumed that the domains of the substituions are disjunct and that there are no occurences of the generic variables of $\sigma_1$ in the values of the codomain of $\sigma_2$.  
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\compS : \ves{(\cN \times \Val)} \times \ves{(\cN \times \Val)} \ra \ves{(\cN \times \Val)}} \\
+\compS{((k_1,v_1)\ldots(k_n,v_n))}{\sigma_2} & = ((k_1,\subst{\sigma_2}{v_1})\ldots(k_n,\subst{\sigma_2}{v_n})\: \sigma_2) 
+\end{array}
+\]
+
+The main part of checking a clause is checking a pattern:
+\[
+\checkp{(k,\xi,\sigma,\rho_1,\rho_2)}{p}{v}{k',\xi',\sigma',\rho'_1,\rho'_2}{v'}
+\]
+
+where
+\begin{itemize}
+\item
+$k$ for a next fresh generic variable
+\item
+$\rho_1$ and $\rho_2$ environments proving for $x$ a value and its type.
+\item
+$\xi \subseteq (\cN \times (\Expr \times \Val)$ a list of flexible generic values, along with the inaccesible expressions and its supposed type
+\item
+$\sigma$ an substitution for the flexible generic variables
+\item
+$p$ : the pattern to check
+\item
+$v$ : the type of the function that still needs to checked against.
+\item
+$(k',\xi',\sigma',\rho'_1,\rho'_2){v'}$ are the updated versions of the above return by $\mathbf{checkp}$.
+\end{itemize}
+
+We will simulatanosuly define checking a pattern and a list of patterns.
+When checking a constructor $\cc \: \vec{p}$ against its declared type $v$,
+we will infer the type of $\cc \: \vec{p}$ by matching $\vec{p}$ against the type of $c$,
+yielding a type $v'$. With $inst$ we will match $v$ and $v'$, yielding a substitution for some flexible variables.
+
+\paragraph*{Converting Pattern to value}
+During type checking of the patterns, we need to convert patterns to values because the type can depend on them.
+Both pattern variables and inaccesible patterns are converted to ascending fresh generic variables.
+\[
+\begin{array}{ll}
+
+\multicolumn{2}{l}{\ptv{\_}{\_}: \cN \times \Pat \ra \Val}\\
+\ptv{k}{p} & = v \mbox{ where } \ptvx k \: p = (v,k')
+\vs\\ 
+\multicolumn{2}{l}{\ptvx : \cN \times \Pat \ra (\Val,\cN)}\\
+\ptvx \: k \:x & = (k,k+1) \\
+\ptvx \: k \: (\cc \: \diamond) & = (\cc,k) \\
+\ptvx \: k \: (\cc \: \vec{p}) & = (\cc \: \vec{v},k') \mbox{ where } (\vec{e},k') = \pstvs \: k \: \vec{p}\\
+\ptvx \: k \: (\s p) & = (\s v,k') \mbox{ where } (v,k') = \ptvx \: k \: p\\
+\ptvx \: k \: \inacc{e} & = (k,k+1) 
+\vs\\
+\multicolumn{2}{l}{\pstvs : \cN \times \ves{\Pat} \ra (\ves{\Val},\cN)}\\
+\pstvs \: k \: \diamond & = (\diamond,k) \\
+\pstvs \: k \: (p \: \vec{p}) & = (k'', v \: \vec{v}) \mbox{ where } \\
+& \spcx (v,k') = \ptvx \: k \: p \\
+& \spcx (\vec{v},k'') = \pstvs \: k' \: \vec{p}  
+\end{array}
+\]
 
 \paragraph*{Checking functions}
 We here handle the case of a mutual $\fun$ declaration.
-A mutual $\cofun$ block is typechecked just the same, and non-mutual declaration ist just a special case of a mutual declaration.
-To check a mutual declaration
+A mutual $\cofun$ block is typechecked just the same,
+and a single declaration can be seen as special cases of mutual declarations.
+To check the mutual declaration
 \begin{bsp}
 $\mutual$\\
 $\spcx \fun f_1 : t_1 $\\
@@ -1010,302 +1012,174 @@ the following steps are performed:
 for every $i \in \{1 \ldots n \} $
 \begin{enumerate}
 \item
-$\IsType{0}{\diamond}{\diamond}{t_i}$
+$\IsType{1}{\diamond}{\diamond}{t_i}$
 \item
-$v_i := \wh \cl{t_i}{\diamond}$
+$v_{t_i} := \wh \cl{t_i}{\diamond}$
 \item
-$\Sig := \Sig \cup \{f_i \ra (v_i,\vec{\gamma_n},\bot)\}$
+$\Sig := \Sig \cup \{f_i \mapsto (v_{t_i},\vec{\gamma_n},\bot)\}$
 \end{enumerate}
 We check every declared type. The signature is updated, 
-but only the type can be used as the clauses have yet to be checked. 
+but w do not enable reduction because the clauses have yet to be checked. 
 \item
+for every $i \in \{ 1 \ldots n \} $ and every clause  $ f \vec{p} \: e \: \in \vec{\gamma}_i$:
+\begin{enumerate}
+\item
+$\checkps{1,\diamond,\diamond,\diamond,\diamond}{\vec{p}}{v_{t_i}}{k,\xi,\sigma,\rho_1,\rho_2}{v}$
+\item
+$\checkinacc{k,\sigma,\rho_1,\rho_2}{i}{e}{v}$ for all $(i,(e,v)) \in \xi$ 
+\item 
+$\Check{k}{\rho_1}{\rho_2}{e}{v}$
+\end{enumerate}
+\item
+Now that the clauses are checked, we can update the signature to enable reduction of the defined functions.
 for every $i \in \{ 1 \ldots n \} $
 \begin{enumerate}
 \item
-$\checkcl{t_i}{\gamma}$ for every $ \gamma \ni \vec{\gamma}_i$
-\item
-$\Sig := \Sig \cup \{f_i \ra (v_i,\vec{\gamma_n},\top)\}$
+$\Sig := \Sig \cup \{f_i \mapsto (v_{t_i},\vec{\gamma_i},\top)\}$
 \end{enumerate}
-Now that the clauses are checked, we can update the signature to enable reduction of the defined functions.
 \end{enumerate}
 
-As noted, flexible variables get instantiated by $\insŧ{}{}{}{}{}$ , returning a substitution
-\begin{definition}
-A substitution $\sigma : \ves{(\cN \times \Val)} $ denotes a partial mapping of flexible generic values to values.
-$\diamond$ is the empty substitution.
-$\sigma[k \rightarrow v] $ maps $k$ to $v$ and all other variables according to $\sigma$
-\end{definition}
-
-Now we define simultaneously the application of a substitution on values,closures and environments.
-
-\paragraph*{Substution application}
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\subst{\_}{\_} : \ves{(\cN \times \Val)} \ra \Val \ra \Val} \\
-\subst{\sigma}{k} & = v \mbox{ if } (k,v) \in \sigma \\
-\subst{\sigma}{v cl_1 \ldots cl_n} & = \subst{\sigma}{v} \substClos{\sigma}{c_1} \ldots \substClos{\sigma}{c_n}\\
-\subst{\sigma}{\s v} & = \s \subst{\sigma}{v} \\
-\subst{\sigma}{\vpi x v_a \cl{b}{\rho}} & = \vpi x \subst{\sigma}{a_v} \cl{b}{\subst{\sigma}{\rho}} \\
-\subst{\sigma}{\vlam x \cl{b}{\rho}} & = \vpi x \cl{b}{\subst{\sigma}{\rho}} \\
-\subst{\sigma}{v} & = v \mbox{ othewise }
-\end{array}
-\]
-
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\substClos{\_}{\_} : \ves{(\cN \times \Val)} \ra \Clos \ra \Clos} \\
-\substClos{\sigma}{\cl{e}{\rho}} & = \cl{e}{\substEnv{\sigma}{\rho}} 
-\end{array}
-\]
-
-
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\substEnv{\_}{\_} : \ves{(\cN \times \Val)} \ra \Env \ra \Val} \\
-\substEnv{\sigma}{\diamond} & = \diamond \\
-\substEnv{\sigma}{(x,v)\rho} & = (x,\subst{\sigma}{v}) \substEnv{\sigma}{\rho} \\
-\substEnv{\sigma}{(x,c)\rho} & = (x,\substClos{\sigma}{c}) \substEnv{\sigma}{\rho}
-\end{array}
-\]
-
-Now we define composition of two substitutions $\sigma_1$ and $\sigma_2$.
-It is assumed that the domains of the substituions are disjunct and
-ther are no occurences of the variables of $\sigma_1$ in the values of the codomain of $\sigma_2$.  
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\compS : \ves{(\cN \times \Val)} \ra \ves{(\cN \times \Val)} \ra \ves{(\cN \times \Val)}} \\
-\compS{\sigma_1}{\sigma_2} & =  \sigma'_1 \sigma_2 \mbox{ where } (x,\subst{\sigma_2}{v}) \in \sigma'_1 \mbox{ iff } (x,v) \in \sigma_1 \\
-\end{array}
-\]
-
-
-
-\[
-\checkp{(k,f,\sigma,\rho_1,\rho_2)}{p}{v}{(k',f',\sigma',\rho'_1,\rho'_2,v')}
-\]
-
-\[
-\begin{array}{ll}
-\multicolumn{2}{l}{\ptc : \cN \times \Env \times \ves{\cN} \times \Pat \ra \Clos}\\
-\ptc k \rho f p & = \cl{e}{\rho_2} \mbox{ where } \\
-& (e,k') = \pte k p \\
-& \rho_2 = \inaccenv \rho k f \\
-\multicolumn{2}{l}{\pte : \cN \times \Pat \ra (\Expr,k)}\\
-\pte k x & = (x,k+1) \\
-\pte k (\cc \diamond) & = (\cc,k) \\
-\pte k (\cc \vec{p}) & = (\cc \vec{e},k') \mbox{ where } (\vec{e},k') = \pstes k \vec{p}\\
-\pte k (\s p) & = (\s e,k') \mbox{ where } (e,k') = \pte k p\\
-\pte k \inacc{e} & = (i_k,k+1) \\
-\multicolumn{2}{l}{\inaccenv : \Env \times \cN \times \ves{cN} \ra \Env}\\
-\inaccenv \rho k \diamond & = \rho \\
-\inaccenv \rho k (f \vec{f}) & = \inaccenv \rho k \vec{f} \mbox{ if } f < k  \\
-\inaccenv \rho k (f \vec{f}) & = \ins{(\inaccenv \rho k \vec{k})}{i_f}{f} \mbox { if } f \geq k 
-\end{array}
-\]
-
-\begin{figure}
-\begin{gather*}
-\ndru{}
-{\checkps
-{0,\diamond,\diamond,\diamond,\diamond}
-{\vec{p}}{v_t}{k,f,\sigma,\rho_1,\rho_2}{v_e}}
-{\checkinacc{k,\sigma,\rho_1,\rho_2}{f} 
-\qquad
-\Check{k}{\rho_1}{\rho_2}{e}{v_e}
-}
-{
-\checkcl{v_t}{\ff \vec{p} e}
-}
-\end{gather*}
-\caption{Checking a clause}
-\end{figure}
-
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 % VAR
 \nru{\chkpvar}
 {v_b = \wh \cl{b}{\ins{\rho}{x}{k}}}
 {
 \checkp
-{k,f,\sigma,\rho_1,\rho_2}
+{k,\xi,\sigma,\rho_1,\rho_2}
 {y}
-{\vpi x v_a \cl{b}{\rho}}
-{k+1,f,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
+{\vpi \: x \: v_a \: \cl{b}{\rho}}
+{k+1,\xi,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
 {v_b}}
 % CON
 \\[2ex]
 \nxru{\chkpcon}
-{\Sig{\cc}=v_c \qquad
-\checkps{k,f,\sigma,\rho_1,\rho_2}
+{\Sig \: {\cc}=v_c \qquad
+\checkps{k,\xi,\sigma,\rho_1,\rho_2}
 {\vec{p}}
 {v_c}
-{k',f',\sigma',\rho'_1,rho'_2}
+{k',\xi',\sigma',\rho_1',\rho_2'}
 {v'_c}
 }
-{\inst{k}{f}{v'_c}{v_a}{\sigma_2} \qquad
-\ptc k \rho'_1 f p =  c}
-{\sigma'' = \compS{\sigma'}{\sigma_2} \qquad
+{\inst{k}{\xi}{v'_c}{v_a}{\sigma_2}
+\qquad
+v_p = \ptv{k}{p}    
+\qquad
+\sigma'' = \compS{\sigma'}{\sigma_2}
+}
+{
 \rho''_2 = \substEnv{\sigma''}{\rho'_2} \qquad
-v_b = \subst{\sigma''}{\wh \cl{b}{\ins{\rho}{x}{c}}}
+v_b = \subst{\sigma''}{\wh \cl{b}{\ins{\rho}{x}{v_p}}}
 }
 {\checkp
-{k,f,\sigma,\rho_1,\rho_2}
-{\cc \vec{p}}
-{\vpi x v_a \cl{b}{\rho}}
-{k',f',\sigma'',\rho'_1,\rho''_2}
+{k,\xi,\sigma,\rho_1,\rho_2}
+{\cc \: \vec{p}}
+{\vpi \: x \: v_a \: \cl{b}{\rho}}
+{k',\xi',\sigma'',\rho'_1,\rho''_2}
 {v_b}
 }
-% SUCC
-\\[2ex]
-\ndru{\chkpsucc}
-{
-\checkp{k,f,\sigma,\rho_1,\rho_2}{p}{\wh \clp{\Size \ra \Size}{\diamond}}
-{k',f',\sigma',\rho'_1,\rho'_2}{v'}}
-{
-\EqVal{k'}{\nF}{v_a}{v'} \qquad
-\ptc k \rho'_1 f p = c
-}
-{
-\checkp
-{k,f,\sigma,\rho_1,\rho_2}
-{\s p}
-{\vpi x v_a \cl{b}{\rho}}
-{k',f,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
-{v_b}}
 % DOT
 \\[2ex]
 \nru{\chkpinacc}
-{v_b = \wh \cl{b}{\ins{\rho}{x}{k}}}
+{v_b = \wh \cl{b}{\ins{\rho}{x}{k}} , \xi' = \xi \cup \{ (k,(e,v_a)) \} } 
 {
 \checkp
-{k,f,\sigma,\rho_1,\rho_2}
+{k,\xi,\sigma,\rho_1,\rho_2}
 {\inacc{e}}
-{\vpi x v_a \cl{b}{\rho}}
-{k+1,(k,e)f,\sigma,\rho_1,\rho_2}
+{\vpi \: x \: v_a \: \cl{b}{\rho}}
+{k+1,\xi',\sigma,\rho_1,\rho_2}
 {v_b}}
-\end{gather*}
-\caption{Checking a pattern}
-\end{figure}
-
-\begin{figure}
-\begin{gather*}
+\\[2ex]
 \nru{}
 {}
 {
 \checkps
-{k,f,\sigma,\rho_1\rho_2}
+{k,\xi,\sigma,\rho_1\rho_2}
 {\diamond}
 {v}
-{k,f,\sigma,\rho_1,\rho_2}
+{k,\xi,\sigma,\rho_1,\rho_2}
 {v}}
 \\[2ex]
 \ndru{}
 {\checkp
-{k,f,\sigma,\rho_1,\rho_2}
+{k,\xi,\sigma,\rho_1,\rho_2}
 {p}
 {v}
-{k',f',\sigma',\rho'_1,\rho'_2}
+{k',\xi',\sigma',\rho'_1,\rho'_2}
 {v'}
 }
 {\checkps
-{k',f',\sigma',\rho'_1,\rho'_2}
+{k',\xi',\sigma',\rho'_1,\rho'_2}
 {\vec{p}}
 {v'}
-{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{k'',\xi'',\sigma'',\rho''_1,\rho''_2}
 {v''}
 }
 {
 \checkps
-{k,f,\sigma,\rho_1\rho_2}
-{p \vec{p}}
+{k,\xi,\sigma,\rho_1\rho_2}
+{p \: \vec{p}}
 {v}
-{k'',f'',\sigma'',\rho''_1,\rho''_2}
+{k'',\xi'',\sigma'',\rho''_1,\rho''_2}
 {v''}}
 \end{gather*}
-\caption{Checking multiple patterns}
+\caption{Phase 1 : checking acessible patterns}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
-\nru{}
-{}
-{
-\checkinacc
-{k,\sigma,\rho_1,\rho_2}
-{\diamond}
-}
-\\[2ex]
 \ndru{}
 {
-\Check{k}{\rho_1}{\rho_2}{e}{\subst{\sigma}{t_e}} \qquad (i,v) \in \sigma 
+\Check{k}{\rho_1}{\rho_2}{e}{\subst{\sigma}{v_t}}
 }
 {
-\EqVal{k}{\nF}{\wh \cl{e}{\rho_1}}{v} 
-\qquad
-\checkinacc
-{k,\sigma,\rho_1,\rho_2}
-{\vec{f}}
+(i,v_i) \in \sigma \qquad \EqVal{k}{\nF}{\wh \cl{e}{\rho_1}}{v_i}
 }
 {
 \checkinacc
 {k,\sigma,\rho_1,\rho_2}
-{(i,(e,t_e)) \vec{f}}
+{i}{e}{v_t}
 }
 \end{gather*}
-\caption{Checking inaccesible patterns}
+\caption{Phase 2: Checking inaccesible patterns}
 \end{figure}
 
-
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
-\nru{}
-{}
-{\inst{k}{f}{k'}{v}{(k',v)}}
-%
-\nru{}
-{}
-{\inst{k}{f}{v}{k'}{(k',v)}}
-%
+\nru{\instl}
+{(k',\_) \in \xi}
+{\inst{k}{\xi}{k'}{v}{[k' \mapsto v]}}
+\qquad
+\nru{\instr}
+{(k',\_) \in \xi}
+{\inst{k}{\xi}{v}{k'}{[k' \mapsto v]}}
 \\[2ex]
-\nru{}
-{{\instlist{k}{f}{\wh{c_1} \ldots \wh{c_n}}{\wh{d_1} \ldots \wh{d_n}}{\sigma}}}
-{\inst{k}{f}{\DD c_1 \ldots c_n}{\DD d_1 \ldots d_n}{\sigma}
+\nru{\instc}
+{{\instlist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
+{\inst{k}{\xi}{\cc \: \vec{v}}{\cc \: \vec{w}}{\sigma}
+}
+\qquad
+\nru{\instd}
+{{\instlist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
+{\inst{k}{\xi}{\DD \: \vec{v}}{\DD \: \vec{w}}{\sigma}
 }
 \\[2ex]
-\nru{}
-{{\instlist{k}{f}{\wh{c_1} \ldots \wh{c_n}}{\wh{d_1} \ldots \wh{d_n}}{\sigma}}}
-{\inst{k}{f}{\cc c_1 \ldots c_n}{\cc d_1 \ldots d_n}{\sigma}
-}
-\\[2ex]
-\nru{}
-{\inst{k}{f}{v_1}{v_2}{\sigma}}
-{\inst{k}{f}{\s v_1}{\s v_2}{\sigma}
-}
-\nru{}
-{\inst{k}{f}{v_1}{\infty}{\sigma}}
-{\inst{k}{f}{\s v_1}{\infty}{\sigma}
-}
-\\[2ex]
-\nru{}
+\nru{\inste}
 {\EqVal{k}{N}{v_1}{v_2}}
-{\inst{k}{f}{v_1}{v_2}{\diamond}
+{\inst{k}{\xi}{v_1}{v_2}{\diamond}
 }
+\\[2ex]
 \nru{}
 {}
-{\instlist{k}{f}{\diamond}{\diamond}{\diamond}}
-\\[2ex]
+{\instlist{k}{\xi}{\diamond}{\diamond}{\diamond}}
+\qquad
 \ndru{}
-{\inst{k}{f}{v_1}{w_1}{\sigma}}
-{\instlist{k}{f}{\subst{\sigma}{v_2} \ldots \subst{\sigma}{v_n}}{\subst{\sigma}{w_2} \ldots \subst{\sigma}{w_n}}{\sigma'}}
-{\instlist{k}{f}{v_1 v_2 \ldots v_n}{w_1 w_2 \ldots w_n}{\compS \sigma \sigma'}}
+{\inst{k}{\xi}{v_1}{w_1}{\sigma}}
+{\instlist{k}{\xi}{\subst{\sigma}{v_2} \ldots \subst{\sigma}{v_n}}{\subst{\sigma}{w_2} \ldots \subst{\sigma}{w_n}}{\sigma'}}
+{\instlist{k}{\xi}{v_1 v_2 \ldots v_n}{w_1 w_2 \ldots w_n}{\compS \sigma \sigma'}}
 \end{gather*}
 \caption{Instantiating flexible variables}
 \end{figure}
-
-\section{Pattern matching}
-Dependend pattern matching was introduced by Thierry Coquand in \cite{coquand92pattern}.
-The patterns for all the clauses of a function are assumed to be complete. This means that during runtime
-it is guaranteed that matching always succeeds.
 
 \chapter{Termination Checking with the size-change principle}
 
@@ -1327,10 +1201,10 @@ We write $\alpha_{i,j}$ for the element in the $i$-th row and $j$-th column.
 \[ O := \{ < , \leq , ? \} \]
 \end{definition}
 Axiom1:
-\[ e \; < \; C \; \vec{e_1} \; e \; \vec{e_2} \]
+\[ e \: < \: C \: \vec{e_1} \: e \: \vec{e_2} \]
 \\
 Axiom2:
-\[ f \; \vec{e} \; \leq \; f \] 
+\[ f \: \vec{e} \: \leq \: f \] 
 
 Axiom 2 is needed for higher order data types like $\Ord$.
 
@@ -1375,10 +1249,10 @@ The following definitons are taken from \cite{abelAltenkirch:predStRec}
 An expression of the form $\ff \vec{e}$ is called a call.
 \end{definition}
 
-\newcommand{\mino}{\mathrm{min}\;}
-\newcommand{\maxo}{\mathrm{max}\;}
-\newcommand{\supo}{\mathrm{sup}\;}
-\newcommand{\info}{\mathrm{inf}\;}
+\newcommand{\mino}{\mathrm{min}\:}
+\newcommand{\maxo}{\mathrm{max}\:}
+\newcommand{\supo}{\mathrm{sup}\:}
+\newcommand{\info}{\mathrm{inf}\:}
 
 \begin{definition}[Order minimum]
 \[
@@ -1409,7 +1283,7 @@ An expression of the form $\ff \vec{e}$ is called a call.
 \begin{array}[t]{ll}
 \multicolumn{2}{l}{\supo : \ves{\order} \ra \order}\\ 
 \supo \diamond = ? \\
-\supo (o \vec{o} ) = \maxo o \; (\supo \vec{o}) \\
+\supo (o \vec{o} ) = \maxo o \: (\supo \vec{o}) \\
 \end{array}
 \]
 \end{definition}
@@ -1419,30 +1293,30 @@ An expression of the form $\ff \vec{e}$ is called a call.
 \begin{array}[t]{ll}
 \multicolumn{2}{l}{\info : \ves{\order} \ra \order}\\ 
 \info \diamond = < \\
-\info (o \vec{o} ) = \mino o \; (\info \vec{o}) \\
+\info (o \vec{o} ) = \mino o \: (\info \vec{o}) \\
 \end{array}
 \]
 \end{definition}
 
-\newcommand{\cmp}{\mathrm{cmp}\;}
+\newcommand{\cmp}{\mathrm{cmp}\:}
 \newcommand{\cmpv}{\mathrm{cmpv}}
 \newcommand{\cmps}{\mathrm{cmps}}
 \newcommand{\cmpsv}{\mathrm{cmpsv}}
-\newcommand{\etp}{\mathrm{etp}\;}
+\newcommand{\etp}{\mathrm{etp}\:}
 
 
 \[
 \begin{array}[t]{ll}
 \multicolumn{2}{l}{\cmp : \Expr \times \Pat \ra \order}\\ 
-\cmp e_1 \; \inacc{e_2} & = \cmp e_1 \; p \mbox{ if } \etp e_2 = p \\
-\cmp x \; p & = \cmpv x \;p  \mbox{ where } x \in \cV \\
-\cmp (x \vec{e}) \; p & = \cmpv x \;p  \mbox{ where } x \in \cV \\
-\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
-& \; \mbox { where } m = min\{i,j\}\\ 
-\cmp \cc \; (\cc \diamond) & = \leq \\
-\cmp (\s e_1) \; (\s e_2) & = \cmp e_1 \; e_2 \\
-\cmp (f \vec{e}) \; f & = \leq \mbox{ where } f \in \cV \\
-\cmp e \; p & = ? \mbox{ otherwise}
+\cmp e_1 \: \inacc{e_2} & = \cmp e_1 \: p \mbox{ if } \etp e_2 = p \\
+\cmp x \: p & = \cmpv x \:p  \mbox{ where } x \in \cV \\
+\cmp (x \vec{e}) \: p & = \cmpv x \:p  \mbox{ where } x \in \cV \\
+\cmp (\cc e_1 \ldots e_i) \: (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
+& \: \mbox { where } m = min\{i,j\}\\ 
+\cmp \cc \: (\cc \diamond) & = \leq \\\
+\cmp (\s e_1) \: (\s e_2) & = \cmp e_1 \: e_2 \\
+\cmp (f \vec{e}) \: f & = \leq \mbox{ where } f \in \cV \\
+\cmp e \: p & = ? \mbox{ otherwise}
 \end{array}
 \]
 
@@ -1459,38 +1333,38 @@ An expression of the form $\ff \vec{e}$ is called a call.
 
 \[
 \begin{array}[t]{ll}
-\multicolumn{2}{l}{\cmpv : \cV \ra \Pat \ra \order}\\ 
-\cmpv x \; x & = \leq \\
-\cmpv x \; (\cc p_1 \ldots p_n ) & = < * \; \supo (\cmpv p_1) \ldots (\cmpv p_n) \mbox{ if } \cc \mbox{ is inductive }\\   \\
-\cmpv x \; \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
-\cmpv x \; \s p & = ? \\
-\cmpv x \; (\cc \vec{p}) & = ? \mbox{ where } \cc \mbox{ is coinductive}\\
-\cmpv x \; p & = ? \mbox{ otherwise}
+\multicolumn{2}{l}{\cmpv : \cV \times \Pat \ra \order}\\ 
+\cmpv x \: x & = \leq \\
+\cmpv x \: (\cc p_1 \ldots p_n ) & = < * \: \supo (\cmpv p_1) \ldots (\cmpv p_n) \mbox{ if } \cc \mbox{ is inductive }\\   \\
+\cmpv x \: \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
+\cmpv x \: \s p & = ? \\
+\cmpv x \: (\cc \vec{p}) & = ? \mbox{ where } \cc \mbox{ is coinductive}\\
+\cmpv x \: p & = ? \mbox{ otherwise}
 \end{array}
 \]
 
 \[
 \begin{array}[t]{ll}
-\multicolumn{2}{l}{\cmps : \Expr \ra \Pat \ra \order}\\ 
-\cmps e_1 \; \inacc{e_2} & = \cmp e_1 \; p \mbox{ if } \etp e_2 = p \\
-\cmps x \; p & = \cmpsv x \;p  \mbox{ where } x \in \cV \\
-\cmps (\s e_1) \; (\s e_2) & = \cmps e_1 \; e_2 \\
-\cmps e \; p & = ? \mbox{ otherwise}
+\multicolumn{2}{l}{\cmps : \Expr \times \Pat \ra \order}\\ 
+\cmps e_1 \: \inacc{e_2} & = \cmp e_1 \: p \mbox{ if } \etp e_2 = p \\
+\cmps x \: p & = \cmpsv x \:p  \mbox{ where } x \in \cV \\
+\cmps (\s e_1) \: (\s e_2) & = \cmps e_1 \: e_2 \\
+\cmps e \: p & = ? \mbox{ otherwise}
 \end{array}
 \]
 
 \[
 \begin{array}[t]{ll}
-\multicolumn{2}{l}{\cmpsv : \cV \ra \Pat \ra \order}\\ 
-\cmpsv x \; x & = \leq \\
-\cmpsv x \; \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
-\cmpsv x \; \s p & = < * \; \cmpsv x \; p \\
-\cmpsv x \; p & = ? \mbox{ otherwise}
+\multicolumn{2}{l}{\cmpsv : \cV \times \Pat \ra \order}\\ 
+\cmpsv x \: x & = \leq \\
+\cmpsv x \: \inacc{e} & = \cmpv x p \mbox{ if } \etp e = p \\
+\cmpsv x \: \s p & = < * \: \cmpsv x \: p \\
+\cmpsv x \: p & = ? \mbox{ otherwise}
 \end{array}
 \]
 
 Note that coinductive objects are not well-founded. So we do have $\cmp x (\cc x) = ? $ when $\cc$ is a coinductive construcotor.
-Also we have $\cmp x \; (\s x) = ? $ because the size type is not well-founded.
+Also we have $\cmp x \: (\s x) = ? $ because the size type is not well-founded.
 We will later allow the judgment $x < \s x$ for admissble size arguments.
 
 
@@ -1551,16 +1425,16 @@ Recall the addition function on natural numbers:
 
 \begin{bsp}
 $\fun \add : \Nat \ra \Nat \ra \Nat$\\
-$\spc \add x \; \zero = x $\\
-$\spc \add x \; (\suc y) = \suc (\add x \; y)  $
+$\spc \add x \: \zero = x $\\
+$\spc \add x \: (\suc y) = \suc (\add x \: y)  $
 \end{bsp}
-The single recursive call is $\add x \; y$ in the second clause of $add$.
+The single recursive call is $\add x \: y$ in the second clause of $add$.
 To build the call matrix we need to calculate
 \begin{bsp}
-$\cmp x \; x = \leq $\\
-$\cmp x \; (\suc y) = ? $\\
-$\cmp y \; x = ? $\\
-$\cmp y \; (\suc y) = < $ 
+$\cmp x \: x = \leq $\\
+$\cmp x \: (\suc y) = ? $\\
+$\cmp y \: x = ? $\\
+$\cmp y \: (\suc y) = < $ 
 \end{bsp}
 
 The call set is thus the singleton set with the matrix
@@ -1597,8 +1471,8 @@ As it has a $<$ on the diagonal, the definition for add is terminating.
 Now suppose we switch the arguments in the recursive call:
 \begin{bsp}
 $\fun \add : \Nat \ra \Nat \ra \Nat$\\
-$\spc \add x \; \zero = x $\\
-$\spc \add x \; (\suc y) = \suc (\add y \; x)  $
+$\spc \add x \: \zero = x $\\
+$\spc \add x \: (\suc y) = \suc (\add y \: x)  $
 \end{bsp}
 
 The call set is then 
@@ -1663,17 +1537,17 @@ This is an example of a higher-order data type, because the argument to $\olim$ 
 Now let's define ordinal addition:
 \begin{bsp}
 $\fun \addOrd : \Ord \ra \Ord \ra \Ord$\\
-$\spc \addOrd x \; \ozero = x $\\
-$\spc \addOrd x (\olim f) = \olim ( \lam{y} \addOrd  x \; (f \; y))  $
+$\spc \addOrd x \: \ozero = x $\\
+$\spc \addOrd x (\olim f) = \olim ( \lam{y} \addOrd  x \: (f \: y))  $
 \end{bsp}
-The interesting comparison is $(f \; y)$ against $\olim f$.
-We have  $f \; y \leq f$ (Axiom 2)and $\olim f < f $ (Axiom 1) thus with transitivity $ f\; y < \olim f$.
+The interesting comparison is $(f \: y)$ against $\olim f$.
+We have  $f \: y \leq f$ (Axiom 2)and $\olim f < f $ (Axiom 1) thus with transitivity $ f\: y < \olim f$.
 And indeed we get:
 \begin{bsp}
-$\cmp x \; x = \leq $\\
-$\cmp x \; (\olim f) = ? $\\
-$\cmp (f \; y) \; x = ? $\\
-$\cmp (f \; y) \; (\olim f) = \cmpv f (\olim f) = < * \supo (\cmpv f \; f) = < * \leq = < $ 
+$\cmp x \: x = \leq $\\
+$\cmp x \: (\olim f) = ? $\\
+$\cmp (f \: y) \: x = ? $\\
+$\cmp (f \: y) \: (\olim f) = \cmpv f (\olim f) = < * \supo (\cmpv f \: f) = < * \leq = < $ 
 \end{bsp}
 The corresponding call set is thus shown terminating as in the $\add$ case shown above.
 \section{Extending the Order}
@@ -1681,7 +1555,7 @@ Definition of pair data type.
 But now, the uncurried versions do no longer termination check.
 The reason is that we need to keep the information.
 
-\newcommand{\coll}{\mathrm{collapse}\;}
+\newcommand{\coll}{\mathrm{collapse}\:}
 
 \begin{definition}[Extended Order]
 We define the set $O^{+}$ by   
@@ -1728,18 +1602,18 @@ We extend the $ *, \mino , \maxo $ given in the previous section by the followin
 In the definiton of $\cmp$ we change the clause 
 \[
 \begin{array}[t]{ll}
-\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
-& \; \mbox { where } m = min\{i,j\}\\ 
+\cmp (\cc e_1 \ldots e_i) \: (\cc p_1 \ldots p_j ) & = \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
+& \: \mbox { where } m = min\{i,j\}\\ 
 \end{array}
 \]
 to
 \[
 \begin{array}[t]{ll}
-\cmp (\cc e_1 \ldots e_i) \; (\cc p_1 \ldots p_j ) & = 
+\cmp (\cc e_1 \ldots e_i) \: (\cc p_1 \ldots p_j ) & = 
 \left\{\begin{array}{l} \gamma \mbox{ with } \gamma_{i,j} = \cmp e_i e_j \\
-\; \mbox{ if } i = j \geq 2 \\
+\: \mbox{ if } i = j \geq 2 \\
 \info (\cmp e_1 p_1) \ldots (\cmp e_m p_m)\\
-\; \mbox { where } m = min\{i,j\} \mbox{ otherwise } 
+\: \mbox { where } m = min\{i,j\} \mbox{ otherwise } 
 \end{array}
 \right.
 \end{array}
@@ -1757,7 +1631,7 @@ is also finite because matrices are only getting smaller or a collapsed to a sin
 First, we present a peculiar list reversion algorithm.
 
 The algorithm cannot be verified terminating.
-Note the call $\rev A \; (\revb A \; x \; xs)$.
+Note the call $\rev A \: (\revb A \: x \: xs)$.
 It is not structural recursive.
 We can reason that $\revb$ does not return a bigger list.  
 A termination checker would need the information that revb does not increase the size of the list to ensure termination.
@@ -1770,339 +1644,173 @@ Consider a filter function on Lists. We only know that this function does not in
 we don't know the exact length.
 This is one of the reasons we will introduce a special size type in the next chapter.
 
-\begin{figure}
+\begin{figure}[p]
 $\mutual $  \\
 $ \spc \fun \rev : \EPi{A}{\Set}{\List A \ra  \List A} $ \\
-$ \spc \spc \rev .A \; (\nil A ) = \nil A$\\
-$ \spc \spc \rev .A \; (\cons A \;x  \; xs) = \cons A \; (\reva A \; x \; xs) (\revb A \; x \; xs)$\\
+$ \spc \spc \rev .A \: (\nil A ) = \nil A$\\
+$ \spc \spc \rev .A \: (\cons A \:x  \: xs) = \cons A \: (\reva A \: x \: xs) (\revb A \: x \: xs)$\\
 $\ \spc \fun \reva : \EPi{A }{\Set}{A  \ra \List A \ra A}$\\
-$ \spc \spc \reva .A \; a \; (\nil A ) = a$ \\
-$\spc \spc \reva .A \; a (\cons A \; x \; xs) = \reva A \; x \; xs$\\
+$ \spc \spc \reva .A \: a \: (\nil A ) = a$ \\
+$\spc \spc \reva .A \: a (\cons A \: x \: xs) = \reva A \: x \: xs$\\
 $\spc \fun \revb : \EPi{A}{\Set}{ A \ra \List A \ra \List A} $\\
-$\spc \spc \revb .A \; a \; (\nil A ) = \nil A $\\
-$\spc \spc \revb .A \; a (\cons A\;  x \; xs) = \rev A (\cons A \; a \; (\rev A \; (\revb A \; x \; xs)))$
+$\spc \spc \revb .A \: a \: (\nil A ) = \nil A $\\
+$\spc \spc \revb .A \: a (\cons A\:  x \: xs) = \rev A (\cons A \: a \: (\rev A \: (\revb A \: x \: xs)))$
 
 \caption{reversion on Lists}  
 \end{figure}
-\begin{figure} 
+\begin{figure}[p] 
 $\mutual $ \\
-$\spc \fun \rev : \EPi{n}{\Nat }{\EPi{A}{\Set }{\vVec A \; n \ra \vVec A \; n}}$\\
-$\spc \spc \rev .\zero \; .A  \; (\nil A) = \nil A $\\
-$\spc \spc \rev .(\suc n) .\; A (\cons A \; n \; x \; xs) = $\\
-$\spcx \cons A \; n \; (\reva n \; A \; x \; xs) (\revb n \; A \; x \; xs) $ \\
-$\spc \fun \reva : \EPi{n}{\Nat}\EPi{A}{\Set}{A \ra Vec A \; n \ra A}$\\
-$\spc \spc \reva .\zero  \; .A \; a \; (\nil A) = a $\\
-$\spc \spc \reva .(\suc n) .A \; a \; (\cons A \; n \; x \; xs) = \reva n \; A \; x \; xs $\\
-$\spc \fun \revb : \EPi{n}{\Nat}{\EPi{A}{\Set}{A \ra \vVec A \; n \ra \vVec A \; n}}$\\
-$ \spc \spc \revb .\zero \; .A  \; a \; (\nil A) = \nil A $\\
-$ \spc \spc \revb .(\suc n) \; .A \; a (\cons A \; n \; x \; xs) = $\\
-$ \spcx \rev (\suc n) A (\cons A \; n \; a (\rev \; n A \; (\revb \; n A \; x \; xs))$
+$\spc \fun \rev : \EPi{n}{\Nat }{\EPi{A}{\Set }{\vVec A \: n \ra \vVec A \: n}}$\\
+$\spc \spc \rev .\zero \: .A  \: (\nil A) = \nil A $\\
+$\spc \spc \rev .(\suc n) .\: A (\cons A \: n \: x \: xs) = $\\
+$\spcx \cons A \: n \: (\reva n \: A \: x \: xs) (\revb n \: A \: x \: xs) $ \\
+$\spc \fun \reva : \EPi{n}{\Nat}\EPi{A}{\Set}{A \ra Vec A \: n \ra A}$\\
+$\spc \spc \reva .\zero  \: .A \: a \: (\nil A) = a $\\
+$\spc \spc \reva .(\suc n) .A \: a \: (\cons A \: n \: x \: xs) = \reva n \: A \: x \: xs $\\
+$\spc \fun \revb : \EPi{n}{\Nat}{\EPi{A}{\Set}{A \ra \vVec A \: n \ra \vVec A \: n}}$\\
+$ \spc \spc \revb .\zero \: .A  \: a \: (\nil A) = \nil A $\\
+$ \spc \spc \revb .(\suc n) \: .A \: a (\cons A \: n \: x \: xs) = $\\
+$ \spcx \rev (\suc n) A (\cons A \: n \: a (\rev \: n A \: (\revb \: n A \: x \: xs))$
 \caption{reversion on vectors}  
 \end{figure}  
 
-\chapter{Using the Size Type}
+\chapter{Sized Data Types}
 Traditionally, size annotation have been used in the typing rules.
 We take a different approach.
 Wie add a primitive size type, and then use the current termination checker to see that the size is 
 decreasing.
-\section{Syntax}
 
-Expressions:
-\begin{itemize}
-\item
-size type: $ \Size $ 
-\item
-size succesor: $\s e $ 
-\item
-infinity: $\infty$ 
-\end{itemize}
-Patterns:
-\begin{itemize}
-\item
-size succesor pattern:$ \s p $ 
-\end{itemize}
-Note that we also have variables of type $\Size$.
-As such, expressions of type size form the stage expression of Barthe et. al :  $ i , \s i $ and $ \infty $ .
-\section{Sized types definition}
-We now declare what a sized type is.
-\begin{definition}
-A datatype D is a sized type, if $ \Size \ra A $ is its type
-For every constructor 
-\begin{itemize}
-\item
-it begins with $(i: Size)$
-\item
-the result type is $D \dots (\s i) \dots $
-\item
-every rec. argument is of the form $ D \dots i \dots $
-\end{itemize}
-\end{definition}
-\section{Matching against infinity}
-The equation 
-$[ s \infty = \infty $
-needs to be taken into account when evaluating a function application.
-So whhen the pattern $ s \; x $ is matches against $ \infty $ , $x$ will be bound to $ \infty $  
-\section{Interpretation of the Size type}
-One may see the size type as a coniductive data type - the dual to natural numbers, the conatural numbers.
-\section{Examples}
-\subsection{Sized Lists}
-\begin{bsp}
-$\data \List ( A : \Set ) : \Size \ra \Set $ \\
-$\spc \nil : \EPi{i}{\Size}{ \List A \; (\s i)} $\\
-$\spc \cons : \EPi{i}{\Size}{ A \ra \List A \; i \ra \List A \; (\s i)} $
-\end{bsp}
+\section{Adding a size type}
+\paragraph*{Syntax}
+We expand expressions and patterns:
+\[
+\begin{array}{lrll}
+\Expr \ni e,A,B & ::= & \ldots & \\
+& \mid & \Size & \mbox{size type} \\
+& \mid & \s e  & \mbox{size succesor}\\ 
+& \mid & \infty & \mbox{limit size}\\
+\end{array}
+\]
 
-What is the differnce between vectors and sized lists ?
-The size index is only used for relativ comparisons, its not an exact number, but an upper bound.
-This enables subtyping, and one can compromise by forgetting the exact size ($\infty$).
-For example, splitting a vector of length n, we need to show that there exist j,k such that $j+k = n$.
-With sized type, we don't need to be that exact.
-\subsection{Sized natural numbers}
-\begin{bsp}
-$\data \SNat : \Size \ra \Set $ \\
-$\zero : \EPi{i}{\Size}{ \SNat \; (\s i)} $\\
-$\suc : \EPi{i}{\Size}{ \SNat \; i \ra \SNat \; (\s i)} $
-\end{bsp}
+\paragraph*{Patterns}
+\[
+\begin{array}{lrll}
+\Pat \ni p & ::= & \ldots & \\
+& \mid & \s p & \mbox{size succesor pattern}\\
+\end{array}
+\]
 
-\subsection{Great common divisor}
 
-\subsection{Quicksort}
-\begin{bsp}
-$\data \ProdT ( + A : \Set) : \Set$\\
-$\spc  \prd : A \ra A \ra \ProdT A$\\
-$\fun \pra : ( A : \Set ) \ra \ProdT A\; \ra A$\\
-$\spc \pra \inacc{A}\; (\prd A\; a b) = a$\\
-$\fun \prb : ( A : \Set ) \ra \ProdT A\; \ra A$\\
-$\spc \prb \inacc{A}\; (\prod A\; a b) = b$\\
-$\fun \ite : (A : \Set ) \ra \Bool \ra A \ra A \ra A$\\
-$\spc \ite A\; \tt x\; y\; = x$\\
-$\spc \ite A\; \ff x\; y\; = y$\\
-%%
-$\fun \pivot : (i : \Size ) \ra (A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
-$\spcx	\ra A \ra \List A\; i\; \ra \ProdT (\List A\; i)$\\
-$\spc\pivot \inacc{\s i}\;     \inacc{A}\; \lleq a\; (\nil A\; i) = \prd (\List A\; (\s i))\;(\nil A\; i)\;(\nil A\; i)$\\
-$\spc \pivot \inacc{\s i}\;    \inacc{A}\; \lleq a\; (\cons A\; i x\; xs) =$\\ 
-$\spcx     \ite (\ProdT (\List A\; (\s i)))\; (\lleq a\; x)$\\ 
-$\spcx    (\prd (\List A\; (\s i))$\\
-$\spcx \spc       (\pra (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)) $\\
-$\spcx \spc	(\cons A\; i\; x\; (\prb (\List A\; i) \; (\pivot i\; A\; \lleq a\; xs))))$\\ 
-$\spcx     (\prd (\List A\; (\s i))$\\
-$\spcx	\spc (\cons A\; i\; x\; (\pra (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)))$\\
-$\spcx  \spc (\prb (\List A\; i)\; (\pivot i\; A\; \lleq a\; xs)))$\\
-%%
-$ \fun \qsapp : (i : \Size ) \ra ( A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
-$\spcx	\ra \List A\; i \ra \List A\; \infty \ra \List A\; \infty$\\
-$\spc \qsapp \inacc{\s i}\; \inacc{A}\; \lleq (\nil A\; i) \;      ys = ys;$\\
-$\spc \qsapp \inacc{\s i}\; \inacc{A}\; \lleq (\cons A\; i\; x\; xs) \; ys = \qsapp i\; A\; \lleq$\\ 
-%%
-$\spcx	(\pra (\List A\; i) (\pivot i\; A\; \lleq x\; xs))$\\
-%%    	
-$\spcx	(\cons A\; \infty \; x\; $\\
-$\spcx	\spc   (\qsapp i\; A\; \lleq (\prb (\List A\; i) \; (\pivot i\; A\; \lleq x\; xs))\; ys))$\\
-%%
-$\fun \quicksort : (i : \Size ) \ra (A : \Set ) \ra (\lleq : A \ra A \ra \Bool)$\\ 
-$\spcx	\ra \List A\; i \ra \List A\; \infty$\\
-$\spc \quicksort i\; A\; \lleq l = \qsapp i\; A\; \lleq l (\nil A\; \infty)$ 
-\end{bsp}
+As $\Size$ is a type, in particular we also have variables and patterns of type $\Size$.
+Thus, we can form expressions of type $\Size$ in the style of Barthe.
 
-\subsection{A higher order function}
-While somewhat artifical, the following example is interesting for two reasons:
-\begin{bsp}
-$\fun \addWith : ((k : \Size ) \ra \SNat k \ra \SNat k ) \ra (i : \Size ) \ra (j : \Size ) $\\
-$\spcx \spcx \ra  \SNat i \ra \SNat j \ra \SNat \infty $\\
-$\spc \addWith f \; \inacc{\s i} \; j \; (\zero i) \; y = y $ \\
-$\spc \addWith f \; \inacc{\s i} \; j \; (\suc i \; x) \; y = \suc \infty \; (\addWith f \; j \; i \; y \; (f \; i \; x))$
-\end{bsp}
-$\addWith$ resembles the permutating size add function we've discussed in the previous chapter.
-But it has one additional parameter that is declared to be a size-preserving function.
-This is one strength of sized types: Any function of type  $ ((k : \Size ) \ra \SNat k \ra \SNat k $ can now
-be passed along to $\addWith$.
-The second reason is that the size arguments are permutating. 
-So this is really one example that plays to the strength of our system: both the size type and the size change principle are needed.
-\subsection{Sized ordinal numbers}
-Note that sized types are quite powerful. 
-We can show the termination of ordinal addition with a decreasing size argument.
-First, sized Brouwer Ordinals:
-\begin{bsp}
-$\data \Ord : \Set$ \\
-$\spc \ozero : \Ord $\\
-$\spc \olim : (\Nat \ra \Ord ) \ra \Ord $
-\end{bsp}
-Now we don't kneed Axiom 2 of the structual ordering to see that addition is terminating:
-\begin{bsp}
-$\fun \addOrd : \Ord \infty \ra \EPi{i}{\Size}{\Ord i \ra \Ord \infty }$\\
-$\spc \addOrd x\; \inacc{\s i}\; (\ozero i) = \ozero i $\\
-$\spc \addOrd x\; \inacc{\s i}\; (\olim f)  = \olim \infty ( \lam{y} \addOrd  x \; i \; (f \; y))  $
-\end{bsp}
+\paragraph*{Semantics}
 
-\section{Admissibility}
-\subsection{Motivation}
-The use of sizes needs to be constraint.
-Consider for example the function definition
+Values also are expanded
+\[
+\begin{array}{lrll}
+\Val \ni v & ::= & \ldots & \\
+& \mid & \Size & \mbox{size type value}\\
+& \mid & \s v & \mbox{size succesor}\\
+& \mid & \infty & \mbox{size limit}\\
+\end{array}
+\]
 
-\begin{bsp}
-$\fun \bad : \EPi{i}{\Size}{\Nat}$\\
-$\spc \bad (\s i) = \bad i $ 
-\end{bsp}
-The termination checker will hapilly tell you that $\bad$ is terminating.
-The issue here is that the size argument is not really bound to any sized data type.
-But there are more subtile difficulties with using the size type.
-The type of the function $\lop$
-\begin{bsp}
-$\EPi{i}{\Size}{\SNat i \ra \Maybe (\SNat (\s i)) \ra (Nat \ra \Maybe (\SNat i))} $ 
-\end{bsp}
-needs to be rejected by an admissibility checker.
-\begin{figure}
-$\data \Maybe (A : \Set ) : \Set$\\
-$\spc  \nothing : \Maybe A$\\
-$\spc  \just : A \ra\Maybe A$\\
-$\const \Nat : \Set = \SNat \infty$\\
-$\fun \shiftcase : (i : \Size) \ra\Maybe (\SNat (\s i)) \ra\Maybe (\SNat i)$\\
-$\spc \shiftcase i (\nothing .(\SNat (\s i))) = \nothing (\SNat i)$\\
-$\spc \shiftcase .i (\just .(\SNat (\s i)) (\zero i)) = \nothing (\SNat i)$\\
-$\spc \shiftcase .i (\just .(\SNat (\s i)) (\suc i x)) = \just (\SNat i) x$\\
-$\const \shift : (i : \Size) \ra(\Nat \ra\Maybe (\SNat (\s i))) \ra\Nat \ra\Maybe (\SNat i) =$\\ 
-$\spcx \lam{i}{\lam{f}{\lam{n}{\shiftcase i (f (\suc \infty n))}}}$\\
-$\const \inc : \Nat \ra\Maybe \Nat = \lam{n}{\just \Nat (\suc \infty n)}$\\
-$\mutual$\\
-$\spc \fun \lop : (i : \Size ) \ra\SNat i \ra(\Nat \ra\Maybe (\SNat i)) \ra\Bool$\\
-$\spc \spc \lop .(\s i) (\zero i) f = \lopcase (\s i) (\zero i) f (f (\zero i))$\\
-$\spc \spc \lop .(\s i) (\suc i n) f = \lop i n (\shift i f)$\\
-$\spc \fun \lopcase : (i : \Size ) \ra\SNat i \ra(\Nat \ra\Maybe (\SNat i)) \ra\Maybe (\SNat i) \ra\Bool$\\
-$\spc \spc \lopcase i       x f (\nothing .(\SNat i)) = \tt$\\
-$\spc \spc \lopcase .(\s i)  x f (\just .(\SNat (\s i))  (\zero i)) = \tt$\\
-$\spc \spc \lopcase .(\s i)  x f (\just .(\SNat (\s i)) (\suc i y)) = \lop i y (\shift i f) $\\
-$\const diverge : Unit = \lop \infty\; (\zero \infty) \; \inc$\\
-\caption{Loop example}
-\label{loop}
-\end{figure}
+\paragraph*{Evaluation}
 
-Otherwise, the non terminating term diverge can be constructed.
+\[
+\begin{array}{ll}
+\wh \cl{\Size}{\rho} & = \Size \\
+\wh \cl{\infty}{\rho} & = \infty  \\
+\wh \clp{\s e}{\rho} & = \sinfty \: v \mbox{ where } \: v = \wh \cl{e}{\rho} \\ 
+\end{array}
+\]
 
-\subsection{Admissibility criterion}
-Gimenez and Barthe deal with monotonicity criterions.
-Abel and Pareto have worked on criterions based on continuity.
+\paragraph*{Size succesor}
+We should take into account that $\infty$ is the limit size, i.e the equation $\s \infty = \infty$:
+\[
+\begin{array}[t]{ll}
+\multicolumn{2}{l}{\sinfty : \Val \ra \Val}\\ 
+\sinfty \: \infty & = \infty\\
+\sinfty \:  v & = \s v  \mbox{ otherwise}\\ 
+\end{array}
+\]
 
-\newcommand{\mon}[3]{#1\vdash#2\mbox{ \textbf{mon} }#3}
-\newcommand{\anti}[3]{#1\vdash#2\mbox{ \textbf{anti} }#3}
-\newcommand{\indu}[3]{#1\vdash#2\mbox{ \textbf{ind} }#3}
-\newcommand{\coind}[3]{#1\vdash#2\mbox{ \textbf{coind} }#3}
-\newcommand{\admIndSize}[3]{#1\vdash#2\mbox{ \textbf{admIndSize} }#3}
-\newcommand{\admCoSize}[3]{#1\vdash#2\mbox{ \textbf{admCoSize} }#3}
-\newcommand{\admArg}[3]{#1\vdash#2\mbox{ \textbf{admArg} }#3}
-\newcommand{\admIndRes}[3]{#1\vdash#2\mbox{ \textbf{admIndRes} }#3}
-\newcommand{\admCoRes}[3]{#1\vdash#2\mbox{ \textbf{admCoRes} }#3}
+\paragraph*{Pattern matching}
+\[
+\begin{array}{ll}
+\matchf \: \rho \: (\s p) \: \infty & = \match \: \rho \: p \: \infty \\
+\matchf \: \rho \: (\s p) \: (\s v) & = \match \: \rho \: p \: v \\
+\end{array}
+\]
 
-\begin{figure}
+\paragraph*{Type Checking}
+
+Substitution needs on additional clause:
+
+\[
+\begin{array}{ll}
+\subst{\sigma}{\s v} & = \sinfty \subst{\sigma}{v} \\
+\end{array}
+\]
+
+All aditional typing rules are shown in figure \cite{str}.
+\begin{figure}[p]
 \begin{gather*}
-\nru{}
-{\LeqVal{k}{\nF}{v}{\subst{(i,\s i)}{v}}}
-{\mon{k}{v}{i}}
+\nru{}{}{\IsType{k}{\rho_1}{\rho_2}{\Size}}
 \qquad
-\nru{}
-{\LeqVal{k}{\nF}{\subst{(i,\s i)}{v}}{v}}
-{\anti{k}{v}{i}}
+%% Succ
+\nru{\chksucc}
+{\Check{k}{\rho_1}{\rho_2}{e}{\Size}}
+{\Check{k}{\rho_1}{\rho_2}{\s e}{\Size}} 
+%% Infty
 \\[2ex]
-\ndru{}
-{\DD \mbox{ sized inductive type}}
-{\EqVal{k}{N}{\wh s_i}{i}}
-{\indu{k}{\DD p_1 \ldots p_n s_i v_1 \ldots v_m}{i}}
-\qquad
-\ndru{}
-{\DD \mbox{ sized coinductive type}}
-{\EqVal{k}{N}{\wh s_i}{i}}
-{\coind{k}{\DD p_1 \ldots p_n s_i v_1 \ldots v_m}{i}}
+\nru{\infinfty}{}{\Infer{k}{\rho_1}{\rho_2}{\infty}{\Size}} 
+%% Succ
+\\[2ex]
+\nru{\eqsuc}
+{\EqVal{f}{k}{v_1}{v_2}}
+{\FeqVal{f}{k}{\s v_1}{\s v_2}}
+% SUCC
 \\[2ex]
 \nru{}
-{\anti{k}{v}{i} \; \mbox{ or } \indu{k}{v}{i}}
-{\admArg{k}{v}{i}}
+{\nocc{k}{a}{v}}
+{\nocc{k}{a}{\s v}}
+\qquad
+\nru{}
+{\spos{k}{i}{v}}
+{\spos{k}{i}{\s v}}
+\\[2ex]
+\ndru{\chkpsucc}
+{
+\checkp{k,f,\sigma,\rho_1,\rho_2}{p}{\Size \ra \Size}
+{k',f',\sigma',\rho'_1,\rho'_2}{v'}}
+{
+\EqVal{k'}{\nF}{v_a}{v'} \qquad
+\ptv{k}{p} = v
+}
+{
+\checkp
+{k,f,\sigma,\rho_1,\rho_2}
+{\s p}
+{\vpi x v_a \cl{b}{\rho}}
+{k',f,\sigma,\ins{\rho_1}{y}{k},\ins{\rho_2}{y}{v_a}}
+{\wh \cl{b}{\ins{\rho}{x}{v}}}}
 \\[2ex]
 \nru{}
-{\mon{k}{v}{i} \; \mbox{ or } \coind{k}{v}{i}}
-{\admIndRes{k}{v}{i}}
-\qquad
-\nru{}
-{\coind{k}{v}{i}}
-{\admCoRes{k}{v}{i}}
+{\inst{k}{f}{v_1}{v_2}{\sigma}}
+{\inst{k}{f}{\s v_1}{\s v_2}{\sigma}
+}
 \\[2ex]
 \nru{}
-{\admArg{k}{v_a}{i} 
-\qquad
-{\admIndSize{k+1}{\wh \cl{b}{\ins (x,k) \rho}}{i}}}
-{\admIndSize{k}{\vpi x v_a \cl{b}{\rho}}{i}}
-\qquad
-\nru{}
-{\admIndRes{k}{v}{i}}
-{\admIndSize{k}{v}{i}}
-\\[2ex]
-\nru{}
-{\admArg{k}{v_a}{i} 
-\qquad
-{\admCoSize{k+1}{\wh \cl{b}{\ins (x,k) \rho}}{i}}}
-{\admCoSize{k}{\vpi x v_a \cl{b}{\rho}}{i}}
-\qquad
-\nru{}
-{\admCoRes{k}{v}{i}}
-{\admCoSize{k}{v}{i}}
+{\inst{k}{f}{v_1}{\infty}{\sigma}}
+{\inst{k}{f}{\s v_1}{\infty}{\sigma}
+}
 \end{gather*}
-\caption{Admissiblity}
+\label{str}
+\caption{Additional typing rules for size}
 \end{figure}
 
-\begin{definition}
-A Type $A$ is \emph{inductive in i} if it is of the form $ \DD \vec{p} \; i \: \vec{v} $ and $\DD$ is a sized inductive type
-\end{definition}
-\begin{definition}
-A type $A$ is \emph{monotone in i} if $ \DLeqVal{A}{A[i \ra \s i ]}$ 
-\end{definition}
-\begin{definition}
-A type $A$ is \emph{antitone in i} if $ \DLeqVal{A[i \ra \s i ]}{A}$ 
-\end{definition}
-Note that if a type is inductive in $i$, it is also monotone in $i$. 
-Now we give a criterion for when a $\fun$ declaration is admissible.
-\begin{definition}
-A recursive function with type $ A_1 \ra \dots A_n \ra R $ is admissible, if
-for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ the following holds 
-\begin{itemize}
-\item
-every argument $A_k$ is antitone or inductive in $i$
-\item
-the result $R$ is monotone in $i$  
-\item
-at least one argument $A_k$ is inductive in $i$
-\end{itemize}
-\end{definition}
-We note that for the rejected example(Figure \ref{loop}) the argument \[\Maybe (\SNat (\s i)\] is not antitone in $i$, which rrenders the functions $\lop$ (and both $ \shiftcase$ and $\lopcase$) non-admissible.
-
-\subsection{Size Pattern completness}
-It is necessary to check that the clauses of a definition cover all possible cases.
-This is quite complicated for inductive families and will not be described here.
-But a special case is pattern completeness for the built-in $\Size$ type.
-As we have seen, without this check we would accept non-terminating function definitions.
-This is like the \emph{bottom-check} in the work of Pareto and Sabry.
-The issue is: does the pattern \[ (\s i) \] cover all possible cases ? 
-
-\subsection{Examples}
-We first give an example to show why we limit the form of what a sized type is.
-Had we definied the sized natural numbers this way:
-\begin{bsp}
-$\data \BadNat ( A : \Set ) : \Size \ra \Set $ \\
-$\spc \zero : \EPi{i}{\Size}{ \BadNat A \; i} $\\
-$\spc \suc : \EPi{i}{\Size}{\BadNat i \ra \BadNat \; (\s i)} $
-\end{bsp}
-If the systemn accepted this as a sized type, then the following function would be seen terminating and admissible, while obviously looping on $\zero$.
-\begin{bsp}
-$\fun \foo : \EPi{i}{\Size}{\BadNat i \ra \Empty}$\\
-$\spc \foo \inacc{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$\\
-$\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i \; x$
-\end{bsp}
-In our system, the $\BadNat$ type above is not a sized type, so the function $\foo$ is not admissible because $\BadNat i$ is not inductive in $i$.\\
-For the same reason, the following function definition is also not admissible:
-\begin{bsp}
-$\fun \foo : \EPi{i}{\Size}{\SNat (\s i) \ra \Empty}$\\
-$\spc \foo \inacc{(\s i)} \; (\zero (\s i) = \foo i \; (\zero i)$\\
-$\spc \foo \inacc{(\s i)}\; (\suc i x) = \foo i x; l$
-\end{bsp}
-While $\SNat$ is a sized type, $\SNat (\s i)$ is not inductive in $i$.
 \section{Subtyping for size}
 It would be quite nice to have subtyping on sized data types.
 As we are only interested in size arguments getting smaller, 
@@ -2110,16 +1818,16 @@ In one call to the function, the size might decrease by one, in another clause, 
 It is enough for termination to decrease by one.
 For inductive sized types like $\List$ we want for every size $i$
 \begin{bsp}
-$\List A\; i$ is a subtype of $\List A \; (\s i)$
+$\List A\: i$ is a subtype of $\List A \: \s i$
 \end{bsp}
 and
 \begin{bsp}
-$\List A\; i$ is a subtype of $\List A \; \infty$.
+$\List A\: i$ is a subtype of $\List A \: \infty$.
 \end{bsp}
 because for inductive types the size is an upper bound for its height.
 For coinductive sized types like $\Stream$ we want for every size $i$
 \begin{bsp}
-$\Stream (\s i) $ is a subtype of $\Stream i$
+$\Stream \s i $ is a subtype of $\Stream i$
 \end{bsp}
 and
 \begin{bsp}
@@ -2127,8 +1835,8 @@ $\Stream \infty$ is a subtype of $\Stream i$.
 \end{bsp}
 because for coinductive types the size is a lower bound for its definedness.
 There is natural order on size expressions.
-We define a substage relation on size values:
-\[\SzLeq{v_1}{v_2} \subseteq Val \times Val \]
+We define a relation on size values:
+\[\SzLeq{v_1}{v_2} \subseteq \Val \times \Val \]
 Now we the subtype relation similar to the equality relation by two simulatemous judgements:
 \[\LeqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times \Val \times \Val \]
 \[\FleqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times\Val \times \Val \]
@@ -2142,8 +1850,12 @@ $\leqappco$: subtyping for sized coinductive type
 $\leqappd$: subtyping for other data types
 \item
 $\leqpi$: subtyping for function space. 
+The domain of the function space is antitone, thus we switch around
+the values to be checked. In accordance, we switch $f$.
+We define $\overline{\rF}=\lF$,  $\overline{\lF}=\rF$ ,  $\overline{\nF}=\nF$.
+ 
 \end{itemize}
-\begin{figure}
+\begin{figure}[p]
 \begin{gather*}
 \nru{\sleqinfty}
 {}
@@ -2168,14 +1880,14 @@ $\leqpi$: subtyping for function space.
 \begin{gather*}
 %% Force L
 \nru{\leqlf}
-{\forc \; v_1 = u_1 \qquad \forc \; v_2 = \stuck 
+{\forc \: v_1 = u_1 \qquad \forc \: v_2 = \stuck 
 \qquad
 f \neq \rF \qquad \FleqVal{\lF}{k}{u_1}{v_2}}
 { \LeqVal{f}{k}{v_1}{v_2}}
 %% Force R
 \\[2ex]
 \nru{\leqrf}
-{\forc \; v_1 = \stuck \qquad \forc \; v_2 = u_2 
+{\forc \: v_1 = \stuck \qquad \forc \: v_2 = u_2 
 \qquad
 f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 { \LeqVal{f}{k}{v_1}{v_2}}
@@ -2185,59 +1897,35 @@ f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 {\FleqVal{f}{k}{v_1}{v_2}}
 { \LeqVal{f}{k}{v_1}{v_2}}
 \qquad
-%% Set
-\nru{\leqset}
-{}
-{\FleqVal{f}{k}{\Set}{\Set}}
-%% Size
-\\[2ex]
-\nru{\leqsize}
-{}
-{\FleqVal{f}{k}{\Size}{\Size}}
-%% Infty
-\qquad
-\nru{\leqinfty}
-{}
-{\FleqVal{f}{k}{\infty}{\infty}}
-%% Succ
-\\[2ex]
-\nru{\leqsuc}
-{\LeqVal{f}{k}{v_1}{v_2}}
-{\FleqVal{f}{k}{\s v_1}{\s v_2}}
-\qquad
-%% Gen
-\nru{\leqgen}
-{}
-{\FleqVal{f}{k}{k'}{k'}}
 \\[2ex]
 %% Ind Data
 \ndru{\leqappind}
-{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j} 
+\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j} 
 }
-{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
+{\forall k \in \{1,..m\}: \EqVal{f}{k}{v_k}{w_k}
 \qquad
 \SzLeq s t }
-{\FleqVal{f}{k}{\DD p_1 \ldots p_n s v_1 \ldots v_m}{\DD q_1 \ldots q_n t w_1 \ldots w_m}}
+{\FleqVal{f}{k}{\DD \: p_1 \ldots p_n \: s \: v_1 \ldots v_m}{\DD \: q_1 \ldots q_n \: t \: w_1 \ldots w_m}}
 %% Co Data
 \\[2ex]
 \ndru{\leqappco}
-{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j}}
+\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
 {\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
 \qquad
 \SzLeq t s }
-{\FleqVal{f}{k}{\DD p_1 \ldots p_n s v_1 \ldots v_m}{\DD q_1 \ldots q_n s w_1 \ldots w_m}}
+{\FleqVal{f}{k}{\DD \: p_1 \ldots p_n \: s \: v_1 \ldots v_m}{\DD \: q_1 \ldots q_n \: t \: w_1 \ldots w_m}}
 %% Data
 \\[2ex]
 \ndru{\leqappd}
-{\forall i \in Pos: \LeqVal{f}{k}{p_i}{q_i} 
+{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin Pos : \EqVal{f}{k}{p_j}{q_j}}
+\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
 {\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}}
-{\FleqVal{f}{k}{\DD p_1 \ldots p_n v_1 \ldots v_m}{\DD q_1 \ldots q_n w_1 \ldots w_m}}
+{\FleqVal{f}{k}{\DD \: p_1 \ldots p_n v_1 \ldots v_m}{\DD \: q_1 \ldots q_n w_1 \ldots w_m}}
 %%App
 \\[2ex]
 \nru{\leqapp}
@@ -2247,25 +1935,24 @@ f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 %% Pi
 \\[2ex]
 \nru{\leqpi}
-{\LeqVal{f}{k}{a_2}{a_1}
+{\LeqVal{\overline{f}}{k}{a_2}{a_1}
 \qquad
-\LeqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FleqVal{f}{k}{\vpi \; x_1 \; a_1 \; \cl{b_1}{\rho_1}}{\vpi \; x_2 \; a_2 \; \cl{b_2}{\rho_2}}}
+\LeqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh \cl{b_2}{\ins{\rho_2}{x_2}{k}}}}
+{\FleqVal{f}{k}{\vpi \: x_1 \: a_1 \: \cl{b_1}{\rho_1}}{\vpi \: x_2 \: a_2 \: \cl{b_2}{\rho_2}}}
 %% Lam
 \\[2ex]
 \nru{\leqlam}
-{\LeqVal{f}{k+1}{\wh b_1 (\ins \; \rho_1 \; (x_1,k))}{\wh b_2 (\ins \; \rho_2 \; (x_2,k))}}
-{\FleqVal{f}{k}{\vlam \; x_1 \; \cl{b_1}{\rho_1}}{\vlam \; x_2 \; (\cl{b_2}{\rho_2}}}
-%% Def
+{\LeqVal{f}{k+1}{\wh \cl{b_1}{\ins{\rho_1}{x_1}{k}}}{\wh{b_2}{\ins{\rho_2}{x_2}{k}}}}
+{\FleqVal{f}{k}{\vlam \: x_1 \: \cl{b_1}{\rho_1}}{\vlam \: x_2 \: \cl{b_2}{\rho_2}}}
 \\[2ex]
-\nru{\leqdef}
-{}
-{\FleqVal{f}{k}{\ff}{\ff}}
-%% Con
+\nru{\leqsuc}
+{\LeqVal{f}{k}{v_1}{v_2}}
+{\FleqVal{f}{k}{\s v_1}{\s v_2}}
+%% Atom
 \qquad
-\nru{\leqcon}
+\nru{\leqatom}
 {}
-{\FleqVal{f}{k}{\cc}{\cc}}
+{\FleqVal{f}{k}{a}{a}}
 \end{gather*}
 \caption{subtype checking}
 \end{figure}
@@ -2274,13 +1961,359 @@ f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
 We note that one could possible live without subtyping in our system.
 For example 
 \begin{bsp}
-$\fun \wkSNat : (i : \Size ) \ra \SNat i \ra \SNat (\s i)$\\
-$\spc \wkSNat \inacc{\s i} \; (\zero i) = \zero (\s i)$\\
-$\spc \wkSNat \inacc{\s i} \; (\suc i \; x) = \suc (\s i) \; (\wkSNat i \; x) $
+$\fun \wkSNat : (i : \Size ) \ra \SNat i \ra \SNat \s i$\\
+$\spc \wkSNat \inacc{\s i} \: (\zero i) = \zero \s i$\\
+$\spc \wkSNat \inacc{\s i} \: (\suc i \: x) = \suc \s i \: (\wkSNat i \: x) $
 \end{bsp}
 could be used as a manual type casting function, altough it is not very efficient at run-time.
-\chapter{Adding coinductive types}
 
+\section{Sized data type declarations}
+
+\newcommand{\sizecon}[4]{#1\vdash#2\mbox{ \textbf{sizeCon} }#3\:#4}
+\newcommand{\sizeuse}[4]{#1\vdash#2\mbox{ \textbf{sizeUse} }#3\:#4}
+
+We now declare what a sized type is.
+
+A sized (co)data declaration need to be of the following scheme:
+\begin{bsp}
+$\sized \data \DD ( \{+\} p_1 : P_1) \ldots ( \{+\} p_n : P_n) : \Size \ra \Gamma \ra \Set $\\
+$\spc \ldots$\\
+$\spc \cc : (i : \Size) \ra \Delta \ra \DD p_1 \ldots p_n \s i t_2 \ldots t_m$\\
+$\spc \ldots$\\   
+\end{bsp}
+For normal data declarations, sizes are not allowed in the indices $\Gamma$ because $\Size$ is not a small type.
+
+In addition, we will check that every recursive argument in $\Delta$ has the form $\DD \ldots i \ldots $, and $i$ does not appear anywhere else.The size $i$ thus denotes the height of an object of the type when viewed as a tree. Every constructor adds to this height.
+
+\paragraph*{Typechecking sized data declaration}
+
+To check that the sized data declaration
+\[\begin{array}{l}
+\data \DD ( p_1 : P_1) \ldots ( p_n : P_n) : \Size \ra A \\
+\spcx \vec{\gamma}
+\end{array}
+\]
+is valid, the following steps are performed: 
+\begin{enumerate}
+\item
+$\DataType{1}{\diamond}{\diamond}{n+1}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra \Size \ra A}$
+\item
+$v_D := \wh \clp{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra \Size \ra A}{\diamond}$
+\item
+$\Sig := \Sig \cup \{\DD \ra v_D\}$
+\item
+for every constructor declaration $\cc : B  \in \vec{\gamma}$:
+\begin{enumerate} 
+\item
+$\ConType{1}{\diamond}{\diamond}{n+1}{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}$
+\item
+$v_C := \wh \clp{(p_1 : P_1) \ra \ldots (p_n : P_n) \ra B}{\diamond}$
+\item
+$\sposc{1}{v_C}{i}$ for every $i \in \pos(\DD) $ 
+\item
+$\sposc{1}{v_C}{\DD}$
+\item
+$\sizecon{1}{v_c}{i}{\DD}$
+\item
+$\Sig := \Sig \cup \{\cc \ra v_C\}$
+\end{enumerate}
+\end{enumerate}
+
+\begin{figure}[p]
+\begin{gather*}
+\ndru{}
+{\nocc{k}{p_j}{i} \mbox { for all } j \in \{ 1 \ldots n\}}
+{\nocc{k}{t_k}{i} \mbox { for all } k \in \{ 1 \ldots m\}}
+{\sizeuse{k}{\DD \: p_1 \ldots p_m \: i \: t_2 \ldots t_m}{i}{\DD}}
+\\[2ex]
+\ndru{}
+{\sizeuse{k}{v}{i}{\DD}}
+{\sizeuse{k}{v_1}{i}{\DD} \mbox { for all } k \in \{ 1 \ldots n\}}
+{\sizeuse{k}{v \: v_1 \ldots v_n}{i}{\DD}}
+\\[2ex]
+\nru{}
+{\sizeuse{k}{v}{i}{\DD}}
+{\sizeuse{k}{\s v}{i}{\DD}}
+\qquad
+\ndru{}
+{\sizeuse{k}{v_a}{i}{\DD}}
+{\sizeuse{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{i}{\DD}}
+{\sizeuse{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}{i}{\DD}}
+\\[2ex]
+\nru{}
+{\sizeuse{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{i}{\DD}}
+{\sizeuse{k}{\vlam \: x \: \cl{b}{\rho}}{i}{\DD}}
+\qquad
+\nru{}
+{v \neq i}
+{\sizeuse{k}{v}{i}{\DD}}
+\\[2ex]
+\nxru{}
+{\sizeuse{k}{v_a}{i}{\DD} \mbox{ if } k > i}
+{v_a = \Size \mbox { if } k = i }
+{\sizecon{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{\DD}}
+{\sizecon{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}{i}{\DD}}
+\qquad
+\nru{}
+{}
+{\sizecon{k}{\DD \:p_1 \ldots p_n \: \s i \:t_2 \ldots t_m}{i}{\DD}}
+\end{gather*}
+\caption{constructor size check}
+\end{figure}
+
+\section{Examples}
+\subsection{Sized Lists}
+\begin{bsp}
+$\data \List ( A : \Set ) : \Size \ra \Set $ \\
+$\spc \nil : \EPi{i}{\Size}{ \List A \: \s i} $\\
+$\spc \cons : \EPi{i}{\Size}{ A \ra \List A \: i \ra \List A \: \s i} $
+\end{bsp}
+
+What is the differnce between vectors and sized lists ?
+The size index is only used for relativ comparisons, its not an exact number, but an upper bound.
+This enables subtyping, and one can compromise by forgetting the exact size ($\infty$).
+For example, splitting a vector of length n, we need to show that there exist j,k such that $j+k = n$.
+With sized type, we don't need to be that exact.
+\subsection{Sized natural numbers}
+\begin{bsp}
+$\data \SNat : \Size \ra \Set $ \\
+$\zero : \EPi{i}{\Size}{ \SNat \: \s i} $\\
+$\suc : \EPi{i}{\Size}{ \SNat \: i \ra \SNat \: \s i} $
+\end{bsp}
+
+\subsection{Great common divisor}
+
+\subsection{Quicksort}
+\begin{bsp}
+$\data \ProdT ( + A : \Set) : \Set$\\
+$\spc  \prd : A \ra A \ra \ProdT A$\\
+$\fun \pra : ( A : \Set ) \ra \ProdT A\: \ra A$\\
+$\spc \pra \inacc{A}\: (\prd A\: a b) = a$\\
+$\fun \prb : ( A : \Set ) \ra \ProdT A\: \ra A$\\
+$\spc \prb \inacc{A}\: (\prod A\: a b) = b$\\
+$\fun \ite : (A : \Set ) \ra \Bool \ra A \ra A \ra A$\\
+$\spc \ite A\: \tt x\: y\: = x$\\
+$\spc \ite A\: \ff x\: y\: = y$\\
+%%
+$\fun \pivot : (i : \Size ) \ra (A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
+$\spcx	\ra A \ra \List A\: i\: \ra \ProdT (\List A\: i)$\\
+$\spc\pivot \inacc{\s i}\:     \inacc{A}\: \lleq a\: (\nil A\: i) = \prd (\List A\: \s i)\:(\nil A\: i)\:(\nil A\: i)$\\
+$\spc \pivot \inacc{\s i}\:    \inacc{A}\: \lleq a\: (\cons A\: i x\: xs) =$\\ 
+$\spcx     \ite (\ProdT (\List A\: \s i))\: (\lleq a\: x)$\\ 
+$\spcx    (\prd (\List A\: \s i)$\\
+$\spcx \spc       (\pra (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)) $\\
+$\spcx \spc	(\cons A\: i\: x\: (\prb (\List A\: i) \: (\pivot i\: A\: \lleq a\: xs))))$\\ 
+$\spcx     (\prd (\List A\: \s i)$\\
+$\spcx	\spc (\cons A\: i\: x\: (\pra (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)))$\\
+$\spcx  \spc (\prb (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)))$\\
+%%
+$ \fun \qsapp : (i : \Size ) \ra ( A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
+$\spcx	\ra \List A\: i \ra \List A\: \infty \ra \List A\: \infty$\\
+$\spc \qsapp \inacc{\s i}\: \inacc{A}\: \lleq (\nil A\: i) \:      ys = ys;$\\
+$\spc \qsapp \inacc{\s i}\: \inacc{A}\: \lleq (\cons A\: i\: x\: xs) \: ys = \qsapp i\: A\: \lleq$\\ 
+%%
+$\spcx	(\pra (\List A\: i) (\pivot i\: A\: \lleq x\: xs))$\\
+%%    	
+$\spcx	(\cons A\: \infty \: x\: $\\
+$\spcx	\spc   (\qsapp i\: A\: \lleq (\prb (\List A\: i) \: (\pivot i\: A\: \lleq x\: xs))\: ys))$\\
+%%
+$\fun \quicksort : (i : \Size ) \ra (A : \Set ) \ra (\lleq : A \ra A \ra \Bool)$\\ 
+$\spcx	\ra \List A\: i \ra \List A\: \infty$\\
+$\spc \quicksort i\: A\: \lleq l = \qsapp i\: A\: \lleq l (\nil A\: \infty)$ 
+\end{bsp}
+
+\subsection{A higher order function}
+While somewhat artifical, the following example is interesting for two reasons:
+\begin{bsp}
+$\fun \addWith : ((k : \Size ) \ra \SNat k \ra \SNat k ) \ra (i : \Size ) \ra (j : \Size ) $\\
+$\spcx \spcx \ra  \SNat i \ra \SNat j \ra \SNat \infty $\\
+$\spc \addWith f \: \inacc{\s i} \: j \: (\zero i) \: y = y $ \\
+$\spc \addWith f \: \inacc{\s i} \: j \: (\suc i \: x) \: y = \suc \infty \: (\addWith f \: j \: i \: y \: (f \: i \: x))$
+\end{bsp}
+$\addWith$ resembles the permutating size add function we've discussed in the previous chapter.
+But it has one additional parameter that is declared to be a size-preserving function.
+This is one strength of sized types: Any function of type  $ ((k : \Size ) \ra \SNat k \ra \SNat k $ can now
+be passed along to $\addWith$.
+The second reason is that the size arguments are permutating. 
+So this is really one example that plays to the strength of our system: both the size type and the size change principle are needed.
+\subsection{Sized ordinal numbers}
+Note that sized types are quite powerful. 
+We can show the termination of ordinal addition with a decreasing size argument.
+First, sized Brouwer Ordinals:
+\begin{bsp}
+$\data \Ord : \Set$ \\
+$\spc \ozero : \Ord $\\
+$\spc \olim : (\Nat \ra \Ord ) \ra \Ord $
+\end{bsp}
+Now we don't kneed Axiom 2 of the structual ordering to see that addition is terminating:
+\begin{bsp}
+$\fun \addOrd : \Ord \infty \ra \EPi{i}{\Size}{\Ord i \ra \Ord \infty }$\\
+$\spc \addOrd x\: \inacc{\s i}\: (\ozero i) = \ozero i $\\
+$\spc \addOrd x\: \inacc{\s i}\: (\olim f)  = \olim \infty ( \lam{y} \addOrd  x \: i \: (f \: y))  $
+\end{bsp}
+
+\section{Admissibility}
+\subsection{Motivation}
+The use of sizes needs to be constraint.
+Consider for example the function definition
+
+\begin{bsp}
+$\fun \bad : \EPi{i}{\Size}{\Nat}$\\
+$\spc \bad \s i = \bad i $ 
+\end{bsp}
+The termination checker will hapilly tell you that $\bad$ is terminating.
+The issue here is that the size argument is not really bound to any sized data type.
+But there are more subtile difficulties with using the size type.
+The type of the function $\lop$
+\begin{bsp}
+$\EPi{i}{\Size}{\SNat i \ra \Maybe (\SNat \s i) \ra (Nat \ra \Maybe (\SNat i))} $ 
+\end{bsp}
+needs to be rejected by an admissibility checker.
+\begin{figure}[p]
+$\data \Maybe ( + A : \Set ) : \Set$\\
+$\spc  \nothing : \Maybe A$\\
+$\spc  \just : A \ra\Maybe A$\\
+
+$\const \Nat : \Set = \SNat \infty$\\
+
+$\fun \shiftcase : (i : \Size) \ra\Maybe (\SNat \s i) \ra\Maybe (\SNat i)$\\
+$\spc \shiftcase i \: (\nothing \inacc{\SNat \s i}) = \nothing (\SNat i)$\\
+$\spc \shiftcase \inacc{i} \: (\just \inacc{\SNat \s i} \: (\zero i)) = \nothing (\SNat i)$\\
+$\spc \shiftcase \inacc{i} \: (\just \inacc{\SNat \s i} \: (\suc i \: x)) = \just (\SNat i) \: x$\\
+
+$\const \shift : (i : \Size) \ra(\Nat \ra \Maybe (\SNat \s i)) $\\
+$\spcx \spcx \ra\Nat \ra \Maybe (\SNat i) $\\ 
+$\spc = \lam{i}{\lam{f}{\lam{n}{\shiftcase i \: (f \: (\suc \infty \: n))}}}$\\
+
+$\const \inc : \Nat \ra \Maybe \Nat = \lam{n}{\just \Nat \: (\suc \infty n)}$\\
+
+$\mutual$\\
+$\spc \fun \lop : (i : \Size ) \ra \SNat i $\\
+$\spcx \spcx \ra (\Nat \ra\Maybe (\SNat i)) \ra\Bool$\\
+$\spc \spc \lop \inacc{\s i} \: (\zero i) f = \lopcase \s i \: (\zero i) \: f \: (f \: (\zero i))$\\
+$\spc \spc \lop \inacc{\s i} \: (\suc i \: n) f = \lop i \: n (\shift i \: f)$\\
+
+$\spc \fun \lopcase : (i : \Size ) \ra (\Nat \ra \Maybe (\SNat i)) $\\
+$\spcx \spcx \ra \Maybe (\SNat i) \ra\Bool$\\
+$\spc \spc \lopcase i \: f \: (\nothing \inacc{\SNat i}) = \ttt $\\
+$\spc \spc \lopcase \inacc{\s i} \: f \: (\just \inacc{\SNat \s i} \: (\zero i)) = \ttt $\\
+$\spc \spc \lopcase \inacc{\s i} \: f \: (\just \inacc{\SNat \s i} \: (\suc i \: y)) = \lop i \: y \: (\shift i \:f) $\\
+
+$\const \diverge : \Bool = \lop \infty\: (\zero \infty) \: \inc$\\
+\caption{Loop example}
+\label{loop}
+\end{figure}
+
+Otherwise, the non terminating term diverge can be constructed.
+
+\subsection{Admissibility criterion}
+Gimenez and Barthe deal with monotonicity criterions.
+Abel and Pareto have worked on criterions based on continuity.
+
+\newcommand{\mon}[3]{#1\vdash#2\mbox{ \textbf{mon} }#3}
+\newcommand{\indu}[3]{#1\vdash#2\mbox{ \textbf{ind} }#3}
+\newcommand{\coind}[3]{#1\vdash#2\mbox{ \textbf{coind} }#3}
+\newcommand{\admIndSize}[3]{#1\vdash#2\mbox{ \textbf{admIndSize} }#3}
+\newcommand{\admCoSize}[3]{#1\vdash#2\mbox{ \textbf{admCoSize} }#3}
+\newcommand{\admIndType}[2]{#1\vdash#2\mbox{ \textbf{admIndType}}}
+\newcommand{\admCoType}[2]{#1\vdash#2\mbox{ \textbf{admCoType}}}
+
+\section{Admissible inductive function declaration}
+
+\begin{figure}[p]
+\begin{gather*}
+\nru{}
+{\LeqVal{k}{\nF}{v}{\subst{(i,\s i)}{v}}}
+{\mon{k}{v}{i}}
+\qquad
+\nru{}
+{\DD \mbox{ sized data}}
+{\indu{k}{\DD p_1 \ldots p_n \: i \: v_1 \ldots v_m}{i}}
+\\[2ex]
+\ndru{}
+{\indu{k}{v_a}{i} \quad \mbox{or} \quad \nocc{k}{v_a}{i}}
+{\admIndSize{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{i}}
+{\admIndSize{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}{i}}
+\nru{}
+{}
+{\admIndSize{k}{v}{i}}
+\\[2ex]
+\ndru{}
+{\admIndSize{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{k} \mbox{ if } v_a = \Size}
+{\admIndType{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\admIndType{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}}
+\qquad
+\nru{}
+{}
+{\admIndType{k}{v}}
+\end{gather*}
+\caption{Admissibility for inductive function type}
+\end{figure}
+
+We note that for the rejected example the argument \[\Maybe (\SNat \s i\] is not antitone in $i$, which rrenders the functions $\lop$ (and both $ \shiftcase$ and $\lopcase$) non-admissible.
+
+\subsubsection{Size Pattern check}
+It is necessary to check that the clauses of a definition cover all possible cases.
+This is quite complicated for inductive families and will not be described here.
+But a special case is pattern completeness for the built-in $\Size$ type.
+As we have seen, without this check we would accept non-terminating function definitions.
+This is like the \emph{bottom-check} in the work of Pareto and Sabry.
+The issue is: does the pattern \[ \s i \] cover all possible cases ? 
+
+\subsubsection{Admissible coinductive declaration}
+
+\begin{figure}[p]
+\begin{gather*}
+\nru{}
+{\DD \mbox{ sized codata}}
+{\coind{k}{\DD p_1 \ldots p_n \: i \: v_1 \ldots v_m}{i}}
+\\[2ex]
+\nru{}
+{\nocc{k}{v_a}{i}
+\quad
+\admCoSize{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{i}}
+{\admCoSize{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}{i}}
+\quad
+\nru{}
+{}
+{\admCoSize{k}{v}{i}}
+\\[2ex]
+\ndru{}
+{\admCoSize{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}{k} \mbox{ if } v_a = \Size}
+{\admCoType{k+1}{\wh \cl{b}{\ins{\rho}{x}{k}}}}
+{\admCoType{k}{\vpi \: x \: v_a \: \cl{b}{\rho}}}
+\qquad
+\nru{}
+{}
+{\admCoType{k}{v}}
+\end{gather*}
+\caption{Admissibility for coinductive function type}
+\end{figure}
+
+\subsection{Examples}
+We first give an example to show why we limit the form of what a sized type is.
+Had we definied the sized natural numbers this way:
+\begin{bsp}
+$\data \BadNat ( A : \Set ) : \Size \ra \Set $ \\
+$\spc \zero : \EPi{i}{\Size}{ \BadNat A \: i} $\\
+$\spc \suc : \EPi{i}{\Size}{\BadNat i \ra \BadNat \: \s i} $
+\end{bsp}
+If the systemn accepted this as a sized type, then the following function would be seen terminating and admissible, while obviously looping on $\zero$.
+\begin{bsp}
+$\fun \foo : \EPi{i}{\Size}{\BadNat i \ra \Empty}$\\
+$\spc \foo \inacc{\s i} \: (\zero \s i = \foo i \: (\zero i)$\\
+$\spc \foo \inacc{\s i}\: (\suc i x) = \foo i \: x$
+\end{bsp}
+In our system, the $\BadNat$ type above is not a sized type, so the function $\foo$ is not admissible because $\BadNat i$ is not inductive in $i$.\\
+For the same reason, the following function definition is also not admissible:
+\begin{bsp}
+$\fun \foo : \EPi{i}{\Size}{\SNat \s i \ra \Empty}$\\
+$\spc \foo \inacc{\s i} \: (\zero \s i = \foo i \: (\zero i)$\\
+$\spc \foo \inacc{\s i}\: (\suc i x) = \foo i x; l$
+\end{bsp}
+While $\SNat$ is a sized type, $\SNat \s i$ is not inductive in $i$.
+
+\section{Productive coinductive definitons}
 Coinductive types allow the introduction of (possibly) infinite objects in type theory.
 The analogon to list are colists. This type includes all finite and infinite lists.
 The list of all natural numbers is an example of an infinite colist.
@@ -2290,22 +2323,6 @@ Functions that define corecursive objects are corecustive functions.
 This is possible for \emph{productive} coinductive definitions.
 There are syntactic criteria for checking productivity of coinductive definitons.
 But in the following, we will use the size type introduced earlier to prove termination.
-
-\begin{itemize}
-\item
-coinductive datatype:
-\[\codata \; \DD \; \tau : t \; \vec{\gamma}\]  
-
-\item
-coinductive function:
-\[\cofun \; \ff \; : \; t \; \vec{\kappa}\]
-\end{itemize}
-
-\section{Syntax}
-
-\section{Lazy values}
-Unrolling of corecursive functions needs to be restricted.
-Force is used in specific places.
 
 \section{Examples}
 
@@ -2333,17 +2350,18 @@ A syntactic criterion for productivity of coinductive definitions is the guardne
 Every (co)recursive call must be guarded by a constructor.
 In the above example , the call to $\zeroes$ is guarded by $\cons$
 But we want to use sized types for productivity checking.
+
 \subsection{Sized Streams}
 Let us now explain how sized types , in comnbination with the current terminatin criterion, can be used for showing productivity.
 First we introduce the sized coinductive type 
 \begin{bsp}
 $\codata \Stream : \Size \ra \Set $ \\
-$\spc \cons : \EPi{i}{\Size}{\Nat \ra \Stream i \; \ra \Stream (\s i) } $
+$\spc \cons : \EPi{i}{\Size}{\Nat \ra \Stream i \: \ra \Stream \s i } $
 \end{bsp}
 For the productive stream $\zeroes$, we turn it into
 \begin{bsp}
 $\cofun \zeroes: \EPi{i}{Size}{\Stream i} $ \\
-$\spc \zeroes (\s i) = \cons i \zero (\zeroes i)$\\
+$\spc \zeroes \s i = \cons i \zero (\zeroes i)$\\
 \end{bsp}
 The termination checker sees that the recursive call happens on a smaller size.
 For the unproductive stream, we have two bad choices:
@@ -2356,47 +2374,44 @@ is type correct, but the call is not on a smaller size.
 The second option is
 \begin{bsp}
 $\cofun \unp : \EPi{i}{\Size}{\Stream i}$ \\
-$\spc \unp (\s i) = \unp i $
+$\spc \unp \s i = \unp i $
 \end{bsp}
-is accepted by the termination checker, but thankfully is not type correct.
+is accepted by the termination checker, but is not type correct.
+
+Now,for a productive stream, we can look at the first element of a stream with $\head$, or remove the first element of a stream with $\tail$:
+\begin{bsp}
+$\fun \head : \Stream \infty \ra \Nat$\\
+$\spc \head \: (\cons \: \inacc{\infty} \: x \: xs) = x$
+\vs\\
+$\fun \tail :  \Stream \infty \ra \Stream \infty $
+$\spc \tail \: (\cons \: \inacc{\infty} \: x \: xs) = xs$\\
+\end{bsp}
+We can now define the $n$th element of a Stream, starting with zero:
+\begin{bsp}
+$\fun \nth : \Nat \ra \Stream \infty \ra \Nat$\\
+$\nth \zero xs = \head \infty xs$\\
+$\nth (\suc n) \: xs = \nth n (\tail \infty xs)$\\
+\end{bsp}
 \subsection{Fibonacci stream}
 
-Helper functions head, tail:
+One standard example is to define the stream of fibonacci numbers:
 \begin{bsp}
-$\fun \tail : \EPi{i}{\Size}\Stream (\s i) \ra \Stream i$\\
-$\spc \tail \; .i \; (\cons A \; i \; n \; ns) = ns$\\
-$\fun \head : \EPi{i}{\Size}\Stream (\s i) \ra \Nat$\\
-$\spc \head \; .i \; (\cons A \; i \; n \; ns) = n$
-\end{bsp}
-We can now define looking up the nth element of a Stream.
-\begin{bsp}
-$\fun nth : \Nat \ra \Stream \infty \ra \Nat$\\
-$\nth \zero ns = \head \infty ns$\\
-$\nth (\suc n) \; ns = nth n (\tail \infty ns)$\\
-\end{bsp}
-Then, we introduce the helper function $\zipWith$:
-\begin{bsp}
-$\cofun \zipWith : (\Nat \ra \Nat ) \ra \EPi{i}{\Size}{\Stream i \ra \Stream i \ra \Stream i}$ \\
-$\spc \zipWith f \; (\s i) \; as bs = \cons i \; (f \; a \; b) (\zipWith f \; i \; (\tail i \; as) (\tail i \; bs)$
-\end{bsp}
-Finally we can define the stream of all fibonacci streams:
-\begin{bsp}
-$\cofun \fib : \EPi{i}{\Size}\Stream i$\\
-$\spc \fib (\s \s i) = \cons (\s i) \; \zero (\cons i \; (\suc \zero)$\\
-$\spcx (\zipWith \add \; i \; (\fib i) \; (\tail i (\fib (\s i)))))$
+$\cofun \fibs : \Nat \ra \Nat \ra \EPi{i}{\Size}{\Stream i}$\\
+$\spc  \fibs x \: y \: \s i = \cons i \: x \: (\fibs y \: (\add x \: y) \: i)$\\
+
+$\const \fib : \Stream \infty = \fibs (\suc \zero) \: (\suc zero) \: \infty$
 \end{bsp}
 and get the fourth fibonacci number by:
 \begin{bsp}
-$\const \fibf : \Nat = \nth (\suc (\suc (\suc (\suc \zero )))) \; (\fib \infty)$
+$\const \fibf : \Nat = \nth (\suc (\suc (\suc (\suc \zero )))) \: (\fib \infty)$
 \end{bsp}
 \subsection{Stream processors}
-
 \begin{bsp}
 $\data \ispd (+ K : \Set ) : \Set$\\
 $\spc\putd : \Nat \ra K \ra \ispd K$\\
 $\spc \getd : (\Nat \ra \ispd K) \ra \ispd K$\\ 
 $\codata \spd : \Size \ra \Set$\\
-$\spc \isp : (i : \Size ) \ra \ispd (\spd i) \ra \spd (\s i)$\\
+$\spc \isp : (i : \Size ) \ra \ispd (\spd i) \ra \spd \s i$\\
 \end{bsp}
 Note that this is not a mutual definition, and that $\isp$ is sized type
 
@@ -2404,29 +2419,29 @@ We can now define $\eat$ for the execution of a stream processor.
 \begin{bsp}
 $\mutual $\\
 $\spc \cofun \eat : (i : \Size ) \ra \spd i \ra \Stream \infty \ra \Stream i$ \\
-$\spc \spc \eat \inacc{\s i} \; (\isp i \; sp) \; as = \ieat i \; sp \; as $ \\
+$\spc \spc \eat \inacc{\s i} \: (\isp i \: sp) \: as = \ieat i \: sp \: as $ \\
 $\spc \fun \ieat : (i : \Size ) \ra \ispd (\spd i) \ra \Stream \infty \ra \Stream ($ i$)$\\
-$\spc \spc \ieat i\; (\getd \inacc{\spd i} \; f) \; (\cons \inacc{\infty} \; a \; as) = \ieat i \; (f a) \; as$\\
-$\spc \spc \ieat i\; (\putd \inacc{\spd i} \; b \; sp) \; as  = \cons i \; b \; (\eat i \; sp \; as) $\\
+$\spc \spc \ieat i\: (\getd \inacc{\spd i} \: f) \: (\cons \inacc{\infty} \: a \: as) = \ieat i \: (f a) \: as$\\
+$\spc \spc \ieat i\: (\putd \inacc{\spd i} \: b \: sp) \: as  = \cons i \: b \: (\eat i \: sp \: as) $\\
 \end{bsp}
 $\ieat$ is structurally recursive on the $\ispd$ argument.
 $\eat$ is shown productive because the size argument is admissible.
-\subsection{Stream equality}
+\subsection{Equality on streams}
 The following is a valid definition:
 \begin{bsp}
 $\const \eqo : \Eq (\Stream \infty) (\zeroes \infty) (\cons \infty \zero (zeroes \infty))$\\
 $\spc = \refl (\Stream \infty) (zeroes \infty)$
 \end{bsp}
-The infered type of $\refl (\Stream \infty) \; (\zeroes \infty)$ is 
-\[\Eq (\Stream \infty) \; (\zeroes \infty) \; (\zeroes \infty)\]
+The infered type of $\refl (\Stream \infty) \: (\zeroes \infty)$ is 
+\[\Eq (\Stream \infty) \: (\zeroes \infty) \: (\zeroes \infty)\]
 The type checker has to unroll $(\zeroes \infty)$ once to see that the type is equal to 
 \[
-\Eq (\Stream \infty) \; (\zeroes \infty) \; (\cons \infty \; \zero (\zeroes \infty)
+\Eq (\Stream \infty) \: (\zeroes \infty) \: (\cons \infty \: \zero (\zeroes \infty)
 \]
 Now let's define another stream
 \begin{bsp}
 $\cofun \zeroest: \EPi{i}{Size}{\Stream i} $ \\
-$\spc \zeroest (\s \s i) = \cons (\s i) \zero (\cons i \zero (\zeroest i))$\\
+$\spc \zeroest (\s \s i) = \cons \s i \zero (\cons i \zero (\zeroest i))$\\
 \end{bsp}
 We cannot prove \[\Eq (\Stream \infty) (\zeroes \infty)) (\zeroest \infty)\]
 because the type checker can't unroll both $\zeroes \infty)$ and $\zeroest \infty$ as
@@ -2435,153 +2450,16 @@ But we can define coinductive equality  on streams \cite{coquand-infinite}
 \begin{bsp}
 $\codata \beqd : \Size \ra \Stream \infty \ra \Stream \infty \ra \Set$\\
 $ \spcx \beq : (i : \Size ) \ra ( n : \Nat ) \ra (s_1 : \Stream \infty ) \ra (s_2 : \Stream \infty )$\\
-$ \spcx \spc  \ra \beqd i \; s_1 \; s_2 \ra \beqd (\cons n \; s_1) \; (\cons n \; s_2)$
+$ \spcx \spc  \ra \beqd i \: s_1 \: s_2 \ra \beqd (\cons n \: s_1) \: (\cons n \: s_2)$
 \end{bsp}
-Note that $\beqd$ is a sized coinductive type.
+Note that $\beqd$ is a sized coinductive predicate.
 and now the following is a valid infinite proof:
 \begin{bsp}
 $\cofun \eqt : (i : \Size ) -> \beqd i (\zeroes \infty) (\zeroest \infty)$\\
 $\spc \eqt (\s \s i) = $\\
-$\spc \spcx \beq (\s i) \; \zero (\cons \infty \; \zero (\zeroes \infty)) \; (\cons \infty \zero (\zeroest \infty))$\\ 
-$\spc \spcx \spc (\beq i \; \zero (\zeroes \infty) \; (\zeroest \infty) \; (\eqt i))$
+$\spc \spcx \beq \s i \: \zero (\cons \infty \: \zero (\zeroes \infty)) \: (\cons \infty \zero (\zeroest \infty))$\\ 
+$\spc \spcx \spc (\beq i \: \zero (\zeroes \infty) \: (\zeroest \infty) \: (\eqt i))$
 \end{bsp}
-\section{Admissibility}
-We now have to define when a $\cofun$ declaration is admissible.
-\begin{definition}
-A corecursive function with type $ A_1 \ra \dots A_n \ra R $ is admissible, if
-for every $A_j$ of the form $(i : \Size )$ , for $A_{j + 1} \ra \dots \ra R $ the following holds 
-\begin{itemize}
-\item
-every argument $A_k$ is antitone or inductive in $i$
-\item
-the result $R$ is coinductive in $i$  
-\end{itemize}
-\end{definition}
-It follows from the definition that one can only use on size argument, because it has to be coinductive in the result type.
-\chapter{Implementation}
-Mugda was implemented in the function language Haskell \cite{haskell}.
-\section{Overview}
-\begin{itemize}
-\item
-\texttt{Lexer.x} : The alex lexer file
-\item
-\texttt{Parser.y} : The happy parser file
-\item
-\texttt{Concrete.hs} : Concrete syntax produced by the parser
-\item
-\texttt{ScopeChecker.hs} : turns concrete into abstract syntax
-\item
-\texttt{Abstract.hs} : produced by the scope checker
-\item
-\texttt{Values.hs} : Values and related functions: eval, whnf 
-\item
-\texttt{TypeChecker.hs} : TypeChecking with Admissiblity checking
-\item
-\texttt{Termination.hs} : structural Termination checker
-\item
-\texttt{Completness} : size pattern completness check
-\item
-\texttt{SPos.hs} : strict positivity checker
-\texttt{Main.hs} : the main module
-\item
-\text{example} dir: example input files
-\end{itemize}
-
-\section{Usage}
-
-\begin{itemize}
-\item
-lists of constructors and clauses are grouped with brackets \texttt{\{},\texttt{\}} and separated with semicolon \texttt{;}
-\item
-$\EPi{x}{A}{B}$ is written \texttt{(x : A) -> B }
-\item
-$A \ra B$ is written \texttt{A -> B}
-\item
-$ \lam{x}e$ is written \texttt{\\ x -> e }
-\item
-$ \inacc{e}$ is written \texttt {.e} 
-\item
-$ \infty$ is written \texttt{\#} 
-\item
-$\s$ is written \texttt{\$}
-\end{itemize}
-\texttt{const} can be replaced with {\texttt {eval const}}. Then the value will be evaluated after type checking is done.
-As an example showing all syntactial features, here is the fibonacci stream example (\texttt{examples/fib.ma}) in ASCII format:
-\begin{verbatim}
-data Nat : Set {
-  zero : Nat;
-  succ : Nat -> Nat 
-}
-
-fun add : Nat -> Nat -> Nat {
-  add zero = \y -> y;
-  add (succ x) = \y -> succ (add x y)
-}
-
-codata Stream : Size -> Set {
-  cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
-}
- 
-fun tail : (i : Size) -> Stream ($ i) -> Stream i {
-  tail .i (cons i n ns) = ns
-}
-
-fun head : (i : Size) -> Stream ($ i) -> Nat {
-  head .i (cons i n ns) = n
-}
-
-cofun zipWith :  (Nat -> Nat -> Nat ) -> ( i : Size ) 
-		-> Stream i -> Stream i -> Stream i {
-  zipWith f ($ i) as bs = 
-	cons i (f (head i as) (head i bs))  (zipWith f i (tail i as) (tail i bs)) 
-}
-
-fun nth : Nat -> Stream # -> Nat {
-  nth zero ns = head # ns;
-  nth (succ x) ns = nth x (tail # ns) 
-}
-
-cofun fibs : ( i : Size ) -> Stream i
-{
-  fibs ($ $ i) = cons ($ i) zero (cons i (succ zero)
-	 	(zipWith add i (fibs i) (tail i (fibs ($ i)))))
-}
-
-const 4 : Nat = (succ (succ (succ (succ zero))))
--- fib(4) = 3 
-eval const fib4 : Nat = nth 4 (fibs ) 
-
-\end{verbatim}
-Running \texttt{Main examples/fib.ma} yields the console output:
-\begin{verbatim}
-./Main examples/fib.ma
-***** Mugda v1.0 *****
---- scope checking ---
---- termination checking ---
---- type checking ---
-Stream is a sized type 
---- evaluating constants ---
-fib4 evaluates to (succ (succ (succ zero)))
-
-\end{verbatim}
-
-\section{Parsing}
-The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
-
-The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
-
-\section{Scope checking}
-The first step after parsing is scope checking. This checks that names are used correctly:
-all declared constants should have a uniquie name and variables bound by 
-The use of linear patterns is also restricted at scope checking.
-Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
-function.
-After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
-\subsection{Type Checking}
-Type checking was implemented as explained above.
-\subsection{Termination Checking}
-Termination checking was implemented as explained.
-
 
 %%% Local Variables: 
 %%% mode: latex

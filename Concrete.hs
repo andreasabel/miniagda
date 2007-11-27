@@ -1,7 +1,7 @@
 -- concrete syntax
 module Concrete where
 
-import Abstract (Name,Co,Pos)
+import Abstract (Name,Co,Pos,Sized)
 
 data Expr = Set
           -- size type
@@ -18,7 +18,7 @@ data Expr = Set
 instance Show Expr where
     show = prettyExpr
 
-data Declaration = DataDecl Name Co Telescope Type [Constructor]
+data Declaration = DataDecl Name Sized Co Telescope Type [Constructor]
                  | FunDecl Co TypeSig [Clause] 
                  | ConstDecl Bool TypeSig Expr 
                  | MutualDecl [Declaration] -- bool = if eval
