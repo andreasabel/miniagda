@@ -1,3 +1,4 @@
+
 {
 
 module Lexer where
@@ -17,13 +18,13 @@ $white+				;
 "{-" ([$u # \-] | \- [$u # \}])* ("-")+ "}" ; 
 
 
-
 sized	    	     	   	{ tok (\p s -> Sized p) }
 data				{ tok (\p s -> Data p) }
 codata				{ tok (\p s -> CoData p) }
 fun				{ tok (\p s -> Fun p) }
 cofun				{ tok (\p s -> CoFun p) }
-const				{ tok (\p s -> Const p) }
+let				{ tok (\p s -> Let p) }
+in				{ tok (\p s -> In p) }
 eval				{ tok (\p s -> Eval p)}
 mutual				{ tok (\p s -> Mutual p) }
 Set				{ tok (\p s -> Set p) }
@@ -55,7 +56,8 @@ data Token = Id String AlexPosn
 	   | Mutual AlexPosn
            | Fun AlexPosn
            | CoFun AlexPosn
-	   | Const AlexPosn
+	   | Let AlexPosn
+	   | In AlexPosn
            | Set AlexPosn 
 	   | Eval AlexPosn
            -- size type
@@ -87,7 +89,8 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Mutual p -> ("mutual",p)
     Fun p -> ("fun",p)
     CoFun p -> ("cofun",p)
-    Const p -> ("const",p)
+    Let p -> ("let",p)
+    In p -> ("in",p)
     Eval p -> ("eval",p)
     Set p -> ("Set",p)
     Size p -> ("Size",p)

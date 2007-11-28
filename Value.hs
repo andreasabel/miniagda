@@ -95,7 +95,7 @@ lookupEnv ((x,v):xs) n = if x == n then v
 type Signature = Map.Map Name SigDef
 
 data SigDef = FunSig Co TVal [Clause] Bool --type , co , clauses , wether its type checked
-            | ConstSig TVal Expr -- type , expr 
+            | LetSig TVal Expr -- type , expr 
             | ConSig TVal -- type   
             | DataSig Int [Pos] Sized Co TVal -- # parameters, positivity of parameters  , sized , co , type  
               deriving (Show)
@@ -116,6 +116,8 @@ addSig sig n def = Map.insert n def sig
 whnf :: Env -> Expr -> TypeCheck Val
 whnf env e= --trace ("whnf " ++ show
   case e of
+    LLet x t1 e1 e2 -> do v1 <- whnf env e1
+                          whnf (update env x v1) e2
     Lam x e1 -> return $ VLam x env e1
     Pi x a b -> do av <- whnf env a
                    return $ VPi x av env b
@@ -131,9 +133,9 @@ whnf env e= --trace ("whnf " ++ show
     Con co n -> return $ VCon co n
     
     Def n -> return $ VDef n
-    Const n -> do sig <- get 
-                  let (ConstSig _ e) = lookupSig n sig
-                  whnf [] e
+    Let n -> do sig <- get 
+                let (LetSig _ e) = lookupSig n sig
+                whnf [] e
     Var y -> return $ lookupEnv env y
 
 sinfty :: Val -> Val
@@ -151,7 +153,7 @@ app u c = do
             (VDef n,_) -> appDef n c
             _ -> return $ VApp u c
 
--- unroll a corecursive definition 
+-- unroll a corecursive definition one time (until constructor appears)
 force :: Val -> TypeCheck Val
 force v@ (VDef n) = --trace ("force " ++ show v) $
     do sig <- get

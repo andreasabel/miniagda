@@ -21,7 +21,8 @@ sized   { T.Sized _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
-const   { T.Const _ }
+let     { T.Let _ }
+in      { T.In _ }
 eval    { T.Eval _ }
 set     { T.Set _ }
 size    { T.Size _ }
@@ -57,7 +58,7 @@ Declaration : Data { $1 }
            | Fun { $1 }
            | CoFun { $1 }
            | Mutual { $1 }
-           | Const { $1 }
+           | Let { $1 }
 
 Data :: { C.Declaration }
 Data : data Id DataTelescope ':' Expr '{' Constructors '}' 
@@ -88,9 +89,9 @@ Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
      
 
  
-Const :: { C.Declaration }
-Const : const TypeSig '=' Expr { C.ConstDecl False $2 $4 } 
-      | eval const TypeSig '=' Expr { C.ConstDecl True $3 $5 } 
+Let :: { C.Declaration }
+Let : let TypeSig '=' Expr { C.LetDecl False $2 $4 } 
+      | eval let TypeSig '=' Expr { C.LetDecl True $3 $5 } 
 
 -----
 
@@ -101,6 +102,7 @@ Expr :: { C.Expr }
 Expr : 
        TArrow Expr { let (n,t) = $1 in C.Pi n t $2 } 
        | '\\' Id '->' Expr { C.Lam $2 $4 }
+       | let Id ':' Expr '=' Expr in Expr { C.LLet $2 $4 $6 $8}  
        | Expr1 '->' Expr { C.Pi "" $1 $3}
        | Expr1 { $1 }
 

@@ -17,7 +17,7 @@ import Debug.Trace
 --scope checker
 -- check that all identifiers are in scope and global identifiers are only used once
 
--- replaces Ident with Con, Def , Const or Var  
+-- replaces Ident with Con, Def , Let or Var  
 
 -- replaces IdentP with ConP or VarP in patterns
 
@@ -47,7 +47,7 @@ addCtxs nl ctx = ctx ++ nl
 
 --global signature
 
-data Kind = DataK | ConK Co | FunK | ConstK
+data Kind = DataK | ConK Co | FunK | LetK
 
 type Sig = [(Name,Kind)] -- we record if a name is a constructor name or something else
 
@@ -83,10 +83,10 @@ scopeCheckDeclaration :: C.Declaration -> ScopeCheck A.Declaration
 scopeCheckDeclaration d@(C.DataDecl _ _ _ _ _ _) = scopeCheckDataDecl d 
 scopeCheckDeclaration d@(C.FunDecl _ _ _ ) =  scopeCheckFunDecls [d]
                                                
-scopeCheckDeclaration (C.ConstDecl b ts e) = do e' <- scopeCheckExpr e
-                                                ts' <- scopeCheckTypeSig ts
-                                                addTypeSig ConstK ts 
-                                                return $ A.ConstDecl b ts' e'
+scopeCheckDeclaration (C.LetDecl b ts e) = do e' <- scopeCheckExpr e
+                                              ts' <- scopeCheckTypeSig ts
+                                              addTypeSig LetK ts 
+                                              return $ A.LetDecl b ts' e'
 
 -- we support
 -- - mutual (co)funs
@@ -205,12 +205,23 @@ scopeCheckExpr e =
                                       True  -> errorAlreadyInContext e n
                                       False -> do e1' <- local (addCtx n) (scopeCheckExpr e1)
                                                   return $ A.Lam n e1'
+      C.LLet n t1 e1 e2 ->  do
+                        ctx <- ask
+                        sig <- get
+                        case (lookupSig n sig) of
+                          Just _ ->  errorAlreadyInSignature e n 
+                          Nothing -> case (lookupCtx n ctx) of 
+                                       True  -> errorAlreadyInContext e n
+                                       False -> do t1' <- scopeCheckExpr t1
+                                                   e1' <- scopeCheckExpr e1
+                                                   e2' <- local (addCtx n) (scopeCheckExpr e2)
+                                                   return $ A.LLet n t1' e1' e2'
       C.Ident n -> do ctx <- ask
                       sig <- get
                       case (lookupSig n sig) of
                         Just k -> case k of
                                     (ConK co) -> return $ A.Con co n
-                                    ConstK -> return $ A.Const n
+                                    LetK -> return $ A.Let n
                                     _ -> return $ A.Def n
                         Nothing -> case (lookupCtx n ctx) of
                                      True -> return $ A.Var n

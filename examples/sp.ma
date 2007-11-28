@@ -10,8 +10,8 @@ add zero y = y;
 add (succ x) y = succ (add x y)
 }
 
-const one : Nat = succ zero
-const two : Nat = succ one
+let one : Nat = succ zero
+let two : Nat = succ one
 
 sized codata Stream : Size -> Set 
 {
@@ -74,7 +74,7 @@ cofun nats : (i : Size ) -> Nat -> Stream i
 nats ($ i) x = (cons i x (nats i (succ x)))
 }
 
-const huge : Stream # = eat # (adder' #) (nats # zero) 
+let huge : Stream # = eat # (adder' #) (nats # zero) 
 
 fun nth : Nat -> Stream # -> Nat
 {
@@ -82,7 +82,7 @@ nth zero ns = head ns;
 nth (succ x) ns = nth x (tail ns) 
 }
 
-eval const big : Nat = nth (add two two) huge 
+eval let big : Nat = nth (add two two) huge 
 
 cofun twos : (i : Size ) -> Stream i
 {
@@ -90,7 +90,7 @@ twos ($ i) = cons i (succ (succ zero)) (twos i)
 }
 
 -- stream of fours
-const fours : Stream # = eat # (adder' #) (twos #)
+let fours : Stream # = eat # (adder' #) (twos #)
 
-eval const four : Nat = nth two fours
+eval let four : Nat = nth two fours
 

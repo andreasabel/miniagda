@@ -24,7 +24,7 @@ head .($ i) .A a (cons A i x xs) = x
 }
 
 
-eval const list : SList Enum # = cons Enum # aa (cons Enum # bb (cons Enum # cc (nil Enum #))) 
+eval let list : SList Enum # = cons Enum # aa (cons Enum # bb (cons Enum # cc (nil Enum #))) 
 
 
 
@@ -54,12 +54,11 @@ mutual
 	rev2 .($ i) .A a (nil A i) = nil A i;
 	rev2 .($ i) .A a (cons A i x xs) = rev ($ i) A (cons A i a (rev i A (rev2 i A x xs)))	
 	}
-
 }
 
-eval const revlist : SList Enum # = rev # Enum list
+eval let revlist : SList Enum # = rev # Enum list
 
-const EnumSList : Size -> Set = \j -> SList Enum j
+let EnumSList : Size -> Set = \j -> SList Enum j
 
 data Prod (+ A : Set) : Set 
 {

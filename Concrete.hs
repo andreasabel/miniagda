@@ -11,6 +11,7 @@ data Expr = Set
           -- 
           | App Expr [Expr]
           | Lam Name Expr
+          | LLet Name Expr Expr Expr -- local let
           | Pi Name Expr Expr
           | Ident Name 
           deriving (Eq)
@@ -20,7 +21,7 @@ instance Show Expr where
 
 data Declaration = DataDecl Name Sized Co Telescope Type [Constructor]
                  | FunDecl Co TypeSig [Clause] 
-                 | ConstDecl Bool TypeSig Expr 
+                 | LetDecl Bool TypeSig Expr 
                  | MutualDecl [Declaration] -- bool = if eval
                    deriving (Eq,Show)
 
@@ -59,6 +60,7 @@ prettyExpr e =
       Infty -> "#"
       App e1 el -> "(" ++ prettyExprs (e1:el) ++ ")"
       Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
+      LLet n t1 e1 e2 -> "(let " ++ n ++ " : " ++ prettyExpr t1 ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
       Pi "" t1 t2 -> "(" ++ prettyExpr t1 ++ " -> " ++ prettyExpr t2 ++ ")" 
       Pi x t1 t2 -> "( ( " ++ x ++ " : " ++ prettyExpr t1 ++ ") -> " ++ prettyExpr t2 ++ ")"
       Ident n -> n

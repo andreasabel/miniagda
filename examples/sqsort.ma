@@ -37,37 +37,29 @@ fun pivot : (i : Size ) -> (A : Set ) -> ( leq : A -> A -> Bool )
 pivot .($ i)     .A leq a (nil A i) = prod (List A ($ i)) (nil A i) (nil A i);
 
 pivot .($ i)     .A leq a (cons A i x xs) = 
-     ite (Prod (List A ($ i))) (leq a x) 
-   
-     (prod (List A ($ i))
-        (pr1 (List A i) (pivot i A leq a xs)) --subtyping
-	(cons A i x (pr2 (List A i) (pivot i A leq a xs))) 
-     )
-
-     (prod (List A ($ i))
-	(cons A i x (pr1 (List A i) (pivot i A leq a xs)))
-        (pr2 (List A i) (pivot i A leq a xs)) --subtyping
-     )
+  let rec : Prod (List A i) = (pivot i A leq a xs) in
+  let l1 : List A i = pr1 (List A i) rec in
+  let l2 : List A i = pr2 (List A i) rec in  
+     ite (Prod (List A ($ i))) (leq a x)  
+      (prod (List A ($ i)) l1  (cons A i x l2))
+      (prod (List A ($ i)) (cons A i x l1) l2)
 }
-
 
 fun qsapp : (i : Size ) -> ( A : Set ) -> ( leq : A -> A -> Bool ) 
 	-> List A i -> List A # -> List A #
 {
 qsapp .($ i) .A leq (nil A i)       ys = ys;
-
-qsapp .($ i) .A leq (cons A i x xs) ys = qsapp i A leq 
-	
-	(pr1 (List A i) (pivot i A leq x xs))
-    	
-	(cons A # x 
-	   (qsapp i A leq (pr2 (List A i) (pivot i A leq x xs)) ys))
+qsapp .($ i) .A leq (cons A i x xs) ys = 
+  let pv : Prod (List A i) = pivot i A leq x xs  in
+  let l1 : List A i = pr1 (List A i) pv  in
+  let l2 : List A i = pr2 (List A i) pv  in      
+           qsapp i A leq l1 (cons A # x (qsapp i A leq l2 ys))
 }
 
 fun quicksort : (i : Size ) -> (A : Set ) -> (leq : A -> A -> Bool) 
 	-> List A i -> List A #
 {
-quicksort i A leq l = qsapp i A leq l (nil A #) 
+  quicksort i A leq l = qsapp i A leq l (nil A #) 
 }
 
 
@@ -84,11 +76,11 @@ leqN (succ n) zero = ff;
 leqN (succ n) (succ m) = leqN n m
 }
 
-const one : Nat = succ zero
-const two : Nat = succ one
-const three : Nat = succ two
+let one : Nat = succ zero
+let two : Nat = succ one
+let three : Nat = succ two
 
-eval const l1 : List Nat # = cons Nat # two (cons Nat # three (cons Nat # one (nil Nat #)))
+eval let l1 : List Nat # = cons Nat # two (cons Nat # three (cons Nat # one (nil Nat #)))
  
-eval const sl1 : List Nat # = quicksort # Nat leqN l1
+eval let sl1 : List Nat # = quicksort # Nat leqN l1
 

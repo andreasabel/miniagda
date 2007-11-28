@@ -35,25 +35,29 @@ ite A ff x y = y
 fun pivot : (A : Set ) -> ( leq : A -> A -> Bool ) -> A -> List A -> Prod (List A)
 {
 pivot .A leq a (nil A) = prod (List A) (nil A) (nil A);
-pivot .A leq a (cons A x xs) = ite (Prod (List A)) (leq a x) 
-   
-     (prod (List A)
-	(pr1 (List A) (pivot A leq a xs))
-	(cons A x (pr2 (List A) (pivot A leq a xs))) 
-     )
-     (prod (List A)
-	(cons A x (pr1 (List A) (pivot A leq a xs))) 
-	(pr2 (List A) (pivot A leq a xs))
-     )
+pivot .A leq a (cons A x xs) =  let rec : Prod (List A) = (pivot A leq a xs) in
+
+      ite (Prod (List A)) (leq a x) 
+     
+        (prod (List A)
+	  (pr1 (List A) rec)
+	   (cons A x (pr2 (List A) rec)) 
+     	)	   
+        
+        (prod (List A)
+	  (cons A x (pr1 (List A) rec)) 
+	  (pr2 (List A) rec)
+        )
 }
 
 
 fun qsapp : ( A : Set ) -> ( leq : A -> A -> Bool ) -> List A -> List A -> List A
 {
 qsapp .A leq (nil A) ys = ys;
-qsapp .A leq (cons A x xs) ys = qsapp A leq 
-	(pr1 (List A) (pivot A leq x xs))
-        (cons A x (qsapp A leq (pr2 (List A) (pivot A leq x xs)) ys))
+qsapp .A leq (cons A x xs) ys = let pv : Prod (List A) = pivot A leq x xs in
+        qsapp A leq  
+	  (pr1 (List A) pv)
+          (cons A x (qsapp A leq (pr2 (List A) pv) ys))
 }
 
 fun quicksort : (A : Set ) -> (leq : A -> A -> Bool) -> List A -> List A
@@ -75,10 +79,10 @@ leqN (succ n) zero = ff;
 leqN (succ n) (succ m) = leqN n m
 }
 
-const one : Nat = succ zero
-const two : Nat = succ one
-const three : Nat = succ two
-const four : Nat = succ three
+let one : Nat = succ zero
+let two : Nat = succ one
+let three : Nat = succ two
+let four : Nat = succ three
 
-const l1 : List Nat = cons Nat two (cons Nat three (cons Nat four (cons Nat one (nil Nat)))) 
-const sl1 : List Nat = quicksort Nat leqN l1
+let l1 : List Nat = cons Nat two (cons Nat three (cons Nat four (cons Nat one (nil Nat)))) 
+let sl1 : List Nat = quicksort Nat leqN l1

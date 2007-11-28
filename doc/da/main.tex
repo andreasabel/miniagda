@@ -25,14 +25,13 @@
 \newcommand{\infconst}{\rulename{inf-const}}
 \newcommand{\infdata}{\rulename{inf-data}}
 
+\newcommand{\chklet}{\rulename{chk-let}}
 \newcommand{\chklam}{\rulename{chk-lam}}
 \newcommand{\chkpi}{\rulename{chk-pi}}
 \newcommand{\chksucc}{\rulename{chk-succ}}
 \newcommand{\chkinf}{\rulename{chk-inf}}
 
-\newcommand{\eqnf}{\rulename{eq-nf}}
-\newcommand{\eqlf}{\rulename{eq-lf}}
-\newcommand{\eqrf}{\rulename{eq-rf}}
+\newcommand{\eqforce}{\rulename{eq-force}}
 
 \newcommand{\eqsuc}{\rulename{eq-succ}}
 \newcommand{\eqapp}{\rulename{eq-app}}
@@ -45,15 +44,15 @@
 \newcommand{\chkpsucc}{\rulename{chkp-succ}}
 \newcommand{\chkpinacc}{\rulename{chkp-inacc}}
 
-\newcommand{\instl}{\rulename{inst-flex-l}}
-\newcommand{\instr}{\rulename{inst-flex-r}}
-\newcommand{\instc}{\rulename{inst-con}}
-\newcommand{\instd}{\rulename{inst-data}}
-\newcommand{\inste}{\rulename{inst-eq}}
+\newcommand{\unifyl}{\rulename{inst-flex-l}}
+\newcommand{\unifyr}{\rulename{inst-flex-r}}
+\newcommand{\unifyc}{\rulename{inst-con}}
+\newcommand{\unifyd}{\rulename{inst-data}}
+\newcommand{\unifye}{\rulename{inst-eq}}
+\newcommand{\unifys}{\rulename{inst-succ}}
+\newcommand{\unifyi}{\rulename{inst-infty}}
 
-\newcommand{\leqnf}{\rulename{leq-nf}}
-\newcommand{\leqlf}{\rulename{leq-lf}}
-\newcommand{\leqrf}{\rulename{leq-rf}}
+\newcommand{\leqforce}{\rulename{leq-force}}
 
 \newcommand{\leqsuc}{\rulename{leq-succ}}
 \newcommand{\leqappco}{\rulename{leq-co}}
@@ -70,13 +69,13 @@
 \newcommand{\sleqsuccii}{\rulename{sleq-succ-ii}}
 \newcommand{\sleqgen}{\rulename{sleq-gen}}
 
-\newcommand{\dd}{\mathsf{d}}
+\newcommand{\dd}{\mathsf{l}}
 \newcommand{\DD}{\mathsf{D}}
 \newcommand{\cc}{\mathsf{c}}
 \newcommand{\ff}{\mathsf{f}}
 
-\newcommand{\cll}{\mathbb{L}}
-\newcommand{\cdd}{\mathbb{D}}
+\newcommand{\cDD}{\mathbb{D}}
+\newcommand{\cdd}{\mathbb{L}}
 \newcommand{\ccc}{\mathbb{C}}
 \newcommand{\cff}{\mathbb{F}}
 \newcommand{\cV}{\mathbb{V}}
@@ -143,11 +142,11 @@ The length of a sequence is defined as $|(b_1,\ldots, b_n|)| := n $.
 First we assume the following disjunct sets of identifiers.
 \[
 \begin{array}{ll}
-\ccc \ni \cc & \mbox{constructors}\\
-\cdd \ni \DD & \mbox{data types}\\
-\cff \ni \ff & \mbox{functions}\\
-\cll \ni \dd & \mbox{constants}\\
-\cV \ni x,y,i & \mbox{variables}
+\ccc \ni \cc & \mbox{for constructors}\\
+\cDD \ni \DD & \mbox{for data types}\\
+\cff \ni \ff & \mbox{for functions}\\
+\cdd \ni \dd & \mbox{for global lets}\\
+\cV \ni x,y,i & \mbox{for variables}
 \end{array}
 \]
 
@@ -157,12 +156,13 @@ First we assume the following disjunct sets of identifiers.
 \Expr \ni e,A,B & ::= & \lam{x}{e} & \mbox{abstraction}\\
 & \mid & \EPi{x}{A}{B} & \mbox{dep function type}\\
 & \mid & e \: \vec{e} & \mbox{application}\\
+& \mid & \ELet{x}{e_1}{A_1}{e_2} & \mbox{local let}\\ 
 & \mid & \Set & \mbox{universe of small types}\\
 & \mid & x & \mbox{variable}\\
 & \mid & \cc & \mbox{constructor name}\\
 & \mid & \DD & \mbox{data type name}\\
 & \mid & \ff & \mbox{function name}\\
-& \mid & \dd & \mbox{const name}
+& \mid & \dd & \mbox{let name}
 \end{array}
 \]
 
@@ -208,7 +208,7 @@ Note that in a telescope, which is basically a sequence of type bindings, the ty
 & \mid & \codata \DD \tau : A \vec{\gamma} & \mbox{coinductive data type} \\
 & \mid & \fun \ff : A \: \vec{\kappa} & \mbox{recursive function}\\
 & \mid & \cofun \ff : A \: \vec{\kappa} & \mbox{corecursive function}\\ 
-& \mid & \const \dd : A \: = e & \mbox{constant}\\
+& \mid & \clet \dd : A \: = e & \mbox{let declaration}\\
 & \mid & \mutual \vec{\delta} & \mbox{mutual declaration}
 \end{array}
 \]
@@ -269,8 +269,8 @@ We define it as a overloaded function:
 $ \Sig : \cff \ra \times \Val \times \ves{\Clause} \times \cB $\\
 recording for a function symbol the type, the clauses and wether the clauses have been typechecked yet.
 \item
-$ \Sig : \cll \ra \Expr \times \Val $ \\
-recording for a const definition the expression and its type. 
+$ \Sig : \cdd \ra \Expr \times \Val $ \\
+recording for a global let constant the expression and its type. 
 \item
 $ \Sig : \ccc \ra \Val $
 recording for a constructor its type.
@@ -292,6 +292,7 @@ A fixed signature $\Sig$ is assumed.
 \multicolumn{2}{l}{\wh \: : \Expr \times \Env \ra \Val}\\
 \wh \clp{\lam{x}{e}}{\rho} & = \vlam \: x \: \cl{e}{\rho} \\
 \wh \clp{\EPi{x}{A}{B}}{\rho} &= \vpi \: x \: v_A \: \cl{B}{\rho} \mbox{ where } v_A = \wh \cl{A}{\rho} \\
+\wh \clp{\ELet{x}{A}{e_1}{e_2}}{\rho} &= \wh \cl{e_2}{\ins{\rho}{x}{v_1}} \mbox { where } v_1 = \wh \cl{e_1}{\rho} \\
 \wh \clp{e \: e_1 \ldots e_n}{\rho} &= \ap \: v \: v_1 \ldots v_n \mbox{ where } v = \wh \cl{e}{\rho} , v_i = \wh \cl{e_i}{\rho}\\
 \wh \cl{\Set}{\rho} & = \Set \\ 
 \wh \cl{\cc}{\rho} & = \cc  \\
@@ -340,12 +341,13 @@ We always reduce application of an inductive function if possible:\[
 
 \paragraph*{Corecursive unrolling}
 An application of a corecursive definiton is lazily unrolled when needed: 
-The following unrolls a corecursive definition once, if possible :
+$\forc$ tries to unroll a corecursive definition until a constructor appears:
 \[
 \begin{array}{ll}
 \multicolumn{2}{l}{\forc : \Val \ra \Val }\\
-\forc \: \ff & = \matchcls \: \vec{\gamma} \: \diamond \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox{ and } \ff \mbox { is a } \cofun \\
-\forc \: (\ff \: \vec{v}) & = \matchcls \: \vec{\gamma} \: \vec{v} \: \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox { and } \ff \mbox { is a } \cofun\\ 
+\forc \: \ff & = \forc \; (\ff \diamond) \\
+\forc \: (\ff \: \vec{v}) & = \forc \; v \mbox{ where } v = \matchcls \: \vec{\gamma} \: \vec{v} \neq \stuck \:\\
+& \spcx \mbox{ if } \Sig \: \ff = (\vec{\gamma},\top) \mbox { and } \ff \mbox { is a } \cofun\\ 
 \forc \: v & = \stuck \mbox{ otherwise}
 \end{array}
 \]
@@ -407,7 +409,7 @@ One example is the polymorphic identity function.
 Mugda is monomorphic, so this is not really a polymorphic function, as you have to supply the
 type as the first argument.
 \begin{bsp}
-$\const id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$   
+$\clet id : \EPi{A}{\Set}{A \ra A} = \lam{a}\lam{x}x$   
 \end{bsp}
 
 \subsection{Booleans}
@@ -486,7 +488,7 @@ $\spc \refl : \EPi{a}{A}{\Eq A \: a \: a}$
 \end{bsp}
 As a simple example, we can now prove $ x + 0 = x $:
 \begin{bsp}
-$ \const \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\ 
+$ \clet \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\ 
 $ \spcx = \lam{y}\refl \Nat y$ 
 \end{bsp}
 Here one can see that proof checking is type checking.
@@ -495,7 +497,7 @@ This proofs passes the type checker because $\add x \: \zero$ reduces to $\zero$
 Now if we want to prove $ 0 +  x = x $, we need more effort.
 The following does not pass the type checker:
 \begin{bsp}
-$ \const \tprof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x)\: x} $ \\ 
+$ \clet \tprof : \EPi{x}{\Nat}{\Eq \Nat (\add \zero x)\: x} $ \\ 
 $ \spcx \lam{y} \refl \Nat y$ 
 \end{bsp}
 The reason why is that the type checker can only see definitional equality.
@@ -562,7 +564,19 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 \begin{figure}[p]
 
 \begin{gather*}
-%%Lam
+%% Let
+\ndru{\chklet}
+{
+\IsType{k}{\rho_1}{\rho_2}{t_1}
+\qquad
+\Check{k}{\rho_1}{\rho_2}{e1}{\wh \cl{t_1}{\rho_1}}
+}
+{
+\Check{k}{\ins{\rho_1}{x}{\wh \cl{e_1}{\rho_1}}}{\ins{\rho_2}{x}{\wh \cl{t_1}{\rho_1}}}{e_2}{v}
+}
+{\Check{k}{\rho_1}{\rho_2}{\ELet{x}{t_1}{e_1}{e_2}}{v}}
+\\[2ex]
+%Lam
 \nru{\chklam}
 {\Check{k+1}{\ins{\rho_1}{x}{k}}{\ins{\rho_2}{x}{v_a}}{e}{\wh \cl{t}{\ins{\rho}{x}{k}}}}
 {\Check{k}{\rho_1}{\rho_2}{\lam{x}{e}}{\vpi \: x \: v_a \: \cl{t}{\rho}}}
@@ -644,24 +658,13 @@ Thus we introduce simulataneously two judgements, the latter one operating on al
 
 \begin{figure}[p]
 \begin{gather*}
-%% Force L
-\nru{\eqlf}
-{\forc \: v_1 = u_1 \qquad \forc \: v_2 = \stuck 
-\qquad
-f \neq \rF \qquad \FeqVal{\lF}{k}{u_1}{v_2}}
-{ \EqVal{f}{k}{v_1}{v_2}}
-%% Force R
-\\[2ex]
-\nru{\eqrf}
-{\forc \: v_1 = \stuck \qquad \forc \: v_2 = u_2 
-\qquad
-f \neq \lF \qquad \FeqVal{\rF}{k}{v_1}{u_2}}
-{ \EqVal{f}{k}{v_1}{v_2}}
-\\[2ex]
-%% Force N
-\nru{\eqnf}
-{\FeqVal{f}{k}{v_1}{v_2}}
-{ \EqVal{f}{k}{v_1}{v_2}}
+%% Force
+\nxru{\leqforce}
+{\FeqVal{\lF}{k}{\forc \; v_1}{v_2} \qquad \mbox{if } \forc \: v_1 \neq v_1 , \forc \: v_2 = v_2  , f \neq \rF
+}
+{\FeqVal{\rF}{k}{v_1}{\forc \; v_2} \qquad \mbox{if } \forc \: v_1 = v_1 , \forc \: v_2 \neq v_2 , f \neq \lF }
+{\FeqVal{f}{k}{v_1}{v_2} \qquad \qquad \qquad \qquad \qquad \mbox{ otherwise}}
+{\EqVal{f}{k}{v_1}{v_2}}
 \\[2ex]
 %% App
 \nru{\eqapp}
@@ -693,7 +696,7 @@ After having defined the basic building blocks, now it has to be defined how ind
 \subsection{Checking constant declarations}
 Checking a constand declaration is straightforward.
 The steps are:
-\paragraph*{Typechecking $\const \dd : A = e $}
+\paragraph*{Typechecking $\clet \dd : A = e $}
 \begin{enumerate}
 \item
 $\IsType{1}{\diamond}{\diamond}{A}$
@@ -887,8 +890,8 @@ is not valid because of the negative occurence of $A$ in the argument of $\bad$.
 \newcommand\checkp[5]{(#1)\vdash#2\:\mathbf{Pat}\:#3\Rightarrow (#4),#5}
 \newcommand\checkps[5]{(#1)\vdash#2\:\mathbf{Pats}\:#3\Rightarrow (#4),#5}
 \newcommand\checkinacc[4]{(#1)\vdash#2\:\mathbf{checkinacc}\:#3 : #4}
-\newcommand\inst[5]{#1,#2\vdash#3\:\mathbf{inst}\:#4\Rightarrow #5}
-\newcommand\instlist[5]{#1,#2\vdash#3\:\mathbf{inst_{list}}\:#4\Rightarrow #5}
+\newcommand\unify[5]{#1,#2\vdash#3\:\mathbf{inst}\:#4\Rightarrow #5}
+\newcommand\unifylist[5]{#1,#2\vdash#3\:\mathbf{inst_{list}}\:#4\Rightarrow #5}
 
 
 \paragraph*{Overview}
@@ -899,7 +902,7 @@ Checking the patterns $\vec{p}$ will yield an environment for the free variables
 Because of the inacessible patterns, checking $\vec{p}$ will need two phases.
 In the first phase, we will skip checking of inacessible patterns.
 They will be represented by fresh \emph{flexible} generic values.
-These flexible generic values will be \emph{instanitated} to concrete values when matching against the constructor patterns.
+These flexible generic values will be \emph{instanitated} to concrete values when checking constructor patterns.
 Then in thee second phase, it is verified that the expressions of the inacessible patterns are equal to those instantiated in the first phase.
 \newcommand{\subst}[2]{#1\{#2\}}
 \newcommand{\substEnv}[2]{#1\{#2\}}
@@ -908,8 +911,7 @@ Then in thee second phase, it is verified that the expressions of the inacessibl
 \newcommand\ptvx{\mathrm{p2v}}
 \newcommand\pstvs{\mathrm{p_{s}2v_{s}}}
 
-Instantiation by matching will yield a substitution:
-
+Instantiating by sucesfull unification will yield a substitution:
 \paragraph*{Substitutions}
 A substitution is a list $\sigma : \ves{(\cN \times \Val)} $ and denotes a partial mapping of generic values to values.
 $\diamond$ is the empty substitution.
@@ -921,7 +923,7 @@ Now we define simultaneously the application of a substitution on values and env
 \begin{array}{ll}
 \multicolumn{2}{l}{\subst{\_}{\_} : \ves{(\cN \times \Val)} \times \Val \ra \Val} \\
 \subst{\sigma}{k} & = v \mbox{ if } (k,v) \in \sigma \\
-\subst{\sigma}{v v_1 \ldots v_n} & = \subst{\sigma}{v} \subst{\sigma}{v_1} \ldots \subst{\sigma}{v_n}\\
+\subst{\sigma}{v \: v_1 \ldots v_n} & = \subst{\sigma}{v} \: \subst{\sigma}{v_1} \ldots \subst{\sigma}{v_n}\\
 \subst{\sigma}{\vpi \: x \: v_a \: \cl{b}{\rho}} & = \vpi \: x \: \subst{\sigma}{a_v} \: \cl{b}{\subst{\sigma}{\rho}} \\
 \subst{\sigma}{\vlam \: x \: \cl{b}{\rho}} & = \vlam \: x \: \cl{b}{\subst{\sigma}{\rho}} \\
 \subst{\sigma}{v} & = v \mbox{ othewise }
@@ -953,7 +955,7 @@ $k$ for a next fresh generic variable
 \item
 $\rho_1$ and $\rho_2$ environments proving for $x$ a value and its type.
 \item
-$\xi \subseteq (\cN \times (\Expr \times \Val)$ a list of flexible generic values, along with the inaccesible expressions and its supposed type
+$\xi \subseteq (\cN \times (\Expr \times \Val)$ a list of flexible generic values, along with the inaccesible expressions and its supposed type. We write $k \in \xi$ to mean that there is an element $(k,(e,v)))$ in $\sigma$. 
 \item
 $\sigma$ an substitution for the flexible generic variables
 \item
@@ -976,7 +978,7 @@ Both pattern variables and inaccesible patterns are converted to ascending fresh
 \begin{array}{ll}
 
 \multicolumn{2}{l}{\ptv{\_}{\_}: \cN \times \Pat \ra \Val}\\
-\ptv{k}{p} & = v \mbox{ where } \ptvx k \: p = (v,k')
+\ptv{k}{p} & = v \mbox{ where } \ptvx \: k \: p = (v,k')
 \vs\\ 
 \multicolumn{2}{l}{\ptvx : \cN \times \Pat \ra (\Val,\cN)}\\
 \ptvx \: k \:x & = (k,k+1) \\
@@ -1061,7 +1063,7 @@ $\Sig := \Sig \cup \{f_i \mapsto (v_{t_i},\vec{\gamma_i},\top)\}$
 {k',\xi',\sigma',\rho_1',\rho_2'}
 {v'_c}
 }
-{\inst{k}{\xi}{v'_c}{v_a}{\sigma_2}
+{\unify{k}{\xi}{v'_c}{v_a}{\sigma_2}
 \qquad
 v_p = \ptv{k}{p}    
 \qquad
@@ -1146,39 +1148,41 @@ v_b = \subst{\sigma''}{\wh \cl{b}{\ins{\rho}{x}{v_p}}}
 
 \begin{figure}[p]
 \begin{gather*}
-\nru{\instl}
-{(k',\_) \in \xi}
-{\inst{k}{\xi}{k'}{v}{[k' \mapsto v]}}
+\nru{\unifyl}
+{\nocc{k}{k'}{v}}
+{\unify{k}{\xi}{k'}{v}{(k',v)}}
+{\; k \in \xi }
 \qquad
-\nru{\instr}
-{(k',\_) \in \xi}
-{\inst{k}{\xi}{v}{k'}{[k' \mapsto v]}}
+\nru{\unifyr}
+{\nocc{k}{k'}{v}}
+{\unify{k}{\xi}{v}{k'}{(k',v)}}
+{\; k \in \xi}
 \\[2ex]
-\nru{\instc}
-{{\instlist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
-{\inst{k}{\xi}{\cc \: \vec{v}}{\cc \: \vec{w}}{\sigma}
+\nru{\unifyc}
+{{\unifylist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
+{\unify{k}{\xi}{\cc \: \vec{v}}{\cc \: \vec{w}}{\sigma}
 }
 \qquad
-\nru{\instd}
-{{\instlist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
-{\inst{k}{\xi}{\DD \: \vec{v}}{\DD \: \vec{w}}{\sigma}
+\nru{\unifyd}
+{{\unifylist{k}{\xi}{\vec{v}}{\vec{w}}{\sigma}}}
+{\unify{k}{\xi}{\DD \: \vec{v}}{\DD \: \vec{w}}{\sigma}
 }
 \\[2ex]
-\nru{\inste}
+\nru{\unifye}
 {\EqVal{k}{N}{v_1}{v_2}}
-{\inst{k}{\xi}{v_1}{v_2}{\diamond}
+{\unify{k}{\xi}{v_1}{v_2}{\diamond}
 }
 \\[2ex]
 \nru{}
 {}
-{\instlist{k}{\xi}{\diamond}{\diamond}{\diamond}}
+{\unifylist{k}{\xi}{\diamond}{\diamond}{\diamond}}
 \qquad
 \ndru{}
-{\inst{k}{\xi}{v_1}{w_1}{\sigma}}
-{\instlist{k}{\xi}{\subst{\sigma}{v_2} \ldots \subst{\sigma}{v_n}}{\subst{\sigma}{w_2} \ldots \subst{\sigma}{w_n}}{\sigma'}}
-{\instlist{k}{\xi}{v_1 v_2 \ldots v_n}{w_1 w_2 \ldots w_n}{\compS \sigma \sigma'}}
+{\unify{k}{\xi}{v_1}{w_1}{\sigma}}
+{\unifylist{k}{\xi}{\subst{\sigma}{v_2} \ldots \subst{\sigma}{v_n}}{\subst{\sigma}{w_2} \ldots \subst{\sigma}{w_n}}{\sigma'}}
+{\unifylist{k}{\xi}{v_1 v_2 \ldots v_n}{w_1 w_2 \ldots w_n}{\compS \sigma \sigma'}}
 \end{gather*}
-\caption{Instantiating flexible variables}
+\caption{Instantiation of flexible values by unification}
 \end{figure}
 
 \chapter{Termination Checking with the size-change principle}
@@ -1798,13 +1802,13 @@ All aditional typing rules are shown in figure \cite{str}.
 {\wh \cl{b}{\ins{\rho}{x}{v}}}}
 \\[2ex]
 \nru{}
-{\inst{k}{f}{v_1}{v_2}{\sigma}}
-{\inst{k}{f}{\s v_1}{\s v_2}{\sigma}
+{\unify{k}{f}{v_1}{v_2}{\sigma}}
+{\unify{k}{f}{\s v_1}{\s v_2}{\sigma}
 }
 \\[2ex]
 \nru{}
-{\inst{k}{f}{v_1}{\infty}{\sigma}}
-{\inst{k}{f}{\s v_1}{\infty}{\sigma}
+{\unify{k}{f}{v_1}{\infty}{\sigma}}
+{\unify{k}{f}{\s v_1}{\infty}{\sigma}
 }
 \end{gather*}
 \label{str}
@@ -1878,53 +1882,41 @@ We define $\overline{\rF}=\lF$,  $\overline{\lF}=\rF$ ,  $\overline{\nF}=\nF$.
 
 \begin{figure}[p]
 \begin{gather*}
-%% Force L
-\nru{\leqlf}
-{\forc \: v_1 = u_1 \qquad \forc \: v_2 = \stuck 
-\qquad
-f \neq \rF \qquad \FleqVal{\lF}{k}{u_1}{v_2}}
-{ \LeqVal{f}{k}{v_1}{v_2}}
-%% Force R
-\\[2ex]
-\nru{\leqrf}
-{\forc \: v_1 = \stuck \qquad \forc \: v_2 = u_2 
-\qquad
-f \neq \lF \qquad \FleqVal{\rF}{k}{v_1}{u_2}}
-{ \LeqVal{f}{k}{v_1}{v_2}}
-\\[2ex]
-%% Force N
-\nru{\leqnf}
-{\FleqVal{f}{k}{v_1}{v_2}}
-{ \LeqVal{f}{k}{v_1}{v_2}}
-\qquad
+%% Force
+\nxru{\eqforce}
+{\FleqVal{\lF}{k}{\forc \; v_1}{v_2} \qquad \mbox{if } \forc \: v_1 \neq v_1 , \forc \: v_2 = v_2  , f \neq \rF
+}
+{\FleqVal{\rF}{k}{v_1}{\forc \; v_2} \qquad \mbox{if } \forc \: v_1 = v_1 , \forc \: v_2 \neq v_2 , f \neq \lF }
+{\FleqVal{f}{k}{v_1}{v_2} \qquad \qquad \qquad \qquad \qquad \mbox{ otherwise}}
+{\LeqVal{f}{k}{v_1}{v_2}}
 \\[2ex]
 %% Ind Data
 \ndru{\leqappind}
-{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
+{\mbox{for all } i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j} 
+\mbox{for all } j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j} 
 }
-{\forall k \in \{1,..m\}: \EqVal{f}{k}{v_k}{w_k}
+{\mbox{for all } k \in \{1,..m\}: \EqVal{f}{k}{v_k}{w_k}
 \qquad
 \SzLeq s t }
 {\FleqVal{f}{k}{\DD \: p_1 \ldots p_n \: s \: v_1 \ldots v_m}{\DD \: q_1 \ldots q_n \: t \: w_1 \ldots w_m}}
 %% Co Data
 \\[2ex]
 \ndru{\leqappco}
-{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
+{\mbox{for all } i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
-{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
+\mbox{for all } j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
+{\mbox{for all } k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}
 \qquad
 \SzLeq t s }
 {\FleqVal{f}{k}{\DD \: p_1 \ldots p_n \: s \: v_1 \ldots v_m}{\DD \: q_1 \ldots q_n \: t \: w_1 \ldots w_m}}
 %% Data
 \\[2ex]
 \ndru{\leqappd}
-{\forall i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
+{\mbox{for all } i \in \pos(\DD): \LeqVal{f}{k}{p_i}{q_i} 
 \qquad
-\forall j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
-{\forall k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}}
+\mbox{for all } j \notin \pos(\DD): \EqVal{f}{k}{p_j}{q_j}}
+{\mbox{for all } k \in \{1,..m\}:\EqVal{f}{k}{v_k}{w_k}}
 {\FleqVal{f}{k}{\DD \: p_1 \ldots p_n v_1 \ldots v_m}{\DD \: q_1 \ldots q_n w_1 \ldots w_m}}
 %%App
 \\[2ex]
@@ -2087,39 +2079,40 @@ $\suc : \EPi{i}{\Size}{ \SNat \: i \ra \SNat \: \s i} $
 \begin{bsp}
 $\data \ProdT ( + A : \Set) : \Set$\\
 $\spc  \prd : A \ra A \ra \ProdT A$\\
+
 $\fun \pra : ( A : \Set ) \ra \ProdT A\: \ra A$\\
-$\spc \pra \inacc{A}\: (\prd A\: a b) = a$\\
+$\spc \pra \inacc{A}\: (\prd A\: a \: b) = a$\\
+
 $\fun \prb : ( A : \Set ) \ra \ProdT A\: \ra A$\\
-$\spc \prb \inacc{A}\: (\prod A\: a b) = b$\\
+$\spc \prb \inacc{A}\: (\prd A\: a \: b) = b$\\
+
 $\fun \ite : (A : \Set ) \ra \Bool \ra A \ra A \ra A$\\
-$\spc \ite A\: \tt x\: y\: = x$\\
-$\spc \ite A\: \ff x\: y\: = y$\\
-%%
-$\fun \pivot : (i : \Size ) \ra (A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
-$\spcx	\ra A \ra \List A\: i\: \ra \ProdT (\List A\: i)$\\
-$\spc\pivot \inacc{\s i}\:     \inacc{A}\: \lleq a\: (\nil A\: i) = \prd (\List A\: \s i)\:(\nil A\: i)\:(\nil A\: i)$\\
-$\spc \pivot \inacc{\s i}\:    \inacc{A}\: \lleq a\: (\cons A\: i x\: xs) =$\\ 
-$\spcx     \ite (\ProdT (\List A\: \s i))\: (\lleq a\: x)$\\ 
-$\spcx    (\prd (\List A\: \s i)$\\
-$\spcx \spc       (\pra (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)) $\\
-$\spcx \spc	(\cons A\: i\: x\: (\prb (\List A\: i) \: (\pivot i\: A\: \lleq a\: xs))))$\\ 
-$\spcx     (\prd (\List A\: \s i)$\\
-$\spcx	\spc (\cons A\: i\: x\: (\pra (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)))$\\
-$\spcx  \spc (\prb (\List A\: i)\: (\pivot i\: A\: \lleq a\: xs)))$\\
-%%
-$ \fun \qsapp : (i : \Size ) \ra ( A : \Set ) \ra ( \lleq : A \ra A \ra \Bool )$\\ 
-$\spcx	\ra \List A\: i \ra \List A\: \infty \ra \List A\: \infty$\\
-$\spc \qsapp \inacc{\s i}\: \inacc{A}\: \lleq (\nil A\: i) \:      ys = ys;$\\
-$\spc \qsapp \inacc{\s i}\: \inacc{A}\: \lleq (\cons A\: i\: x\: xs) \: ys = \qsapp i\: A\: \lleq$\\ 
-%%
-$\spcx	(\pra (\List A\: i) (\pivot i\: A\: \lleq x\: xs))$\\
-%%    	
-$\spcx	(\cons A\: \infty \: x\: $\\
-$\spcx	\spc   (\qsapp i\: A\: \lleq (\prb (\List A\: i) \: (\pivot i\: A\: \lleq x\: xs))\: ys))$\\
-%%
+$\spc \ite A\: \ttt a\: b\: = a$\\
+$\spc \ite A\: \fff a\: b\: = b$\\
+
+$\fun \pivot : (i : \Size ) \ra (A : \Set ) \ra ( leq : A \ra A \ra \Bool ) $\\
+$\spcx	\spcx \ra A \ra \List A \: i \ra \ProdT (\List A \: i)$\\
+$\spc \pivot \inacc{\s i} \: \inacc{A} \: leq \: a \: (\nil A \: i) = \prd (\List \: A \: \s i) (\nil A \: i) (\nil A \: i)$\\
+$\spc \pivot \inacc{\s i} \: \inacc{A} \: leq \: a \: (\cons A \: i \: x \:xs) = $\\ 
+$\spc \spc \ELet{rec}{\ProdT (\List A \:i)}{\pivot i \: A \: leq \: a \: xs}$\\
+$\spc \spc \ELet{l_1}{\List A \:i}{\pra (\List A \: i) \: rec}$\\
+$\spc \spc \ELet{l_2}{\List A \:i}{\prb (\List A \: i) \: rec}$\\  
+$\spc \spcx  \ite (\ProdT (\List A \: \s i)) (leq \: a \: x)  $\\
+$\spc \spcx  \spc \prd (\List A \: \s i) \: l_1 \: (\cons A \: i \: x \: l_2)$\\
+$\spc \spcx  \spc \prd (\List A \: \s i) \: (\cons A \: i \: x \: l_1) \: l_2$\\
+
+$\fun \qsapp : (i : \Size ) \ra ( A : \Set ) \ra ( leq : A \ra A \ra \Bool) $\\
+$\spcx \spcx \ra \List A \: i \ra \List A \: \infty \ra \List A \: \infty$\\
+$\spc \qsapp \inacc{\s i} \: \inacc{A} \: leq \: (\nil A \: i) \:             ys = ys$\\
+$\spc \qsapp \inacc{\s i} \: \inacc{A} \: leq \: (\cons A \: i \: x \: xs) \: ys = $\\
+$\spc \spc  \ELet{sl}{\ProdT (\List A \:i)}{\pivot i \: A \: leq \: x \: xs}$\\
+$\spc \spc  \ELet{l_1}{\List A \: i}{\pra (\List A \: i) \: sl}$\\
+$\spc \spc  \ELet{l_2}{\List A \: i}{\prb (\List A \: i) \: sl}$\\
+$\spc \spcx \qsapp i \: A \: leq \: l_1 \: (\cons A \: \infty \: x \: (\qsapp i \: A \: leq \: l_2 \: ys))$\\
+
 $\fun \quicksort : (i : \Size ) \ra (A : \Set ) \ra (\lleq : A \ra A \ra \Bool)$\\ 
 $\spcx	\ra \List A\: i \ra \List A\: \infty$\\
-$\spc \quicksort i\: A\: \lleq l = \qsapp i\: A\: \lleq l (\nil A\: \infty)$ 
+$\spc \quicksort i\: A\: leq \: l = \qsapp i\: A\: leq \: l \: (\nil A\: \infty)$ 
 \end{bsp}
 
 \subsection{A higher order function}
@@ -2174,18 +2167,18 @@ $\data \Maybe ( + A : \Set ) : \Set$\\
 $\spc  \nothing : \Maybe A$\\
 $\spc  \just : A \ra\Maybe A$\\
 
-$\const \Nat : \Set = \SNat \infty$\\
+$\clet \Nat : \Set = \SNat \infty$\\
 
 $\fun \shiftcase : (i : \Size) \ra\Maybe (\SNat \s i) \ra\Maybe (\SNat i)$\\
 $\spc \shiftcase i \: (\nothing \inacc{\SNat \s i}) = \nothing (\SNat i)$\\
 $\spc \shiftcase \inacc{i} \: (\just \inacc{\SNat \s i} \: (\zero i)) = \nothing (\SNat i)$\\
 $\spc \shiftcase \inacc{i} \: (\just \inacc{\SNat \s i} \: (\suc i \: x)) = \just (\SNat i) \: x$\\
 
-$\const \shift : (i : \Size) \ra(\Nat \ra \Maybe (\SNat \s i)) $\\
+$\clet \shift : (i : \Size) \ra(\Nat \ra \Maybe (\SNat \s i)) $\\
 $\spcx \spcx \ra\Nat \ra \Maybe (\SNat i) $\\ 
 $\spc = \lam{i}{\lam{f}{\lam{n}{\shiftcase i \: (f \: (\suc \infty \: n))}}}$\\
 
-$\const \inc : \Nat \ra \Maybe \Nat = \lam{n}{\just \Nat \: (\suc \infty n)}$\\
+$\clet \inc : \Nat \ra \Maybe \Nat = \lam{n}{\just \Nat \: (\suc \infty n)}$\\
 
 $\mutual$\\
 $\spc \fun \lop : (i : \Size ) \ra \SNat i $\\
@@ -2199,7 +2192,7 @@ $\spc \spc \lopcase i \: f \: (\nothing \inacc{\SNat i}) = \ttt $\\
 $\spc \spc \lopcase \inacc{\s i} \: f \: (\just \inacc{\SNat \s i} \: (\zero i)) = \ttt $\\
 $\spc \spc \lopcase \inacc{\s i} \: f \: (\just \inacc{\SNat \s i} \: (\suc i \: y)) = \lop i \: y \: (\shift i \:f) $\\
 
-$\const \diverge : \Bool = \lop \infty\: (\zero \infty) \: \inc$\\
+$\clet \diverge : \Bool = \lop \infty\: (\zero \infty) \: \inc$\\
 \caption{Loop example}
 \label{loop}
 \end{figure}
@@ -2399,11 +2392,11 @@ One standard example is to define the stream of fibonacci numbers:
 $\cofun \fibs : \Nat \ra \Nat \ra \EPi{i}{\Size}{\Stream i}$\\
 $\spc  \fibs x \: y \: \s i = \cons i \: x \: (\fibs y \: (\add x \: y) \: i)$\\
 
-$\const \fib : \Stream \infty = \fibs (\suc \zero) \: (\suc zero) \: \infty$
+$\clet \fib : \Stream \infty = \fibs (\suc \zero) \: (\suc zero) \: \infty$
 \end{bsp}
 and get the fourth fibonacci number by:
 \begin{bsp}
-$\const \fibf : \Nat = \nth (\suc (\suc (\suc (\suc \zero )))) \: (\fib \infty)$
+$\clet \fibf : \Nat = \nth (\suc (\suc (\suc (\suc \zero )))) \: (\fib \infty)$
 \end{bsp}
 \subsection{Stream processors}
 \begin{bsp}
@@ -2429,7 +2422,7 @@ $\eat$ is shown productive because the size argument is admissible.
 \subsection{Equality on streams}
 The following is a valid definition:
 \begin{bsp}
-$\const \eqo : \Eq (\Stream \infty) (\zeroes \infty) (\cons \infty \zero (zeroes \infty))$\\
+$\clet \eqo : \Eq (\Stream \infty) (\zeroes \infty) (\cons \infty \zero (zeroes \infty))$\\
 $\spc = \refl (\Stream \infty) (zeroes \infty)$
 \end{bsp}
 The infered type of $\refl (\Stream \infty) \: (\zeroes \infty)$ is 
@@ -2455,7 +2448,7 @@ $ \spcx \spc  \ra \beqd i \: s_1 \: s_2 \ra \beqd (\cons n \: s_1) \: (\cons n \
 Note that $\beqd$ is a sized coinductive predicate.
 and now the following is a valid infinite proof:
 \begin{bsp}
-$\cofun \eqt : (i : \Size ) -> \beqd i (\zeroes \infty) (\zeroest \infty)$\\
+$\cofun \eqt : (i : \Size ) \ra \beqd i (\zeroes \infty) (\zeroest \infty)$\\
 $\spc \eqt (\s \s i) = $\\
 $\spc \spcx \beq \s i \: \zero (\cons \infty \: \zero (\zeroes \infty)) \: (\cons \infty \zero (\zeroest \infty))$\\ 
 $\spc \spcx \spc (\beq i \: \zero (\zeroes \infty) \: (\zeroest \infty) \: (\eqt i))$

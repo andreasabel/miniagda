@@ -47,13 +47,13 @@ typeCheckDeclaration (DataDecl n sz co pos tel t cs) =
  ) `throwTrace` n
 
 
-typeCheckDeclaration (ConstDecl _ (TypeSig n t) e ) = 
+typeCheckDeclaration (LetDecl _ (TypeSig n t) e ) = 
    (
     do sig <- get
        checkT t 
        vt <- whnf [] t
        checkExpr 0 [] [] e vt
-       put (addSig sig n (ConstSig vt e))
+       put (addSig sig n (LetSig vt e))
    ) `throwTrace` n
 
 typeCheckDeclaration (FunDecl funs) = typeCheckFuns funs
@@ -71,7 +71,7 @@ typeCheckConstructor d sz pos tel (TypeSig n t) =
       let (_,target) = typeToTele tt
       checkTarget d tel target
       vt <- whnf  [] tt
-      sposConstructor d 0 pos vt
+      --sposConstructor d 0 pos vt
       put (addSig sig n (ConSig vt))
       case sz of 
         Sized ->
@@ -206,15 +206,9 @@ eqVal' f k u1 u2 = --trace ("eqVal'" ++ show (u1,u2)) $
       (False,True) | f /= L ->
                        eqVal' R k u1 u2f 
       _ -> case (u1,u2) of
-             (VSet,VSet) -> return ()
-             (VSize,VSize) -> return ()
-             (VInfty,VInfty) -> return ()
              (VSucc v1,VSucc v2) -> eqVal' f k v1 v2
              (VApp v1 vl1,VApp v2 vl2) -> do eqVal' f k v1 v2 
                                              eqVals' f k vl1 vl2
-             (VGen k1,VGen k2) -> if k1 == k2 then return ()
-                                  else
-                                      throwErrorMsg $ "gen mismatch "  ++ show k1 ++ " " ++ show k2 
              (VPi x1 av1 env1 b1,VPi x2 av2 env2 b2) -> 
                         do eqVal' f k av1 av2
                            v1 <- whnf (update env1 x1 (VGen k)) b1
@@ -224,10 +218,7 @@ eqVal' f k u1 u2 = --trace ("eqVal'" ++ show (u1,u2)) $
                         do v1 <- whnf (update env1 x1 (VGen k)) b1
                            v2 <- whnf (update env2 x2 (VGen k)) b2
                            eqVal' f (k+1) v1 v2
-             (VDef x,VDef y) -> if x == y then return ()
-                                else throwErrorMsg $ "eqVal VDef " ++ show x ++ show y 
-             (VCon _ n1,VCon _ n2) -> if (n1 == n2) then return ()
-                                      else throwErrorMsg $ "eqVal VCon " ++ show n1 ++ " " ++ show n2
+             (v1,v2) | v1 == v2 -> return ()
              _ -> throwErrorMsg $ "eqVal error " ++ show f ++ " " ++ show u1 ++ " @@ " ++ show u2
 
 
@@ -339,6 +330,13 @@ leqSize v1 v2 = --trace ("leqSize " ++ show v1 ++ show v2) $
 checkExpr :: Int -> Env -> Env -> Expr -> TVal -> TypeCheck ()
 checkExpr k rho gamma e v = --trace ("checkExpr " ++ show e ++ " " ++ show v) $
     case (e,v) of
+      (LLet n t1 e1 e2,_) ->
+          do 
+            checkType k rho gamma t1
+            v_t1 <- whnf rho t1
+            checkExpr k rho gamma e1 v_t1
+            v_e1 <- whnf rho e1
+            checkExpr k (update rho n v_e1) (update gamma n v_t1) e2 v  
       (Lam n e1,VPi x va env t1) -> 
           do
             v_t1 <- whnf (update env x (VGen k)) t1
@@ -375,9 +373,9 @@ inferExpr k rho gamma e =
       (Con _ n) -> do sig <- get
                       case (lookupSig n sig) of
                         (ConSig tv) -> return tv
-      (Const n) -> do sig <- get 
-                      case (lookupSig n sig) of
-                        (ConstSig tv _) -> return tv
+      (Let n) -> do sig <- get 
+                    case (lookupSig n sig) of
+                      (LetSig tv _) -> return tv
       _ -> throwErrorMsg $ "cannot infer type " ++ show e
 
       
@@ -466,7 +464,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
                  let (ConSig vc) = (lookupSig n sig)
                  (k',flex',ins',rho',gamma',vc') <- checkPatterns k flex ins rho gamma vc pl
                  let flexgen = fst $ unzip flex'
-                 subst <- instantiate k' flexgen vc' av
+                 subst <- inst k' flexgen vc' av
                  let pv = patternToVal k p
                  vb <- whnf (update env x pv) b
                  ins'' <- compSubst ins' subst
@@ -532,19 +530,24 @@ checkRHS k rho gamma rhs v =  --trace ("checking rhs") $
                      ) `throwTrace` "right hand side"
 
 
--- instantiate the parameters and family indices
--- this yields a substitution for the flexible variables 
-instantiate :: Int -> [Int] -> TVal -> TVal -> TypeCheck Substitution
-instantiate m flex v1 v2 = do subst <- inst m flex v1 v2
-                              return subst
-                                     
+  
+
+-- match v1 against v2 by unification , yielding a substition
 inst :: Int -> [Int] -> Val -> Val -> TypeCheck Substitution
 inst m flex v1 v2 =  do
   case (v1,v2) of
-    (VGen k,_) | elem k flex -> return [(k,v2)]
-    (_,VGen k) | elem k flex -> return [(k,v1)]
+    (VGen k,_) | elem k flex -> do
+                       noc <- nocc m v1 v2 
+                       case noc of 
+                         True -> return [(k,v2)]
+                         False -> throwErrorMsg "occurs check failed"
+    (_,VGen k) | elem k flex -> do
+                   noc <- nocc m v2 v1 
+                   case noc of 
+                         True -> return [(k,v1)]
+                         False -> throwErrorMsg "occurs check failed"
     (VApp (VDef d1) vl1,VApp (VDef d2) vl2) | d1 == d2 -> 
-            instList m flex vl1 vl2
+                   instList m flex vl1 vl2
     (VApp (VCon _ c1) vl1,VApp (VCon _ c2) vl2) | c1 == c2 -> 
             instList m flex vl1 vl2
     (VSucc v1',VSucc v2') -> inst m flex v1' v2'

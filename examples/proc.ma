@@ -15,15 +15,15 @@ codata Proc : Set
 {
 nil : Proc ;
 out : Nat -> Proc -> Proc;
-in : (Nat -> Proc ) -> Proc 
+ins : (Nat -> Proc ) -> Proc 
 }
 
 
 -- unreliable proc that forgets input on ff
 cofun m : C -> Proc
 {
-m (ff c) = in (\n -> (m c)); 
-m (tt c) = in (\n -> out n (m c));
+m (ff c) = ins (\n -> (m c)); 
+m (tt c) = ins (\n -> out n (m c));
 }
 
 -- fairness
@@ -54,7 +54,7 @@ cofun ones : C
 ones = tt ones
 }
 
-const lemma_ones : Event1 ones ones = d1 ones
+let lemma_ones : Event1 ones ones = d1 ones
 
 cofun proof : Inf1 ones
 {
@@ -62,7 +62,7 @@ proof = inf1 ones ones lemma_ones proof
 }
 
 -- reliable medium
-const relmed : Fairmed (m ones) = fairmed ones m proof  
+let relmed : Fairmed (m ones) = fairmed ones m proof  
 
 
 

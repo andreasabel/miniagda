@@ -10,7 +10,7 @@ fun id : Nat -> Nat
 id x = x 
 }
 
-const one : Nat = id (succ zero)
+let one : Nat = id (succ zero)
 
 fun add : Nat -> Nat -> Nat 
 {
@@ -18,17 +18,17 @@ add x zero = x ;
 add x (succ y) = succ (add x y) 
 }
 
-const three : Nat = add (succ (succ zero)) (succ (zero))
+let three : Nat = add (succ (succ zero)) (succ (zero))
 
 data Eq ( A : Set ) : A -> A -> Set
 {
 refl : (a : A) -> Eq A a a 
 }
 
-const proof : (x : Nat ) -> Eq Nat (add x zero) x = \ y -> refl Nat y  
+let proof : (x : Nat ) -> Eq Nat (add x zero) x = \ y -> refl Nat y  
 
 -- does not type check
---const proof2 : ( x : Nat ) -> Eq Nat (add zero x) x = \ y -> refl Nat y
+--let proof2 : ( x : Nat ) -> Eq Nat (add zero x) x = \ y -> refl Nat y
 
 fun eqsucc : (x : Nat ) -> (y : Nat ) -> Eq Nat x y -> Eq Nat (succ x) (succ y)
 {

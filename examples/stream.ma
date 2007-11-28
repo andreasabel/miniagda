@@ -10,7 +10,7 @@ add x zero = x;
 add x (succ y) = succ (add x y);
 }
 
-eval const one : Nat = succ zero
+eval let one : Nat = succ zero
 
 sized codata Stream (A : Set) : Size -> Set 
 {
@@ -27,7 +27,7 @@ cofun ones : (i : Size) -> Stream Nat i
 ones ($ i) = cons Nat i one (ones i)
 }
 
-eval const ones' : Stream Nat # = ones #
+eval let ones' : Stream Nat # = ones #
 
 cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
           (A -> B) -> Stream A # -> Stream B i
@@ -35,7 +35,7 @@ cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
 map .A B ($ i) f (cons A .# a as) = cons B i (f a) (map A B i f as)
 } 
 
-eval const twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
+eval let twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 
 
 
@@ -46,18 +46,18 @@ tail .A (cons A .# a as) = as
 }
 
 
-eval const twos' : Stream Nat # = tail Nat twos
+eval let twos' : Stream Nat # = tail Nat twos
 
 fun head : (A : Set) -> Stream A # -> A
 {
 head .A (cons A .# a as) = a
 }
 
-eval const two : Nat = head Nat twos 
-eval const two' : Nat = head Nat twos'
+eval let two : Nat = head Nat twos 
+eval let two' : Nat = head Nat twos'
 
-eval const twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
-eval const twos2' : Stream Nat # = tail Nat twos2
+eval let twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
+eval let twos2' : Stream Nat # = tail Nat twos2
 
 cofun zipWith : ( A : Set ) -> ( B : Set ) -> (C : Set) -> ( i : Size ) ->
 	(A -> B -> C) -> Stream A # -> Stream B # -> Stream C i
@@ -73,8 +73,8 @@ nth zero ns = head Nat ns;
 nth (succ x) ns = nth x (tail Nat ns) 
 }
 
-eval const fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
-eval const four : Nat = head Nat fours
+eval let fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
+eval let four : Nat = head Nat fours
 
 
 
@@ -83,23 +83,23 @@ cofun fib : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream Nat i
 fib x y ($ i) = (cons Nat ($ i) x (cons Nat i y (fib y (add x y) i)))
 } 
 
-eval const fib' : Stream Nat # = tail Nat (fib zero zero #) 
+eval let fib' : Stream Nat # = tail Nat (fib zero zero #) 
 
 
-eval const fib8 : Nat = nth (add four four) (fib zero zero #)
+eval let fib8 : Nat = nth (add four four) (fib zero zero #)
 
-eval const fib2 : Nat  = head Nat (tail Nat (fib zero zero #))
+eval let fib2 : Nat  = head Nat (tail Nat (fib zero zero #))
 
 cofun nats : (i : Size ) -> Nat -> Stream Nat i
 {
 nats ($ i) x = (cons Nat i x (nats i (succ x)))
 }
 
-eval const nats' : Stream Nat # = tail Nat (nats # zero)
+eval let nats' : Stream Nat # = tail Nat (nats # zero)
 
 
 --- weakening
-eval const wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i = \ A -> \ i -> \ s -> s
+eval let wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i = \ A -> \ i -> \ s -> s
 
 
      
@@ -126,7 +126,7 @@ unp2 ($ i) = cons Nat i zero (tail Nat (unp2 ($ i)))
 -} 
 
 
-eval const bla2 : Nat = nth four (unp #)
+eval let bla2 : Nat = nth four (unp #)
 
 mutual
 {
@@ -157,7 +157,7 @@ twozeroes (cons .Nat .# zero (cons .Nat .# (succ x) str)) = ff;
 twozeroes (cons .Nat .# (succ x) str) = ff
 }
 
-eval const twozeroes'zeroes : Bool = twozeroes (zeroes #) 
+eval let twozeroes'zeroes : Bool = twozeroes (zeroes #) 
 
 data Eq ( A : Set ) : A -> A -> Set
 {
@@ -165,12 +165,12 @@ refl : (a : A) -> Eq A a a
 }
 
 -- hangs on unproduktive stream
--- const zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
+-- let zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
 
 -- fail but do not hang 
---const zz3 : Eq (Stream Nat #) (odds #) (cons Nat # zero (odds #)) = refl (Stream Nat #) (odds #) 
---const zz4 : Eq (Stream Nat #) (evens #) (cons Nat # zero (evens #)) = refl (Stream Nat #) (evens #) 
---const zz5 : Eq (Stream Nat #) (tail Nat (evens #)) (cons Nat # zero (tail Nat (evens #))) = refl (Stream Nat #) (tail Nat (evens #)) 
+--let zz3 : Eq (Stream Nat #) (odds #) (cons Nat # zero (odds #)) = refl (Stream Nat #) (odds #) 
+--let zz4 : Eq (Stream Nat #) (evens #) (cons Nat # zero (evens #)) = refl (Stream Nat #) (evens #) 
+--let zz5 : Eq (Stream Nat #) (tail Nat (evens #)) (cons Nat # zero (tail Nat (evens #))) = refl (Stream Nat #) (tail Nat (evens #)) 
 
 sized data Unit : Size -> Set
 {

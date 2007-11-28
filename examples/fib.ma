@@ -25,18 +25,18 @@ fun nth : Nat -> Stream # -> Nat {
   nth (succ x) xs = nth x (tail xs) 
 }
 
-const 1 : Nat = (succ zero)
+let 1 : Nat = (succ zero)
 
 cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i {
   fib' x y ($ i) = cons i x (fib' y (add x y) i)
 } 
-const fib : Stream # = (fib' 1 1 #)
+let fib : Stream # = (fib' 1 1 #)
 
 
-const 4 : Nat = (succ (succ (succ 1)))
+let 4 : Nat = (succ (succ (succ 1)))
 
 -- fib(4) = 5 
-eval const fib4 : Nat = nth 4 fib 
+eval let fib4 : Nat = nth 4 fib 
 
 
 
@@ -56,16 +56,16 @@ inc : (i : Size ) -> (x : Nat ) -> (y : Nat ) -> Leq x y -> (tl : Stream # ) -> 
 }
 
 
-data Eq (A : Set ) : A -> A -> Set
+data Eq (+ A : Set ) : A -> A -> Set
 {
 refl : (a : A ) -> Eq A a a
 }
 
-const proof : Eq (Stream #) (tail fib) (tail fib) = refl (Stream #) (tail fib)
+let proof : Eq (Stream #) (tail fib) (tail fib) = refl (Stream #) (tail fib)
 
 
 
-const double : Stream # -> Stream # = \s -> cons # (head s) s
+let double : Stream # -> Stream # = \s -> cons # (head s) s
 
 data Bool : Set 
 {
@@ -107,8 +107,8 @@ lookbad ($ i) =
           (lookbad i)
 }
 
---const proof2 : Eq (Stream #) (cons # zero (lookbad #)) (lookbad #) = refl (Stream #) (lookbad #)
---const proof3 : Eq (Stream #) (cons # zero (lookbad #)) (tail (lookbad #)) = refl (Stream #) (tail (lookbad #))
+--let proof2 : Eq (Stream #) (cons # zero (lookbad #)) (lookbad #) = refl (Stream #) (lookbad #)
+--let proof3 : Eq (Stream #) (cons # zero (lookbad #)) (tail (lookbad #)) = refl (Stream #) (tail (lookbad #))
 
 --------------------
 
@@ -122,7 +122,7 @@ cofun evil : (i : Size ) -> Stream i
 evil ($ i) = map ($ i) succ (cons i zero (evil i))
 }
 
-eval const e : Nat = head (evil #)
+eval let e : Nat = head (evil #)
 
 
 

@@ -23,7 +23,8 @@ data Expr = Set
           | Var Name
           | Con Co Name
           | Def Name
-          | Const Name
+          | Let Name -- global let
+          | LLet Name Expr Expr Expr --local let
           | App Expr [Expr]
           | Lam Name Expr
           | Pi Name Expr Expr
@@ -34,7 +35,7 @@ instance Show Expr where
 
 data Declaration = DataDecl Name Sized Co [Pos] Telescope Type [Constructor]
                  | FunDecl [(TypeSig,Co,[Clause])]  -- may be mutual
-                 | ConstDecl Bool TypeSig Expr --bool for eval
+                 | LetDecl Bool TypeSig Expr --bool for eval
                    deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type
@@ -84,7 +85,9 @@ prettyExpr e =
       Var n -> n
       Con _ n -> n
       Def n -> n
-      Const n -> n
+      Let n -> n
+      LLet n t1 e1 e2 ->
+          "(let " ++ n ++ " : " ++ prettyExpr t1 ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")"  
       App e1 el -> "(" ++ prettyExprs (e1:el) ++ ")"
       Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
       Pi "" t1 t2 -> "(" ++ prettyExpr t1 ++ " -> " ++ prettyExpr t2 ++ ")" 
