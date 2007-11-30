@@ -246,9 +246,6 @@ leqVal' f k u1 u2 = -- trace ("leqVal' " ++ show (u1,u2) ) $
       (False,True) | f /= L ->
                    leqVal' R k u1 u2f    
       _ ->  case (u1,u2) of
-              (VSet,VSet) -> return ()
-              (VSize,VSize) -> return ()
-              (VInfty,VInfty) -> return ()
               (VSucc v1,VSucc v2) -> leqVal' f k v1 v2
               (VApp v1 vl1,VApp v2 vl2) -> do
                            leqApp f k v1 vl1 v2 vl2
@@ -263,10 +260,7 @@ leqVal' f k u1 u2 = -- trace ("leqVal' " ++ show (u1,u2) ) $
                   do v1 <- whnf (update env1 x1 (VGen k)) e1
                      v2 <- whnf (update env2 x2 (VGen k)) e2
                      leqVal' f (k+1) v1 v2
-              (VDef x,VDef y) ->  if x == y then return () 
-                                  else throwErrorMsg $ "leqVal VDef " ++ show x ++ " " ++ show y
-              (VCon _ n1,VCon _ n2) -> if n1 == n2 then return () 
-                                       else throwErrorMsg $ "leqVal VCon " ++ show n1 ++ " " ++ show n2
+              (a1,a2) | a1 == a2 -> return ()
               _ ->  throwErrorMsg $ "leqVal error " ++ show u1 ++ " @@ " ++ show u2
 
 leqVals' :: Force -> Int -> [Val] -> [Val] -> TypeCheck ()

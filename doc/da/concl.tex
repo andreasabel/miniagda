@@ -1,34 +1,32 @@
 \chapter{Conclusion}
-We hope this work provides an easy access to depented types and the sized type principle.
-The pattern matching of \mugda is in our opinion more accessible than the traditional fix-point operator
-notation of previous articles about sized types.
+We hope this work provides an easy access to dependent types and the sized type principle.
+The pattern matching of \mugda should be more accessible than the traditional fixed-point operator
+notation used in a lot of previous presentations of sized types.
 We think that the \mugda language demonstrates the usefulness of sized types.
-To that end, we have streched Coquand simple algorithm to a quite usable system.
-\paragraph*{Inference of sizes}
-The possibility to infer all size arguments should be explored.
+To that end, we have stretched Coquand's simple algorithm to a quite usable system.
+\subsubsection{Inference of sizes}
+The possibility to infer all size expressions automatically should be explored.
 The system $\mathsf{CIC\textasciicircum}$ described in \cite{bgp:lpar06} can handle the inference of size annotations. 
 
 Applying inference to our system would change the system quite a bit.
-Size annotations would not be available to the user and the size type would likely loose its first order status. Every data type would internally be represented as a sized type. The termination criterion could be simplified, where the size-change principle has to be only applied to all infered size arguments.
-\paragraph*{Implicit arguments}
-At runtime, the size arguments all end up being $\infty$.
-Thus, it would be wasteful to have this payload is kept around during runtime. 
-the removal of balast that is not needed at runtime is ongoing research (\cite{miquel01implicit,DBLP:conf/types/BradyMM03}).
-As lists, vectors and sized list carry the same payload, conversion functions can be written by the user user to change from one represenation to the other. At runtime, then these conversion routines could be safely removed because would amount to n identity function.
-\paragraph*{more mutual definitons}
-We could allow more kinds of mutual definitons.
-Defing a $\fun$ together with a $data$ amounts to the inductive-recursive defintions of \cite{dybier-}.
-Also the stream processor example could be more naturally defined by mixing coinductive and inductive definitons.
+Size annotations would not be available to the user and the size type would likely loose its first order status. Every data type would internally be represented as a sized type. The termination criterion could be simplified, where the size-change principle has to be only applied to all inferred size arguments.
+\subsubsection{Implicit arguments}
+At run-time, the size arguments all end up being $\infty$.
+Thus, it would be wasteful to have this payload is kept around during run-time. 
+the removal of ballast that is not needed at run-time is ongoing research (\cite{miquel01implicit,DBLP:conf/types/BradyMM03}).
+As lists, vectors and sized list carry the same payload, conversion functions can be written by the user user to change from one representation to the other. At run-time, then these conversion routines could be safely removed because would amount to n identity function.
+\subsubsection{more mutual definitions}
+We could allow more kinds of mutual definitions.
+Defing a $\fun$ together with a $data$ amounts to the so called inductive-recursive definitions (\cite{dybjer01indexed}).
+Also the stream processor example could be more naturally defined by mixing co-inductive and inductive definitions.
 The $\spd$ and $\ispd$ would be defined as a mutual data declaration, as well as the $\eat $ and $\ieat$ as mutual function declarations.
 
-We investigatet this approach and some adjustment of the admissibilty of sizes seems to be necesarry to handle such definitons.
-\paragraph*{Higher order subtyping and universes }
+We investigated this approach and some adjustment of the admissibility of sizes seems to be necessary to handle such definitions.
+\subsubsection{Higher order sub-typing and universes }
 The sub-typing relation could be extend to higher order sub-typing.
-Polarized subtyping \cite{steffen} could be used, where function arguments are labeld with polarities. 
-
-The universe hierarchy also often has subtyping ($ \mathsf{Set_i} \leq \mathsf{Set_{i+1}}$) which has to be integratet with our subtyping on sized types.
-, which could be another application of polarized subtyping.
-\paragraph*{Future of sized types}
-We think it could be worthwile to integrate a sized type approach into a full system like Agda2, especially with the extension to coinductive types in mind. Checking productivity is handled quite natually with a sized type approach. 
+Polarized sub-typing (\cite{steffen:phd}) could be explored.
+The universe hierarchy also often has sub-typing ($ \mathsf{Set_i} \leq \mathsf{Set_{i+1}}$), which has to be integrated with the sub-typing on sized types.
+\subsubsection{Future of sized types}
+We think it could be worthwhile to integrate a sized type approach into a full system like Agda2, especially with the extension to co-inductive types in mind. Checking productivity is handled quite naturally with a sized type approach. 
 Furthermore, there are plans to translate the full Agda2 to a simpler core language (\cite{mini-tt}), which can be more easily justified. Once again, a sized type approach could be looked at for this core language.
 

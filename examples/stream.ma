@@ -101,6 +101,12 @@ eval let nats' : Stream Nat # = tail Nat (nats # zero)
 --- weakening
 eval let wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i = \ A -> \ i -> \ s -> s
 
+-- should be ok but does not pass admissibility check
+cofun wkStream_ok : ( A : Set ) -> (i : Size ) -> Stream A ($ i) -> Stream A i
+{
+wkStream_ok .A .($ i) (cons A ($ i) x xs) = cons A i x (wkStream A i xs) 
+}
+
 
      
 --bad 
@@ -126,7 +132,7 @@ unp2 ($ i) = cons Nat i zero (tail Nat (unp2 ($ i)))
 -} 
 
 
-eval let bla2 : Nat = nth four (unp #)
+--eval let bla2 : Nat = nth four (unp #)
 
 mutual
 {
@@ -165,12 +171,7 @@ refl : (a : A) -> Eq A a a
 }
 
 -- hangs on unproduktive stream
--- let zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
-
--- fail but do not hang 
---let zz3 : Eq (Stream Nat #) (odds #) (cons Nat # zero (odds #)) = refl (Stream Nat #) (odds #) 
---let zz4 : Eq (Stream Nat #) (evens #) (cons Nat # zero (evens #)) = refl (Stream Nat #) (evens #) 
---let zz5 : Eq (Stream Nat #) (tail Nat (evens #)) (cons Nat # zero (tail Nat (evens #))) = refl (Stream Nat #) (tail Nat (evens #)) 
+--  let zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
 
 sized data Unit : Size -> Set
 {

@@ -15,12 +15,12 @@ wkSNat .($ i) (zero i) = zero ($ i);
 wkSNat .($ i) (succ i x) = succ ($ i) (wkSNat i x) 
 }
 
--- bad  , not admissible
---fun wkSNat2 : (i : Size ) -> SNat ($ i) -> SNat i
---{
---wkSNat2 .($ i) (zero ($ i)) = zero i;
---wkSNat2 .($ i) (succ ($ i) x) = succ i (wkSNat2 i x) 
---}
+-- bad  , incomplete pattern
+fun wkSNat2 : (i : Size ) -> SNat ($ i) -> SNat i
+{
+wkSNat2 .($ i) (zero ($ i)) = zero i;
+wkSNat2 .($ i) (succ ($ i) x) = succ i (wkSNat2 i x) 
+}
 
 fun wkNatInfty : (i : Size) -> SNat i -> SNat #
 {
@@ -28,23 +28,23 @@ wkNatInfty .($ i) (zero i) = zero #;
 wkNatInfty .($ i) (succ i n) = succ # (wkNatInfty i n)
 }
 
-fun add : ( i : Size) -> SNat i -> SNat # -> SNat #
+fun add : SNat # -> SNat # -> SNat #
 {
 
-add .($ i) (zero i) y = y; 
-add .($ i) (succ i x) y = succ # (add i x y) 
+add (zero .#) y = y; 
+add (succ .# x) y = succ # (add x y) 
 
 }
 
-eval let four : SNat # = add # two two
-let six : SNat # = add # four two
+eval let four : SNat # = add two two
+let six : SNat # = add four two
 
 fun minus : (i : Size ) -> SNat i -> SNat # -> SNat i
 {
 
 minus .($ i) (zero i)    y          = zero i;
 minus i      x           (zero .#)  = x ;
-minus .($ i) (succ i x)  (succ .# y) = minus i x y
+minus .($ i) (succ i x)  (succ .# y) = minus i x y --subtyping i < ($ i)
 
 }
 
@@ -62,25 +62,25 @@ div ($ .i) (succ i x) (succ .# y)  = succ i (div i (minus i x y) (succ # y))
 eval let div4_4 : SNat # = div # four four
 
 
-fun compare : (i : Size ) -> (j : Size ) -> (SNat i) -> (SNat j)
+fun compare : SNat # -> SNat #
     -> (A : Set) -> A -> A -> A
 {
-compare i      .($ j) x          (zero j)          A a a' = a ;
-compare .($ i) .($ j) (zero i)   (succ j y')        A a a' = a';
-compare .($ i) .($ j) (succ i x) (succ j y)       A a a' = compare i j x y A a a'
+compare x           (zero .#)    A a a' = a ;
+compare (zero .#)   (succ .# y') A a a' = a';
+compare (succ .# x) (succ .# y)  A a a' = compare x y A a a'
 }
 
 fun gcd : (i : Size ) -> (j : Size ) -> SNat i -> SNat j -> SNat #
 {
-gcd .($ i)  j      (zero i)   y          = y; 
-gcd .($ i)  .($ j) (succ i x) (zero j)   = x ;
-gcd .($ i)  .($ j) (succ i x) (succ j y) = 
-    compare i j x y (SNat #)
+   gcd .($ i)  j      (zero i)   y          = y; 
+   gcd .($ i)  .($ j) (succ i x) (zero j)   = x ; 
+   gcd .($ i)  .($ j) (succ i x) (succ j y) = 
+   compare x y (SNat #)
                (gcd i ($ j) (minus i x y) (succ j y))         
                (gcd ($ i) j (succ i x) (minus j y x))
 }
 
-let gcd6_4 : SNat # = gcd # # six four
+eval let gcd6_4 : SNat # = gcd # # two two
 
 data Eq (A : Set) (a : A) : A -> Set 
 {
@@ -94,8 +94,8 @@ subst .A P .a .a (refl A a) p = p
 }
 
 let Nat : Set = SNat #
-let add' : Nat -> Nat -> Nat = add #
 
-let plus_1_0_is_1 : Eq Nat (add' one z) one = refl Nat one
+let plus_1_0_is_1 : Eq Nat (add one z) one = refl Nat one
 
-  
+let wkFun : (i : Size ) -> (SNat i -> SNat i) -> (SNat i -> SNat ($ i)) = \i -> \f -> ( \x -> wkSNat i (f x) )  
+

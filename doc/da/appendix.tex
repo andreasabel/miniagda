@@ -1,26 +1,26 @@
 \appendix
-\chapter{Mugda implemtation}
+\chapter{Mugda implementation}
 Mugda was implemented in the function language Haskell \cite{haskell}.
 \section{Overview}
 \begin{itemize}
 \item
-\texttt{Lexer.x} : The alex lexer file
+\texttt{Lexer.x} : the alex lexer file
 \item
-\texttt{Parser.y} : The happy parser file
+\texttt{Parser.y} : the happy parser file
 \item
-\texttt{Concrete.hs} : Concrete syntax produced by the parser
+\texttt{Concrete.hs} : concrete syntax produced by the parser
 \item
 \texttt{ScopeChecker.hs} : turns concrete into abstract syntax
 \item
 \texttt{Abstract.hs} : produced by the scope checker
 \item
-\texttt{Values.hs} : Values and related functions: eval, whnf 
+\texttt{Values.hs} : values and evaluation, Signature 
 \item
-\texttt{TypeChecker.hs} : Typechecking with admissiblity checking
+\texttt{TypeChecker.hs} : type-checking with admissibility checking
 \item
 \texttt{Termination.hs} : structural Termination checker
 \item
-\texttt{Completness} : size pattern completness check
+\texttt{Completeness.hs} : size pattern completeness check
 \item
 \texttt{SPos.hs} : strict positivity checker
 \texttt{Main.hs} : the main module
@@ -39,16 +39,22 @@ $\EPi{x}{A}{B}$ is written \texttt{(x : A) -> B }
 \item
 $A \ra B$ is written \texttt{A -> B}
 \item
-$ \lam{x}e$ is written \texttt{\\ x -> e }
+$\ELet{x}{A}{e}{f}$ is written \texttt{let x : A = e in f}
 \item
-$ \inacc{e}$ is written \texttt {.e} 
+$ \lam{x}e$ is written \verb+\x -> e +
+\item
+$ \inacc{e}$ is written \texttt{.e} 
 \item
 $ \infty$ is written \texttt{\#} 
 \item
 $\s$ is written \texttt{\$}
+\item
+comments up to the end of a line are prefixed by \verb+--+
+\item
+multi-line comments are put between \verb+{-+ and \verb+-}+
 \end{itemize}
-\texttt{const} can be replaced with {\texttt {eval const}}. Then the value will be evaluated after type checking is done.
-As an example showing all syntactial features, here is the fibonacci stream example (\texttt{examples/fib.ma}) in ASCII format:
+a \texttt{let} declaration can be prefixed with \texttt{eval}. Then the value will be evaluated after type checking is done.
+As an example showing almost all syntactical features, here is the Fibonacci stream example (\texttt{examples/fib.ma}) in text format:
 \begin{verbatim}
 data Nat : Set {
   zero : Nat;
@@ -77,43 +83,43 @@ fun nth : Nat -> Stream # -> Nat {
   nth (succ x) xs = nth x (tail xs) 
 }
 
-const 1 : Nat = (succ zero)
+let 1 : Nat = (succ zero)
 
 cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i {
   fib' x y ($ i) = cons i x (fib' y (add x y) i)
 } 
 
 -- fib = 1, 1, 2, 3, 5 , 8 ...
-const fib : Stream # = (fib' 1 1 #)
+let fib : Stream # = (fib' 1 1 #)
 
-const 4 : Nat = (succ (succ (succ 1)))
+let 4 : Nat = (succ (succ (succ 1)))
 
 -- fib(4) = 5 
-eval const fib4 : Nat = nth 4 fib 
+eval let fib4 : Nat = nth 4 fib 
 \end{verbatim}
 Running \texttt{Main examples/fib.ma} yields the console output:
 \begin{verbatim}
 ***** Mugda v1.0 *****
 --- scope checking ---
 --- type checking ---
---- evaluating constants ---
+--- evaluating ---
 fib4 evaluates to (succ (succ (succ (succ (succ zero)))))
 \end{verbatim}
 
 \section{Parsing}
 The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
-
-The checkers use monad transformers (\cite{Grabmueller2006MonadTransformers}).
+Monad transformers (\cite{Grabmueller2006MonadTransformers}) are used to keep the signature in a state monad,
+to provide I/O and error tracing.
 
 \section{Scope checking}
-The first step after parsing is scope checking.
+One part that was not really outlined in the main part is scope checking.
+It is first step after parsing.
 During parsing, identifiers are left not yet classified as variables, function symbols etc.
 The syntax after parsing is called \emph{concrete syntax}.
-The scope checker handles uniqueness of names and classifies identifiers. 
-The use of linear patterns is also restricted at scope checking.
-Thus, all used identifiers can be categorized as refering to a constructor, a variable or a definied data type or
-function.
-After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+The scope checker handles uniqueness of names and classifies identifiers, producing \emph{abstract syntax}.
+Some simple syntactic tests like the linearity of patterns is also enforced during scope checking.
+All used identifiers can be categorized as referring to a constructor, a variable or a defined data type or
+function. After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
 
 
 

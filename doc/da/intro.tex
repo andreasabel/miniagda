@@ -6,7 +6,7 @@ Dependent types were introduced as a central piece to Martin-L\"of's type theory
 As programming languages receive more and more powerful type systems, there have been renews efforts to use dependent types in programming languages: Languages such as Cayenne \cite{augustsson98cayenne}, Agda \cite{norell:thesis} and Epigram \cite{epigram} strife to be seen more as practial programming languages rather than logical frameworks. 
 
 \paragraph*{Inductive families}
-Type theory\footnote{for a good introductory text, the reader is referred to \cite{NPS:proml}}
+Type theory\footnote{for an introductory text, the reader is referred to \cite{NPS:promlt}}
  is often called an open theory: new constants can be added to the system.
 As a programming language, there is the need to define inductive types like lists and trees.
 To be used for logical purposes, inductive predicates have to be defined. 
@@ -43,41 +43,40 @@ The argument \texttt{xs} is structurally smaller than the input argument on the 
 We conclude, if the list data type is well founded (i.e there are only finite lists), then the program \texttt{length} is guaranteed to terminate.
 We note that we looked only at the defining equations of the function. Its type declaration was irrelevant to us.
 \paragraph*{Term-based termination}
-When pattern matching for dependent types was introduced in  \cite{coquand-pattern},
+When pattern matching for dependent types was introduced in  \cite{coquand92pattern},
 the test outlined above was suggestes as the syntactic criterion for termination. 
 
 But not all defined functions have that clear \emph{structural recursive} form.
-In \cite{abel-altenkrich},a decision procedure for a simple typed language is given that also handles lexicographic orderings on arguments and mutual recursion.
-\cite{jones} devised the \emph{size change principle} that subsumes this effort and also handles functions with permutated arguments. 
+In \cite{abelAltenkirch:predStRec},a decision procedure for a simple typed language is given that also handles lexicographic orderings on arguments and mutual recursion.
+\cite{lee01sizechange} devised the \emph{size change principle} that subsumes this effort and also handles functions with permuted arguments. 
 \paragraph*{Type-based termination}
 All of the above methods are part of methods called \emph{term-based termination}, where termination is, at least conceptually,  asserted by a separate \emph{termination checker} component of the system. 
-Type-based termination \footnote{for an introduction, see chapter one in \cite{abel-phd}} refers to methods where the type checker itself is in charge of checking termination. Termination is ensured by the typing rules. 
+Type-based termination\footnote{for an introduction, see the first chapter in \cite{abel:PhD}} refers to methods where the type checker itself is in charge of checking termination. Termination is ensured by the typing rules. 
 
 The \emph{sized types} approach is an instance of type-based termination:
 Types are decorated with size annotations that denote an upper bound on the height of the objects inhabiting them. 
 It is then checked that the size is getting smaller in recursive calls. 
 
 In comparison with term-based termination, sized types are more robust to syntactical changes of the program and the type system is able to use the information that certain functions are \emph{size-preserving}.
-Some effort \cite{barthe} has been made to automatically infer these size annoations, making the sizes transparent for the user. 
+Some effort (\cite{bgp:lpar06}) has been made to automatically infer these size annoations, making the sizes transparent for the user. 
 \paragraph{Co-inductive Types}
 There arises the need for potentially infinite objects, for example to model a continuous stream of network packages.
 Streams, infinite sequences of elements, are the prime example of a \emph{co-inductive} type. 
 While streams could be emulated by a function mapping natural numbers to elements, it is more 
 natural and general to support directly support co-inductive types.
 
-While \emph{co-recursive definitions} that create or manipulate infinite objects are in a sense non-terminating. 
-they have to be \emph{productive}. For productive definitons, looking at any finite portion of the object is possible.
+While \emph{co-recursive definitions} that create or manipulate infinite objects are in a sense non-terminating, they still have to be \emph{productive}. For productive definitons, looking at any finite portion of the object is possible.
 As for termination, there are syntactic tests to guarantee productivity (\cite{coquand-infinite}), but here again sized types offer a worthwhile alternative.  
 
 \paragraph*{Mugda}
 Our work started with an investigation of how a sized type approach could be added to a system like Agda.
 The current version of Agda supports inductive families and mutual recursive function declarations by pattern matching. 
-The Agda termination checker is based on the syntactic criterion of \cite{abel-altenkirch}.
+The Agda termination checker is based on the syntactic criterion of \cite{abelAltenkirch:predStRec}.
 
 In the description above, sized types sound like a very different approach compared to term-based termination.
 But, with inductive families and pattern matching, these approaches can be naturally combined.
 
-As a result, the system \mugda\footnote{short for Munich Agda} was developed.
+As a result, the system \mugda was developed.
 It is a basic predicative system supporting inductive families and pattern matching. 
 As a special feature, the language supports coinductive definitions and also offers \emph{size type} to form size annotations. 
 As a preview, we sketch how termination and productivity checking of defintions is handled by \mugda:
@@ -102,7 +101,7 @@ With this type, sized data types can be formed. We show how sized data types hel
 Also, the size type will allow the verification of productivity for co-inductive objects.
 As the use of the size type has to be constrained for the system to be sound, we present an admissibilty criterion for this.
 Finally in chapter 5, we take a look back and give an overview of ideas for extensions and future research.
-In the appendix, we give details on how the system described in the previous chapters was implemented in the programming language Haskell.
+In the appendix, we give details on how the system described in the previous chapters was implemented.
 
 
 

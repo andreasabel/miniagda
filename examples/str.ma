@@ -8,33 +8,20 @@ fun add : Nat -> Nat -> Nat {
   add (succ x) = \y -> succ (add x y)
 }
 
-codata Stream : Set 
+codata Stream : Nat -> Set 
 {
-  cons : Nat -> Stream -> Stream 
+  cons : (i : Nat ) -> Nat -> Stream i -> Stream (succ i) 
 }
 
-cofun ones : Stream 
+-- incomplete pattern
+cofun zeroes : (i : Nat ) -> Stream i
 {
-  ones = cons zero ones
-}
- 
-fun tail : Stream -> Stream 
-{
-  tail (cons n ns) = ns
+cons (succ i) = cons i zero (zeroes i)
 }
 
-fun head : Stream -> Nat 
+fun head : (i : Nat ) -> Stream (succ i) -> Nat
 {
-  head (cons n ns) = n
+head .i (cons i x xl) = x
 }
 
-fun force : Stream -> Stream
-{
-  force (cons n ns) = cons n ns
-}
-
-data Eq ( A: Set ) : A -> A -> Set
-{
-  refl : (a : A ) -> Eq A a a 
-}
 

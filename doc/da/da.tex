@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{latexsym}
 \usepackage{pxfonts}
+\usepackage[german,english]{babel} 
 
 \pagestyle{headings}
 
@@ -15,8 +16,7 @@
 {\begin{list}{}{
 \setlength{\leftmargin}{0cm}
 \setlength{\rightmargin}{0cm}
-}
-\item}{
+}\item}{
 \end {list}
 }
 
@@ -50,6 +50,10 @@
 \newcommand{\suc}{\mathsf{succ}\:}
 \newcommand{\add}{\mathsf{add}\:}
 \newcommand{\addt}{\mathsf{add_2}\:}
+
+\newcommand{\NatP}{\mathsf{NatPair}\:}
+\newcommand{\np}{\mathsf{np}\:}
+\newcommand{\addp}{\mathsf{add_p}\:}
 
 \newcommand{\even}{\mathsf{even}\:}
 \newcommand{\odd}{\mathsf{odd}\:}
@@ -103,7 +107,13 @@
 \newcommand{\tail}{\mathsf{tail}\:}
 \newcommand{\nth}{\mathsf{nth}\:}
 
-\newcommand{\wkSNat}{\mathsf{wkSNat}\:}
+\newcommand{\wkSNat}{\mathsf{weakSNat}\:}
+\newcommand{\wkSNatb}{\mathsf{badSNat}\:}
+\newcommand{\wkStream}{\mathsf{weakStream}\:}
+
+
+\newcommand{\minus}{\mathsf{minus}\:}
+\renewcommand{\div}{\mathsf{div}\:}
 
 \newcommand{\SNat}{\mathsf{SNat}\:}
 \newcommand{\Maybe}{\mathsf{Maybe}\:}
@@ -160,6 +170,7 @@
 
 \vspace*{-2cm}
 
+\selectlanguage{german} 
 {\Huge INSTITUT F\"UR INFORMATIK\\[1mm]} % 
 DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
@@ -197,20 +208,20 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 \title{Termination Checking for a dependently typed language}
 \author{Karl Mehltretter}
 \date{today}
-\renewcommand{\abstractname}{Abstrakt}
+\renewcommand{\abstractname}{Inhalt}
 \begin{abstract}
 Abh\"angige Typen werden als Basis f\"ur viele interaktive Theorembeweiser eingesetzt und es gibt seit einiger Zeit Bem\"uhungen, sie f\"ur allgemeine funktionale Programmiersprachen zu verwenden.
 Eine Sprache mit abh\"angigen Typen erlaubt es, in einem gemeinsamen Rahmen sowohl Programme zu schreiben als auch Beweise zu formalisieren.
 
 Das aus der Programmierung bekannte \emph{pattern matching} wurde als Mittel zur Definition von
 rekursiven Funktionen in diesen Systemen vorgeschlagen.
-Zwar ist pattern matching intuitiv und m\"achtig, doch muss sichergestellt sein, dass die so definierten Funktionen total sind.
+Zwar ist pattern matching intuitiv und m\"achtig, doch muss sicher\-gestellt werden, dass die so definierten Funktionen total sind.
 
 Ein Aspekt einer totalen Funktion ist Terminierung: Jeder Auswertung der Funktion muss in endlicher Zeit m\"oglich sein.  Unendlich Objekte k\"onnen unterst\"utzt werden, indem jeweils nur Teile davon berechnet werden.
 G\"ultige Definitionen f\"ur unendliche Objekte m\"ussen \emph{produktiv} sein.
 
-Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"oglichst viele Definition als terminierend zu erkennnen. Es gibt verschiedene Ans\"atze zum Uberpr\"ufen der Terminierung.
-Oft k\"onnen Funktionen, deren rekursive Aufrufe einem Schema wie z.B. der primitiven Rekursion folgen,
+Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"o\-glichst viele Definition als terminierend zu erkennnen. Es gibt verschiedene Ans\"atze zum Uberpr\"ufen der Terminierung.
+Oft k\"onnen Funktionen, deren rekursive Aufrufe einem Schema wie folgen,
  vom System zugelassen werden. Das \emph{size change principle} umfasst einige dieser Schemata. 
 
 Ein weiterer Vorschlag ist der Einsatz von \emph{sized types}. Information \"uber die Gr\"o\ss e von Argumenten wird im Typsystem verfolgt, um diese f\"ur das Erkennen der Terminierung zu nutzen.   
@@ -222,13 +233,14 @@ Au\ss erdem stelle die Sprache Elemente bereit, um dem Benutzer die Verwendung v
 \end{abstract}
 \newpage
 
+\selectlanguage{english} 
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
-Dependent types have been used at the core of many proof asistants, and more recently there haven been efforts to extend their use to functional programming languages. 
+Dependent types have been used at the core of many proof assistants, and more recently there haven been efforts to extend their use to functional programming languages. 
 Dependent type theories allow programming and reasoning in one common framework.
 
 The \emph{pattern matching} notation, known from traditional programming, has been proposed for defining recursive functions in such systems.
-While pattern mathing is intuitive and powerful, it has to be ensured that the defined functions are total. 
+While pattern matching is intuitive and powerful, it has to be ensured that the defined functions are total. 
 
 One aspect of totality is termination: each evaluation of a function must be able to be computed in finite time.
 Infinite objects can be added to the language by computing only finite parts of them as necessary.
@@ -236,7 +248,7 @@ Valid definitions of infinite objects need to be \emph{productive}.
 
 As the Halteproblem is undecidable, the goal can only be to accept as many valid definitions as possible.
 There are many approaches to ensure termination.
-One is to allow the definition of functions where the recursive calls follow a certain scheme, for example primitive recursion.
+One is to allow the definition of functions where the recursive calls follow a certain scheme.
 The \emph{size change principle} subsumes some of these schemes.
 
 With the use of \emph{sized types}, information about the height of arguments is tracked in the type system and can be used to recognize more definitions as terminating.  
