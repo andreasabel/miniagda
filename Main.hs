@@ -63,5 +63,5 @@ doScopeCheck :: [C.Declaration] -> [A.Declaration]
 doScopeCheck decl = let k = scopeCheck decl 
                     in
                       case k of
-                        Left err -> error $ "scope check error: " ++ err
+                        Left err -> error $ "scope check error: " ++ show err
                         Right (decl',_) -> decl'

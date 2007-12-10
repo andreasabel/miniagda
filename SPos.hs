@@ -2,6 +2,7 @@ module SPos (sposConstructor,posArgs) where
 
 import Abstract
 import Value
+import TraceError
 
 import Control.Monad.Identity
 import Control.Monad.Reader

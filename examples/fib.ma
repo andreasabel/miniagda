@@ -39,7 +39,6 @@ let 4 : Nat = (succ (succ (succ 1)))
 eval let fib4 : Nat = nth 4 fib 
 
 
-
 --------------------------------------------
 --------------------------------------------
 
@@ -86,12 +85,12 @@ ite tt A a1 a2 = a1;
 ite ff A a1 a2 = a2
 }
 
-cofun merge : (i : Size ) -> Stream # -> Stream # -> Stream i
+cofun merge : (i : Size ) -> (Nat -> Nat -> Bool) -> Stream # -> Stream # -> Stream i
 {
-merge ($ i) (cons .# x xs) (cons .# y ys) = 
-      ite (leq x y) (Stream ($ i))
-         (cons i x (merge i xs (cons # y ys)))
-	 (cons i y (merge i (cons # x xs) ys))     
+merge ($ i) le (cons .# x xs) (cons .# y ys) = 
+      ite (le x y) (Stream ($ i))
+         (cons i x (merge i le xs (cons # y ys)))
+	 (cons i y (merge i le (cons # x xs) ys))     
 }
 
 fun first : (A : Set ) -> (B : Set ) -> A -> B -> A
@@ -107,24 +106,8 @@ lookbad ($ i) =
           (lookbad i)
 }
 
---let proof2 : Eq (Stream #) (cons # zero (lookbad #)) (lookbad #) = refl (Stream #) (lookbad #)
---let proof3 : Eq (Stream #) (cons # zero (lookbad #)) (tail (lookbad #)) = refl (Stream #) (tail (lookbad #))
-
---------------------
-
-cofun map : (i : Size ) -> (Nat -> Nat) -> Stream i -> Stream i 
-{
-map .($ i) f (cons i x xl) = cons i (f x) (map i f xl)
-}
-
-cofun evil : (i : Size ) -> Stream i
-{
-evil ($ i) = map ($ i) succ (cons i zero (evil i))
-}
-
-eval let e : Nat = head (evil #)
-
-
+let proof2 : Eq (Stream #) (cons # zero (lookbad #)) (lookbad #) = refl (Stream #) (lookbad #)
+let proof3 : Eq (Stream #) (cons # zero (lookbad #)) (tail (lookbad #)) = refl (Stream #) (tail (lookbad #))
 
 
 

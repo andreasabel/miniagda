@@ -3,6 +3,8 @@ module ScopeChecker (scopeCheck) where
 import qualified Abstract as A
 import qualified Concrete as C
 
+import TraceError
+
 import Abstract (Name,Co,Pos)
 
 import Control.Monad.Identity
@@ -16,13 +18,9 @@ import Debug.Trace
 
 --scope checker
 -- check that all identifiers are in scope and global identifiers are only used once
-
 -- replaces Ident with Con, Def , Let or Var  
-
 -- replaces IdentP with ConP or VarP in patterns
-
 -- check pattern length is equal in each clause
-
 -- group mutual declarations
 
 --------------------
@@ -45,35 +43,36 @@ addCtx n ctx = ctx ++ [n]
 addCtxs :: [Name] -> Context -> Context
 addCtxs nl ctx = ctx ++ nl
 
---global signature
 
-data Kind = DataK | ConK Co | FunK | LetK
+-- kind of identifier
+data IKind = DataK | ConK Co | FunK | LetK
 
-type Sig = [(Name,Kind)] -- we record if a name is a constructor name or something else
+-- Scope check signature
+type Sig = [(Name,IKind)] 
 
 emptySig :: Sig
 emptySig= []
 
-lookupSig :: Name -> Sig -> Maybe Kind
+lookupSig :: Name -> Sig -> Maybe IKind
 lookupSig n [] = Nothing
 lookupSig n ((x,k):xs) = if (x == n) then Just k else lookupSig n xs
 
-addSig :: Name -> Kind -> Sig -> Sig
+addSig :: Name -> IKind -> Sig -> Sig
 addSig n k sig = sig ++ [(n,k)]
 
--- reader monad for local environment (only used in expresssions and patterns)
 
+-- Scope check monad
+-- reader monad for local environment for variables (used in expresssions and patterns)
 -- state monad for global signature
-type ScopeCheck a = ReaderT Context (StateT Sig (ErrorT String Identity)) a
+type ScopeCheck a = ReaderT Context (StateT Sig (ErrorT TraceError Identity)) a
 
-runScopeCheck :: Context -> Sig -> ScopeCheck a -> Either String (a,Sig)
+runScopeCheck :: Context -> Sig -> ScopeCheck a -> Either TraceError (a,Sig)
 runScopeCheck ctx sig sc = runIdentity (runErrorT (runStateT (runReaderT sc ctx) sig))  
 
-scopeCheck :: [C.Declaration] -> Either String ([A.Declaration],Sig)
+scopeCheck :: [C.Declaration] -> Either TraceError ([A.Declaration],Sig)
 scopeCheck dl = runScopeCheck emptyCtx emptySig (scopeCheckDecls dl)
 
 ---------
-
 
 scopeCheckDecls :: [C.Declaration] -> ScopeCheck [A.Declaration]
 scopeCheckDecls = mapM scopeCheckDeclaration 
@@ -81,7 +80,7 @@ scopeCheckDecls = mapM scopeCheckDeclaration
 
 scopeCheckDeclaration :: C.Declaration -> ScopeCheck A.Declaration
 scopeCheckDeclaration d@(C.DataDecl _ _ _ _ _ _) = scopeCheckDataDecl d 
-scopeCheckDeclaration d@(C.FunDecl _ _ _ ) =  scopeCheckFunDecls [d]
+scopeCheckDeclaration d@(C.FunDecl co _ _) = scopeCheckFunDecls co [d]
                                                
 scopeCheckDeclaration (C.LetDecl b ts e) = do e' <- scopeCheckExpr e
                                               ts' <- scopeCheckTypeSig ts
@@ -92,12 +91,14 @@ scopeCheckDeclaration (C.LetDecl b ts e) = do e' <- scopeCheckExpr e
 -- - mutual (co)funs
 -- - mutual (co)data
 
-scopeCheckDeclaration (C.MutualDecl []) = throwError "mutual combination not supported"
-scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl _ _ _:xl)) = scopeCheckFunDecls l 
-scopeCheckDeclaration (C.MutualDecl _) = throwError "mutual combination not supported"
+scopeCheckDeclaration (C.MutualDecl []) = throwErrorMsg "mutual combination not supported"
+scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl  co _ _:xl)) = scopeCheckFunDecls co l 
+scopeCheckDeclaration (C.MutualDecl _) = throwErrorMsg "mutual combination not supported"
                                 
 scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
-scopeCheckDataDecl decl@(C.DataDecl n sz co tel t cs) = do
+scopeCheckDataDecl decl@(C.DataDecl n sz co tel t cs) = 
+    (
+    do
       let pos = posTelescope tel
       let tt = C.teleToType tel t
       (A.TypeSig _ tt') <- scopeCheckTypeSig (C.TypeSig n tt)
@@ -106,10 +107,12 @@ scopeCheckDataDecl decl@(C.DataDecl n sz co tel t cs) = do
       let names = collectTelescopeNames tel
       cs' <- local (addCtxs names) (mapM (scopeCheckConstructor co) cs ) 
       return $ A.DataDecl n sz co pos tel' t' cs'
-      
-checkFunMutual [] = return ()
-checkFunMutual (C.FunDecl _ _ _:xl) = checkFunMutual xl
-checkFunMutual _ = throwError "mutual combination not supported"
+    ) `throwTrace` n
+
+
+checkFunMutual co [] = return ()
+checkFunMutual co (C.FunDecl co' _ _:xl) | co == co' = checkFunMutual co xl
+checkFunMutual _ _ = throwErrorMsg "mutual combination not supported"
 
 posTelescope :: C.Telescope -> [A.Pos]
 posTelescope [] = []
@@ -117,44 +120,43 @@ posTelescope (C.TB n t:tel) = A.NSPos : posTelescope tel
 posTelescope (C.PosTB n t:tel) = A.SPos :posTelescope tel
 
 ---
-scopeCheckFunDecls l = 
-    do checkFunMutual l
+scopeCheckFunDecls co l = 
+    do checkFunMutual co l
        tsl' <- mapM scopeCheckFunSig l
        mapM addDecl l
-       let col = map funCoType l  
        cll' <- mapM scopeCheckFunClause l
-       return $ A.FunDecl (zip3 tsl' col cll') 
+       return $ A.FunDecl co (zip tsl' cll') 
 
-funCoType :: C.Declaration -> Co
-funCoType (C.FunDecl co _ _) = co
-   
 scopeCheckFunSig :: C.Declaration -> ScopeCheck A.TypeSig 
 scopeCheckFunSig (C.FunDecl _ ts _ ) = scopeCheckTypeSig ts
 
 scopeCheckFunClause :: C.Declaration -> ScopeCheck [A.Clause] 
-scopeCheckFunClause (C.FunDecl _ _ cl) = 
+scopeCheckFunClause (C.FunDecl _ (C.TypeSig n _) cl) =
+    (
     do cl' <- mapM scopeCheckClause cl
        let b = checkPatternLength cl
        case b of
           True -> return $ cl' 
-          False -> throwError $ " pattern length differs"
- 
+          False -> throwErrorMsg $ " pattern length differs"
+    ) `throwTrace` n
 scopeCheckTypeSig :: C.TypeSig -> ScopeCheck A.TypeSig 
 scopeCheckTypeSig a@(C.TypeSig n t) = 
+    (
     do sig <- get
        case (lookupSig n sig) of
          Just _ -> errorAlreadyInSignature a n
          Nothing -> do t' <- scopeCheckExpr t 
                        return $ A.TypeSig n t'         
+    ) `throwTrace` n
 
 addDecl :: C.Declaration -> ScopeCheck ()
 addDecl (C.DataDecl n _ _ _ _ _) = addName DataK n
 addDecl (C.FunDecl _ ts _) = addTypeSig FunK ts
 
-addTypeSig :: Kind -> C.TypeSig -> ScopeCheck ()
+addTypeSig :: IKind -> C.TypeSig -> ScopeCheck ()
 addTypeSig kind (C.TypeSig n _) = addName kind n
 
-addName :: Kind -> Name -> ScopeCheck ()
+addName :: IKind -> Name -> ScopeCheck ()
 addName kind n =  do sig <- get
                      put (addSig n kind sig)
 
@@ -292,12 +294,12 @@ scopeCheckDotPattern p1 p2 =
       _ -> return p2
 
 
-errorAlreadyInSignature s n = throwError $ "Scope Error at " ++ show s  ++ ": Identifier " ++ n ++ " already in signature"
+errorAlreadyInSignature s n = throwErrorMsg $ show s  ++ ": Identifier " ++ n ++ " already in signature"
 
-errorAlreadyInContext s n = throwError $ "Scope Error at " ++ show s ++ ": Identifier " ++ n ++ " already in context"
+errorAlreadyInContext s n = throwErrorMsg $ show s ++ ": Identifier " ++ n ++ " already in context"
 
-errorPatternNotConstructor n = throwError $ "Scope Error in pattern: " ++ n ++ " not a constructor"
+errorPatternNotConstructor n = throwErrorMsg $ "pattern " ++ n ++ " not a constructor"
 
-errorIdentifierUndefined n = throwError $ "Scope Error: Identifier " ++ n ++ " undefined"
+errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ n ++ " undefined"
 
-errorPatternNotLinear n = throwError $ "Scope Error: pattern not linear: " ++ n 
+errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ n 

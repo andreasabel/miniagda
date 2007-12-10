@@ -1,6 +1,6 @@
 \appendix
 \chapter{Mugda implementation}
-Mugda was implemented in the function language Haskell \cite{haskell}.
+Mugda was implemented in the function language Haskell \cite{haskell}, using the Glasgow haskell compiler (GHC) \cite{jones93glasgow}).
 \section{Overview}
 \begin{itemize}
 \item
@@ -10,13 +10,15 @@ Mugda was implemented in the function language Haskell \cite{haskell}.
 \item
 \texttt{Concrete.hs} : concrete syntax produced by the parser
 \item
+\texttt{TraceError.hs} : provides the user a trace when an error occurs
+\item
 \texttt{ScopeChecker.hs} : turns concrete into abstract syntax
 \item
-\texttt{Abstract.hs} : produced by the scope checker
+\texttt{Abstract.hs} : produced by the scope checker, used for type and termination checking
 \item
-\texttt{Values.hs} : values and evaluation, Signature 
+\texttt{Values.hs} : defines values , evaluation, signature , typecheck Monad
 \item
-\texttt{TypeChecker.hs} : type-checking with admissibility checking
+\texttt{TypeChecker.hs} : type-checking with admissibility
 \item
 \texttt{Termination.hs} : structural Termination checker
 \item
@@ -26,11 +28,12 @@ Mugda was implemented in the function language Haskell \cite{haskell}.
 \texttt{Main.hs} : the main module
 \item
 \texttt{example} directory: example input files
+\item
+\texttt{Makefile} : for compilation with the GHC compiler, version $\geq$ 6.6
 \end{itemize}
-
 \section{Usage}
 
-\mugda as presented was translated fairly close to an ASCII syntax:
+\mugda as presented was translated pretty much directly transfered to an easily parsable ASCII syntax:
 \begin{itemize}
 \item
 lists of constructors and clauses are grouped with brackets \texttt{\{},\texttt{\}} and separated with semicolon \texttt{;}
@@ -119,7 +122,7 @@ The syntax after parsing is called \emph{concrete syntax}.
 The scope checker handles uniqueness of names and classifies identifiers, producing \emph{abstract syntax}.
 Some simple syntactic tests like the linearity of patterns is also enforced during scope checking.
 All used identifiers can be categorized as referring to a constructor, a variable or a defined data type or
-function. After scope checking, it is guaranteed that looking up in signature or environments is guaranteed to succeed.
+function. After scope checking, it is guaranteed that looking up a signature or environment is guaranteed to succeed.
 
 
 

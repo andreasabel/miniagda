@@ -31,5 +31,4 @@ foo (pair (succ x) zero) = foo (pair (succ x) (succ x));
 foo (pair (succ x) (succ y)) = foo (pair (succ y) (succ y))
 }
 
-eval const bla : Nat = foo (pair (succ zero) (succ zero))
 

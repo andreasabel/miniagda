@@ -34,7 +34,7 @@ instance Show Expr where
     show = prettyExpr
 
 data Declaration = DataDecl Name Sized Co [Pos] Telescope Type [Constructor]
-                 | FunDecl [(TypeSig,Co,[Clause])]  -- may be mutual
+                 | FunDecl Co [(TypeSig,[Clause])]  -- may be mutual
                  | LetDecl Bool TypeSig Expr --bool for eval
                    deriving (Eq,Show)
 

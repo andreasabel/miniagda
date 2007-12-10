@@ -61,15 +61,15 @@ minO o1 o2 = case (o1,o2) of
 
 minM :: Matrix Order -> Matrix Order -> Matrix Order
 minM m1 m2 = [ minV x y | (x,y) <- zip m1 m2]
-
-minV :: Vector Order -> Vector Order -> Vector Order
-minV v1 v2 = [ minO x y | (x,y) <- zip v1 v2]
+ where
+   minV :: Vector Order -> Vector Order -> Vector Order
+   minV v1 v2 = [ minO x y | (x,y) <- zip v1 v2]
 
 supremum :: [Order] -> Order
-supremum = foldr maxO Un
+supremum = foldl maxO Un
 
 infimum :: [Order] -> Order
-infimum = foldr minO Lt
+infimum = foldl minO Lt
 
 collapse :: Matrix Order -> Order
 collapse m = let d = diag m
@@ -103,9 +103,10 @@ transp y = [[ z!!j | z<-y] | j<-[0..s]]
     where
     s = length (head y)-1
 
-mmul :: SemiRing a -> Matrix a -> Matrix a -> Matrix a
-mmul sem m1 m2 = [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
-
+mmul :: Show a => SemiRing a -> Matrix a -> Matrix a -> Matrix a
+mmul sem m1 m2 = let m = 
+                         [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
+                 in m 
 diag :: Matrix a -> Vector a
 diag [] = []
 diag m = [ (m !! j) !! j | j <- [ 0..s] ] 
@@ -135,10 +136,10 @@ compareArgs pl el ar_g =
             
              
 compareExpr :: Expr -> Pattern -> Order
-compareExpr e p = 
+compareExpr e p =  
    case (e,p) of 
       (_,DotP e') -> case exprToPattern e' of
-                       Nothing -> Un
+                       Nothing -> if e == e' then Le else Un
                        Just p' -> compareExpr e p'
       (Var i,p) -> compareVar i p 
       (App (Var i) _,p) -> compareVar i p 
@@ -148,7 +149,8 @@ compareExpr e p =
                    Mat (map (\ e -> (map (compareExpr e) pl)) args)
                else
                    infimum $ zipWith compareExpr args pl
-      (Con _ n,ConP _ n2 []) | n == n2 -> Le     
+      (Con _ n,ConP _ n2 []) | n == n2 -> Le    
+      (_,ConP _ n2 []) -> Un     
       (_,ConP Ind n pl) -> comp Lt $ infimum $ map (compareExpr e) pl 
       (Succ e2,SuccP p2) -> compareExpr e2 p2     
       _ -> Un
@@ -188,7 +190,7 @@ exprsToPatterns (e:el) = case exprToPattern e of
 
 -------------------
 
-terminationCheck :: [(TypeSig,Co,[Clause])] -> IO ()
+terminationCheck :: [(TypeSig,[Clause])] -> IO ()
 terminationCheck funs =
        let tl = terminationCheckFuns funs
            nl = map fst tl
@@ -203,7 +205,7 @@ terminationCheck funs =
                     _   -> putStrLn ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) 
                                    
 
-terminationCheckFuns :: [ (TypeSig,Co , [Clause]) ] -> [(Name,Bool)]
+terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [(Name,Bool)]
 terminationCheckFuns funs =
     let beh = recBehaviours funs 
     in
@@ -225,11 +227,16 @@ callComb (Call s1 t1 m1) (Call s2 t2 m2) = Call s2 t1 (mmul ordRing m1 m2)
 cgComb :: [Call] -> [Call] -> [Call]
 cgComb cg1 cg2 = [ callComb c1 c2 | c1 <- cg1 , c2 <- cg2 , (source c1 == target c2)]
 
-complete :: [Call] -> [Call]
-complete cg =
-              let cg' = Set.fromList cg
-                  cg'' = Set.union cg' (Set.fromList $ cgComb cg cg ) in
-              if (cg'' == cg') then Set.toList cg'' else complete (Set.toList cg'')
+complete :: [Call ] -> [Call] 
+complete cg = let cg' = complete' cg in trace (show cg') cg'
+
+complete' :: [Call] -> [Call]
+complete' cg =
+              let cgs = Set.fromList cg
+                  cgs' = Set.union cgs (Set.fromList $ cgComb cg cg ) 
+                  cg' = Set.toList cgs'
+              in
+                if (cgs == cgs') then cg else complete' cg'
 
 checkAll :: [Call] -> Bool
 checkAll x = all checkIdem x
@@ -246,7 +253,7 @@ isDecr o = case o of
              (Mat m) -> any isDecr (diag m)
              _ -> False
              
-recBehaviours :: [ (TypeSig, Co , [Clause] ) ] -> [(Name,[Call])]
+recBehaviours :: [ (TypeSig,[Clause] ) ] -> [(Name,[Call])]
 recBehaviours funs = let names = map fst $ collectNames funs
                          cg = ccFunDecl funs
                      in groupCalls names [ c | c <- cg , (target c == source c) ]
@@ -255,16 +262,16 @@ groupCalls :: [Name] -> [Call] -> [(Name,[Call])]
 groupCalls [] _ = []
 groupCalls (n:nl) cl = (n, [ c | c <- cl , (source c == n) ]) : groupCalls nl cl
 
-ccFunDecl :: [ ( TypeSig, Co , [Clause]) ] -> [Call]
+ccFunDecl :: [ ( TypeSig,[Clause]) ] -> [Call]
 ccFunDecl funs = complete $ collectCGFunDecl funs
 
-collectCGFunDecl :: [(TypeSig, Co , [Clause])] -> [Call]
+collectCGFunDecl :: [(TypeSig,[Clause])] -> [Call]
 collectCGFunDecl funs =
     let names = collectNames funs
     in
       concatMap (collectClauses names) funs
           where
-            collectClauses names ((TypeSig n _),_,cll) = collectClause names n cll
+            collectClauses names ((TypeSig n _),cll) = collectClause names n cll
             collectClause names n ((Clause pl rhs):rest) = 
                 (collectCallsExpr names n pl rhs) ++ (collectClause names n rest) 
             collectClause names n [] = []
@@ -274,7 +281,7 @@ arity [] = 0
 arity (Clause pl e:l) = length pl
 
 collectNames [] = []                
-collectNames ((TypeSig n _,_,cl):rest) = (n,arity cl) : (collectNames rest)
+collectNames ((TypeSig n _,cl):rest) = (n,arity cl) : (collectNames rest)
 
 
 collectCallsExpr :: [(Name,Int)] -> Name -> [Pattern] -> Expr -> [Call]
@@ -292,13 +299,12 @@ collectCallsExpr nl f pl e =
                                                  cg = Call { source = f
                                                            , target = g
                                                            , matrix = m }
-                                             in cg:calls
+                                             in trace (f ++ " " ++ show m ++ " " ++ g) cg:calls
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
       (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f pl e1
-      (LLet _ e1 t1 e2) ->  (collectCallsExpr nl f pl e1) ++
-                            (  (collectCallsExpr nl f pl t1) ++
-                            (collectCallsExpr nl f pl e2) )
+      (LLet _ e1 t1 e2) ->  (collectCallsExpr nl f pl e1) ++ -- type won't get evaluated 
+                            (collectCallsExpr nl f pl e2) 
       (Pi _ e1 e2) -> (collectCallsExpr nl f pl e1) ++
                               (collectCallsExpr nl f pl e2)
       (Succ e1) -> collectCallsExpr nl f pl e1

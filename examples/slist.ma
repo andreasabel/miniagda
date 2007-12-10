@@ -15,42 +15,26 @@ cons : (i : Size ) -> A -> SList A i -> SList A ($ i)
 
 }
 
-
-
-fun head : (i : Size ) -> ( A : Set ) -> (a : A) -> SList A i -> A
-{
-head .($ i) .A a (nil A i) = a;
-head .($ i) .A a (cons A i x xs) = x
-}
-
-
 eval let list : SList Enum # = cons Enum # cc (cons Enum # aa (cons Enum # bb (nil Enum #))) 
-
-
 
 mutual 
 {
 
 	fun rev : ( i : Size ) -> ( A : Set ) -> SList A i -> SList A i
 	{
-
 	rev .($ i) .A (nil A i) = nil A i ;
 	rev .($ i) .A (cons A i x xs) = cons A i (rev1 i A x xs) (rev2 i A x xs)
-
 	}
 
 
 	fun rev1 : ( i : Size ) -> ( A : Set ) -> A -> SList A i -> A
 	{
-
 	rev1 .($ i) .A a (nil A i) = a ;
 	rev1 .($ i) .A a (cons A i x xs) = rev1 i A x xs
-
 	}
 
 	fun rev2 : ( i : Size ) -> (A : Set ) -> A -> SList A i -> SList A i
 	{
-
 	rev2 .($ i) .A a (nil A i) = nil A i;
 	rev2 .($ i) .A a (cons A i x xs) = rev ($ i) A (cons A i a (rev i A (rev2 i A x xs)))	
 	}
@@ -95,7 +79,6 @@ fun split : (A : Set) ->
 split .A .($ i) (nil A i) = prod (SList A ($ i)) (nil A i) (nil A i);
 split .A .($ ($ i)) (cons .A .($ i) a (nil A i)) = prod (SList A ($ ($ i))) (cons A ($ i) a (nil A i)) (nil A i);
 split .A .($ ($ i)) (cons A .($ i) a (cons .A i b as)) = 
-
      let rec : Prod (SList A i) = split A i as    in
      let l1 : SList A i = pr1 (SList A i) rec     in
      let l2 : SList A i = pr2 (SList A i) rec     in      

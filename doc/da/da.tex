@@ -66,6 +66,12 @@
 \newcommand{\nil}{\mathsf{nil}\:}
 \newcommand{\cons}{\mathsf{cons}\:}
 
+\newcommand{\Term}{\mathsf{Term}\:}
+\newcommand{\abs}{\mathsf{abs}\:}
+\newcommand{\funt}{\mathsf{Fun}\:}
+\newcommand{\func}{\mathsf{fn}\:}
+\newcommand{\omegad}{\mathsf{omega}\:}
+\newcommand{\app}{\mathsf{app}\:}
 
 \newcommand{\Tree}{\mathsf{Tree}\:}
 \newcommand{\leaf}{\mathsf{leaf}\:}
@@ -76,6 +82,9 @@
 \newcommand{\rev}{\mathsf{rev}\:}
 \newcommand{\reva}{\mathsf{rev1}\:}
 \newcommand{\revb}{\mathsf{rev2}\:}
+
+
+\newcommand{\flatt}{\mathsf{flat}\:}
 
 \newcommand{\Eq}{\mathsf{Eq}\:}
 \newcommand{\refl}{\mathsf{refl}\:}
@@ -147,6 +156,10 @@
 \newcommand{\ieat}{\mathsf{ieat}\:}
 \newcommand{\eat}{\mathsf{eat}\:}
 
+\newcommand{\adder}{\mathsf{adder}\:}
+\newcommand{\cadder}{\mathsf{cadder}\:}
+\newcommand{\iadder}{\mathsf{iadder}\:}
+
 \newcommand{\eqo}{\mathsf{eq_0}\:}
 \newcommand{\zeroest}{\mathsf{zeroes_2}\:}
 \newcommand{\beqd}{\mathsf{Beq}\:}
@@ -176,30 +189,32 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \vspace*{1cm}
 
-\includegraphics[width=0.4\textwidth]{siegel.pdf}
+\includegraphics[width=0.45\textwidth]{siegel.pdf}
 
 \vspace*{2cm}
 
-{\Large \textbf{Diplomarbeit}}\\
+{\LARGE \textbf{Diplomarbeit}}\\
 
 \vspace{2.0cm}
-{\Huge \textbf{Termination Checking for a}}\\
+{\LARGE \textbf{TERMINATION CHECKING FOR A}}\\
 \vspace*{3mm}
-{\Huge \textbf{dependently typed language}}\\
+{\LARGE \textbf{DEPENDENTLY TYPED LANGUAGE}}\\
 
 \vspace{2cm}
 
-\large{Dezember 2007}
+\Large{Dezember 2007}
 
 \vspace{1.5cm}
 
   \begin{Large}
-      Autor : Karl Mehltretter\\
-      Aufgabensteller : Prof. Dr. Martin Hofmann\\
-      Betreuer: Dr. Andreas Abel
+  \begin{tabular}{rl}
+      Autor: &Karl Mehltretter\\
+      Aufgabensteller: & Prof. Dr. Martin Hofmann\\
+      Betreuer: & Dr. Andreas Abel\\
+  \end{tabular}
   \end{Large}
-
 \end{center}
+\
 \end{titlepage} 
 
 \input{legal}
@@ -215,7 +230,7 @@ Eine Sprache mit abh\"angigen Typen erlaubt es, in einem gemeinsamen Rahmen sowo
 
 Das aus der Programmierung bekannte \emph{pattern matching} wurde als Mittel zur Definition von
 rekursiven Funktionen in diesen Systemen vorgeschlagen.
-Zwar ist pattern matching intuitiv und m\"achtig, doch muss sicher\-gestellt werden, dass die so definierten Funktionen total sind.
+Zwar ist pattern matching intuitiv und ausdrucksstark, doch muss sicher\-gestellt werden, dass die so definierten Funktionen total sind.
 
 Ein Aspekt einer totalen Funktion ist Terminierung: Jeder Auswertung der Funktion muss in endlicher Zeit m\"oglich sein.  Unendlich Objekte k\"onnen unterst\"utzt werden, indem jeweils nur Teile davon berechnet werden.
 G\"ultige Definitionen f\"ur unendliche Objekte m\"ussen \emph{produktiv} sein.

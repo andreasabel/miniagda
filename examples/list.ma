@@ -12,7 +12,7 @@ nil : List A;
 cons : A -> List A -> List A   
 }
 
-const list : List Enum = cons Enum aa (cons Enum bb (cons Enum cc (nil Enum ))) 
+let list : List Enum = cons Enum aa (cons Enum bb (cons Enum cc (nil Enum ))) 
 mutual 
 {
 
@@ -40,21 +40,11 @@ mutual
 	}
 }
 
-const revlist : List Enum = rev Enum list
+let revlist : List Enum = rev Enum list
 
-{-
-
-fun vecToList : {A : Set} -> {n : Nat} -> Vec A n -> List A
+fun flat : (A : Set ) -> List (List A) -> List A
 {
-  vecToList {A} {.zero}     (nil {A}) = (nil {A});
-  vecToList {A} {.(succ n)} (cons {A} {n} a as) 
-    = cons {A} a (vecToList {A} {n} as)
-} 
-
-fun listToVec : {A : Set} -> (l : List A) -> Vec A {length l}
-{
-  listToVec {A} (nil {A}) = nil {A};
-  listToVec {A} (cons {A} a as) = cons {A} {length as} a (listToVec {A} as)
+flat A (nil  .(List A)) = nil A;
+flat A (cons .(List A) (nil .A) yl) = flat A yl;
+flat A (cons .(List A) (cons .A x xl) yl)  = cons A x (flat A (cons (List A) xl yl))
 }
-
--}

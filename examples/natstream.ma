@@ -35,3 +35,10 @@ cofun proof : (n : Nat ) -> ( l : Stream ) -> Eq l (cons n (map succ l)) -> Eq l
 proof .n .(cons n l) (eq n l .(cons (succ n) (map succ l)) h) = 
 	eq n l (nats (succ n)) (proof (succ n) l h)
 }
+
+
+fun bla : Stream -> Stream
+{
+bla (cons zero xl) = cons zero xl;
+bla (cons (succ n) xl) = bla (cons n xl)
+}

@@ -38,10 +38,12 @@ put : Nat -> K -> ISP K;
 get : (Nat -> ISP K) -> ISP K; 
 }
 
+-- coinductive stream processor
 sized codata SP : Size -> Set
 {
-sp : (i : Size) -> ISP (SP i) -> SP ($ i);
+isp : (i : Size) -> ISP (SP i) -> SP ($ i);
 }
+
 
 fun ieat : (K : Set) -> (C : Set) -> 
            ISP K -> Stream # -> (Nat -> K -> Stream # -> C) -> C 
@@ -52,29 +54,26 @@ ieat .K C (put K b k)          as  h = h b k as
 
 cofun eat : (i : Size) -> SP # -> Stream # -> Stream i
 {
-eat ($ i) (sp .# isp) as 
+eat ($ i) (isp .# ip) as 
   = ieat (SP #) (Stream ($ i))
-         isp as (\ b -> \ k -> \ as' -> 
+         ip as (\ b -> \ k -> \ as' -> 
                    cons i b (eat i k as'))   
 }
 
-fun adder : Nat -> Nat -> (K : Set ) -> ( k : K) -> ISP K
+
+fun iadder : Nat -> Nat -> (K : Set ) -> K -> ISP K
 {
-adder zero acc K k = put K acc k;
-adder (succ n) acc K k = get K (\ m -> (adder n (add m acc) K k))
+iadder zero acc K k = put K acc k;
+iadder (succ n) acc K k = get K (\ m -> (iadder n (add m acc) K k))
 }
 
 cofun adder' : (i : Size ) -> SP i
 {
-adder' ($ i) = sp i (get (SP i) (\ n -> adder n zero (SP i) (adder' i)))
+adder' ($ i) = isp i (get (SP i) (\ n -> iadder n zero (SP i) (adder' i)))
 }
 
-cofun nats : (i : Size ) -> Nat -> Stream i
-{
-nats ($ i) x = (cons i x (nats i (succ x)))
-}
+let adder : SP # = adder' #
 
-let huge : Stream # = eat # (adder' #) (nats # zero) 
 
 fun nth : Nat -> Stream # -> Nat
 {
@@ -82,15 +81,15 @@ nth zero ns = head ns;
 nth (succ x) ns = nth x (tail ns) 
 }
 
-eval let big : Nat = nth (add two two) huge 
 
+-- 2 , 2 , ...
 cofun twos : (i : Size ) -> Stream i
 {
 twos ($ i) = cons i (succ (succ zero)) (twos i)
 }
 
--- stream of fours
-let fours : Stream # = eat # (adder' #) (twos #)
+-- executing adder on the stream 2 , 2 ... produces the stream 4 , 4 , ...
+let fours : Stream # = eat # adder (twos #)
 
-eval let four : Nat = nth two fours
+eval let four : Nat = head fours
 

@@ -2,7 +2,8 @@
 
 \paragraph*{Dependent type theory}
 
-Dependent types were introduced as a central piece to Martin-L\"of's type theory \cite{mart84}. With the proofs-as-programs paradigm, they are a fundamental part of proof assistants like Coq \cite{coq} , Lego \cite{pollack94theory} and Twelf \cite{pfenning99system}.
+Dependent types were introduced as a central piece to Martin-L\"of's type theory \cite{mart84}. 
+With the proofs-as-programs paradigm, they are a fundamental part of proof assistants like Coq \cite{coq}, Lego \cite{pollack94theory} and Twelf \cite{pfenning99system}.
 As programming languages receive more and more powerful type systems, there have been renews efforts to use dependent types in programming languages: Languages such as Cayenne \cite{augustsson98cayenne}, Agda \cite{norell:thesis} and Epigram \cite{epigram} strife to be seen more as practial programming languages rather than logical frameworks. 
 
 \paragraph*{Inductive families}
@@ -13,13 +14,17 @@ To be used for logical purposes, inductive predicates have to be defined.
 Inductive families \cite{dybjer94inductive} offer a powerful general formulation for defining inductive types.  
 For programming, one example could be the family of types Mat that is \emph{indexed} by two natural numbers.
 The type for matrix multiplication could then be given as 
-\[ \mbox{mult} : \mbox{Mat} \; k \; m \times \mbox{Mat} \; m \; n \ra \mbox{Mat} \; k \; n \]
+\begin{quote}
+\begin{verbatim}
+mmult : Mat k m -> Mat m n -> Mat k n 
+\end{verbatim}
+\end{quote}
 which is not possible with simple type systems.
 \paragraph*{Pattern Matching}
 In traditional type theory, elimination constants for each data type provide primitive recursion. 
 It was suggested (\cite{coquand92pattern}) to allow definitions by pattern matching, a well-known from programming languages (\cite{DBLP:conf/fpca/Augustsson85}).
 It allows for more readable and intuitive definitions, which is essential for type theory to be useful as a programming languages. 
-We note that pattern matching is not a conservative extension, but with addition of the K Axiom the pattern matching definitions can be translated back to traditional type theory(\cite{hofmann95groupoid,GoguHMcBrCM2006}). 
+We note that pattern matching is not a conservative extension, but with addition of the so-calles \emph{K Axiom} the pattern matching definitions can be translated back to traditional type theory(\cite{hofmann95groupoid,GoguHMcBrCM2006}). 
 
 \paragraph*{Termination}
 Beside the problem of complete coverage of patterns, pattern matching equations allow unrestricted recursion, and equations that define non-termination computation have to be disallowed: 
@@ -39,18 +44,18 @@ length [] = 0
 length (x:xs) = 1 + length xs 
 \end{verbatim}
 The only recursive call is \texttt{length xs}.
-The argument \texttt{xs} is structurally smaller than the input argument on the left hand side \texttt{(x:xs)}.
-We conclude, if the list data type is well founded (i.e there are only finite lists), then the program \texttt{length} is guaranteed to terminate.
+The argument \texttt{xs} is a structural part of the input argument on the left hand side \texttt{(x:xs)}.
+We conclude, if the list data type is well founded (i.e there are only finite lists), then the program \texttt{length} is guaranteed to terminate on all inputs.
 We note that we looked only at the defining equations of the function. Its type declaration was irrelevant to us.
 \paragraph*{Term-based termination}
 When pattern matching for dependent types was introduced in  \cite{coquand92pattern},
-the test outlined above was suggestes as the syntactic criterion for termination. 
+the test outlined above was suggested as the syntactic criterion for termination. 
 
 But not all defined functions have that clear \emph{structural recursive} form.
 In \cite{abelAltenkirch:predStRec},a decision procedure for a simple typed language is given that also handles lexicographic orderings on arguments and mutual recursion.
 \cite{lee01sizechange} devised the \emph{size change principle} that subsumes this effort and also handles functions with permuted arguments. 
 \paragraph*{Type-based termination}
-All of the above methods are part of methods called \emph{term-based termination}, where termination is, at least conceptually,  asserted by a separate \emph{termination checker} component of the system. 
+All of the above methods are part of methods called \emph{term-based termination}, where termination is, at least conceptually,  asserted by a separate syntactic \emph{termination checker} component of the system. 
 Type-based termination\footnote{for an introduction, see the first chapter in \cite{abel:PhD}} refers to methods where the type checker itself is in charge of checking termination. Termination is ensured by the typing rules. 
 
 The \emph{sized types} approach is an instance of type-based termination:
@@ -78,7 +83,7 @@ But, with inductive families and pattern matching, these approaches can be natur
 
 As a result, the system \mugda was developed.
 It is a basic predicative system supporting inductive families and pattern matching. 
-As a special feature, the language supports coinductive definitions and also offers \emph{size type} to form size annotations. 
+As a special feature, the language supports co-inductive definitions and also offers \emph{size type} to form size annotations. 
 As a preview, we sketch how termination and productivity checking of defintions is handled by \mugda:
 \begin{itemize}
 \item
@@ -97,7 +102,7 @@ We introduce the syntax and semantics of the \mugda language in the second chapt
 In chapter 3, a basic termination criterion for inductive function definitions based on the size-change principle is presented. Then we motivate and present an extension that increases its strength for definitions involving structured objects.
 
 In the fourth chapter we add a type of sizes to the language.
-With this type, sized data types can be formed. We show how sized data types help to allow more valid inductive definitions from the criterion of the previous chapter.
+With this type, sized data types can be formed. It is shown how sized data types help to allow more valid inductive definitions from the criterion of the previous chapter.
 Also, the size type will allow the verification of productivity for co-inductive objects.
 As the use of the size type has to be constrained for the system to be sound, we present an admissibilty criterion for this.
 Finally in chapter 5, we take a look back and give an overview of ideas for extensions and future research.

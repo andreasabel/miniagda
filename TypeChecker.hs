@@ -3,6 +3,8 @@ module TypeChecker where
 import Abstract
 import Value
 import SPos
+import TraceError
+
 
 import Termination
 
@@ -13,7 +15,6 @@ import Control.Monad.State
 import Control.Monad.Error
 
 import Debug.Trace
-
 
 
 runTypeCheck :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
@@ -56,7 +57,7 @@ typeCheckDeclaration (LetDecl _ (TypeSig n t) e ) =
        put (addSig sig n (LetSig vt e))
    ) `throwTrace` n
 
-typeCheckDeclaration (FunDecl funs) = typeCheckFuns funs
+typeCheckDeclaration (FunDecl co funs) = typeCheckFuns co funs
 
 typeCheckConstructor :: Name -> Sized -> [Pos] -> Telescope -> Constructor -> TypeCheck ()
 typeCheckConstructor d sz pos tel (TypeSig n t) = 
@@ -80,22 +81,22 @@ typeCheckConstructor d sz pos tel (TypeSig n t) =
       return ()
    ) `throwTrace` n
 
-typeCheckFuns :: [(TypeSig,Co, [Clause])] -> TypeCheck ()
-typeCheckFuns funs = do mapM addFunSig funs
-                        mapM typeCheckFunSig funs
-                        zipWithM typeCheckFunClause [1..] funs 
-                        liftIO $ terminationCheck funs  
-                        mapM enableSig funs      
-                        return ()
+typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
+typeCheckFuns co funs = do mapM addFunSig funs
+                           mapM typeCheckFunSig funs
+                           zipWithM typeCheckFunClause [1..] funs 
+                           liftIO $ terminationCheck funs  
+                           mapM enableSig funs      
+                           return ()
   where
-    addFunSig :: (TypeSig,Co,[Clause]) -> TypeCheck ()
-    addFunSig (TypeSig n t,co,cl) = 
+    addFunSig :: (TypeSig,[Clause]) -> TypeCheck ()
+    addFunSig (TypeSig n t,cl) = 
         do
           sig <- get 
           vt <- whnf [] t
           put (addSig sig n (FunSig co vt cl False)) --not yet type checked / termination checked
-    typeCheckFunSig :: (TypeSig,Co,[Clause]) -> TypeCheck () 
-    typeCheckFunSig (TypeSig n t,co,cl) =   
+    typeCheckFunSig :: (TypeSig,[Clause]) -> TypeCheck () 
+    typeCheckFunSig (TypeSig n t,cl) =   
        (
         do checkT t
            vt <- whnf [] t
@@ -114,12 +115,12 @@ typeCheckFuns funs = do mapM addFunSig funs
                liftIO $ putStrLn $ show n ++ " : size pattern incomplete"  
              True -> return ()
        ) `throwTrace` ("type of " ++ n)
-    typeCheckFunClause :: Int -> (TypeSig,Co,[Clause]) -> TypeCheck ()
-    typeCheckFunClause k (TypeSig n t,_,cl) =
+    typeCheckFunClause :: Int -> (TypeSig,[Clause]) -> TypeCheck ()
+    typeCheckFunClause k (TypeSig n t,cl) =
        (do checkFun t cl 
        ) `throwTrace` n         
-    enableSig :: (TypeSig,Co,[Clause]) -> TypeCheck ()
-    enableSig (TypeSig n _,_,_) = do 
+    enableSig :: (TypeSig,[Clause]) -> TypeCheck ()
+    enableSig (TypeSig n _,_) = do 
                     sig <- get 
                     let (FunSig co vt cl _) = lookupSig n sig 
                     put (addSig sig n (FunSig co vt cl True))
@@ -468,7 +469,7 @@ checkPattern k flex ins rho gamma v p = -- trace ("cp " ++ show k ++ " " ++ show
           SuccP p2 -> do  
                          st <- whnf [] (Pi "" Size Size) 
                          (k',flex',ins',rho',gamma',v') <- checkPattern  k flex ins rho gamma st p2
-                         eqVal k' av v'
+                         eqVal k' av VSize
                          let pv = patternToVal k p
                          vb <- whnf (update env x pv) b
                          return (k',flex',ins',rho',gamma',vb)

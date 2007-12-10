@@ -2,6 +2,8 @@ module Value where
 
 import Abstract
 
+import TraceError
+
 import qualified Data.Map as Map
 
 import Control.Monad.Identity
@@ -13,20 +15,6 @@ import Debug.Trace
 -- reader monad for local environment (not used right now)
 -- state monad for global signature
 type TypeCheck a = StateT Signature (ErrorT TraceError IO) a 
-
-data TraceError = Err String | TrErr String TraceError
-
-instance Error TraceError where
-    noMsg = Err "no message"
-    strMsg s = Err s
-
-instance Show TraceError where
-    show (Err str) = str
-    show (TrErr str err) = str ++ " -> \n" ++ show err 
-
-throwErrorMsg m = throwError (Err m) 
-
-throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e) 
 
 
 data Val =   VSet
