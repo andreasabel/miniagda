@@ -108,11 +108,11 @@ typeCheckFuns co funs = do mapM addFunSig funs
                   CoInd -> return True
            case adm of
              False -> do 
-               liftIO $ putStrLn $ show n ++ " : type not admissble"  
+               liftIO $ putStrLn $ n ++ " : type not admissble"  
              True -> return ()
            case b of
              False -> do 
-               liftIO $ putStrLn $ show n ++ " : size pattern incomplete"  
+               liftIO $ putStrLn $ n ++ " : size pattern incomplete"  
              True -> return ()
        ) `throwTrace` ("type of " ++ n)
     typeCheckFunClause :: Int -> (TypeSig,[Clause]) -> TypeCheck ()
