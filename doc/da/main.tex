@@ -2654,7 +2654,7 @@ $\spc \minus \inacc{\s i} \: (\zero i) \:  y = \zero i $ \\
 $\spc \minus i \: x \: (\zero \inacc{\infty})  = x $\\
 $\spc \minus \inacc{\s i} \: (\suc \: i \: x) \: (\suc \inacc{\infty} \: y) = \minus i \: x \: y $
 \end{bsp}
-Subtyping is used in the right hande side of the last clause.
+Subtyping is used in the right hand side of the last clause.
 While $\minus$ is structurally recursive even without a size, 
 there is more information in the type: the size of the result list now has an upper bound $i$.
 This is essential for the following definition of division on natural numbers:
@@ -2943,7 +2943,7 @@ $\spc \bad (\s i) = \bad i $
 It is type-correct, and the termination-checker will happily tell you that $\bad$ is terminating.
 But $\wh \clp{\bad \infty}{\rho}$ is not defined.
 
-It can be argued that the pattern $\s i$ does not cover all cases: A hypothetical bottom size element would not match against $\s i$. Case dinstinction on a size should not be accepted.
+It can be argued that the pattern $\s i$ does not cover all cases: A hypothetical bottom size element would not match against $\s i$. Case distinction on a size should not be accepted.
 For the same reason, the following function definition is also not admissible:
 \begin{bsp}
 $\fun \badb : \EPi{i}{\Size}{\SNat i \ra \Bool}$\\
@@ -3099,7 +3099,7 @@ Although straightforward, this is formalized with the judgment in figure \ref{sp
 Putting the previous two sections together,
 the final admissibility criterion follows:
 \begin{quote}
-Fo the mutual recursive function declaration $\delta =$
+For the mutual recursive function declaration $\delta =$
 \begin{bsp}
 $\mutual$\\
 $\spcx \fun f_1 : A_1 $\\
