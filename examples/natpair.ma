@@ -4,16 +4,25 @@ zero : Nat;
 succ : Nat -> Nat
 }
 
+fun add : Nat -> Nat -> Nat
+{
+add x zero = x;
+add x (succ y) = succ (add y x)
+}
+
+{-
+
 data Pair : Set
 {
 pair : Nat -> Nat -> Pair  
 }
 
 
+
 fun add : Pair -> Nat
 {
 add (pair x zero) = x;
-add (pair x (succ y)) = succ (add (pair x y))
+add (pair x (succ y)) = succ (add (pair y x))
 }
 
 fun ack : Pair -> Nat
@@ -32,3 +41,4 @@ foo (pair (succ x) (succ y)) = foo (pair (succ y) (succ y))
 }
 
 
+-}

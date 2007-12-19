@@ -65,16 +65,16 @@ minM m1 m2 = [ minV x y | (x,y) <- zip m1 m2]
    minV :: Vector Order -> Vector Order -> Vector Order
    minV v1 v2 = [ minO x y | (x,y) <- zip v1 v2]
 
-supremum :: [Order] -> Order
-supremum = foldl maxO Un
+maxL :: [Order] -> Order
+maxL = foldl1 maxO 
 
-infimum :: [Order] -> Order
-infimum = foldl minO Lt
+minL :: [Order] -> Order
+minL = foldl1 minO 
 
 collapse :: Matrix Order -> Order
 collapse m = let d = diag m
              in 
-               infimum d
+               minL d
 
 type Vector a = [a]
 type Matrix a = [Vector a]
@@ -143,28 +143,24 @@ compareExpr e p =
                        Just p' -> compareExpr e p'
       (Var i,p) -> compareVar i p 
       (App (Var i) _,p) -> compareVar i p 
-      (App (Con _ n) args,(ConP _ n2 pl))| n == n2 -> 
-               if (length pl == length args && length args >= 2) 
-               then 
-                   Mat (map (\ e -> (map (compareExpr e) pl)) args)
-               else
-                   infimum $ zipWith compareExpr args pl
-      (Con _ n,ConP _ n2 []) | n == n2 -> Le    
-      (_,ConP _ n2 []) -> Un     
-      (_,ConP Ind n pl) -> comp Lt $ infimum $ map (compareExpr e) pl 
+      (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Le
+      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr e1 p1 
+      (App (Con _ n1) args,ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
+              Mat (map (\ e -> (map (compareExpr e) pl)) args)
+              -- without extended order :  minL $ zipWith compareExpr args pl
       (Succ e2,SuccP p2) -> compareExpr e2 p2     
       _ -> Un
 
 compareVar :: Name -> Pattern -> Order
-compareVar n p = 
+compareVar n p = trace ("comparevar " ++ show n ++ " " ++ show p) $
     case p of
-      (VarP n2) -> if n == n2 then Le else Un
-      (ConP Ind c pl) -> comp Lt (supremum (map (compareVar n) pl))
-      (SuccP p2) -> comp Lt (compareVar n p2)
-      (DotP e) -> case (exprToPattern e) of
+      VarP n2 -> if n == n2 then Le else Un
+      ConP Ind c (p:pl) -> comp Lt (maxL (map (compareVar n) (p:pl)))
+      SuccP p2 -> comp Lt (compareVar n p2)
+      DotP e -> case (exprToPattern e) of
                     Nothing -> Un
                     Just p' -> compareVar n p'
-      (ConP CoInd _ _ ) -> Un -- not well-founded
+      _ -> Un
       
 
 exprToPattern :: Expr -> Maybe Pattern
@@ -228,7 +224,7 @@ cgComb :: [Call] -> [Call] -> [Call]
 cgComb cg1 cg2 = [ callComb c1 c2 | c1 <- cg1 , c2 <- cg2 , (source c1 == target c2)]
 
 complete :: [Call ] -> [Call] 
-complete cg = let cg' = complete' cg in cg'
+complete cg = let cg' = complete' cg in trace ("bla " ++ show cg') cg'
 
 complete' :: [Call] -> [Call]
 complete' cg =
@@ -299,7 +295,8 @@ collectCallsExpr nl f pl e =
                                                  cg = Call { source = f
                                                            , target = g
                                                            , matrix = m }
-                                             in cg:calls
+                          --                   in cg:calls
+                                               in trace (show cg) cg:calls
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
       (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f pl e1

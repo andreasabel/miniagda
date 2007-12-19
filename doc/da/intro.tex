@@ -2,42 +2,47 @@
 
 \paragraph*{Dependent type theory}
 
-Dependent types were introduced as a central piece to Martin-L\"of's type theory \cite{mart84}. 
-With the proofs-as-programs paradigm, they are a fundamental part of proof assistants like Coq \cite{coq}, Lego \cite{pollack94theory} and Twelf \cite{pfenning99system}.
-As programming languages receive more and more powerful type systems, there have been renews efforts to use dependent types in programming languages: Languages such as Cayenne \cite{augustsson98cayenne}, Agda \cite{norell:thesis} and Epigram \cite{epigram} strife to be seen more as practial programming languages rather than logical frameworks. 
+Dependent types are an important part of Martin-L\"of type theory \cite{mart84}, which 
+was conceived as a foundation for constructive mathematics.
+
+Through the proofs-as-programs paradigm, they are fundamental to proof assistants 
+like Coq \cite{coq}, Lego \cite{pollack94theory} and Twelf \cite{pfenning99system}.
+As programming languages receive more and more powerful type systems, there have been renewed efforts to use dependent types in programming languages: Cayenne \cite{augustsson98cayenne}, Agda \cite{norell:thesis} and Epigram \cite{epigram} strife to be seen more as practical programming languages rather than logical frameworks.
 
 \paragraph*{Inductive families}
-Type theory\footnote{for an introductory text, the reader is referred to \cite{NPS:promlt}}
- is often called an open theory: new constants can be added to the system.
+Dependent type theory\footnote{for an introductory text, the reader is referred to \cite{NPS:promlt}}
+ is often described as an open theory: new constants can be added to the system.
 As a programming language, there is the need to define inductive types like lists and trees.
-To be used for logical purposes, inductive predicates have to be defined. 
-Inductive families \cite{dybjer94inductive} offer a powerful general formulation for defining inductive types.  
-For programming, one example could be the family of types Mat that is \emph{indexed} by two natural numbers.
+For logical purposes, inductive predicates have to be defined. 
+
+Inductive families \cite{dybjer94inductive} offer a powerful general scheme for defining inductive types.  
+A nice example for programming is matrix multiplication.
+One could define a inductive family of types \verb+Mat+ that is \emph{indexed} by two natural numbers.
 The type for matrix multiplication could then be given as 
 \begin{quote}
 \begin{verbatim}
 mmult : Mat k m -> Mat m n -> Mat k n 
 \end{verbatim}
 \end{quote}
-which is not possible with simple type systems.
+which is not possible with a simple type system.
 \paragraph*{Pattern Matching}
-In traditional type theory, elimination constants for each data type provide primitive recursion. 
-It was suggested (\cite{coquand92pattern}) to allow definitions by pattern matching, a well-known from programming languages (\cite{DBLP:conf/fpca/Augustsson85}).
-It allows for more readable and intuitive definitions, which is essential for type theory to be useful as a programming languages. 
-We note that pattern matching is not a conservative extension, but with addition of the so-calles \emph{K Axiom} the pattern matching definitions can be translated back to traditional type theory(\cite{hofmann95groupoid,GoguHMcBrCM2006}). 
+In traditional type theory, so-called elimination constants for each data type provide primitive recursion on objects. 
+As an alternative, it was suggested in \cite{coquand92pattern} to allow definitions by pattern matching, a well-known concept from functional languages \cite{DBLP:conf/fpca/Augustsson85}.
 
+Pattern matching does allow for more readable and intuitive definitions, which is essential for type theory \footnote{Pattern matching is actually not a conservative extension to a theory with elimination constants. 
+Pattern matching definitions can only be translated to a traditional type theory by adding the so-called \emph{K Axiom} \cite{hofmann95groupoid,GoguHMcBrCM2006}. 
+} to be useful as a programming languages. 
+It has to be ensured that the pattern clauses cover all possible cases.
 \paragraph*{Termination}
-Beside the problem of complete coverage of patterns, pattern matching equations allow unrestricted recursion, and equations that define non-termination computation have to be disallowed: 
+Furthermore, pattern matching allows unrestricted recursion, and functions with non-terminating computations have to be disallowed for the following reasons: 
 \begin{itemize}
 \item
-As types depend on terms, computation is performed during dependent type checking.
-Thus, for type checking to be decidable, we cannot allow non-terminating computation. 
-\item
-For algorithms, termination is part of the correctness.
-\item
 Proofs as programs need to be total functions to be correct.
+\item
+As types can depend on terms, computation is performed during type checking.
+Thus, for type checking to be decidable, non-terminating computation cannot be allowed. 
 \end{itemize}
-To be more concrete, let us look at a simple recursive definition by pattern matching on a list in a functional language: 
+To be more concrete, let us look at a simple recursive definition by pattern matching on a list in a functional programming language: 
 \begin{verbatim}
 length :: [a] -> Int
 length [] = 0
@@ -45,68 +50,75 @@ length (x:xs) = 1 + length xs
 \end{verbatim}
 The only recursive call is \texttt{length xs}.
 The argument \texttt{xs} is a structural part of the input argument on the left hand side \texttt{(x:xs)}.
-We conclude, if the list data type is well founded (i.e there are only finite lists), then the program \texttt{length} is guaranteed to terminate on all inputs.
-We note that we looked only at the defining equations of the function. Its type declaration was irrelevant to us.
-\paragraph*{Term-based termination}
-When pattern matching for dependent types was introduced in  \cite{coquand92pattern},
-the test outlined above was suggested as the syntactic criterion for termination. 
+We conclude, if the list data type is well founded (i.e there are only finite lists), then the program \texttt{length} is guaranteed to terminate on all input lists.
 
+\paragraph*{Term-based termination}
+We note that we looked only at the defining clauses of the function to decide termination, its type declaration was irrelevant. Such methods are called \emph{term-based} to differentiate them from the \emph{type-based} methods discussed below.
+
+When pattern matching for dependent types was introduced in  \cite{coquand92pattern},
+the test that was outlined above was suggested as the criterion for termination:
+at least one argument needs to get \emph{structurally smaller} in each recursive call.
 But not all defined functions have that clear \emph{structural recursive} form.
-In \cite{abelAltenkirch:predStRec},a decision procedure for a simple typed language is given that also handles lexicographic orderings on arguments and mutual recursion.
-\cite{lee01sizechange} devised the \emph{size change principle} that subsumes this effort and also handles functions with permuted arguments. 
+
+In \cite{abelAltenkirch:predStRec}, a decision procedure for a simply typed language was given that also handles lexicographic orderings on arguments and mutual definitions.
+The \emph{size change principle} \cite{lee01sizechange} subsumes this effort and also handles functions with so-called permuted arguments. 
+
 \paragraph*{Type-based termination}
-All of the above methods are part of methods called \emph{term-based termination}, where termination is, at least conceptually,  asserted by a separate syntactic \emph{termination checker} component of the system. 
-Type-based termination\footnote{for an introduction, see the first chapter in \cite{abel:PhD}} refers to methods where the type checker itself is in charge of checking termination. Termination is ensured by the typing rules. 
+The above methods require that a declaration does not only need to be accepted by the \emph{type-checker}, but also pass a separate syntactic \emph{termination check}.
+In contrast, \emph{type-based termination}\footnote{for an introduction, see \cite{abel:PhD}} refers to methods where the type-checker itself is in charge of checking termination: It is ensured by the typing rules. 
 
 The \emph{sized types} approach is an instance of type-based termination:
-Types are decorated with size annotations that denote an upper bound on the height of the objects inhabiting them. 
-It is then checked that the size is getting smaller in recursive calls. 
+Inductive types are decorated with size annotations that denote an upper bound on the height of the objects inhabiting them. 
+It is then checked that this size is getting smaller during recursive calls.
 
-In comparison with term-based termination, sized types are more robust to syntactical changes of the program and the type system is able to use the information that certain functions are \emph{size-preserving}.
-Some effort (\cite{bgp:lpar06}) has been made to automatically infer these size annoations, making the sizes transparent for the user. 
-\paragraph{Co-inductive Types}
-There arises the need for potentially infinite objects, for example to model a continuous stream of network packages.
-Streams, infinite sequences of elements, are the prime example of a \emph{co-inductive} type. 
-While streams could be emulated by a function mapping natural numbers to elements, it is more 
-natural and general to support directly support co-inductive types.
+In comparison with term-based termination, sized types are more robust to syntactical changes to the program and the type system is able to use the information that certain functions are \emph{size-preserving}.
+Some effort \cite{bgp:lpar06} has been made to automatically infer these size annotations.
 
-While \emph{co-recursive definitions} that create or manipulate infinite objects are in a sense non-terminating, they still have to be \emph{productive}. For productive definitons, looking at any finite portion of the object is possible.
-As for termination, there are syntactic tests to guarantee productivity (\cite{coquand-infinite}), but here again sized types offer a worthwhile alternative.  
+\paragraph{Infinite objects}
+Often there arises the need for potentially infinite objects, for example to model a continuous stream of network packages.
+Streams, infinite sequences of elements, are the prime example of \emph{coinductive} types, where inhabitants can have 
+\emph{infinite height}. 
+
+While \emph{corecursive definitions} that create or manipulate infinite objects are inherently non-terminating, they still should be \emph{productive}. For productive definitions, looking at a finite portion of the object is well-defined.
+As for termination, there are syntactic tests to guarantee productivity \cite{coquand-infinite}, but here again sized types offer a worthwhile alternative.  
 
 \paragraph*{Mugda}
 Our work started with an investigation of how a sized type approach could be added to a system like Agda.
 The current version of Agda supports inductive families and mutual recursive function declarations by pattern matching. 
-The Agda termination checker is based on the syntactic criterion of \cite{abelAltenkirch:predStRec}.
+The Agda termination checker was, at that time, based on the work of \cite{abelAltenkirch:predStRec}.
 
 In the description above, sized types sound like a very different approach compared to term-based termination.
 But, with inductive families and pattern matching, these approaches can be naturally combined.
 
 As a result, the system \mugda was developed.
-It is a basic predicative system supporting inductive families and pattern matching. 
-As a special feature, the language supports co-inductive definitions and also offers \emph{size type} to form size annotations. 
-As a preview, we sketch how termination and productivity checking of defintions is handled by \mugda:
+It supports inductive families and pattern matching. 
+As special features, the language supports coinductive definitions and also offers a built-in \emph{Size type} to form size annotations. 
+We outline here how termination and productivity checking of definitions is handled by \mugda:
 \begin{itemize}
 \item
 a syntactic termination checker based on the size-change principle is employed.
 \item
-In addition, the size type can be used to create sized data types, enabling advantages of the 
+in addition, the Size type can be used to create sized data types, enabling advantages of the 
 sized type approach.
 \item
-productivity of coinductive definitons is also guaranteed by the size type.
+productivity of corecursive functions is also guaranteed by the Size type.
 \item
-the usage of the size type has to be controlled by the type checker.
+the usage of the Size type is controlled by the type checker.
 \end{itemize}  
 \section{Overview}
-We introduce the syntax and semantics of the \mugda language in the second chapter and also detail the type checking algorithms. The language described will be missing the size type that is added in chapter 4. 
+We introduce the syntax and semantics of the \mugda language in the next chapter, and show some example programs.
+The language described is missing the Size type that is later added in chapter 5. 
 
-In chapter 3, a basic termination criterion for inductive function definitions based on the size-change principle is presented. Then we motivate and present an extension that increases its strength for definitions involving structured objects.
+Type-Checking for $\mugda$ is presented in chapter 3.
+We cannot just focus on termination-checking because a termination-checker can easily be tricked by ill-typed declarations.
 
-In the fourth chapter we add a type of sizes to the language.
-With this type, sized data types can be formed. It is shown how sized data types help to allow more valid inductive definitions from the criterion of the previous chapter.
-Also, the size type will allow the verification of productivity for co-inductive objects.
-As the use of the size type has to be constrained for the system to be sound, we present an admissibilty criterion for this.
-Finally in chapter 5, we take a look back and give an overview of ideas for extensions and future research.
-In the appendix, we give details on how the system described in the previous chapters was implemented.
+In the fourth chapter, a termination criterion for inductive function declarations based on the size-change principle is presented. Then we motivate and present an extension that increases its strength for definitions with nested patterns.
+
+In chapter 5, the Size type is added to the language, which enables the formation of sized data types. It is shown how sized data types help to allow more recursive definitions pass the termination check of the third chapter.
+It also enables the declaration of a broad range of productive corecursive definitions to pass this check.
+Finally, we first motivate why the usage of size annotations needs to be restricted, and then give an \emph{admissibility criterion} to achieve this.
+
+In the conclusion, we take a look back and list ideas for future work. The appendix contains a description of the implementation of $\mugda$.
 
 
 

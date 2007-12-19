@@ -1,7 +1,8 @@
 \appendix
 \chapter{Mugda implementation}
-Mugda was implemented in the function language Haskell \cite{haskell}, using the Glasgow haskell compiler (GHC) \cite{jones93glasgow}).
-\section{Overview}
+$\mugda$ was implemented in the function language Haskell \cite{haskell}, using the Glasgow Haskell compiler (GHC) \cite{jones93glasgow}.
+
+\section{Source file listing}
 \begin{itemize}
 \item
 \texttt{Lexer.x} : the alex lexer file
@@ -14,29 +15,30 @@ Mugda was implemented in the function language Haskell \cite{haskell}, using the
 \item
 \texttt{ScopeChecker.hs} : turns concrete into abstract syntax
 \item
-\texttt{Abstract.hs} : produced by the scope checker, used for type and termination checking
+\texttt{Abstract.hs} : produced by the scope-checker, used during type-checking
 \item
-\texttt{Values.hs} : defines values , evaluation, signature , typecheck Monad
+\texttt{Values.hs} : defines values , evaluation, signature , type-check monad
 \item
 \texttt{TypeChecker.hs} : type-checking with admissibility
 \item
-\texttt{Termination.hs} : structural Termination checker
+\texttt{Termination.hs} : syntactic termination check
 \item
 \texttt{Completeness.hs} : size pattern completeness check
 \item
 \texttt{SPos.hs} : strict positivity checker
+\item
 \texttt{Main.hs} : the main module
 \item
 \texttt{example} directory: example input files
 \item
-\texttt{Makefile} : for compilation with the GHC compiler, version $\geq$ 6.6
+\texttt{Makefile} : for compilation
 \end{itemize}
 \section{Usage}
 
-\mugda as presented was translated pretty much directly transfered to an easily parsable ASCII syntax:
+\mugda as presented was pretty much directly transfered to ASCII syntax:
 \begin{itemize}
 \item
-lists of constructors and clauses are grouped with brackets \texttt{\{},\texttt{\}} and separated with semicolon \texttt{;}
+lists of constructors and clauses are grouped with brackets \texttt{\{} \texttt{\}} and separated with semicolon \texttt{;}
 \item
 $\EPi{x}{A}{B}$ is written \texttt{(x : A) -> B }
 \item
@@ -52,12 +54,12 @@ $ \infty$ is written \texttt{\#}
 \item
 $\s$ is written \texttt{\$}
 \item
-comments up to the end of a line are prefixed by \verb+--+
+one line comments are prefixed by \verb+--+
 \item
 multi-line comments are put between \verb+{-+ and \verb+-}+
 \end{itemize}
 a \texttt{let} declaration can be prefixed with \texttt{eval}. Then the value will be evaluated after type checking is done.
-As an example showing almost all syntactical features, here is the Fibonacci stream example (\texttt{examples/fib.ma}) in text format:
+As an example showing most of the syntactical features, here is the Fibonacci stream example (\texttt{examples/fib.ma}) in text format:
 \begin{verbatim}
 data Nat : Set {
   zero : Nat;
@@ -88,7 +90,8 @@ fun nth : Nat -> Stream # -> Nat {
 
 let 1 : Nat = (succ zero)
 
-cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i {
+cofun fib' : (x : Nat ) -> (y : Nat ) 
+               -> (i : Size ) -> Stream i {
   fib' x y ($ i) = cons i x (fib' y (add x y) i)
 } 
 
@@ -109,20 +112,18 @@ Running \texttt{Main examples/fib.ma} yields the console output:
 fib4 evaluates to (succ (succ (succ (succ (succ zero)))))
 \end{verbatim}
 
-\section{Parsing}
-The alex \cite{alex} and happy \cite{happy} tools where used for generating lexer and parser.
-Monad transformers (\cite{Grabmueller2006MonadTransformers}) are used to keep the signature in a state monad,
-to provide I/O and error tracing.
-
-\section{Scope checking}
-One part that was not really outlined in the main part is scope checking.
-It is first step after parsing.
-During parsing, identifiers are left not yet classified as variables, function symbols etc.
-The syntax after parsing is called \emph{concrete syntax}.
-The scope checker handles uniqueness of names and classifies identifiers, producing \emph{abstract syntax}.
-Some simple syntactic tests like the linearity of patterns is also enforced during scope checking.
-All used identifiers can be categorized as referring to a constructor, a variable or a defined data type or
-function. After scope checking, it is guaranteed that looking up a signature or environment is guaranteed to succeed.
-
-
-
+\section{Some implementation details}
+The alex \cite{alex} and happy \cite{happy} tools were used to generate lexer and parser for $\mugda$.
+Most of the Haskell code is monadic, where \emph{monad transformers} \cite{Grabmueller2006MonadTransformers} are used to keep the signature in a state monad, to provide I/O and tracing of errors. The execution of $\mugda$ can be broken into 4 stages:
+\paragraph*{Parsing}
+The input file is parsed into \emph{concrete syntax}.
+\paragraph*{Scope-Checking}
+As mentioned in chapter 3, scope-checking is the first step after parsing.
+During parsing, it is not known whether an identifier is variable or constructor etc.
+Scope-checking produces \emph{abstract syntax} where all identifiers are categorized, if the $\mugda$ program is well-scoped.
+Also some syntactic tests like checking linearity of patterns are already done during this stage.
+\paragraph*{Type-Checking}
+Every declaration is type-checked.
+For mutual declarations, the type-checker also checks admissibility and finally invokes the termination-checker. 
+\paragraph*{Evaluation}
+For all declarations of the form \verb+eval let l : A = e+, \verb+e+ is evaluated and this value is displayed.

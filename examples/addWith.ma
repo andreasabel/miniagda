@@ -1,4 +1,4 @@
-data SNat : Size -> Set
+sized data SNat : Size -> Set
 {
 zero : (i: Size ) -> SNat ($ i);
 succ : (i : Size ) -> SNat i -> SNat ($ i)
@@ -19,8 +19,8 @@ addWith f .($ i) j (zero i) y = y;
 addWith f .($ i) j (succ i x) y = succ # (addWith f j i (f j y) (f i x)) 
 }
 
-const 3 : SNat # = succ # (succ # (succ # (zero #))) 
-const 4 : SNat # = succ # 3
+let 3 : SNat # = succ # (succ # (succ # (zero #))) 
+let 4 : SNat # = succ # 3
 
-eval const bla : SNat # = addWith ote # # 4 3 
+eval let bla : SNat # = addWith ote # # 4 3 
 

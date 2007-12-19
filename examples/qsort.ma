@@ -86,3 +86,15 @@ let four : Nat = succ three
 
 let l1 : List Nat = cons Nat two (cons Nat three (cons Nat four (cons Nat one (nil Nat)))) 
 let sl1 : List Nat = quicksort Nat leqN l1
+
+
+-------
+
+
+fun filter : ( A : Set ) -> (p : A -> Bool ) -> List A -> List A  
+{
+filter A p (nil .A) = nil A ;
+filter A p (cons .A x xs) = 
+       let rec : List A = filter A p xs in
+         ite (List A) (p x) (cons A x rec) rec
+}

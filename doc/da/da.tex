@@ -32,14 +32,14 @@
 \newcommand{\s}{\mathsf{s}\,}
 \newcommand{\Size}{\mathsf{Size}}
 \newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
-\newcommand{\data}{\mathrm{data}\:}
-\newcommand{\sized}{\mathrm{sized}\:}
-\newcommand{\fun}{\mathrm{fun}\:}
-\newcommand{\codata}{\mathrm{codata}\:}
-\newcommand{\cofun}{\mathrm{cofun}\:}
-\newcommand{\clet}{\mathrm{let}\:}
-\newcommand{\ELet}[3]{\mathrm{let}\: #1 : #2 = #3 \: \mathrm{in}\:} 
-\newcommand{\mutual}{\mathrm{mutual}\:}
+\newcommand{\data}{\mathsf{data}\:}
+\newcommand{\sized}{\mathsf{sized}\:}
+\newcommand{\fun}{\mathsf{fun}\:}
+\newcommand{\codata}{\mathsf{codata}\:}
+\newcommand{\cofun}{\mathsf{cofun}\:}
+\newcommand{\clet}{\mathsf{let}\:}
+\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:} 
+\newcommand{\mutual}{\mathsf{mutual}\:}
 \newcommand{\lam}[1]{\lambda\: #1 .\:}
 
 \newcommand{\inacc}[1]{\underline{#1}}
@@ -50,6 +50,9 @@
 \newcommand{\suc}{\mathsf{succ}\:}
 \newcommand{\add}{\mathsf{add}\:}
 \newcommand{\addt}{\mathsf{add_2}\:}
+
+\newcommand{\Vd}{\mathsf{V}\:}
+\newcommand{\vc}{\mathsf{v}\:}
 
 \newcommand{\NatP}{\mathsf{NatPair}\:}
 \newcommand{\np}{\mathsf{np}\:}
@@ -67,6 +70,7 @@
 \newcommand{\cons}{\mathsf{cons}\:}
 
 \newcommand{\Term}{\mathsf{Term}\:}
+\newcommand{\Terms}{\mathsf{Term}}
 \newcommand{\abs}{\mathsf{abs}\:}
 \newcommand{\funt}{\mathsf{Fun}\:}
 \newcommand{\func}{\mathsf{fn}\:}
@@ -79,9 +83,13 @@
 
 \newcommand{\vVec}{\mathsf{Vec}\:}
 \newcommand{\head}{\mathsf{head}\:}
+
+\newcommand{\heads}{\mathsf{head}}
+
 \newcommand{\rev}{\mathsf{rev}\:}
-\newcommand{\reva}{\mathsf{rev1}\:}
-\newcommand{\revb}{\mathsf{rev2}\:}
+\newcommand{\revs}{\mathsf{rev}}
+\newcommand{\reva}{\mathsf{rev_1}\:}
+\newcommand{\revb}{\mathsf{rev_2}\:}
 
 
 \newcommand{\flatt}{\mathsf{flat}\:}
@@ -90,12 +98,12 @@
 \newcommand{\refl}{\mathsf{refl}\:}
 
 \newcommand{\prof}{\mathsf{proof}\:}
-\newcommand{\tprof}{\mathsf{proof2}\:}
-\newcommand{\eqsucc}{\mathsf{eqsucc}\:}
+\newcommand{\tprof}{\mathsf{proof_2}\:}
+\newcommand{\eqsucc}{\mathsf{eqSucc}\:}
 
-\newcommand{\Bad}{\mathsf{Bad}\:}
-\newcommand{\bad}{\mathsf{bad}\:}
-\newcommand{\ok}{\mathsf{ok}\:}
+\newcommand{\bad}{\mathsf{bad_1}\:}
+\newcommand{\badb}{\mathsf{bad_2}\:}
+
 
 \newcommand{\ProdT}{\mathsf{Prod}\:}
 \newcommand{\prd}{\mathsf{prod}\:}
@@ -108,11 +116,14 @@
 \newcommand{\ite}{\mathsf{ite}\:}
 
 \newcommand{\Ord}{\mathsf{Ord}\:}
+\newcommand{\Ords}{\mathsf{Ord}}
+
 \newcommand{\ozero}{\mathsf{ozero}\:}
 \newcommand{\olim}{\mathsf{olim}\:}
 \newcommand{\addOrd}{\mathsf{addOrd}\:}
 
 \newcommand{\Stream}{\mathsf{Stream}\:}
+\newcommand{\Streams}{\mathsf{Stream}}
 \newcommand{\tail}{\mathsf{tail}\:}
 \newcommand{\nth}{\mathsf{nth}\:}
 
@@ -124,7 +135,15 @@
 \newcommand{\minus}{\mathsf{minus}\:}
 \renewcommand{\div}{\mathsf{div}\:}
 
-\newcommand{\SNat}{\mathsf{SNat}\:}
+\newcommand{\SNat}{\mathsf{Nat}\:}
+\newcommand{\SList}{\mathsf{List}\:}
+\newcommand{\SStream}{\mathsf{Stream}\:}
+\newcommand{\SStreams}{\mathsf{Stream}}
+\newcommand{\SOrd}{\mathsf{Ord}\:}
+
+\newcommand{\filter}{\mathsf{filter}}
+\newcommand{\tLeq}{\mathsf{Leq}\:}
+
 \newcommand{\Maybe}{\mathsf{Maybe}\:}
 \newcommand{\nothing}{\mathsf{nothing}\:}
 \newcommand{\just}{\mathsf{just}\:}
@@ -157,14 +176,14 @@
 \newcommand{\eat}{\mathsf{eat}\:}
 
 \newcommand{\adder}{\mathsf{adder}\:}
-\newcommand{\cadder}{\mathsf{cadder}\:}
+\newcommand{\cadder}{\mathsf{coadder}\:}
 \newcommand{\iadder}{\mathsf{iadder}\:}
 
-\newcommand{\eqo}{\mathsf{eq_0}\:}
+\newcommand{\eqo}{\mathsf{isEq}\:}
 \newcommand{\zeroest}{\mathsf{zeroes_2}\:}
-\newcommand{\beqd}{\mathsf{Beq}\:}
-\newcommand{\beq}{\mathsf{beq}\:}
-\newcommand{\eqt}{\mathsf{eq_1}\:}
+\newcommand{\beqd}{\mathsf{Bis}\:}
+\newcommand{\beq}{\mathsf{bis}\:}
+\newcommand{\eqt}{\mathsf{isBis}\:}
 
 \newcommand{\ra}{\rightarrow}
 
@@ -172,24 +191,22 @@
 \newcommand{\spcx}{\hspace*{10mm}}
 \newcommand{\vs}{\vspace*{1mm}}
 
-\newcommand{\mugda}{\textsf{Mugda }}
+\newcommand{\mugda}{\textsf{Mugda} }
 
-\newtheorem{definition}{Definition}
+
+\selectlanguage{german}
 
 \begin{document}
 \begin{titlepage}
+
 \begin{center}
 
-
-\vspace*{-2cm}
-
-\selectlanguage{german} 
 {\Huge INSTITUT F\"UR INFORMATIK\\[1mm]} % 
 DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \vspace*{1cm}
 
-\includegraphics[width=0.45\textwidth]{siegel.pdf}
+\includegraphics[width=0.35\textwidth]{siegel.pdf}
 
 \vspace*{2cm}
 
@@ -209,15 +226,21 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
   \begin{Large}
   \begin{tabular}{rl}
       Autor: &Karl Mehltretter\\
-      Aufgabensteller: & Prof. Dr. Martin Hofmann\\
+      Aufgabensteller: & Prof. Martin Hofmann\\
       Betreuer: & Dr. Andreas Abel\\
   \end{tabular}
   \end{Large}
+
 \end{center}
-\
+
 \end{titlepage} 
 
 \input{legal}
+
+\bibliographystyle{plain}
+
+
+
 
 
 \title{Termination Checking for a dependently typed language}
@@ -232,19 +255,19 @@ Das aus der Programmierung bekannte \emph{pattern matching} wurde als Mittel zur
 rekursiven Funktionen in diesen Systemen vorgeschlagen.
 Zwar ist pattern matching intuitiv und ausdrucksstark, doch muss sicher\-gestellt werden, dass die so definierten Funktionen total sind.
 
-Ein Aspekt einer totalen Funktion ist Terminierung: Jeder Auswertung der Funktion muss in endlicher Zeit m\"oglich sein.  Unendlich Objekte k\"onnen unterst\"utzt werden, indem jeweils nur Teile davon berechnet werden.
+Ein Aspekt einer totalen Funktion ist Terminierung: Jeder Auswertung der Funktion muss in endlicher Zeit m\"oglich sein.  Unendliche Objekte k\"onnen unterst\"utzt werden, indem jeweils nur Teile davon berechnet werden.
 G\"ultige Definitionen f\"ur unendliche Objekte m\"ussen \emph{produktiv} sein.
 
-Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"o\-glichst viele Definition als terminierend zu erkennnen. Es gibt verschiedene Ans\"atze zum Uberpr\"ufen der Terminierung.
-Oft k\"onnen Funktionen, deren rekursive Aufrufe einem Schema wie folgen,
- vom System zugelassen werden. Das \emph{size change principle} umfasst einige dieser Schemata. 
+Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"og\-lichst viele Definition als terminierend zu erkennen. Es gibt verschiedene Ans\"atze zum \"Uberpr\"ufen der Terminierung.
+Oft k\"onnen Funktionen, deren rekursive Aufrufe einem gewissen Schema folgen,
+ vom System zugelassen werden. Das \emph{size-change principle} umfasst einige dieser Schemata. 
 
 Ein weiterer Vorschlag ist der Einsatz von \emph{sized types}. Information \"uber die Gr\"o\ss e von Argumenten wird im Typsystem verfolgt, um diese f\"ur das Erkennen der Terminierung zu nutzen.   
 
-Im Rahmen dieser Diplomarbeit wurde das System \mugda entwickelt und wird nachfolgend vorgestellt.
-Es basiert auf Typtheorie nach Martin-L\"of und unterst\"utzt induktive und co-induktive Typen. Funktionen werden  durch pattern matching definiert.
-Das Kriterium f\"ur Terminierung basiert auf dem \emph{size change principle}.
-Au\ss erdem stelle die Sprache Elemente bereit, um dem Benutzer die Verwendung von \emph{sized types} zu erm\"oglichen.
+Im Rahmen dieser Diplomarbeit wurde das System \mugda ent\-wickelt und wird nachfolgend vorgestellt.
+Es basiert auf Typentheorie nach Martin-L\"of und unterst\"utzt induktive und coinduktive Typen. Rekursive Funktionen werden  durch pattern matching definiert.
+Das Kriterium f\"ur Terminierung basiert auf dem \emph{size-change principle}.
+Au\ss erdem stellt die Sprache Elemente bereit, um dem Benutzer die Verwendung von \emph{sized types} zu erm\"oglichen.
 \end{abstract}
 \newpage
 
@@ -252,23 +275,23 @@ Au\ss erdem stelle die Sprache Elemente bereit, um dem Benutzer die Verwendung v
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
 Dependent types have been used at the core of many proof assistants, and more recently there haven been efforts to extend their use to functional programming languages. 
-Dependent type theories allow programming and reasoning in one common framework.
+Dependent type theories allow programming and reasoning in a common framework.
 
 The \emph{pattern matching} notation, known from traditional programming, has been proposed for defining recursive functions in such systems.
 While pattern matching is intuitive and powerful, it has to be ensured that the defined functions are total. 
 
-One aspect of totality is termination: each evaluation of a function must be able to be computed in finite time.
+One aspect of totality is termination: each evaluation of a function must be computable in finite time.
 Infinite objects can be added to the language by computing only finite parts of them as necessary.
 Valid definitions of infinite objects need to be \emph{productive}. 
 
-As the Halteproblem is undecidable, the goal can only be to accept as many valid definitions as possible.
+As the halteproblem is undecidable, the goal can only be to accept as many valid definitions as possible.
 There are many approaches to ensure termination.
 One is to allow the definition of functions where the recursive calls follow a certain scheme.
-The \emph{size change principle} subsumes some of these schemes.
+The \emph{size-change principle} subsumes some of these schemes.
 
-With the use of \emph{sized types}, information about the height of arguments is tracked in the type system and can be used to recognize more definitions as terminating.  
+Another approach is the use of \emph{sized types}, where information about the height of arguments is tracked in the type system and is used to recognize definitions as terminating.  
 
-For this thesis, the system \mugda was developed and will subsequently be described. It is based on \emph{Martin-L\"of type theory} and supports inductive and co-inductive types. Functions are defined by pattern matching. Its termination criterion is based on the size-change principle. In  addition, the language provides elements to enable the use of sized types.
+For this thesis, the system \mugda was developed and will subsequently be described. It is based on \emph{Martin-L\"of type theory} and supports inductive and coinductive types. Recursive functions are defined by pattern matching. Its termination criterion is based on the size-change principle. In  addition, the language provides elements to enable the use of sized types.
 
 \end{abstract}
 \tableofcontents
