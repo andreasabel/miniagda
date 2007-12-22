@@ -1094,7 +1094,7 @@ We need to check each clause $\ff \: \vec{p} \: e$ of a function separately agai
 So for each clause, we have to check the patterns $\vec{p}$ and then the right hand side $e$.
 Checking the patterns $\vec{p}$ will yield an environment for the free variables in $e$.
 
-Because of the inaccessible patterns, checking $\vec{p}$ will need two phases.
+Because of the inaccessible patterns, we follow \cite{norell:thesis} and check $\vec{p}$ in two phases.
 In the first phase, we will skip inaccessible patterns, and only check the \emph{accessible part} of the patterns.
 Thee inaccessible patterns will be represented by fresh \emph{flexible} generic values.
 These flexible generic values will be \emph{instantiated} to concrete values when checking constructor patterns.

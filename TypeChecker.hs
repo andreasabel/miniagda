@@ -72,7 +72,7 @@ typeCheckConstructor d sz pos tel (TypeSig n t) =
       let (_,target) = typeToTele tt
       checkTarget d tel target
       vt <- whnf  [] tt
-      --sposConstructor d 0 pos vt
+      sposConstructor d 0 pos vt
       put (addSig sig n (ConSig vt))
       case sz of 
         Sized ->

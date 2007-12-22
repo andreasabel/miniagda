@@ -1,3 +1,5 @@
+-- natural numbers and equality
+
 data Nat : Set  
 {
 	zero : Nat ;
@@ -69,14 +71,7 @@ fun ack : Nat -> Nat -> Nat
 {
 ack zero y = y;
 ack (succ x) zero = ack x (succ zero);
---ack (succ x) (succ y) = ack x (ack (succ x) y)
+ack (succ x) (succ y) = ack x (ack (succ x) y)
 }
 
 
-fun bla : Nat -> Nat
-{
-bla zero = bla (succ zero);
-bla (succ x) = bla x
-}
-
-eval let bla2 : Nat = bla zero

@@ -1,6 +1,5 @@
 module Main where
 
-import Tokens
 import Lexer
 import Parser
 

@@ -152,7 +152,7 @@ compareExpr e p =
       _ -> Un
 
 compareVar :: Name -> Pattern -> Order
-compareVar n p = trace ("comparevar " ++ show n ++ " " ++ show p) $
+compareVar n p = 
     case p of
       VarP n2 -> if n == n2 then Le else Un
       ConP Ind c (p:pl) -> comp Lt (maxL (map (compareVar n) (p:pl)))
@@ -224,7 +224,10 @@ cgComb :: [Call] -> [Call] -> [Call]
 cgComb cg1 cg2 = [ callComb c1 c2 | c1 <- cg1 , c2 <- cg2 , (source c1 == target c2)]
 
 complete :: [Call ] -> [Call] 
-complete cg = let cg' = complete' cg in trace ("bla " ++ show cg') cg'
+complete cg = let cg' = complete' cg 
+              in 
+                cg'
+                --trace ("complete " ++ show cg') cg'
 
 complete' :: [Call] -> [Call]
 complete' cg =
@@ -295,8 +298,9 @@ collectCallsExpr nl f pl e =
                                                  cg = Call { source = f
                                                            , target = g
                                                            , matrix = m }
-                          --                   in cg:calls
-                                               in trace (show cg) cg:calls
+                                             in 
+                                               cg:calls
+                                               -- trace (show cg) cg:calls
       (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
       (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f pl e1

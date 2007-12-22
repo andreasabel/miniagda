@@ -119,9 +119,8 @@ Most of the Haskell code is monadic, where \emph{monad transformers} \cite{Grabm
 The input file is parsed into \emph{concrete syntax}.
 \paragraph*{Scope-Checking}
 As mentioned in chapter 3, scope-checking is the first step after parsing.
-During parsing, it is not known whether an identifier is variable or constructor etc.
-Scope-checking produces \emph{abstract syntax} where all identifiers are categorized, if the $\mugda$ program is well-scoped.
-Also some syntactic tests like checking linearity of patterns are already done during this stage.
+During parsing, it is not known whether an identifier is a variable or a constructor etc.
+If the $\mugda$ program is well-scoped, scope-checking produces \emph{abstract syntax} where all identifiers are categorized. In addition, some syntactic tests like checking linearity of patterns are done during this stage.
 \paragraph*{Type-Checking}
 Every declaration is type-checked.
 For mutual declarations, the type-checker also checks admissibility and finally invokes the termination-checker. 
