@@ -1,0 +1,1294 @@
+\documentclass[12pt,red,serif,mathserif]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsthm, amssymb}
+\usepackage{graphicx}
+\usepackage{latexsym}
+\usepackage{pxfonts}
+\usepackage{color}
+
+% RGB colors
+\definecolor{darkred}{rgb}{0.5,0,0}
+\definecolor{darkgreen}{rgb}{0,0.5,0}
+\definecolor{darkblue}{rgb}{0,0,0.5}
+\definecolor{dirtyred}{rgb}{0.7,0.2,0.1}
+\definecolor{dirtygreen}{rgb}{0.2,0.4,0.1}
+\definecolor{dirtyblue}{rgb}{0.1,0.2,0.5}
+\definecolor{darkdirtyblue}{rgb}{0.1,0.15,0.35}
+\definecolor{lightblue}{rgb}{0.5,0.5,1}
+\definecolor{olivegreen}{rgb}{0.5,0.5,0}
+\definecolor{brown}{rgb}{0.65,0.35,0} % almost gold
+\definecolor{grey}{rgb}{0.33,0.33,0.33}
+\definecolor{darkbrown}{rgb}{0.35,0.15,0}
+\definecolor{darkgrey}{rgb}{0.16,0.16,0.16}
+
+\newenvironment{changemargin}[2]{%
+  \begin{list}{}{%
+    \setlength{\topsep}{0pt}%
+    \setlength{\leftmargin}{#1}%
+    \setlength{\rightmargin}{#2}%
+    \setlength{\listparindent}{\parindent}%
+    \setlength{\itemindent}{\parindent}%
+    \setlength{\parsep}{\parskip}%
+  }%
+  \item[]}{\end{list}} 
+
+
+\newcommand{\vex}[1]{\overrightarrow{#1}} 
+\newcommand{\ves}[1]{{#1}^{\ast}} 
+
+\newcommand{\vsp}{\:\vert\:}
+\newcommand{\Set}{\mathsf{Set}}
+\newcommand{\s}{\mathsf{s}\,}
+\newcommand{\Size}{\mathsf{Size}}
+\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
+\newcommand{\data}{\mathsf{data}\:}
+\newcommand{\sized}{\mathsf{sized}\:}
+\newcommand{\fun}{\mathsf{fun}\:}
+\newcommand{\codata}{\mathsf{codata}\:}
+\newcommand{\cofun}{\mathsf{cofun}\:}
+\newcommand{\clet}{\mathsf{let}\:}
+\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:} 
+\newcommand{\mutual}{\mathsf{mutual}\:}
+\newcommand{\lam}[1]{\lambda\: #1 .\:}
+
+\newcommand{\inacc}[1]{\underline{#1}}
+
+\newcommand{\id}{\mathsf{id}\:}
+\newcommand{\Nat}{\mathsf{Nat}\:}
+\newcommand{\Nats}{\mathsf{Nat}}
+\newcommand{\zero}{\mathsf{zero}\:}
+\newcommand{\suc}{\mathsf{succ}\:}
+\newcommand{\add}{\mathsf{add}\:}
+\newcommand{\addt}{\mathsf{add_2}\:}
+
+\newcommand{\Vd}{\mathsf{V}\:}
+\newcommand{\vc}{\mathsf{v}\:}
+
+\newcommand{\NatP}{\mathsf{NatPair}\:}
+\newcommand{\np}{\mathsf{np}\:}
+\newcommand{\addp}{\mathsf{add_p}\:}
+
+\newcommand{\even}{\mathsf{even}\:}
+\newcommand{\odd}{\mathsf{odd}\:}
+
+\newcommand{\Bool}{\mathsf{Bool}}
+\newcommand{\ttt}{\mathsf{tt}\:}
+\newcommand{\fff}{\mathsf{ff}\:}
+
+\newcommand{\List}{\mathsf{List}\:}
+\newcommand{\nil}{\mathsf{nil}\:}
+\newcommand{\cons}{\mathsf{cons}\:}
+
+\newcommand{\Term}{\mathsf{Term}\:}
+\newcommand{\Terms}{\mathsf{Term}}
+\newcommand{\abs}{\mathsf{abs}\:}
+\newcommand{\funt}{\mathsf{Fun}\:}
+\newcommand{\func}{\mathsf{fn}\:}
+\newcommand{\omegad}{\mathsf{omega}\:}
+\newcommand{\app}{\mathsf{app}\:}
+
+\newcommand{\Tree}{\mathsf{Tree}\:}
+\newcommand{\leaf}{\mathsf{leaf}\:}
+\newcommand{\node}{\mathsf{node}\:}
+
+\newcommand{\vVec}{\mathsf{Vec}\:}
+\newcommand{\head}{\mathsf{head}\:}
+
+\newcommand{\heads}{\mathsf{head}}
+
+\newcommand{\rev}{\mathsf{rev}\:}
+\newcommand{\revs}{\mathsf{rev}}
+\newcommand{\reva}{\mathsf{rev_1}\:}
+\newcommand{\revb}{\mathsf{rev_2}\:}
+
+
+\newcommand{\flatt}{\mathsf{flat}\:}
+
+\newcommand{\Eq}{\mathsf{Eq}\:}
+\newcommand{\refl}{\mathsf{refl}\:}
+
+\newcommand{\prof}{\mathsf{proof}\:}
+\newcommand{\tprof}{\mathsf{proof_2}\:}
+\newcommand{\eqsucc}{\mathsf{eqSucc}\:}
+
+\newcommand{\bad}{\mathsf{bad_1}\:}
+\newcommand{\badb}{\mathsf{bad_2}\:}
+
+
+\newcommand{\ProdT}{\mathsf{Prod}\:}
+\newcommand{\prd}{\mathsf{prod}\:}
+\newcommand{\pra}{\mathsf{pr_1}\:}
+\newcommand{\prb}{\mathsf{pr_2}\:}
+\newcommand{\quicksort}{\mathsf{quicksort}\:}
+\newcommand{\qsapp}{\mathsf{qsapp}\:}
+\newcommand{\pivot}{\mathsf{split}\:}
+\newcommand{\lleq}{\mathit{leq}\:}
+\newcommand{\ite}{\mathsf{ite}\:}
+
+\newcommand{\Ord}{\mathsf{Ord}\:}
+\newcommand{\Ords}{\mathsf{Ord}}
+
+\newcommand{\ozero}{\mathsf{ozero}\:}
+\newcommand{\olim}{\mathsf{olim}\:}
+\newcommand{\addOrd}{\mathsf{addOrd}\:}
+
+\newcommand{\Stream}{\mathsf{Stream}\:}
+\newcommand{\Streams}{\mathsf{Stream}}
+\newcommand{\tail}{\mathsf{tail}\:}
+\newcommand{\nth}{\mathsf{nth}\:}
+
+\newcommand{\wkSNat}{\mathsf{weakSNat}\:}
+\newcommand{\wkSNatb}{\mathsf{badSNat}\:}
+\newcommand{\wkStream}{\mathsf{weakStream}\:}
+
+
+\newcommand{\minus}{\mathsf{minus}\:}
+\renewcommand{\div}{\mathsf{div}\:}
+
+\newcommand{\SNat}{\mathsf{Nat}\:}
+\newcommand{\SList}{\mathsf{List}\:}
+\newcommand{\SStream}{\mathsf{Stream}\:}
+\newcommand{\SStreams}{\mathsf{Stream}}
+\newcommand{\SOrd}{\mathsf{Ord}\:}
+
+\newenvironment{bsp}
+{\begin{list}{}{
+\setlength{\leftmargin}{0cm}
+\setlength{\rightmargin}{0cm}
+}\item}{
+\end {list}
+}
+
+
+\newcommand{\filter}{\mathsf{filter}}
+\newcommand{\tLeq}{\mathsf{Leq}\:}
+
+\newcommand{\Maybe}{\mathsf{Maybe}\:}
+\newcommand{\nothing}{\mathsf{nothing}\:}
+\newcommand{\just}{\mathsf{just}\:}
+\newcommand{\shift}{\mathsf{shift}\:}
+\newcommand{\shiftcase}{\mathsf{shift\_case}\:}
+\newcommand{\inc}{\mathsf{inc}\:}
+\newcommand{\lop}{\mathsf{loop}\:}
+\newcommand{\lopcase}{\mathsf{loop\_case}\:}
+\newcommand{\diverge}{\mathsf{diverge}\:}
+
+\newcommand{\zeroes}{\mathsf{zeroes}\:}
+\newcommand{\unp}{\mathsf{unp}\:}
+\newcommand{\zipWith}{\mathsf{zipWith}\:}
+\newcommand{\fibs}{\mathsf{fib'}\:}
+\newcommand{\fib}{\mathsf{fib}\:}
+\newcommand{\fibf}{\mathsf{fib4}\:}
+
+\newcommand{\Empty}{\mathsf{Empty}\:}
+\newcommand{\BadNat}{\mathsf{BadNat}\:}
+\newcommand{\foo}{\mathsf{foo}\:}
+
+\newcommand{\addWith}{\mathsf{addWith}\:}
+
+\newcommand{\ispd}{\mathsf{ISP}\:}
+\newcommand{\spd}{\mathsf{SP}\:}
+\newcommand{\putd}{\mathsf{put}\:}
+\newcommand{\getd}{\mathsf{get}\:}
+\newcommand{\isp}{\mathsf{isp}\:}
+\newcommand{\ieat}{\mathsf{ieat}\:}
+\newcommand{\eat}{\mathsf{eat}\:}
+
+\newcommand{\adder}{\mathsf{adder}\:}
+\newcommand{\cadder}{\mathsf{coadder}\:}
+\newcommand{\iadder}{\mathsf{iadder}\:}
+
+\newcommand{\eqo}{\mathsf{isEq}\:}
+\newcommand{\zeroest}{\mathsf{zeroes_2}\:}
+\newcommand{\beqd}{\mathsf{Bis}\:}
+\newcommand{\beq}{\mathsf{bis}\:}
+\newcommand{\eqt}{\mathsf{isBis}\:}
+
+\newcommand{\ra}{\rightarrow}
+
+\newcommand{\spc}{\hspace*{2mm}}
+\newcommand{\spcx}{\hspace*{8mm}}
+\newcommand{\vs}{\vspace*{1mm}}
+
+\newcommand{\mugda}{\textsf{Mugda} }
+
+% Inference rules
+\newcommand{\rulename}[1]{\ensuremath{\mbox{\sc#1}}}
+\newcommand{\ru}{\dfrac}
+\newcommand{\rux}[3]{\ru{#1}{#2}\ #3}
+\newcommand{\nru}[3]{#1\ \ru{#2}{#3}}
+\newcommand{\nrux}[4]{#1\ \ru{#2}{#3}\ #4}
+\newcommand{\dstack}[2]{\begin{array}[b]{c}#1\\#2\end{array}}
+\newcommand{\xstack}[3]{\begin{array}[b]{c}#1\\#2\\#3\end{array}}
+\newcommand{\ndru}[4]{#1\ \ru{\dstack{#2}{#3}}{#4}}
+\newcommand{\nxru}[5]{#1\ \ru{\xstack{#2}{#3}{#4}}{#5}}
+\newcommand{\ndrux}[5]{#1\ \ru{\dstack{#2}{#3}}{#4}\ #5}
+
+
+% rule names
+\newcommand{\infvar}{\rulename{inf-var}}
+\newcommand{\infset}{\rulename{inf-set}}
+\newcommand{\infsize}{\rulename{inf-size}}
+\newcommand{\infinfty}{\rulename{inf-infty}}
+\newcommand{\infappa}{\rulename{inf-app-i}}
+\newcommand{\infappb}{\rulename{inf-app-ii}}
+\newcommand{\infcon}{\rulename{inf-con}}
+\newcommand{\infdef}{\rulename{inf-fun}}
+\newcommand{\inflet}{\rulename{inf-let}}
+\newcommand{\infdata}{\rulename{inf-data}}
+
+\newcommand{\chklet}{\rulename{chk-let}}
+\newcommand{\chklam}{\rulename{chk-lam}}
+\newcommand{\chkpi}{\rulename{chk-pi}}
+\newcommand{\chksucc}{\rulename{chk-succ}}
+\newcommand{\chkinf}{\rulename{chk-inf}}
+\newcommand{\chkinfs}{\rulename{chk-inf-sub}}
+
+\newcommand{\eqforce}{\rulename{eq-force}}
+
+\newcommand{\eqsuc}{\rulename{eq-succ}}
+\newcommand{\eqapp}{\rulename{eq-app}}
+\newcommand{\eqpi}{\rulename{eq-pi}}
+\newcommand{\eqlam}{\rulename{eq-lam}}
+\newcommand{\eqatom}{\rulename{eq-atom}}
+
+\newcommand{\chkpvar}{\rulename{chkp-var}}
+\newcommand{\chkpcon}{\rulename{chkp-con}}
+\newcommand{\chkpsucc}{\rulename{chkp-succ}}
+\newcommand{\chkpinacc}{\rulename{chkp-inacc}}
+
+\newcommand{\unifyl}{\rulename{inst-flex-l}}
+\newcommand{\unifyr}{\rulename{inst-flex-r}}
+\newcommand{\unifyc}{\rulename{inst-con}}
+\newcommand{\unifyd}{\rulename{inst-data}}
+\newcommand{\unifye}{\rulename{inst-eq}}
+\newcommand{\unifys}{\rulename{inst-succ}}
+\newcommand{\unifyi}{\rulename{inst-infty}}
+
+\newcommand{\leqforce}{\rulename{leq-force}}
+
+\newcommand{\leqsuc}{\rulename{leq-succ}}
+\newcommand{\leqappco}{\rulename{leq-co}}
+\newcommand{\leqappind}{\rulename{leq-ind}}
+\newcommand{\leqappd}{\rulename{leq-data}}
+\newcommand{\leqapp}{\rulename{leq-app}}
+\newcommand{\leqpi}{\rulename{leq-pi}}
+\newcommand{\leqlam}{\rulename{leq-lam}}
+\newcommand{\leqatom}{\rulename{leq-atom}}
+
+\newcommand{\sleqinfty}{\rulename{sleq-infty}}
+
+\newcommand{\sleqsucci}{\rulename{sleq-succ-i}}
+\newcommand{\sleqsuccii}{\rulename{sleq-succ-ii}}
+\newcommand{\sleqgen}{\rulename{sleq-gen}}
+
+\newcommand{\dd}{\mathsf{l}}
+\newcommand{\DD}{\mathsf{D}}
+\newcommand{\cc}{\mathsf{c}}
+\newcommand{\ff}{\mathsf{f}}
+\newcommand{\fg}{\mathsf{g}}
+
+\newcommand{\cDD}{\mathbb{D}}
+\newcommand{\cdd}{\mathbb{L}}
+\newcommand{\ccc}{\mathbb{C}}
+\newcommand{\cff}{\mathbb{F}}
+\newcommand{\cV}{\mathbb{V}}
+
+\newcommand{\cS}{\mathbb{S}}
+\newcommand{\cN}{\mathbb{N}}
+\newcommand{\cB}{\mathbb{B}}
+\newcommand{\cI}{\mathbb{I}}
+\newcommand{\cF}{\mathbb{F}}
+\newcommand{\nF}{\mathbf{N}}
+\newcommand{\lF}{\mathbf{L}}
+\newcommand{\rF}{\mathbf{R}}
+
+\newcommand{\opn}[1]{\operatorname{#1}}
+
+\newcommand{\Expr}{\opn{EXPR}}
+\newcommand{\Val}{\opn{VAL}}
+\newcommand{\AVal}{\opn{AVAL}}
+\newcommand{\vlam}{\mathsf{Lam}}
+\newcommand{\vpi}{\mathsf{Pi}}
+\newcommand{\cl}[2]{#1^{#2}}
+\newcommand{\clp}[2]{\cl{(#1)}{#2}}
+\newcommand{\Env}{\opn{ENV}}
+\newcommand{\wh}{\searrow}
+\newcommand{\ap}{\opn{app}}
+\newcommand{\apf}{\opn{app_{fun}}}
+\newcommand{\sinfty}{\opn{s_{\infty}}}
+\newcommand{\lkup}{\opn{lkup}}
+\newcommand{\ins}[3]{#1,#2=#3}
+\newcommand{\forc}{\opn{force}}
+\newcommand{\matchcls}{\opn{match_{cls}}}
+\newcommand{\matchcl}{\opn{match_{cl}}}
+\newcommand{\match}{\opn{match}}
+\newcommand{\matchf}{\opn{match_f}}
+\newcommand{\matchList}{\opn{match_{list}}}
+\newcommand{\matchInfty}{\opn{match_{\infty}}}
+\newcommand{\stuck}{\Uparrow}
+\newcommand{\Clause}{\opn{CLAUSE}}
+\newcommand{\Decl}{\opn{DECL}}
+\newcommand{\Pat}{\opn{PAT}}
+
+\newcommand{\Sig}{\Sigma}
+\newcommand{\esig}{\Sigma_0}
+
+
+\newcommand{\pset}[1]{\mathcal{P}(#1)}
+
+
+\usecolortheme{rose}
+%\usepackage{beamerthemetree}
+
+\RequirePackage[german]{babel}
+\RequirePackage[latin1]{inputenc}
+
+\beamertemplatenavigationsymbolsempty
+
+\title{Mugda - Abh\"angige Typen und Termination-Checking}
+\author{Karl Mehltretter}
+\date{1. Februar 2008}
+
+\begin{document}
+
+\frame{\titlepage}
+
+
+
+\begin{frame}[fragile]
+
+  \frametitle{Dependent Types}
+
+\begin{itemize}
+\item
+Martin-L\"of Typentheorie
+\item
+Beweissysteme wie Coq, Lego (\emph{proofs as programs}).
+\item
+Programmiersprachen: Agda, Epigram.
+\end{itemize}
+\vspace*{0.4cm}
+\verb.conc :: (m n : Nat) -> Lst m -> Lst n -> Lst m + n.
+\end{frame}
+
+\begin{frame}[fragile]
+
+  \frametitle{Termination-Checking}
+
+\begin{verbatim}
+length :: Lst -> Int
+length [] = 0
+length (x:xs) = 1 + length xs 
+\end{verbatim}
+
+\begin{itemize}
+\item
+syntaktisches Kriterium 
+\item
+Verbesserung: z.B. \emph{size-change principle} (Jones et al.) verwenden
+\end{itemize}
+\begin{itemize}
+\item
+\emph{sized types} (Abel, Barthe, Pareto \dots): Information \"uber Gr\"o\ss e im Typsystem mitf\"uhren.
+\item
+\verb+xs+ hat Typ \verb+[a] i+
+\item
+\verb+x:xs+ hat Typ \verb-[a] (i ++)-  
+\end{itemize}
+
+\end{frame}
+
+
+\frame
+{
+
+ \frametitle{Diplomarbeit}
+
+Agda 2 (U. Norrel)
+\begin{itemize}
+\item
+\emph{inductive families} (P. Dybjer)
+\item
+\emph{dependent pattern matching} (Th. Coquand)
+\end{itemize}
+\vspace*{0.2cm}
+\dots braucht einen Termination-Checker.\\
+\begin{itemize}
+\item
+Programme (Beweise) sollen total sein.
+\item
+entscheidbares Type-Checking.
+\end{itemize}
+\vspace*{0.2cm}
+Mugda
+\begin{itemize}
+\item
+weniger features \dots
+\item
+\emph{sized types}
+\item
+coinduktive Typen (z.B. unendliche Listen), Produktivit\"at.
+\end{itemize}
+
+}
+
+
+\frame
+{
+  \frametitle{Mugda Beispiel-Programme}
+
+\begin{bsp}
+$\data \Bool : \Set$  \\
+$\spc \ttt : \Bool $\\
+$\spc \fff : \Bool $\\
+\end{bsp}
+\vspace*{0.7cm}
+\begin{bsp}
+$\data \Nat : \Set$ \\
+$\spc \zero : \Nat $\\
+$\spc \suc : \Nat \ra \Nat$\\
+\end{bsp}
+
+\begin{bsp}
+$\fun \add : \Nat \ra \Nat \ra \Nat$\\
+$\spc \add x \: \zero = x $\\
+$\spc \add x \: (\suc y) = \suc (\add x \: y)  $\\
+\end{bsp}
+
+}
+
+\frame
+{
+  \frametitle{ Listen und Vektoren}
+
+\begin{bsp}
+$\data \List ( A : \Set ) : \Set $ \\
+$ \spc \nil : \List A  $\\
+$ \spc \cons : A \ra \List A \ra \List A $\\
+\end{bsp}
+
+\vspace*{0.6cm}
+\begin{bsp}
+$\data \vVec ( A : \Set ) : \Nat \ra \Set $ \\
+$\spc \nil : \vVec A \: \zero  $\\
+$ \spc \cons : \EPi{n}{\Nat}{ A \ra \vVec A \: n \ra \vVec A \: (\suc n)} $\\
+\end{bsp}
+
+\vspace*{0.2cm}
+\begin{bsp}
+$ \fun \head : ( A : \Set ) \ra ( n : \Nat ) \ra \vVec A \: (\suc n) \ra A $\\
+$ \spc \head \inacc{B} \: \inacc{m} \: (\cons \: B \: m \: x \: xl) = x $
+\end{bsp}
+\vspace*{0.3cm}
+\emph{inaccessible pattern}
+}
+
+\frame
+{
+
+\frametitle{Stream : coinduktiver Datentyp}
+
+\begin{bsp}
+$\codata \Stream : \Set $ \\
+$\spc \cons : \Nat \ra \Stream \ra \Stream $
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\cofun \zeroes: \Stream $ \\
+$\spc \zeroes = \cons \zero \zeroes$
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\fun \head : \Stream \ra \Nat$\\
+$\spc \head \: (\cons \: x \: xs) = x$
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\cofun \unp : \Stream $ \\
+$\spc \unp =  \unp $
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\cofun \unp' : \Stream $ \\
+$\spc \mathsf{unp'} =  \cons \zero (\tail \mathsf{unp'}) $
+\end{bsp}
+}
+% unp = 0 `cons` tail unp
+
+\frame
+{
+  \frametitle{Syntax}
+
+f\"ur Typen und Terme:
+\[
+\begin{array}{rlrl}
+\Expr \ni & e,A,B & ::= & \lam{x}{e} \\
+& & \mid & \EPi{x}{A}{B} \\
+& & \mid & e \; e_1 \ldots e_n \\
+& & \mid & \ELet{x}{e_1}{A_1}{e_2} \\ 
+& &  \mid & \Set \\
+& & \mid & x \mid \cc \mid  \DD \mid \ff \mid \dd \\
+\end{array}
+\]
+Patterns:
+\[
+\begin{array}{rlrl}
+\Pat \ni & p & ::= & x \\
+& & \mid & \cc \: \vec{p} \\ 
+& & \mid & \inacc{e} \\
+\end{array}
+\]
+$\ldots$
+}
+
+
+
+
+\frame
+{
+
+\frametitle{Problem: Terminierung}
+
+\begin{bsp}
+$\fun \foo : \Nat \ra \Nat$\\
+$\spc \foo x = \foo x$
+\end{bsp}
+\vspace*{0.3cm}
+\begin{bsp}
+$\clet v : \vVec \Nat (\foo \zero) = \nil \Nat \zero$
+\end{bsp}
+\vspace*{1cm}
+
+\begin{itemize}
+\item Strukturelle Ordnung:
+\item
+$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor 
+\item
+D. Wahlstedt 2007: size-change principle + dependent types
+\end{itemize}
+}
+
+\newcommand{\order}{\opn{ORDER}}
+
+
+
+
+
+\frame
+{
+
+\frametitle{Problem: Liste umdrehen ...}
+
+
+\begin{bsp}
+$\mutual $  \\
+$ \spc \fun \rev : \EPi{A}{\Set}{\List A \ra  \List A} $ \\
+$ \spc \spc \rev \inacc{A} \: (\nil A ) = \nil A$\\
+$ \spc \spc \rev \inacc{A} \: (\cons A \:x  \: xs) = \cons A \: (\reva A \: x \: xs) \: (\revb A \: x \: xs)$\\
+\vspace*{0.2cm}
+$ \spc \fun \reva : \EPi{A }{\Set}{A  \ra \List A \ra A}$\\
+$ \spc \spc \reva \inacc{A} \: a \: (\nil A ) = a$ \\
+$\spc \spc \reva \inacc{A} \: a \: (\cons A \: x \: xs) = \reva A \: x \: xs$\\
+\vspace*{0.2cm}
+$\spc \fun \revb : \EPi{A}{\Set}{ A \ra \List A \ra \List A} $\\
+$\spc \spc \revb \inacc{A} \: a \: (\nil A ) = \nil A $\\
+$\spc \spc \revb \inacc{A} \: a \: (\cons A\:  x \: xs) = 
+{\color{blue}\rev} A \: (\cons A \: a \: (
+{\color{blue}\rev} A \: (\revb A \: x \: xs)))$
+\end{bsp}
+}
+
+\frame
+{
+
+\frametitle{... aber mit Vektoren klappts}
+
+\begin{changemargin}{-0.1cm}{-0.1cm}
+
+\begin{bsp}
+$\mutual $ \\
+$\spc \fun \rev : \EPi{n}{\Nats}{\EPi{A}{\Set }{\vVec A \: n \ra \vVec A \: n}}$\\
+$\spc \spc \rev \inacc{\zero} \: \inacc{A}  \: (\nil A) = \nil A $\\
+$\spc \spc {\color{blue} \rev \inacc{\suc n}} \: \inacc{A} \: (\cons A \: n \: x \: xs) = $\\
+$\spcx \cons A \: n \: (\reva n \: A \: x \: xs) \: ({\color{blue}\revb n} \: A \: x \: xs) $ \\
+\vspace*{0.2cm}
+$\spc \fun \reva : \EPi{n}{\Nats}\EPi{A}{\Set}{A \ra \vVec A \: n \ra A}$\\
+$\spc \spc \reva \inacc{\zero} \: \inacc{A} \: a \: (\nil A) = a $\\
+$\spc \spc \reva \inacc{\suc n} \: \inacc{A} \: a \: (\cons A \: n \: x \: xs) = \reva n \: A \: x \: xs $\\
+\vspace*{0.2cm}
+$\spc \fun \revb : \EPi{n}{\Nats}{\EPi{A}{\Set}{A \ra \vVec A \: n \ra \vVec A \: n}}$\\
+$ \spc \spc \revb \inacc{\zero} \: \inacc{A}  \: a \: (\nil A) = \nil A $\\
+$ \spc \spc {\color{blue}\revb \inacc{\suc n}} \: \inacc{A} \: a \: (\cons A \: n \: x \: xs) = $\\
+$ \spcx {\color{blue}\rev (\suc n)} \: A \: (\cons A \: n \: a \:
+(
+{\color{blue}\rev \: n} \: A \: ({\color{blue}\revb \: n} \: A \: x \: xs))$
+\end{bsp}
+
+\end{changemargin}
+}
+
+\frame
+{
+
+\frametitle{ Sized types }
+\begin{itemize}
+\item
+Genauere Typen wie $\vVec$ statt $\List$ helfen bei Terminierung
+\item Filtern von Vektoren : Existentielle Typen
+\[
+\begin{array}{l} 
+\fun \filter : (A : \Set ) \ra (p : A \ra \Bool ) \ra (n : \Nat ) \\
+\spcx \ra \vVec A \: n \ra (m : \Nat . (\: \tLeq m \: n \:, \: \vVec A \: m))
+\end{array}
+\] 
+\item
+oft reicht upper bound. Automatisches Subtyping f\"ur $\Size$:
+\[
+\begin{array}{l} 
+\fun \filter : (A : \Set ) \ra (p : A \ra \Bool ) \ra (i : \Size ) \\
+\spcx \ra \List A \: i \ra \List A \: i 
+\end{array}   
+\]
+\item
+$\Nat$ reicht nicht aus f\"ur ein Objekt vom Typ $\Stream$
+\end{itemize}
+
+F\"uge den speziellen Typ $\Size$ zu $\mugda$ hinzu!
+
+}
+
+\frame
+{
+
+\frametitle{ Erweiterung von Mugda }
+
+\begin{itemize}
+\item
+\[
+\begin{array}{lrll}
+\Expr \ni e,A,B & ::= & \ldots & \\
+& \mid & \Size & \mbox{Size Typ} \\
+& \mid & \s e  & \mbox{Nachfolger}\\ 
+& \mid & \infty & \mbox{Limit}\\
+\Pat \ni p & ::= & \ldots & \\
+& \mid & \s p & \\
+\end{array}
+\]
+\dots
+\vspace*{0.2cm}
+\item
+$\s \infty = \infty$ 
+\vspace*{0.2cm}
+\item
+f\"ur Terminierung: $i < (\s i)$ (Admissibility !) 
+\end{itemize}
+}
+
+\frame
+{
+
+\frametitle{ Sized data types}
+
+\begin{bsp}
+$\sized \data \SList ( A : \Set ) : \Size \ra \Set $ \\
+$\spc \nil : \EPi{i}{\Size}{ \SList A \: (\s i)} $\\
+$\spc \cons : \EPi{i}{\Size}{ A \ra \SList A \: i \ra \SList A \: (\s i)} $
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\sized \data \SNat : \Size \ra \Set $ \\
+$\spc \zero : \EPi{i}{\Size}{ \SNat \: (\s i)} $\\
+$\spc \suc : \EPi{i}{\Size}{ \SNat \: i \ra \SNat \: (\s i)} $
+\end{bsp}
+\vspace*{0.2cm}
+\begin{bsp}
+$\sized \codata \SStream : \Size \ra \Set $ \\
+$\spc \cons : \EPi{i}{\Size}{\Nat \ra \SStream i \: \ra \SStream (\s i) } $
+\end{bsp}
+\vspace*{0.2cm}
+\dots
+}
+
+\frame
+{
+
+\frametitle{ Subtyping }
+\begin{itemize}
+\item
+$\List i$ ist Subtyp von $\List (\s i)$ und $\List \infty$.
+\vspace*{0.2cm}
+\item
+$\Stream (\s i) \:$und $ \Stream \infty $ sind Subtypen von $\Stream i$.
+\vspace*{0.2cm}
+\item
+ersetze Gleichheit von Typen durch Subtyping.
+\end{itemize}
+}
+
+\frame
+{
+
+\frametitle{ Beispiel: Division}
+
+\begin{bsp}
+$\fun \minus : (i : \Size ) \ra \SNat i \ra \SNat \infty \ra \SNat i$\\
+$\spc \minus \inacc{\s i} \: (\zero i) \:  y = \zero i $ \\
+$\spc \minus i \: x \: (\zero \inacc{\infty})  = x $\\
+$\spc \minus \inacc{\s i} \: (\suc \: i \: x) \: (\suc \inacc{\infty} \: y) = \minus i \: x \: y $\\
+$\spc$\\
+$\fun \div : ( i : \Size )  \ra  \SNat i \ra \SNat \infty \ra \SNat i$\\
+$\spc \div \inacc{\s i} \: (\zero i) \: y = \zero i$\\
+$\spc \div \inacc{\s i} \: (\suc i \: x) \: (\zero \inacc{\infty})  = \zero i$\\
+$\spc \div \inacc{\s i} \: (\suc i \: x) \: (\suc \inacc{\infty} \: y) = $\\
+$\spc \spcx \suc i \: (\div i \: (\minus i \: x \:y) \: (\suc \infty \: y))$
+\end{bsp}
+
+}
+
+\frame
+{
+
+\frametitle{ Streams }
+
+
+
+\begin{bsp}
+$\cofun \zeroes: \EPi{i}{\Size}{\SStream i} $ \\
+$\spc \zeroes (\s i) = \cons i \: \zero (\zeroes i)$
+\end{bsp}
+
+\vspace*{0.2cm}
+
+\begin{bsp}
+$\cofun \unp : \EPi{i}{\Size}{\SStream i}$ \\
+$\spc \unp i =  \unp i$
+\end{bsp}
+
+\vspace*{0.2cm}
+
+Produktivit\"at \"uber $\Size$ statt syntaktischem \emph{Guardedness}-Test.
+
+}
+
+
+
+\frame
+{
+
+\frametitle{ Admissibility - Nicht zul\"assiger Typ}
+bei rekursiven Funktionen:
+\vspace*{0.3cm}
+
+\begin{bsp}
+$\mutual$\\
+$\spc \fun \lop : (i : \Size ) \ra \SNat i $\\
+$\spcx \spcx \ra (\SNat \infty \ra\Maybe (\SNat i)) \ra\Bool$\\
+$\spc \spc \lop \inacc{\s i} \: (\zero i) f = \lopcase (\s i) \: (\zero i) \: f \: (f \: (\zero i))$\\
+$\spc \spc \lop \inacc{\s i} \: (\suc i \: n) f = \lop i \: n \: (\shift i \: f)$\\
+\end{bsp}
+\vspace*{0.1cm}
+\begin{bsp}
+$\spc \fun \lopcase : (i : \Size ) \ra (\SNat \infty \ra \Maybe (\SNat i)) $\\
+$\spcx \ldots$
+\end{bsp}
+\vspace*{0.2cm}
+
+\begin{bsp}
+$\clet \inc : \SNat \infty \ra \Maybe \SNat \infty = \lam{n}{\just \SNat \infty \: (\suc \infty \: n)}$
+$\clet \diverge : \Bool = \lop \infty\: (\zero \infty) \: \inc$
+\end{bsp}
+
+}
+
+\frame
+{
+
+\frametitle{ Admissibility  }
+
+bei rekursiven Funktionen:
+\vspace*{0.3cm}
+\begin{bsp}
+$\fun \bad : \EPi{i}{\Size}{\Bool}$\\
+$\spc \bad (\s i) = \bad i $ 
+\end{bsp}
+\vspace*{0.3cm}
+\begin{bsp}
+$\fun \badb : \EPi{i}{\Size}{\SNat i \ra \Bool}$\\
+$\spc \badb \inacc{\s \s i} \: (\zero (\s i)) = \badb (\s i) \: (\zero i)$\\
+$\spc \badb \inacc{\s i}\: (\suc i \: x) = \badb i \: x;$
+\end{bsp}
+\vspace*{0.3cm}
+Unvollst\"andiges Size pattern ! $(\s p)$ darf nicht vorkommen.
+
+}
+
+
+
+
+\frame
+{
+
+\frametitle{ Zusamenfassung }
+
+\begin{itemize}
+\item
+$\mugda$ verbindet \emph{size-change principle}  und \emph{sized types}.
+\item
+Produktivit\"at mittels \emph{sized types} statt \emph{guardedness}.
+\item
+wurde implementiert (mit Type-Checking etc.)
+\end{itemize}
+
+Todo:
+\begin{itemize}
+\item
+Klauseln sollen alle F\"alle abdecken.
+\item
+Alles beweisen \ldots
+\item
+Verbessere Admissiblity, Higher-Order Subtyping \dots
+\end{itemize}
+}
+
+\frame
+{
+
+\frametitle{ Backup }
+
+
+
+}
+
+
+\frame
+{
+  \frametitle{Gleichheit}
+
+\begin{bsp}
+$\data \Eq ( A : \Set ) : A \ra A \ra \Set $ \\
+$\spc \refl : \EPi{a}{A}{\Eq A \: a \: a}$\\
+\end{bsp}
+
+\vspace*{0.3cm}
+\begin{bsp}
+$ \clet \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\ 
+$ \spcx = \lam{y}\refl \Nat y$ 
+\end{bsp}
+
+}
+
+\frame
+{
+  \frametitle{ Listen, B\"aume }
+
+\begin{bsp}
+$\data \List ( + \: A : \Set ) : \Set $ \\
+$ \spc \nil : \List A  $\\
+$ \spc \cons : A \ra \List A \ra \List A $\\
+\end{bsp}
+\vspace*{0.3cm}
+\begin{bsp}
+$\data \Tree ( + \: A : \Set ) : \Set $ \\
+$ \spc \node : A \ra \List (\Tree A ) \ra \Tree A  $
+\end{bsp}
+
+}
+
+\frame
+{
+  \frametitle{Syntax}
+
+\[
+\begin{array}{lrl}
+\Decl \ni \delta & ::= & \data \DD \: \tau : A \: \vec{\gamma} \\
+& \mid & \codata \DD \: \tau : A \: \vec{\gamma} \\
+& \mid & \clet \dd : A \: = e \\
+& \mid & \mutual \vec{\mu} \\
+& \mid & \mutual \vec{\nu} \\
+\end{array}
+\]
+
+\[
+\begin{array}{lrl}
+\tau & ::= & \diamond \\
+& \mid & ( x : A ) \: \tau \\
+& \mid & ( + \: x : A ) \: \tau \\
+\end{array}
+\]
+
+\[
+\begin{array}{rlrl}
+\Clause \ni & \kappa & ::= & \ff \: \vec{p} = e \\ 
+& \gamma &  ::= & \cc \: : \: A \\
+& \mu & ::= & \fun \ff : A \: \vec{\kappa} \\
+& \nu & ::= & \cofun \ff : A \: \vec{\kappa} \\ 
+\end{array}
+\]
+
+
+}
+
+\frame
+{
+  \frametitle{Semantik - Values, Closures}
+
+\[
+\begin{array}{lrl}
+\Val \ni v & ::= & v \: \vec{v} \\
+& \mid & \vlam \: x \: \cl{e}{\rho} \\
+& \mid & \vpi \: x \: v \: \cl{e}{\rho} \\
+& \mid & a \\
+ \\
+\AVal \ni a & ::= & k \in \cN \\
+& \mid & \Set \\
+& \mid & \cc \mid \ff \mid \DD \\
+ \\
+\Env \ni \rho & ::= & \diamond \\
+& \mid & \rho,x = v 
+\end{array}
+\]
+}
+
+\frame
+{
+  \frametitle{Auswertung}
+
+\[
+\begin{array}{ll}
+\multicolumn{2}{l}{\wh \: : \Expr \times \Env \ra \Val}\\
+\wh \clp{\lam{x}{e}}{\rho} & = \vlam \: x \: \cl{e}{\rho} \\
+\wh \clp{\EPi{x}{A}{B}}{\rho} &= \vpi \: x \: v_A \: \cl{B}{\rho} \mbox{ mit } v_A = \wh \cl{A}{\rho} \\
+\wh \clp{\ELet{x}{A}{e_1}{e_2}}{\rho} &= \wh \cl{e_2}{\ins{\rho}{x}{v_1}} \mbox { mit } v_1 = \wh \cl{e_1}{\rho} \\
+\wh \clp{e \: e_1 \ldots e_n}{\rho} &= \ap \: v \: v_1 \ldots v_n \mbox{ mit } v = \wh \cl{e}{\rho} , v_i = \wh \cl{e_i}{\rho}\\
+\wh \cl{\Set}{\rho} & = \Set \\ 
+\wh \cl{\cc}{\rho} & = \cc  \\
+\wh \cl{\ff}{\rho} & = \ff \\
+\wh \cl{\dd}{\rho} & = \wh \cl{e}{\diamond} \mbox{ mit } \: \Sig \: \dd = (e,v_t)\\
+\wh \cl{x}{\rho} & = \lkup \: \rho \: x \\
+\spc\\
+\multicolumn{2}{l}{\ap : \Val \times \ves{\Val} \ra \Val}\\
+\ldots\\
+\end{array}
+\]
+}
+
+\renewcommand\Check[5]{#1;#2;#3\vdash#4\leftleftarrows#5}
+\newcommand\IsType[4]{#1;#2;#3\vdash#4\:\mathbf{Type}}
+\newcommand\DataType[5]{#1;#2;#3;#4\vdash#5\:\mathbf{DataType}}
+\newcommand\ConType[5]{#1;#2;#3;#4\vdash#5\:\mathbf{ConType}}
+\newcommand\Infer[5]{#1;#2;#3\vdash#4\rightrightarrows#5}
+\newcommand\EqVal[4]{#1;#2\vdash#3\Leftrightarrow#4}
+\newcommand\FeqVal[4]{#1;#2\vdash#3{\:\leftrightarrow\:}#4}
+\newcommand\DeqVal[2]{\vdash#1\leftrightarrow#2}
+\newcommand\LeqVal[4]{#1;#2;\vdash#3\:\leqq\:#4}
+\newcommand\FleqVal[4]{#1;#2\vdash#3{\:\ll\:}#4}
+\newcommand\DLeqVal[2]{\vdash#1\leq#2}
+\newcommand\SzLeq[2]{\vdash#1\sqsubseteq#2}
+
+\frame
+{
+  \frametitle{Bidirektionales Type-Checking}
+
+Ist e vom Typ A ? 
+\vspace*{0.2cm}
+\begin{itemize}
+\item
+ist Typ: \[\IsType{k}{\rho_1}{\rho_2}{A} \subseteq \cN \times \Env \times \Env \times \Expr \]
+\item
+hat Typ: \[\Check{k}{\rho_1}{\rho_2}{e}{v} \subseteq \cN \times \Env \times \Env \times \Expr \times \Val\]
+\item
+inferiere Typ: \[\Infer{k}{\rho_1}{\rho_2}{e}{v} : \cN \times \Env \times \Env \times \Expr \ra \Val\]
+
+\end{itemize}
+}
+
+\frame
+{
+
+
+\frametitle{Gleichheit von Values}
+
+\begin{itemize}
+\item Modus-Wechsel
+\[
+\nru{\chkinf}
+{\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
+\qquad
+{\EqVal{\nF}{k}{v_2}{v_1}}} 
+{\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
+\]
+\item Gleichheit (mit begrenztem Ausrollen von corekursiven Definitionen)
+\[ \cF ::= \{\lF, \rF, \nF \} \]
+
+\[\EqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times \Val \times \Val \]
+
+\[\FeqVal{f}{k}{v_1}{v_2} \subseteq \cF \times \cN \times\Val \times \Val \]
+\item
+Bisimilarit\"at als $\codata$ Pr\"adikat definierbar.
+\item
+\emph{observational equality} (McBride) 
+\end{itemize}
+}
+
+\frame
+{
+
+\frametitle{Type-Checking von Deklarationen}
+
+\begin{itemize}
+\item
+Datentyp-Deklaration: strikte Positivit\"at etc.
+\item
+Funktions-Deklaration : jede Klausel einzeln checken etc.
+\end{itemize}
+
+}
+
+\frame
+{
+
+\frametitle{Terminierung}
+
+\begin{itemize}
+\item
+$\order = \{ \: ? \: , \: \leq \: , \: < \: \}$
+\item
+$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor 
+\vspace*{0.2cm}
+\item
+\begin{bsp}
+$\fun \add : \Nat \ra \Nat \ra \Nat$\\
+$\spc \add x \: \zero = x $\\
+$\spc \add x \: (\suc y) = \suc (\add x \: y)  $
+\end{bsp}
+\vspace*{0.2cm}
+\item
+$
+\add\begin{pmatrix}
+\leq & ? \\
+?    & < \\
+\end{pmatrix}\add
+\star
+\add\begin{pmatrix}
+\leq & ? \\
+?    & < \\
+\end{pmatrix}\add
+=
+\add\begin{pmatrix}
+\leq & ? \\
+?    & < \\
+\end{pmatrix}\add
+$
+\vspace*{0.2cm}
+\item
+size-change principle: Jede idempotente Matrix muss ein $<$ auf Diagonale haben.
+\item
+D. Wahlstedt 2007: size-change principle + dependent types
+\end{itemize}
+
+}
+
+\frame
+{
+
+\frametitle{ Erweiterung von Mugda }
+
+\begin{itemize}
+\item
+\[
+\begin{array}{lrll}
+\Expr \ni e,A,B & ::= & \ldots & \\
+& \mid & \Size & \mbox{Size Typ} \\
+& \mid & \s e  & \mbox{Nachfolger}\\ 
+& \mid & \infty & \mbox{Limit}\\
+\Pat \ni p & ::= & \ldots & \\
+& \mid & \s p & \\
+\Val \ni v & ::= & \ldots & \\
+& \mid & \Size & \\
+& \mid & \s v & \\
+& \mid & \infty & \\
+\end{array}
+\]
+\item
+$\s \infty = \infty$ 
+\item
+Terminierung: $i < (\s i)$ (Admissibility !) 
+\end{itemize}
+}
+
+\frame
+{
+
+\frametitle{ Subtyping }
+\begin{itemize}
+\item
+$\List i$ ist Subtyp von $\List (\s i)$ und $\List \infty$.
+\vspace*{0.2cm}
+\item
+$\Stream (\s i) \:$ und $ \Stream \infty $ sind Subtypen von $\Stream i$.
+\vspace*{0.2cm}
+\item
+ersetze Regel:
+\[
+%% Infer-mode
+\nru{\chkinf}
+{\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
+\qquad
+{\LeqVal{\nF}{k}{v_2}{v_1}}} 
+{\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
+\]
+\end{itemize}
+
+}
+
+\frame
+{
+
+\frametitle{ Streams }
+
+
+
+\begin{bsp}
+$\cofun \zeroes: \EPi{i}{\Size}{\SStream i} $ \\
+$\spc \zeroes (\s i) = \cons i \: \zero (\zeroes i)$
+\end{bsp}
+
+\vspace*{0.2cm}
+
+\begin{bsp}
+$\cofun \unp : \EPi{i}{\Size}{\SStream i}$ \\
+$\spc \unp i =  \unp i$
+\end{bsp}
+
+\vspace*{0.2cm}
+
+
+\begin{bsp}
+$\cofun \fibs : \Nat \ra \Nat \ra \EPi{i}{\Size}{\SStream i}$\\
+$\spc  \fibs x \: y \: (\s i) = \cons i \: x \: (\fibs y \: (\add x \: y) \: i)$
+
+$\clet \fib : \SStream \infty = \fibs (\suc \zero) \: (\suc \zero) \: \infty$
+\end{bsp}
+
+\vspace*{0.2cm}
+\begin{bsp}
+$\fun \head : \SStream \infty \ra \Nat$\\
+$\spc \head \: (\cons \: \inacc{\infty} \: x \: xs) = x$
+
+$\fun \tail :  \SStream \infty \ra \SStream \infty $\\
+$\spc \tail \: (\cons \: \inacc{\infty} \: x \: xs) = xs$\\
+\end{bsp}
+
+}
+
+\frame
+{
+
+\frametitle{ Admissibility - fun }
+\begin{bsp}
+$\fun \lop : (i : \Size ) \ra \SNat i $\\
+$\spcx \ra (\SNat \infty \ra\Maybe (\SNat i)) \ra\Bool$\\
+\end{bsp}
+\vspace*{0.7cm}
+
+$\fun \ff $ mit Typ $t = (a_1 : A_1) \ra \ldots \ra (a_n : A_n) \ra R $.\\
+\vspace*{0.2cm}
+F\"ur jedes $(a_j : A_j)$ der Form $(i : \Size)$: 
+\begin{itemize}
+\item
+F\"ur $k>j$, entweder $i$ kommt nicht in  $A_k$ vor oder $A_k$ ist ein \emph{sized inductive type} der Gr\"o\ss e $i$.
+\item
+Der Ergebniss-Typ $R$ ist \emph{monoton} in $i$. 
+\end{itemize}
+\vspace*{0.2cm}
+Ausserdem: Ein Pattern der Form $\s p$ kommt nicht in den Klauseln vor.
+
+\vspace*{0.3cm}
+\dots dann ist $\ff$ \emph{admissible}.
+
+}
+
+\frame
+{
+
+
+\frametitle{ Admissibility - cofun }
+\begin{bsp}
+$\cofun \zeroes: \EPi{i}{\Size}{\SStream i} $ \\
+$\spc \zeroes (\s i) = \cons i \: \zero (\zeroes i)$
+\end{bsp}
+\vspace*{0.7cm}
+
+$\cofun \ff $ mit Typ $t = (a_1 : A_1) \ra \ldots \ra (a_n : A_n) \ra R $.\\
+\vspace*{0.2cm}
+F\"ur jedes $(a_j : A_j)$ der Form $(i : \Size)$:
+\begin{itemize}
+\item
+Fuer $k>j$, $i$ kommt nicht in  $A_k$ vor.
+\item
+Der Ergebniss-Typ $R$ ist ein ist ein \emph{sized coinductive type} der Gr\"o\ss e $i$. 
+\end{itemize}
+\vspace*{0.3cm}
+\dots dann ist $\ff$ \emph{admissible}.
+}
+
+
+
+\begin{frame}[fragile]
+
+\frametitle{ Admissibility - cofun }
+
+\begin{itemize}
+\item
+Folgende Haskell-Definition:
+\begin{bsp}
+\begin{verbatim}
+fib :: [Int]
+fib = (1 : ( 1 : zipWith (+) fib (tail fib)))
+\end{verbatim}
+\end{bsp}
+\vspace*{0.1cm}
+\item
+Nicht produktiv in Mugda.
+\item
+\begin{bsp}
+$\fun \fib : (i : \Size ) \ra \Stream i$\\
+$\spc \fib (\s \s i) = \cons (\s i) \: 1 \: (\cons i \: 1 \: $\\
+$\spcx \spcx (\zipWith \add (\fib i) \: (\tail i \: (\fib (\s i)))))$
+\end{bsp}
+\item
+\begin{bsp}
+aber nicht admissble: $\tail : (i : \Size ) \ra \Stream (\s i) \ra \Stream i $\\
+\end{bsp}
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+
+  \frametitle{Implementierung}
+
+\begin{verbatim}
+sized data Nat : Size -> Set
+{
+  zero : (i: Size ) -> Nat ($ i);
+  succ : (i : Size ) -> Nat i -> Nat ($ i)
+}
+
+fun addWith : ((k : Size ) -> Nat k -> Nat k ) 
+  -> (i : Size ) -> (j : Size ) 
+  -> Nat i -> Nat j -> Nat #
+{
+  addWith f .($ i) j (zero i) y = y; 
+  addWith f .($ i) j (succ i x) y = 
+     succ # (addWith f j i (f j y) (f i x)) 
+}
+\end{verbatim}
+
+\end{frame}
+
+\end{document}
