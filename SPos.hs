@@ -47,7 +47,7 @@ posArgs vl pl = let l = zip vl pl
 -- check that a does occurs strictly pos tv
 -- a may be a "atomic value" ie not pi , lam , app , or succ 
 spos :: Int -> Val -> TVal -> TypeCheck Bool
-spos k a tv = -- trace ("noccRecArg " ++ show tv) 
+spos k a tv = -- trace ("spos " ++ show tv) 
      case tv of
          VPi x av env b -> 
              do no <- nocc k a av
@@ -60,8 +60,6 @@ spos k a tv = -- trace ("noccRecArg " ++ show tv)
                  bv <- whnf (update env x (VGen k)) b
                  spos (k+1) a bv
          VSucc v -> spos k a v
-         VApp v' vl | v' == a -> do nl <- mapM (nocc k a) vl
-                                    return $ and nl 
          VApp (VDef m) vl -> do 
                sig <- get
                case (lookupSig m sig) of
@@ -76,4 +74,6 @@ spos k a tv = -- trace ("noccRecArg " ++ show tv)
          VApp v1 vl -> do n <- nocc k a v1
                           nl <- mapM (nocc k a) vl
                           return $ n && and nl
-         _ -> return True
+         a' | a == a' -> return True
+         _ -> nocc k a tv
+

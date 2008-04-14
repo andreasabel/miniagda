@@ -67,6 +67,7 @@
 \newcommand{\fff}{\mathsf{ff}\:}
 
 \newcommand{\List}{\mathsf{List}\:}
+\newcommand{\Lists}{\mathsf{List}}
 \newcommand{\nil}{\mathsf{nil}\:}
 \newcommand{\cons}{\mathsf{cons}\:}
 
@@ -80,7 +81,7 @@
 
 \newcommand{\Tree}{\mathsf{Tree}\:}
 \newcommand{\leaf}{\mathsf{leaf}\:}
-\newcommand{\node}{\mathsf{node}\:}
+\newcommand{\node}{\mathsf{node}}
 
 \newcommand{\vVec}{\mathsf{Vec}\:}
 \newcommand{\head}{\mathsf{head}\:}
@@ -275,13 +276,13 @@ Au\ss erdem stellt die Sprache Elemente bereit, um dem Benutzer die Verwendung v
 \selectlanguage{english} 
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
-Dependent types have been used at the core of many proof assistants, and more recently there haven been efforts to extend their use to functional programming languages. 
+Dependent types have been used at the core of many proof assistants, and more recently there have been efforts to extend their use to functional programming languages. 
 Dependent type theories allow programming and reasoning in a common framework.
 
 The \emph{pattern matching} notation, known from traditional programming, has been proposed for defining recursive functions in such systems.
 While pattern matching is intuitive and powerful, it has to be ensured that the defined functions are total. 
 
-One aspect of totality is termination: each evaluation of a function must be computable in finite time.
+One aspect of totality is termination: the evaluation of a function at any argument must be computable in finite time.
 Infinite objects can be added to the language by computing only finite parts of them as necessary.
 Valid definitions of infinite objects need to be \emph{productive}. 
 
