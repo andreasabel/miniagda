@@ -850,7 +850,7 @@ As the types will depend on the parameters, we will have to prepend the telescop
 For example, in the judgment $\DataType{k}{\rho}{\Gamma}{n}{A}$ we have
 \begin{itemize}
 \item
-As in previous judgments, $k$ is the next fresh generic value, and $\rho$ and $\gamma$ are environments for free variables.
+As in previous judgments, $k$ is the next fresh generic value, and $\rho$ and $\Gamma$ are environments for the free variables.
 \item
 $n$ is a fixed parameter that will be set to the length of the telescope $\tau = ( p_1 : P_1) \ldots ( p_n : P_n)$. 
 \item
@@ -1934,7 +1934,7 @@ The corresponding call set is
 \end{pmatrix}\addOrd
 \]
 and is then accepted just like $\add$.
-\section{Excursion: Extending the order}
+\section{Extending the order}
 
 \subsubsection{Motivation}
 
@@ -2471,7 +2471,7 @@ then $\Sig''$ is a type-correct signature.
 \begin{figure}[htp]
 \begin{gather*}
 \nru{}
-{\nocc{k}{t_j}{i} \mbox { for all } j \in \{ 2 \ldots m\}}
+{\nocc{k}{i}{t_j} \mbox { for all } j \in \{ 2 \ldots m\}}
 {\sizeuse{k}{\DD \: p_1 \ldots p_n \: i \: t_2 \ldots t_m}{i}{\DD}}
 {\quad \Sig \: \DD = (v_D,n)}
 \\[2ex]
@@ -2504,8 +2504,8 @@ then $\Sig''$ is a type-correct signature.
 {\sizecon{k}{\vpi \: x \: v_A \: \cl{B}{\rho}}{i}{\DD}}
 \\[2ex]
 \ndru{}
-{\nocc{k}{p_j}{i} \mbox { for all } j \in \{ 1 \ldots n\}}
-{\nocc{k}{t_j}{i} \mbox { for all } j \in \{ 2 \ldots m\}}
+{\nocc{k}{i}{p_j} \mbox { for all } j \in \{ 1 \ldots n\}}
+{\nocc{k}{i}{t_j} \mbox { for all } j \in \{ 2 \ldots m\}}
 {\sizecon{k}{\DD \:p_1 \ldots p_n \: (\s i) \:t_2 \ldots t_m}{i}{\DD}}
 {\quad \Sig \: \DD = (v_D,n)}
 \end{gather*}
@@ -3070,7 +3070,7 @@ The formal judgment in figure \ref{admi} is defined on evaluated types, not expr
 {\: \Sig \: \DD = (v_D,n)}
 \\[2ex]
 \ndru{}
-{\indu{k}{v_A}{i} \quad \mbox{or} \quad \nocc{k}{v_A}{i}}
+{\indu{k}{v_A}{i} \quad \mbox{or} \quad \nocc{k}{i}{v_A}}
 {\admIndSize{k+1}{\wh \cl{B}{\ins{\rho}{x}{k}}}{i}}
 {\admIndSize{k}{\vpi \: x \: v_A \: \cl{B}{\rho}}{i}}
 \nru{}
@@ -3182,7 +3182,7 @@ We do not check the completeness of the size pattern for corecursive declaration
 {\: \Sig \: \DD = (v_D,n)}
 \\[2ex]
 \nru{}
-{\nocc{k}{v_A}{i}
+{\nocc{k}{i}{v_A}
 \quad
 \admCoSize{k+1}{\wh \cl{B}{\ins{\rho}{x}{k}}}{i}}
 {\admCoSize{k}{\vpi \: x \: v_A \: \cl{B}{\rho}}{i}}
