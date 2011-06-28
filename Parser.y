@@ -4,7 +4,10 @@ module Parser where
 import qualified Lexer as T
 import qualified Concrete as C
 
+import Abstract (Decoration(..),Dec,defaultDec,Override(..))
+import Polarity (Pol(..))
 import qualified Abstract as A
+import qualified Polarity as A
 import Abstract (Name)
 }
 
@@ -15,30 +18,56 @@ import Abstract (Name)
 %token
 
 id      { T.Id $$ _ }
+number  { T.Number $$ _ }
 data    { T.Data _ }
 codata  { T.CoData _ }
+record  { T.Record _ }
 sized   { T.Sized _ }
+fields  { T.Fields _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
+case    { T.Case _ }
+def     { T.Def _ }
 let     { T.Let _ }
 in      { T.In _ }
 eval    { T.Eval _ }
+fail    { T.Fail _ }
+check   { T.Check _ }
+trustme { T.TrustMe _ }
+impredicative { T.Impredicative _ }
+type    { T.Type _ }
 set     { T.Set _ }
+coset   { T.CoSet _ }
 size    { T.Size _ }
 infty   { T.Infty _ }
 succ    { T.Succ _ }
+max     { T.Max _ }
+'<'     { T.AngleOpen _ }
+'>'     { T.AngleClose _ }
 '{'     { T.BrOpen _ }
 '}'     { T.BrClose _ }
+'['     { T.BracketOpen _ }
+']'     { T.BracketClose _ }
 '('     { T.PrOpen _ }
 ')'     { T.PrClose _ }
+'|'     { T.Bar _ }
+','     { T.Comma _ }
 ';'     { T.Sem _ }
 ':'     { T.Col _ }
 '.'     { T.Dot _ }
 '->'    { T.Arrow _ }
+'<='    { T.Leq _ }
 '='     { T.Eq _ }
+'++'    { T.PlusPlus _ }
 '+'     { T.Plus _ }
+'-'     { T.Minus _ }
+'/'     { T.Slash _ } -- UNUSED
+'*'     { T.Times _ } -- UNUSED
+'^'     { T.Hat _ } 
+'&'     { T.Amp _ } 
 '\\'    { T.Lam _ }
+'_'     { T.Underscore _ }
 
 %%
 
@@ -51,30 +80,43 @@ Declarations : {- empty -} { [] }
              | Declarations Declaration { $2 : $1 }
 
 Declaration :: { C.Declaration }
-Declaration : Data { $1 }
-           | CoData { $1 }
-           | SizedData { $1 }
-           | SizedCoData { $1 }
-           | Fun { $1 }
-           | CoFun { $1 }
-           | Mutual { $1 }
-           | Let { $1 }
+Declaration : Data                      { $1 }
+           | CoData                     { $1 }
+           | SizedData                  { $1 }
+           | SizedCoData                { $1 }
+           | RecordDecl                 { $1 }
+           | Fun                        { $1 }
+           | CoFun                      { $1 }
+           | Mutual                     { $1 }
+           | Let                        { $1 }
+           | impredicative Declaration          { C.OverrideDecl Impredicative [$2] }
+           | impredicative '{' Declarations '}' { C.OverrideDecl Impredicative $3 }
+           | fail Declaration             { C.OverrideDecl Fail [$2] }
+           | fail '{' Declarations '}'    { C.OverrideDecl Fail $3 }
+           | check Declaration            { C.OverrideDecl Check [$2] }
+           | check '{' Declarations '}'   { C.OverrideDecl Check $3 }
+           | trustme Declaration          { C.OverrideDecl TrustMe [$2] }
+           | trustme '{' Declarations '}' { C.OverrideDecl TrustMe $3 }
 
 Data :: { C.Declaration }
-Data : data Id DataTelescope ':' Expr '{' Constructors '}' 
-   { C.DataDecl $2 A.NotSized A.Ind $3 $5 (reverse $7) }
+Data : data Id DataTelescope ':' Expr '{' Constructors '}' OptFields
+   { C.DataDecl $2 A.NotSized A.Ind $3 $5 (reverse $7) $9 }
 
 SizedData :: { C.Declaration }
-SizedData : sized data Id DataTelescope ':' Expr '{' Constructors '}' 
-   { C.DataDecl $3 A.Sized A.Ind $4 $6 (reverse $8) }
+SizedData : sized data Id DataTelescope ':' Expr '{' Constructors '}' OptFields
+   { C.DataDecl $3 A.Sized A.Ind $4 $6 (reverse $8) $10 }
 
 CoData :: { C.Declaration }
-CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' 
-       { C.DataDecl $2 A.NotSized A.CoInd $3 $5 (reverse $7) }
+CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' OptFields 
+       { C.DataDecl $2 A.NotSized A.CoInd $3 $5 (reverse $7) $9 }
 
 SizedCoData :: { C.Declaration }
-SizedCoData : sized codata Id DataTelescope ':' Expr '{' Constructors '}' 
-       { C.DataDecl $3 A.Sized A.CoInd $4 $6 (reverse $8) }
+SizedCoData : sized codata Id DataTelescope ':' Expr '{' Constructors '}' OptFields
+       { C.DataDecl $3 A.Sized A.CoInd $4 $6 (reverse $8) $10 }
+
+RecordDecl :: { C.Declaration }
+RecordDecl : record Id DataTelescope ':' Expr '{' Constructor '}'  OptFields
+   { C.RecordDecl $2 $3 $5 $7 $9 }
 
 Fun :: { C.Declaration }
 Fun : fun TypeSig '{' Clauses '}' { C.FunDecl A.Ind $2 $4 }
@@ -90,45 +132,137 @@ Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
 
  
 Let :: { C.Declaration }
-Let : let TypeSig '=' Expr { C.LetDecl False $2 $4 } 
-      | eval let TypeSig '=' Expr { C.LetDecl True $3 $5 } 
+Let : let TypeSig '=' ExprT { C.LetDecl False $2 $4 } 
+      | eval let TypeSig '=' ExprT { C.LetDecl True $3 $5 } 
 
+OptFields :: { [Name] }
+OptFields : {- empty -}  { [] }
+          | fields Ids   { $2 }
 -----
 
 Id :: { Name }
 Id : id { $1 }
-     
+-- no longer  number { $1 }
+
+SpcIds :: { [Name] } -- non-empty list
+SpcIds : Id     { [$1] }
+       | Id SpcIds { $1 : $2 }
+
+Ids :: { [Name] } -- non-empty list
+Ids : Id              { [$1] }
+    | Id ',' Ids { $1 : $3 }
+
+Pol :: { Pol }
+Pol : '++'         { SPos  }
+    | '+'          { Pos   }
+    | '-'          { Neg   }
+    | '.'          { Const } -- use bracket [..]
+    | '^'          { Param }
+    | '*'          { Rec   } -- recursive
+--    | {- empty -}  { Mixed }
+
+Measure :: { A.Measure C.Expr }
+Measure : '|' Meas { A.Measure $2 }
+
+Meas :: { [C.Expr] }
+Meas : Expr '|'      { [$1] }
+     | Expr ',' Meas { $1 : $3 }
+
+Bound :: { A.Bound C.Expr }
+Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
+      | Measure '<=' Measure { A.Bound A.Le $1 $3 } {- (A.succMeasure C.Succ $3) } -}
+
+TBind :: { C.TBind }
+TBind :  '(' Ids ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
+      |  '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
+      |  Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
+--      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
+      | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
+      | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
+      | '(' Id '<=' Expr ')'  { C.TBounded A.defaultDec    $2 A.Le $4 }
+      | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
+
+-- let binding
+LBind :: { C.TBind }
+LBind :  Id ':' Expr         { C.TBind A.defaultDec [$1] $3 } -- ordinary binding
+      |  '(' Id ':' Expr ')' { C.TBind A.defaultDec [$2] $4 } -- ordinary binding
+      |  '[' Id ':' Expr ']' { C.TBind A.irrelevantDec [$2] $4 }  -- erased binding
+      |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
+--      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
+
+
+Domain :: { C.TBind }
+Domain : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
+       | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
+       | Pol Expr1         { C.TBind (Dec $1) [] $2 }
+--       | Pol '[' Expr ']'  { C.TBind (Dec True  $1) [] $3 }
+       | TBind             { $1 }
+       | Measure           { C.TMeasure $1 }
+       | Bound             { C.TBound $1 }
+
+-- expressions which can be tuples e , e'
+ExprT :: { C.Expr}
+ExprT : Expr               { $1 }
+      | Expr ',' ExprT     { C.Pair $1 $3 }
+
+-- general form of expression
 Expr :: { C.Expr }
-Expr : 
-       TArrow Expr { let (n,t) = $1 in C.Pi n t $2 } 
-       | '\\' Id '->' Expr { C.Lam $2 $4 }
-       | let Id ':' Expr '=' Expr in Expr { C.LLet $2 $4 $6 $8}  
-       | Expr1 '->' Expr { C.Pi "" $1 $3}
-       | Expr1 { $1 }
+Expr : Domain '->' Expr                 { C.Pi $1 $3 } 
+     | Domain '&' Expr                  { C.Sigma $1 $3 } 
+     | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
+     | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
+     | case ExprT '{' Cases '}'          { C.Case $2 $4 }  
+     | Expr1                            { $1 }
+     | Expr1 '+' Expr                   { C.Plus $1 $3 }
+--     | Expr1 ',' Expr                   { C.Pair $1 $3 }
 
-TArrow :: { (Name,C.Expr) }
-TArrow : TBind '->' { $1 }  
-
+-- perform applications
 Expr1 :: { C.Expr }
-Expr1 : Expr2 { let list = reverse $1 in
-               if length list == 1 then head list else C.App (head list) (tail list) 
+Expr1 : Expr2 { let (f : args) = reverse $1 in
+                if null args then f else C.App f args 
 	      }
+       | coset Expr3                      { C.CoSet $2 }
+       | set                              { C.Set C.Zero }
+       | set Expr3                        { C.Set $2 }
+       | number '*' Expr1                 { let n = read $1 in
+                                            if n==0 then C.Zero else
+                                            iterate (C.Plus $3) $3 !! (n-1) }
 
+-- gather applications
 Expr2 :: { [C.Expr] }
 Expr2 : Expr3 { [$1] }
-       | succ SE { [C.Succ $2] }
        | Expr2 Expr3 { $2 : $1 }
+       | Expr2 '.' Id { C.Proj $3 : $1 }
+       | Expr2 set   { C.Set C.Zero : $1 }
+--       | succ SE { [C.Succ $2] }
 
+-- atoms
 Expr3 :: { C.Expr }
-Expr3 :  set { C.Set}
-      | size { C.Size }
-      | infty { C.Infty }
-      | Id { C.Ident $1}
-      | '(' Expr ')' { $2 }
+Expr3 : size                      { C.Size }
+      | max                       { C.Max }
+      | infty                     { C.Infty }
+      | Id                        { C.Ident $1}
+      | '<' ExprT ':' Expr '>'     { C.Sing $2 $4 }
+      | '(' ExprT ')'              { $2 }
+      | '_'                       { C.Unknown }
+      | succ Expr3                { C.Succ $2 }  -- succ is a prefix op
+      | number                    { iterate C.Succ C.Zero !! (read $1) }
+      | record '{' RecordDefs '}' { C.Record $3 }
 
+RecordDefs :: { [([Name],C.Expr)] }
+RecordDefs 
+  : RecordDef ';' RecordDefs   { $1 : $3 }
+  | RecordDef                  { [$1] }           
+  | {- empty -}                { [] }
+
+RecordDef :: { ([Name],C.Expr) }
+RecordDef : SpcIds '=' ExprT    { ($1,$3) } 
+
+{- RETIRED
 SE :: { C.Expr}
 SE : succ SE { C.Succ $2}
 SE : Expr3 { $1}
+  -}
 
 TypeSig :: { C.TypeSig }
 TypeSig : Id ':' Expr { C.TypeSig $1 $3 }
@@ -143,29 +277,70 @@ Constructors :
     | Constructor { [$1] }
     | {- empty -} { [] }
 
-
+Cases :: { [C.Clause] }
+Cases : Pattern '->' ExprT ';' Cases  { (C.Clause Nothing [$1] (Just $3)) : $5 }
+      | Pattern '->' ExprT            { (C.Clause Nothing [$1] (Just $3)) : [] }
+      | Pattern ';' Cases             { (C.Clause Nothing [$1] Nothing) : $3 }
+      | Pattern                       { (C.Clause Nothing [$1] Nothing) : [] }
+      | {- empty -}                   { [] }
+      
 Clause :: { C.Clause }
-Clause : Id LHS '=' Expr { C.Clause $2 $4 }
+Clause : Id LHS '=' ExprT { C.Clause (Just $1) $2 (Just $4) }
+       | Id LHS           { C.Clause (Just $1) $2 Nothing }
 
 LHS :: { [C.Pattern] }
 LHS : Patterns { reverse $1 }
 
 Patterns :: { [C.Pattern] }
 Patterns : {- empty -} { [] }
+--    | Pattern Patterns { $1 : $2 }
     | Patterns Pattern { $2 : $1 }
 
+-- atomic patterns
 Pattern :: { C.Pattern }
-Pattern : ConP { $1 }
-        | Id { C.IdentP $1 }
-        | '.' Expr3 { C.DotP $2 }
+Pattern : '(' ')'            { C.AbsurdP     }
+        | '(' PairP ')'      { $2            }
+        | Id                 { C.IdentP $1   }
+        | succ Pattern       { C.SuccP $2    }
+        | '.' set            { C.DotP (C.Set C.Zero) }
+        | '.' Expr3          { C.DotP $2     }
+
+-- pattern tuples
+PairP :: { C.Pattern }
+PairP : ElemP ',' PairP     { C.PairP $1 $3 }
+      | ElemP               { $1 }
+
+ElemP :: { C.Pattern }
+ElemP : ConP                { let (c, ps) = $1 in C.ConP c (reverse ps) }
+      | Id '>' Id           { C.SizeP $1 $3 } 
+      | Id '<' Id           { C.SizeP $3 $1 } 
+      | Pattern             { $1 }
+
+ConP :: { (Name, [C.Pattern]) }
+ConP : Id Pattern          { ($1, [$2]) }
+     | ConP Pattern        { let (c, ps) = $1 in (c, $2 : ps) }
+
+{-
+Pattern :: { C.Pattern }
+Pattern : ConP               { $1            }
+        | Id                 { C.IdentP $1   }
+        | '.' set            { C.DotP (C.Set C.Zero) }
+        | '.' Expr3          { C.DotP $2     }
+        | '(' Id '>' Id ')'  { C.SizeP $2 $4 } 
+        | '(' Id '<' Id ')'  { C.SizeP $4 $2 } 
+--        | '*'       { C.AbsurdP }
 
 ConP :: { C.Pattern }
 ConP : '(' Id Patterns ')' { C.ConP $2 (reverse $3) }
-     | '(' succ SP ')' { C.SuccP $3 }
+     | '(' succ SP ')'     { C.SuccP $3             }
+     | '(' Pa
+     | '(' ')'             { C.AbsurdP              }
 
 SP :: { C.Pattern}
 SP : succ SP {C.SuccP $2}
+   | Pattern ',' Pattern  { C.PairP $1 $3 }
    | Pattern { $1 }
+-}
 
 Clauses :: { [C.Clause] }
 Clauses : RClauses { reverse $1 }
@@ -177,20 +352,20 @@ RClauses :
  | Clause { [$1] }
  | {- empty -} { [] }
 
-
-TBind :: { (Name,C.Expr) }
-TBind :  '(' Id ':' Expr ')' { ($2,$4) }
-
+-- for backwards compatibility
 TBindSP :: { C.TBind }
-TBindSP :  '(' '+' Id ':' Expr ')' { C.PosTB $3 $5 }
-
-TBindNP :: { C.TBind }
-TBindNP :  '(' Id ':' Expr ')' { C.TB $2 $4 }
+TBindSP : '(' Ids ':' Expr ')' { C.TBind A.paramDec $2 $4 } -- ordinary binding
+        | '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
+        | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 } 
+--        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  
+        |  '(' '+' Ids ':' Expr ')' { C.TBind (Dec SPos) $3 $5 }
+--        |  '[' '+' Ids ':' Expr ']' { C.TBind (Dec True SPos) $3 $5 }
+        | '(' sized Id ')'     { C.TSized $3 }
 
 DataTelescope :: { C.Telescope }
 DataTelescope :  {- empty -} { [] }
+--                | TBind   DataTelescope { $1 : $2 } 
                 | TBindSP DataTelescope { $1 : $2 } 
-                | TBindNP DataTelescope { $1 : $2 } 
 
 {
 

@@ -1,77 +1,197 @@
 -- concrete syntax
 module Concrete where
 
-import Abstract (Name,Co,Pos,Sized)
+import Util
+import Abstract (Name,Co,Sized,Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
+import Polarity 
 
-data Expr = Set
+data Expr = Set Expr        -- Type 0 for backward compat
+          | CoSet Expr
+--          | Type Expr
           -- size type
           | Size 
           | Succ Expr
+          | Zero
           | Infty
+          | Max
+          | Plus Expr Expr
           -- 
           | App Expr [Expr]
           | Lam Name Expr
-          | LLet Name Expr Expr Expr -- local let
-          | Pi Name Expr Expr
+          | Case Expr [Clause]
+          | LLet TBind Expr Expr -- local let
+          | Pi TBind Expr
+          | Sigma TBind Expr
+          | Pair Expr Expr
+          | Record [([Name],Expr)]
+          | Proj Name 
           | Ident Name 
+          | Unknown
+          -- singleton type
+          | Sing Expr Expr 
           deriving (Eq)
 
 instance Show Expr where
     show = prettyExpr
 
-data Declaration = DataDecl Name Sized Co Telescope Type [Constructor]
+instance HasPred Expr where
+  predecessor (Succ e) = Just e
+  predecessor _ = Nothing
+
+data Declaration = DataDecl Name Sized Co Telescope Type [Constructor] 
+                     [Name] -- list of field names
+                 | RecordDecl Name Telescope Type Constructor 
+                     [Name] -- list of field names
                  | FunDecl Co TypeSig [Clause] 
-                 | LetDecl Bool TypeSig Expr 
-                 | MutualDecl [Declaration] -- bool = if eval
+                 | LetDecl Bool TypeSig Expr -- bool = if eval 
+                 | MutualDecl [Declaration]
+                 | OverrideDecl Override [Declaration] -- fail etc.
                    deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type
-             deriving (Eq,Show)
+             deriving (Eq)
+instance Show TypeSig where
+  show (TypeSig n t) = n ++ " : " ++ show t
 
 type Type = Expr
 
 type Constructor = TypeSig
 
-data TBind = TB Name Type 
-    | PosTB Name Type
-      deriving(Eq,Show)
+data TBind = TBind 
+  { boundDec   :: Dec 
+  , boundNames :: [Name] -- [] if no name is given, then its a single bind 
+  , boundType  :: Type 
+  } 
+  | TBounded  -- bounded quantification 
+  { boundDec   :: Dec 
+  , boundName  :: Name -- [] if no name is given, then its a single bind
+  , ltle       :: LtLe
+  , upperBound :: Expr 
+--  , boundMType :: Maybe Type -- type is inferred from upperBound
+  } 
+  | TMeasure (Measure Expr)
+  | TBound (Bound Expr) 
+  | TSized Name -- the size parameter of a sized record
+    deriving (Eq,Show)
 
 type Telescope = [TBind]
 
-data Clause = Clause [Pattern] Expr  
+data DefClause = DefClause 
+   Name         -- function identifier
+   [Elim] 
+   (Maybe Expr) -- Nothing for absurd pattern clause  
+ deriving (Eq,Show)
+
+data Elim 
+  = EApp Pattern          -- application to a pattern       
+  | EProj Name [Pattern]  -- projection with arguments
+    deriving (Eq,Show)
+
+data Clause = Clause 
+                (Maybe Name) -- Just funId | Nothing for case clauses 
+                [Pattern] 
+                (Maybe Expr) -- Nothing for absurd pattern clause  
             deriving (Eq,Show)
 
-data Pattern = ConP Name [Pattern]
-             | SuccP Pattern
-             | DotP Expr
-             | IdentP Name 
+data Pattern = ConP Name [Pattern]   -- (c ps)
+             | PairP Pattern Pattern -- (p, p')
+             | SuccP Pattern         -- ($ p)
+             | DotP Expr             -- .p
+             | IdentP Name           -- x
+             | SizeP Name Name       -- (x > y) 
+             | AbsurdP               -- ()
                deriving (Eq,Show)
+
+type Case = (Pattern,Expr)
 
 ----
 
-
+prettyTBind :: Bool -> TBind -> String
+prettyTBind inPi (TSized x) = parens ("sized " ++ x)
+prettyTBind inPi (TMeasure mu) = "|" ++ 
+  (Util.showList ","  prettyExpr (measure mu)) ++ "|"
+prettyTBind inPi (TBound (Bound ltle mu mu')) = "|" ++  
+  (Util.showList ","  prettyExpr (measure mu))  ++ "| " ++ show ltle ++ " |" ++  
+  (Util.showList ","  prettyExpr (measure mu')) ++ "|"
+prettyTBind inPi (TBind dec xs t) = 
+  if erased dec then addPol False $ brackets binding
+   else if (null xs) then addPol True s 
+   else addPol (not inPi) $ (if inPi then parens else id) binding
+  where s = prettyExpr t
+        binding = if null xs then s else 
+          foldr (\ x s -> x ++ " " ++ s) (": " ++ s) xs 
+        pol = polarity dec
+        addPol b x = if pol==defaultPol
+                      then x 
+                      else show pol ++ (if b then " " else "") ++ x  
+prettyTBind inPi (TBounded dec x ltle e) = 
+  if erased dec then addPol False $ brackets binding
+   else addPol (not inPi) $ (if inPi then parens else id) binding
+  where binding = x ++ " < " ++ prettyExpr e 
+        pol = polarity dec
+        addPol b x = if pol==defaultPol
+                      then x 
+                      else show pol ++ (if b then " " else "") ++ x  
+{-
+prettyTBind :: Bool -> TBind -> String
+prettyTBind inPi (TBind dec x t) = 
+  if erased dec then addPol False $ brackets binding
+   else if x=="" then addPol True s 
+   else addPol (not inPi) $ (if inPi then parens else id) binding
+  where s = prettyExpr t
+        binding = if x == "" then s else x ++ " : " ++ s
+        pol = polarity dec
+        addPol b x = if pol==Mixed then x 
+                      else show pol ++ (if b then " " else "") ++ x  
+-}
 
 prettyExpr :: Expr -> String
 prettyExpr e = 
     case e of
-      Set -> "Set"
-      Size -> "Size" 
-      Succ e -> "($ " ++ prettyExpr e ++ ")"
-      Infty -> "#"
-      App e1 el -> "(" ++ prettyExprs (e1:el) ++ ")"
-      Lam x e1 -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
-      LLet n t1 e1 e2 -> "(let " ++ n ++ " : " ++ prettyExpr t1 ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
-      Pi "" t1 t2 -> "(" ++ prettyExpr t1 ++ " -> " ++ prettyExpr t2 ++ ")" 
-      Pi x t1 t2 -> "( ( " ++ x ++ " : " ++ prettyExpr t1 ++ ") -> " ++ prettyExpr t2 ++ ")"
-      Ident n -> n
-                                                                                            
+      -- Type e          -> "Type " ++ prettyExpr e
+      CoSet e         -> "CoSet " ++ prettyExpr e
+      Set e         -> "CoSet " ++ prettyExpr e
+      -- Set             -> "Set"
+      Size            -> "Size" 
+      Max             -> "max" 
+      Succ e          -> "$ " ++ prettyExpr e -- ++ ")"
+      Zero            -> "0"
+      Infty           -> "#"
+      Plus e1 e2      -> "(" ++ prettyExpr e1 ++ " + " ++  prettyExpr e2 ++ ")"
+      Pair e1 e2      -> "(" ++ prettyExpr e1 ++ " , " ++  prettyExpr e2 ++ ")"
+      App e1 el       -> "(" ++ prettyExprs (e1:el) ++ ")"
+      Lam x e1        -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
+      Case e cs       -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
+      LLet tb e1 e2 -> "(let " ++ prettyTBind False tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
+      Record rs       -> "record {" ++ Util.showList "; " prettyRecordLine rs ++ "}"
+      Proj n          -> "." ++ n
+      Ident n         -> n
+      Unknown         -> "_"
+      Sing e t        -> "<" ++ prettyExpr e ++ " : " ++ prettyExpr t ++ ">"
+      Pi tb t2        -> parens $ prettyTBind True tb
+                                  ++ " -> " ++ prettyExpr t2
+      Sigma tb t2     -> parens $ prettyTBind True tb
+                                  ++ " & " ++ prettyExpr t2
+
+prettyRecordLine (xs, e) = Util.showList " " id xs ++ " = " ++ prettyExpr e
+
+prettyCase (Clause Nothing [p] Nothing)  = prettyPattern p 
+prettyCase (Clause Nothing [p] (Just e)) = prettyPattern p ++ " -> " ++ prettyExpr e
+
+prettyPattern :: Pattern -> String
+prettyPattern (ConP c ps) = parens $ foldl (\ acc p -> acc ++ " " ++ prettyPattern p) c ps
+prettyPattern (PairP p1 p2) = parens $ prettyPattern p1 ++ ", " ++
+                                prettyPattern p2
+prettyPattern (SuccP p) = parens $ "$ " ++ prettyPattern p
+prettyPattern (DotP e)  = "." ++ prettyExpr e
+prettyPattern (IdentP x) = x
+prettyPattern (SizeP x y) = parens $ x ++ " > " ++ y
+prettyPattern (AbsurdP) = parens ""
 
 prettyExprs :: [Expr] -> String
-prettyExprs [] = ""
-prettyExprs (e:es) = prettyExpr e ++ (if null es then "" else " " ++ prettyExprs es)
-
+prettyExprs = Util.showList " " prettyExpr
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
-teleToType (TB n t:tel) t2 = Pi n t (teleToType tel t2)
-teleToType (PosTB n t:tel) t2 = Pi n t (teleToType tel t2)
+teleToType (tb:tel) t2 = Pi tb (teleToType tel t2)
+--teleToType (PosTB dec n t:tel) t2 = Pi dec n t (teleToType tel t2)

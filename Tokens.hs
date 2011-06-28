@@ -6,6 +6,7 @@ data Token = Id String
            | Def
            | Mutual
            | Set
+           | Case
            -- size type
            | Size
            | Infty
