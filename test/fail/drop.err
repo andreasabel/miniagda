@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "drop.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+type  Stream : - Size -> Set
+term  cons : .[i : Size] -> ^ SNat # -> ^ Stream i -> Stream $i
+type  Stream : - Size -> Set
+term  drop : .[i : Size] -> SNat i -> .[j : Size] -> Stream j -> Stream j
+error during typechecking:
+drop
+/// clause 2
+/// right hand side
+/// checkExpr 7 |- drop i y j xs : Stream $j
+/// leqVal' (subtyping) [(".($i)",0),(".j",4),("i",1),("j",3),("x",5),("xs",6),("y",2)] |- < drop [i] y [j] xs : Stream j >  <=+  Stream $j
+/// leqVal' (subtyping) [(".($i)",0),(".j",4),("i",1),("j",3),("x",5),("xs",6),("y",2)] |- Stream j  <=+  Stream $j
+/// leqVal' [(".($i)",0),(".j",4),("i",1),("j",3),("x",5),("xs",6),("y",2)] |- j  <=-  $j : Size
+/// leSize: 0 + 1 <= 0 failed

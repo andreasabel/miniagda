@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "negativeFam.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  suc : ^ Nat -> Nat
+type  Nat : Set
+type  D : ^ Nat -> Set
+term  abs : ^ (D zero -> D zero) -> D zero
+term  app : .[n : Nat] -> ^ D n -> ^ D n -> D n
+type  D : ^ Nat -> Set
+error during typechecking:
+checking positivity
+/// polarity check ++ <= - failed

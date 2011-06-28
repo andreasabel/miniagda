@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "bfSizePatternIncomplete.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  pair : .[A : Set] -> .[B : Set] -> ^ A -> ^ B -> Prod A B
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  split : .[A : Set] -> .[B : Set] -> Prod A B -> .[C : Set] -> (A -> B -> C) -> C
+{ split [A] [B] (pair [.A] [.B] a b) [C] f = f a b
+}
+type  List : ++(A : Set) -> + Size -> Set
+term  nil : .[A : Set] -> .[i : Size] -> List A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ List A i -> List A $i
+type  List : ++(A : Set) -> + Size -> Set
+term  append : .[A : Set] -> List A # -> List A # -> List A #
+{ append [A] (nil [.A] [.#]) l = l
+; append [A] (cons [.A] [.#] a as) l = cons [A] [#] a (append [A] as l)
+}
+type  Rose : ++(A : Set) -> + Size -> Set
+term  rose : .[A : Set] -> .[i : Size] -> ^ A -> ^ List (Rose A i) # -> Rose A $i
+type  Rose : ++(A : Set) -> + Size -> Set
+term  step : .[j : Size] -> .[A : Set] -> .[i : Size] -> List (Rose A $i) j -> Prod (List A j) (List (Rose A i) #)
+{ step [.$j] [A] [i] (nil [.Rose A $i] [j]) = pair [List A $j] [List (Rose A i) #] (nil [A] [j]) (nil [Rose A i] [#])
+; step [.$j] [A] [.i] (cons [.Rose A $i] [j] (rose [.A] [i] a rs') rs) = _split [List A j] [List (Rose A i) #] (step [j] [A] [i] rs) [Prod (List A $j) (List (Rose A i) #)] (\ as -> \ rs'' -> pair [List A $j] [List (Rose A i) #] (cons [A] [j] a as) (_append [Rose A i] rs' rs''))
+}
+term  bf' : .[A : Set] -> .[i : Size] -> List A # -> List (Rose A i) # -> List A #
+error during typechecking:
+bf'
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

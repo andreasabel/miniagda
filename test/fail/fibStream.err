@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "fibStream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  add : Nat -> Nat -> Nat
+{ add (zero) = \ y -> y
+; add (succ x) = \ y -> succ (add x y)
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
+type  Stream : ++(A : Set) -> - Size -> Set
+term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] x xs) = xs
+}
+term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
+{ zipWith [A] [B] [C] f $[i] (cons [.A] [.i] a as) (cons [.B] [.i] b bs) = cons [C] [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+}
+term  n0 : Nat
+term  n0 = zero
+term  n1 : Nat
+term  n1 = succ n0
+term  fib : .[i : Size] -> Stream Nat i
+error during typechecking:
+fib
+/// clause 1
+/// pattern $$i
+/// cannot match against deep successor pattern $$i; type: (.[i : Size] -> Stream Nat i)

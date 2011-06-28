@@ -1,0 +1,26 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "vec_length.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  add : Nat -> Nat -> Nat
+{ add (zero) y = y
+; add (succ x) y = succ (add x y)
+}
+type  Vec : ++(A : Set) -> ^ Nat -> Set
+term  vnil : .[A : Set] -> Vec A zero
+term  vcons : .[A : Set] -> ^ A -> .[n : Nat] -> ^ Vec A n -> Vec A (succ n)
+type  Vec : ++(A : Set) -> ^ Nat -> Set
+term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> Nat
+error during typechecking:
+length
+/// clause 2
+/// right hand side
+/// checkExpr 6 |- succ n : Nat
+/// inferExpr' succ n
+/// inferExpr' n
+/// inferExpr: variable n : Nat may not occur
+/// , because it is marked as erased

@@ -1,0 +1,41 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "loop.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+type  Nat : Set
+type  Nat = SNat #
+type  Unit : Set
+term  unit : Unit
+type  Unit : Set
+type  Maybe : ++(A : Set) -> Set
+term  nothing : .[A : Set] -> Maybe A
+term  just : .[A : Set] -> ^ A -> Maybe A
+type  Maybe : ++(A : Set) -> Set
+term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
+{ shift_case [i] (nothing [.SNat $i]) = nothing [SNat i]
+; shift_case [.i] (just [.SNat $i] (zero [i])) = nothing [SNat i]
+; shift_case [.i] (just [.SNat $i] (succ [i] x)) = just [SNat i] x
+}
+term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
+term  shift = [\ i ->] \ f -> \ n -> _shift_case [i] (f (succ [#] n))
+term  loop : .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+term  loop_case : .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+error during typechecking:
+loop
+/// clause 2
+/// right hand side
+/// checkExpr 4 |- loop j n (shift j f) : Unit
+/// inferExpr' loop j n (shift j f)
+/// inferExpr' shift j f
+/// leqVal' (subtyping) [("f",3),("i",0),("j",1),("n",2)] |- (fresh#1 : SNat #) -> < f fresh#1 : Maybe (SNat i) >  <=+  (~4 : SNat #) -> Maybe (SNat $j)
+/// new fresh#1 : (SNat #)||(SNat #)
+/// comparing codomain < vSing# fresh#1 : Maybe (SNat i) > with Maybe (SNat $i)
+/// leqVal' (subtyping) [("f",3),("fresh#1",4),("i",0),("j",1),("n",2)] |- < f fresh#1 : Maybe (SNat i) >  <=+  Maybe (SNat $j)
+/// leqVal' (subtyping) [("f",3),("fresh#1",4),("i",0),("j",1),("n",2)] |- Maybe (SNat i)  <=+  Maybe (SNat $j)
+/// leqVal' [("f",3),("fresh#1",4),("i",0),("j",1),("n",2)] |- SNat i  <=+  SNat $j : Set
+/// leqVal' [("f",3),("fresh#1",4),("i",0),("j",1),("n",2)] |- i  <=+  $j : Size
+/// bound not entailed

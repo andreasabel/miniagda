@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "dataNotMonotone.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ^(A : Set) -> - Size -> Set
+term  consStream : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
+type  Stream : ^(A : Set) -> - Size -> Set
+type  NotMon : ^(A : Set) -> + Size -> Set
+error during typechecking:
+NotMon
+/// constructor consBla
+/// szConstructor "NotMon" : .[A : Set] -> .[i : Size] -> ^(~2 : Stream A i) -> ^(~3 : NotMon A i) -> NotMon A $i
+/// new A : Set
+/// new i : Size
+/// szSizeVarUsage of i in ^(~2 : Stream A i) -> ^(~3 : NotMon A i) -> NotMon A $i
+/// checking Stream A i  to be isotone in variable i
+/// leqVal' [("A",0),("i",1)] |- Stream A i  <=+  Stream A $i : Set #
+/// leqVal' [("A",0),("i",1)] |- i  <=-  $i : Size
+/// leSize: 0 + 1 <= 0 failed

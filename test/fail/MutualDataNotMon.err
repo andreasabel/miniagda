@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MutualDataNotMon.ma" ---
+--- scope checking ---
+--- type checking ---
+type  L : +(A : Set) -> Set
+term  l1 : .[A : Set] -> ^ A -> ^ L A -> L A
+term  l2 : .[A : Set] -> ^ T A -> L A
+type  L : +(A : Set) -> Set
+type  T : +(A : Set) -> Set
+term  t1 : .[A : Set] -> ^ L A -> T A
+error during typechecking:
+new L : (+(A : Set) -> Set)
+/// new T : (+(A : Set) -> Set{L = (v0 Up (+(A : Set) -> Set))})
+/// T
+/// constructor t2
+/// new T : (+(A : Set) -> Set{T = (v1 Up (+(A : Set) -> Set{L = (v0 Up (+(A : Set) -> Set))})), L = (v0 Up (+(A : Set) -> Set))})
+/// new A : Set
+/// inferExpr' ^ (A -> T A) -> T A
+/// inferExpr' A -> T A
+/// inferExpr' A
+/// inferExpr: variable A : Set may not occur
+/// , because of polarity
+/// polarity check + <= - failed

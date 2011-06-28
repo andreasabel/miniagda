@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "scolist_not_lsc1.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : ^ Size -> Set
+term  zero : .[i : Size] -> Nat $i
+term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+type  Nat : ^ Size -> Set
+type  Colist : ^(A : Set) -> ^ Size -> Set
+term  nil : .[A : Set] -> .[i : Size] -> Colist A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Colist A i -> Colist A $i
+type  Colist : ^(A : Set) -> ^ Size -> Set
+term  length : .[i : Size] -> .[A : Set] -> Colist A i -> Nat i
+error during typechecking:
+checking type of length for admissibility
+/// new A : _
+/// new i : _
+/// new i : Size
+/// admType: checking (.[A : Set] -> Colist A i -> Nat i{i = v2}) admissible in v2
+/// new A : Set
+/// admType: checking ((Colist v3 v2)::Tm -> Nat i{A = v3, i = v2}) admissible in v2
+/// type (Colist v3 v2) not lower semi continuous in v2

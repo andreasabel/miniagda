@@ -1,0 +1,18 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "inductiveNotDotPattern.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+term  bla : .[i : Size] -> SNat $i -> SNat i
+error during typechecking:
+bla
+/// clause 1
+/// pattern zero $i
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> SNat $i ends in correct coinductive sized type
+/// new i : Size
+/// endsInSizedCo: SNat $i
+/// endsInSizedCo: target SNat $i of corecursive function is neither a CoSet or codata of size i nor a tuple type

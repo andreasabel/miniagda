@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "RecurseOnErased.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  f : .[Nat] -> Nat -> Nat
+error during typechecking:
+f
+/// clause 1
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : Nat not forced

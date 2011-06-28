@@ -1,0 +1,45 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "VectorPatternNotForced.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  add : Nat -> Nat -> Nat
+{ add (zero) y = y
+; add (succ x) y = succ (add x y)
+}
+type  Vec : ^(A : Set) -> ^ Nat -> Set
+term  nil : .[A : Set] -> Vec A zero
+term  cons : .[A : Set] -> .[n : Nat] -> ^ A -> ^ Vec A n -> Vec A (succ n)
+type  Vec : ^(A : Set) -> ^ Nat -> Set
+term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> < n : Nat >
+{ length [A] [.zero] (nil [.A]) = zero
+; length [A] [.succ n] (cons [.A] [n] a v) = succ (length [A] [n] v)
+}
+term  head : .[A : Set] -> .[n : Nat] -> Vec A (succ n) -> A
+{ head [A] [.n] (cons [.A] [n] a v) = a
+}
+term  tail : .[A : Set] -> .[n : Nat] -> Vec A (succ n) -> Vec A n
+{ tail [A] [.n] (cons [.A] [n] a v) = v
+}
+term  zeroes : (n : Nat) -> Vec Nat n
+{ zeroes (zero) = nil [Nat]
+; zeroes (succ x) = cons [Nat] [x] zero (zeroes x)
+}
+type  Fin : ^ Nat -> Set
+term  fzero : .[n : Nat] -> Fin (succ n)
+term  fsucc : .[n : Nat] -> ^ Fin n -> Fin (succ n)
+type  Fin : ^ Nat -> Set
+term  lookup : .[A : Set] -> .[n : Nat] -> Vec A n -> Fin n -> A
+{ lookup [A] [.succ n] (cons [.A] [n] a v) (fzero [.n]) = a
+; lookup [A] [.succ n] (cons [.A] [n] a v) (fsucc [.n] i) = lookup [A] [n] v i
+; lookup [A] [.zero] (nil [.A]) ()
+}
+term  downFrom : .[n : Nat] -> Vec Nat n
+error during typechecking:
+downFrom
+/// clause 1
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : Nat not forced

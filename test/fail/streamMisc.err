@@ -1,0 +1,5 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "streamMisc.ma" ---
+--- scope checking ---
+scope check error: wkStream2
+/// pattern not linear: A

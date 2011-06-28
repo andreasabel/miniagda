@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BoxNeg.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Box : ^(A : Set) -> Set
+term  box : .[A : Set] -> ^ A -> Box A
+type  Box : ^(A : Set) -> Set
+type  Neg : Set
+term  neg : ^ (Box Neg -> Neg) -> Neg
+type  Neg : Set
+error during typechecking:
+checking positivity
+/// polarity check ++ <= ^ failed

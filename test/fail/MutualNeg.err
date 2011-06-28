@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MutualNeg.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : Set
+term  absD : ^ (E -> D) -> D
+type  D : Set
+type  E : Set
+term  absE : ^ (D -> E) -> E
+type  E : Set
+error during typechecking:
+checking positivity
+/// polarity check ++ <= + failed

@@ -1,0 +1,37 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "OverlappingPatternIndFam.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  refl : .[A : Set] -> .[a : A] -> Id A a a
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
+{ subst [A] a .a (refl [.A] [.a]) [P] x = x
+}
+type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  eq : .[A : Set] -> .[a : A] -> DecEq A a a
+term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> DecEq A a b
+type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+error during typechecking:
+offDiag
+/// checkExpr 0 |- \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : .[A : Set] -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [] |- \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : .[A : Set] -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// new A : Set
+/// checkExpr 1 |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [("A",0)] |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// new f : ((a : v0::Tm) -> (b : A) -> DecEq A a b{A = v0})
+/// checkExpr 2 |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [("A",0),("f",1)] |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// new a : v0
+/// checkExpr 3 |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [("A",0),("a",2),("f",1)] |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// new b : v0
+/// checkExpr 4 |- refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// leqVal' (subtyping) [("A",0),("a",2),("b",3),("f",1)] |- < refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (notEq A a b) (notEq A a b) >  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// leqVal' (subtyping) [("A",0),("a",2),("b",3),("f",1)] |- Id (DecEq A a b) (notEq A a b) (notEq A a b)  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// leqVal' [("A",0),("a",2),("b",3),("f",1)] |- notEq A a b  <=^  f a b : DecEq A a b
+/// leqApp: notEq[v0,v2,v3] !<= v1[v2,v3]

@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "coSizeInFun.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+type  Stream : - Size -> Set
+term  cons : .[i : Size] -> ^ SNat # -> ^ Stream i -> Stream $i
+type  Stream : - Size -> Set
+term  bla : .[i : Size] -> SNat i -> .[j : Size] -> Stream j -> .[A : Set] -> A
+error during typechecking:
+bla
+/// clause 1
+/// pattern $j
+/// successor pattern only allowed in cofun

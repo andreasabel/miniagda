@@ -1,0 +1,32 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "loopAdmStream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  unit : Unit
+type  Unit : Set
+type  Stream : ++(A : Set) -> - Size -> Set
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+type  Stream : ++(A : Set) -> - Size -> Set
+G> fun head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
+G> { head A i (cons .A .i __head __tail) = __head
+}
+term  head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
+{ head [A] [i] (cons [.A] [.i] __head __tail) = __head
+}
+G> fun tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
+G> { tail A i (cons .A .i __head __tail) = __tail
+}
+term  tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] __head __tail) = __tail
+}
+term  f : (Stream Unit # -> Stream Unit #) -> .[i : Size] -> (Stream Unit i -> Stream Unit #) -> Stream Unit i
+error during typechecking:
+f
+/// clause 1
+/// pattern $j
+/// checkPattern $j : matching on size, checking that target .[i : Size] -> (~2 : (~3 : Stream Unit i) -> Stream Unit #) -> Stream Unit i ends in correct coinductive sized type
+/// new i : Size
+/// endsInSizedCo: (~2 : (~3 : Stream Unit i) -> Stream Unit #) -> Stream Unit i
+/// new  : ((Stream {Unit {i = v1}} v1)::Tm -> Stream Unit #{i = v1})
+/// type (~3 : Stream Unit i) -> Stream Unit # not lower semi continuous in i

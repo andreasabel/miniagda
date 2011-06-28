@@ -1,0 +1,26 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "inconsistentAssumption2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  refl : .[A : Set] -> .[a : A] -> Eq A a a
+type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  subst : .[A : Set] -> .[P : A -> Set] -> (i : A) -> (j : A) -> Eq A i j -> P i -> P j
+{ subst [A] [P] i .i (refl [.A] [.i]) p = p
+}
+error during typechecking:
+type of h
+/// not a type: (ass : (i : Size) -> Eq Size $i i) -> (i : Size) -> SNat i -> SNat #
+/// inferExpr' (ass : (i : Size) -> Eq Size $i i) -> (i : Size) -> SNat i -> SNat #
+/// inferExpr' (i : Size) -> Eq Size $i i
+/// new i : Size
+/// inferExpr' Eq Size $i i
+/// inferExpr' Eq Size $i
+/// inferExpr' Eq Size
+/// leqVal' (subtyping) [("i",0)] |- < Size : TSize >  <=+  Set
+/// leqVal' (subtyping) [("i",0)] |- TSize  <=+  Set
+/// universe test TSize <= Set failed

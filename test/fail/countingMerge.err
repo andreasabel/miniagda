@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "countingMerge.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  Nat : Set
+term  zero : Nat
+term  suc : ^ Nat -> Nat
+type  Nat : Set
+type  List : Set
+term  nil : List
+term  cons : ^ Nat -> ^ List -> List
+type  List : Set
+term  leq : Nat -> Nat -> Bool
+{}
+term  merge : List -> List -> List
+term  merge_aux : Nat -> List -> Nat -> List -> Bool -> List
+{ merge (nil) l = l
+; merge l (nil) = l
+; merge (cons x xs) (cons y ys) = merge_aux x xs y ys (_leq x y)
+}
+{ merge_aux x xs y ys (true) = cons x (merge xs (cons y ys))
+; merge_aux x xs y ys (false) = cons y (merge (cons x xs) ys)
+}
+error during typechecking:
+Termination check for mutual block ["merge","merge_aux"] fails for ["merge","merge_aux"]

@@ -1,0 +1,51 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "codyPatternConditionExplicit.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+type  O : + Size -> Set
+term  Z : .[i : Size] -> O $i
+term  S : .[i : Size] -> ^ O i -> O $i
+term  L : .[i : Size] -> ^ (Nat -> O i) -> O $i
+term  M : .[i : Size] -> ^ O i -> ^ O i -> O $i
+type  O : + Size -> Set
+term  f01 : .[i : Size] -> Nat -> O $$$i
+{ f01 [i] (zero) = Z [i]
+; f01 [i] (succ (zero)) = S [$i] (Z [i])
+; f01 [i] (succ (succ n)) = S [$$i] (S [$i] (Z [i]))
+}
+term  v5 : .[i : Size] -> O $$$$$i
+term  v5 = [\ i ->] M [$$$$i] (L [$$$i] (_f01 [i])) (S [$$$i] (S [$$i] (S [$i] (Z [i]))))
+term  emb : Nat -> O #
+{ emb (zero) = Z [#]
+; emb (succ n) = S [#] (emb n)
+}
+term  pre : .[i : Size] -> (Nat -> O $$i) -> Nat -> O $i
+term  pre = [\ i ->] \ f -> \ n -> case f (succ n)
+                       { Z [.$i] -> Z [i]
+                       ; S [.$i] x -> x
+                       ; L [.$i] g -> g n
+                       ; M [.$i] a b -> a
+                       }
+term  deep : .[i : Size] -> O i -> Nat -> Nat
+error during typechecking:
+deep
+/// clause 1
+/// right hand side
+/// checkExpr 9 |- deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n))) (succ (succ (succ n))) : Nat
+/// inferExpr' deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n))) (succ (succ (succ n)))
+/// inferExpr' deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n)))
+/// inferExpr' M $$i (L $i (pre i f)) (S j2 (f n))
+/// inferExpr' M $$i (L $i (pre i f))
+/// inferExpr' L $i (pre i f)
+/// inferExpr' pre i f
+/// leqVal' (subtyping) [("f",3),("i",6),("i1",5),("i2",4),("i3",1),("i4",0),("j2",2),("n",8),("x",7)] |- (fresh#1 : Nat) -> < f fresh#1 : O j2 >  <=+  (~9 : Nat) -> O $$i
+/// new fresh#1 : Nat||Nat
+/// comparing codomain < vSing# fresh#1 : O i > with O $$i
+/// leqVal' (subtyping) [("f",3),("fresh#1",9),("i",6),("i1",5),("i2",4),("i3",1),("i4",0),("j2",2),("n",8),("x",7)] |- < f fresh#1 : O j2 >  <=+  O $$i
+/// leqVal' (subtyping) [("f",3),("fresh#1",9),("i",6),("i1",5),("i2",4),("i3",1),("i4",0),("j2",2),("n",8),("x",7)] |- O j2  <=+  O $$i
+/// leqVal' [("f",3),("fresh#1",9),("i",6),("i1",5),("i2",4),("i3",1),("i4",0),("j2",2),("n",8),("x",7)] |- j2  <=+  $$i : Size
+/// bound not entailed

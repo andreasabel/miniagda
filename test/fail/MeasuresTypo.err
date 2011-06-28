@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MeasuresTypo.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  N : Set
+term  zz : N
+term  ss : ^ N -> N
+type  N : Set
+type  Nat : + Size -> Set
+term  zero : .[i : Size] -> Nat $i
+term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+type  Nat : + Size -> Set
+term  even : .[i : Size] -> Nat i -> Bool
+term  even' : .[i : Size] -> Nat i -> Bool
+term  odd' : .[i : Size] -> Nat i -> Bool
+error during typechecking:
+even'
+/// clause 2
+/// right hand side
+/// checkExpr 3 |- odd' i n : Bool
+/// inferExpr' odd' i n
+/// checkGuard |i,0| < |i,0|
+/// lexSizes: no descent detected

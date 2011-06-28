@@ -1,0 +1,44 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "EndsCoInEmpty.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
+term  inn : .[A : Set] -> ^(out : A) -> EmptyOr A true
+type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
+G> fun out : .[A : Set] -> (__inn : EmptyOr A true) -> A
+G> { out A (inn .A __out) = __out
+}
+term  out : .[A : Set] -> (__inn : EmptyOr A true) -> A
+{ out [A] (inn [.A] __out) = __out
+}
+term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A false -> B
+{ exFalso [A] [B] ()
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+type  Stream : ++(A : Set) -> - Size -> Set
+G> fun head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
+G> { head A i (cons .A .i __head __tail) = __head
+}
+term  head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
+{ head [A] [i] (cons [.A] [.i] __head __tail) = __head
+}
+G> fun tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
+G> { tail A i (cons .A .i __head __tail) = __tail
+}
+term  tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] __head __tail) = __tail
+}
+term  bla : .[A : Set] -> .[i : Size] -> EmptyOr (Stream A i) false
+error during typechecking:
+bla
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> EmptyOr (Stream A i) false ends in correct coinductive sized type
+/// new i : Size
+/// endsInSizedCo: EmptyOr (Stream A i) false
+/// endsInSizedCo: panic: target type EmptyOr (Stream A i) false is not an instance of any constructor

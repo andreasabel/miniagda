@@ -1,0 +1,12 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "absurdPatUnit.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  unit : Unit
+type  Unit : Set
+type  bla : Unit -> Set
+error during typechecking:
+bla
+/// clause 1
+/// absurd pattern does not match since type Unit is not empty

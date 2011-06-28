@@ -1,0 +1,30 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MeasuredRoseWrongPosition.ma" ---
+--- scope checking ---
+--- type checking ---
+type  List : ++(A : Set) -> Set
+term  nil : .[A : Set] -> List A
+term  cons : .[A : Set] -> ^ A -> ^ List A -> List A
+type  List : ++(A : Set) -> Set
+term  mapList : .[A : Set] -> .[B : Set] -> (A -> B) -> List A -> List B
+{ mapList [A] [B] f (nil [.A]) = nil [B]
+; mapList [A] [B] f (cons [.A] a as) = cons [B] (f a) (mapList [A] [B] f as)
+}
+type  Rose : ++(A : Set) -> + Size -> Set
+term  rose : .[A : Set] -> .[i : Size] -> ^ A -> ^ List (Rose A i) -> Rose A $i
+type  Rose : ++(A : Set) -> + Size -> Set
+term  mapRose : .[A : Set] -> .[B : Set] -> (A -> B) -> .[i : Size] -> Rose A i -> Rose B i
+error during typechecking:
+mapRose
+/// clause 1
+/// right hand side
+/// checkExpr 8 |- rose B j (f a) (_mapList (Rose A j) (Rose B j) (mapRose A B f j) rs) : Rose B i
+/// inferExpr' rose B j (f a) (_mapList (Rose A j) (Rose B j) (mapRose A B f j) rs)
+/// inferExpr' _mapList (Rose A j) (Rose B j) (mapRose A B f j) rs
+/// inferExpr' _mapList (Rose A j) (Rose B j) (mapRose A B f j)
+/// leqVal' (subtyping) [(".A",4),("A",0),("B",1),("a",6),("f",2),("i",3),("j",5),("rs",7)] |- (fresh#11 : Rose A j) -> < mapRose [A] [B] f [j] fresh#11 : |j| -> Rose B j >  <=+  (~8 : Rose A j) -> Rose B j
+/// new fresh#11 : (Rose v0 v5)||(Rose v0 v5)
+/// comparing codomain < vSing# fresh#11 : |i| -> Rose B i > with B
+/// leqVal' (subtyping) [(".A",4),("A",0),("B",1),("a",6),("f",2),("fresh#11",8),("i",3),("j",5),("rs",7)] |- < mapRose [A] [B] f [j] fresh#11 : |j| < |i| -> Rose B j >  <=+  Rose B j
+/// leqVal' (subtyping) [(".A",4),("A",0),("B",1),("a",6),("f",2),("fresh#11",8),("i",3),("j",5),("rs",7)] |- |j| < |i| -> Rose B j  <=+  Rose B j
+/// leqApp: (|v5| < |v3| -> (Rose v1 v5))[] !<= (Rose v1 v5)[]

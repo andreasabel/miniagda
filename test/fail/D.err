@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "D.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : Set
+term  abs : ^ (^ D -> D) -> D
+type  D : Set
+warning: ignoring error: polarity check ++ <= - failed
+warning: ignoring error: polarity check ++ <= + failed
+term  app : D -> ^ D -> D
+{ app (abs f) d = f d
+}
+term  sapp : D -> D
+{ sapp x = _app x x
+}
+error during typechecking:
+delta
+/// checkExpr 0 |- abs (\ x -> _sapp x) : D
+/// inferExpr' abs (\ x -> _sapp x)
+/// checkExpr 0 |- \ x -> _sapp x : ^(~0 : D) -> D
+/// checkForced fromList [] |- \ x -> _sapp x : ^(~0 : D) -> D
+/// new x : D
+/// checkExpr 1 |- _sapp x : D
+/// inferExpr' _sapp x
+/// inferExpr' x
+/// inferExpr: variable x : D may not occur
+/// , because of polarity
+/// polarity check ^ <= * failed

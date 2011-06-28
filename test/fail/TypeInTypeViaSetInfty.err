@@ -1,0 +1,9 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "TypeInTypeViaSetInfty.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+star
+/// not a type: Set #
+/// inferExpr' Set #
+/// # is not a valid universe level

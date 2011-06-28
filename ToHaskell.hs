@@ -1,0 +1,271 @@
+module ToHaskell where
+
+{- type-directed extraction of Haskell programs with a lot of unsafeCoerce
+
+Examples:
+---------
+
+MiniAgda
+
+  data Vec (A : Set) : Nat -> Set
+  { vnil  : Vec A zero
+  ; vcons : [n : Nat] -> (head : A) -> (tail : Vec A n) -> Vec A (suc n) 
+  }
+
+  fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
+  { length .A .zero    (vnil A)         = zero
+  ; length .A .(suc n) (vcons A n a as) = suc (length A n as)
+  } 
+
+Haskell
+
+  {-# LANGUAGE NoImplicitPrelude #-}
+  module Main where
+  import qualified Text.Show as Show
+
+  data Vec (a :: *) 
+    = Vec_vnil 
+    | Vec_vcons { vec_head :: a , vec_tail :: Vec a }
+      deriving Show.Show
+
+  length :: forall a. Vec a -> Nat
+  length  Vec_vnil        = Nat_zero
+  length (Vec_vcons a as) = Nat_suc (length as)
+
+Components:
+-----------
+
+Translation from MiniAgda identifiers to Haskell identifiers
+
+-}
+
+import Char
+
+import Control.Applicative
+import Control.Monad
+import Control.Monad.Error
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.State
+
+import Data.Map (Map)
+import qualified Data.Map as Map
+
+import qualified Language.Haskell.Exts.Syntax as H
+import Text.PrettyPrint
+
+import Polarity
+import Abstract
+import Extract
+import qualified HsSyntax as H
+import TraceError
+
+-- translation monad
+
+type Translate = StateT TState (ReaderT TContext (ErrorT TraceError IO))
+
+{- no longer needed with mtl-2
+instance Applicative Translate where
+  pure      = return
+  mf <*> ma = do { f <- mf; a <- ma; return (f a) }
+-}
+
+data TState = TState
+
+initSt :: TState
+initSt = TState
+
+data TContext = TContext
+
+initCxt :: TContext
+initCxt = TContext
+
+runTranslate :: Translate a -> IO (Either TraceError a)
+runTranslate t = runErrorT (runReaderT (evalStateT t initSt) initCxt)
+
+-- translation
+
+translateModule :: [EDeclaration] -> Translate (H.Module)
+translateModule ds = do
+  hs <- translateDecls ds
+  return $ H.mkModule hs
+
+translateDecls :: [EDeclaration] -> Translate [H.Decl]
+translateDecls ds = concat <$> mapM translateDecl ds
+
+translateDecl :: EDeclaration -> Translate [H.Decl]
+translateDecl d = 
+  case d of
+    MutualDecl _ ds -> translateDecls ds
+    OverrideDecl{} -> fail $ "translateDecls internal error: overrides impossible"
+    MutualFunDecl _ _ funs -> translateFuns funs
+    FunDecl _ fun -> translateFun fun 
+    LetDecl _ ts e -> translateLet ts e
+    DataDecl n _ _ _ tel fkind cs _ -> translateDataDecl n tel fkind cs
+
+translateFuns :: [Fun] -> Translate [H.Decl]
+translateFuns funs = concat <$> mapM translateFun funs
+
+translateFun :: Fun -> Translate [H.Decl]
+translateFun (ts@(TypeSig n t), (ar, cls)) = do
+  ts@(H.TypeSig _ [n] t) <- translateTypeSig ts
+  cls <- concat <$> mapM (translateClause n) cls
+  return [ts, H.FunBind cls]
+
+translateLet :: TypeSig -> FExpr -> Translate [H.Decl]
+translateLet ts@(TypeSig ('_':n) t) e = return []  -- skip internal decls
+translateLet ts@(TypeSig n t) e = do
+  ts <- translateTypeSig ts
+  e  <- translateExpr e
+  n  <- hsName (DefId Let n)
+  return [ ts, H.mkLet n e ]
+
+translateTypeSig :: TypeSig -> Translate H.Decl
+translateTypeSig (TypeSig n t) = do
+  n <- hsName (DefId Let n)
+  t <- translateType t
+  return $ H.mkTypeSig n t
+
+translateDataDecl :: Name -> FTelescope -> FKind -> [FConstructor] -> Translate [H.Decl]
+translateDataDecl n tel k cs = do
+  n   <- hsName (DefId Dat n)
+  tel <- translateTelescope tel
+  let k' = translateKind k
+  cs  <- mapM translateConstructor cs
+  return [H.mkDataDecl n tel k' cs]
+
+translateConstructor :: FConstructor -> Translate H.GadtDecl
+translateConstructor (TypeSig n t) = do
+  n  <- hsName (DefId (Con Ind) n)
+  t' <- translateType t
+  return $ H.mkConDecl n t'
+
+translateClause :: H.Name -> Clause -> Translate [H.Match]
+translateClause n (Clause _ ps (Just rhs)) = do
+  ps <- mapM translatePattern ps
+  rhs <- translateExpr rhs
+  return [H.mkClause n ps rhs]
+
+translateTelescope :: FTelescope -> Translate [H.TyVarBind]
+translateTelescope tel = mapM translateTBind tel'
+  -- throw away erasure marks
+  where tel' = filter (\ tb -> not $ erased $ decor $ boundDom tb) tel
+
+translateTBind :: TBind -> Translate H.TyVarBind
+translateTBind (TBind x dom) = do
+  x <- hsVarName x
+  return $ H.KindedVar x $ translateKind (typ dom)
+
+translateKind :: FKind -> H.Kind
+translateKind k = 
+  case k of
+    k | k == star -> H.KindStar
+    Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
+    Pi (TBind _ dom) k' -> 
+      translateKind (typ dom) `H.mkKindFun` translateKind k'
+
+translateType :: FType -> Translate H.Type
+translateType t =
+  case t of
+
+    Irr -> return $ H.unit_tycon
+
+    Pi (TBind _ dom) b | not (erased (decor dom)) -> 
+      H.mkTyFun <$> translateType (typ dom) <*> translateType b
+
+    Pi (TBind _ dom) b | typ dom == Irr -> translateType b
+
+    Pi (TBind x dom) b -> do
+      x <- hsVarName x
+      let k = translateKind (typ dom)
+      -- todo: add x to context
+      t <- translateType b
+      return $ H.mkForall x k t
+
+    App f a -> H.mkTyApp <$> translateType f <*> translateType a
+ 
+    Def d@(DefId Dat n) -> (H.TyCon . H.UnQual) <$> hsName d
+
+    Var x -> H.TyVar <$> hsVarName x
+
+    _ -> return H.unit_tycon
+
+{- TODO:
+    _ -> fail $ "no Haskell representation for type " ++ show t
+ -}
+
+translateExpr :: FExpr -> Translate H.Exp
+translateExpr e = 
+  case e of
+    
+    Var x -> H.mkVar <$> hsVarName x
+
+    -- constructors
+    Def f@(DefId (Con{}) n) -> H.mkCon <$> hsName f
+
+    -- function identifiers
+    Def f@(DefId _ n) -> H.mkVar <$> hsName f
+
+    -- discard type arguments   
+    App f e0 -> do
+      f <- translateExpr f 
+      let (er, e) = isErasedExpr e0
+      if er then return f else H.mkApp f <$> translateExpr e
+
+    -- discard type lambdas
+    Lam dec y e -> do
+      y <- hsVarName y
+      e <- translateExpr e
+      return $ if erased dec then e else H.mkLam y e
+
+    -- TODO
+
+    Ann (Tagged [Cast] e) -> H.mkCast <$> translateExpr e
+
+    _ -> return $ H.unit_con 
+
+translatePattern :: Pattern -> Translate H.Pat
+translatePattern p = 
+  case p of
+    VarP y       -> H.PVar <$> hsVarName y
+    ConP pi n ps -> 
+       H.PApp <$> (H.UnQual <$> hsName (DefId (Con $ coPat pi) n)) 
+              <*> mapM translatePattern ps
+
+{-
+Name translation
+
+  data names        : check capitalization, identity translation
+  constructor names : prefix with Dataname_
+  destructor names  : ditto
+  type-valued lets  : check capitalization, identity
+  type-valued funs  : reject!
+  lets              : check lowercase
+  funs/cofuns       : check lowercase
+-}
+
+hsVarName :: Name -> Translate H.Name
+hsVarName x = return $ H.Ident x
+
+hsName :: DefId -> Translate H.Name
+hsName id = enter ("error translating identifier " ++ show id) $
+  case id of
+  (DefId Dat n) -> do
+    unless (isUpper $ head n) $ 
+      fail $ "data names need to be capitalized"
+    return $ H.Ident n
+  (DefId (Con co) n) -> do
+    dataName <- getDataName n
+    return $ H.Ident $ dataName ++ "_" ++ n
+  -- lets, funs, cofuns. TODO: type-valued funs!
+  (DefId Let ('_':n)) -> return $ H.Ident n
+  (DefId _ n) -> do
+{- ignore for now
+     unless (isLower $ head n) $
+       fail $ "function names need to start with a lowercase letter"
+ -}
+     return $ H.Ident n
+
+-- getDataName constructorName = return dataNamec
+getDataName :: Name -> Translate String
+getDataName n = return "DATA" 

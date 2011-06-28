@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DeepForcedConstructors.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+term  not : Bool -> Bool
+{ not (true) = false
+; not (false) = true
+}
+type  Nat : ^ Bool -> Set
+term  zero : Nat true
+term  succ : ^(b : Bool) -> ^ Nat b -> Nat false
+type  Nat : ^ Bool -> Set
+term  f : (b : Bool) -> .[Nat b] -> Bool
+error during typechecking:
+f
+/// clause 2
+/// pattern succ .true (zero)
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : (Nat v0) not forced

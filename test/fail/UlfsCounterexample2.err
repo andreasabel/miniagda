@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "UlfsCounterexample2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+type  T : ^ Bool -> Set
+term  nat : ^ Nat -> T true
+term  bool : ^ Bool -> T false
+type  T : ^ Bool -> Set
+term  bad : .[F : Nat -> Set] -> ^(f : .[x : Bool] -> T x -> Nat) -> (g : (n : Nat) -> F (f [true] (nat n))) -> (h : F (f [false] (bool false)) -> Bool) -> Bool
+error during typechecking:
+bad
+/// clause 1
+/// right hand side
+/// checkExpr 4 |- h (g zero) : Bool
+/// inferExpr' h (g zero)
+/// leqVal' (subtyping) [("F",0),("f",1),("g",2),("h",3)] |- < g zero : F (f [true] (nat zero)) >  <=+  F (f [false] (bool false))
+/// leqVal' (subtyping) [("F",0),("f",1),("g",2),("h",3)] |- F (f [true] (nat zero))  <=+  F (f [false] (bool false))
+/// leqVal' [("F",0),("f",1),("g",2),("h",3)] |- f [true] (nat zero)  <=*  f [false] (bool false) : Nat
+/// leqVal' [("F",0),("f",1),("g",2),("h",3)] |- nat zero : T true  <=*  bool false : T false
+/// leqApp: head mismatch nat != bool

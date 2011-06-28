@@ -1,0 +1,26 @@
+% MiniAgda-AM.tex
+\begin{hcarentry}[section,new]{MiniAgda}
+\report{Andreas Abel}%11/10
+\status{experimental}
+\makeheader
+
+MiniAgda is a tiny dependently-typed programming language in the style
+of Agda~\cref{agda}. It serves as a laboratory to test 
+potential additions to the
+language and type system of Agda. MiniAgda's termination checker is a
+fusion of sized types and size-change termination and supports
+coinduction. Equality incorporates eta-expansion at record and
+singleton types. Function arguments can be declared as static; such
+arguments are discarded during equality checking and compilation.
+
+Recent features include bounded size quantification and destructor
+patterns for a more general handling of coinduction.  In the long
+run, I plan to evolve MiniAgda into a core language for Agda with
+termination certificates.
+
+MiniAgda is available as Haskell source code and compiles with GHC
+>= 6.12.x. 
+
+\FurtherReading
+  \url{http://www2.tcs.ifi.lmu.de/\~abel/miniagda/}
+\end{hcarentry}

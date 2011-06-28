@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "scolist_not_lsc2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  zero : .[i : Size] -> Nat $i
+term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+type  Nat : + Size -> Set
+type  Colist : ^(A : Set) -> ^ Size -> Set
+term  nil : .[A : Set] -> .[i : Size] -> Colist A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Colist A i -> Colist A $i
+type  Colist : ^(A : Set) -> ^ Size -> Set
+type  CoNat : ^ Size -> Set
+term  cozero : .[i : Size] -> CoNat $i
+term  cosucc : .[i : Size] -> ^ CoNat i -> CoNat $i
+type  CoNat : ^ Size -> Set
+term  z : CoNat #
+term  z = cozero [#]
+term  length2 : .[i : Size] -> .[A : Set] -> Colist A i -> CoNat i
+{ length2 [.$i] [A] (nil [.A] [i]) = cozero [i]
+; length2 [.$i] [A] (cons [.A] [i] a as) = cosucc [i] (length2 [i] [A] as)
+}
+term  omega' : .[i : Size] -> CoNat i
+error during typechecking:
+omega'
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> CoNat i ends in correct coinductive sized type
+/// new i : Size
+/// endsInSizedCo: CoNat i
+/// endsInSizedCo: target CoNat i of corecursive function is neither a CoSet or codata of size i nor a tuple type

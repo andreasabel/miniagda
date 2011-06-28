@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "huetHullotReverse.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Enum : Set
+term  aa : Enum
+term  bb : Enum
+term  cc : Enum
+type  Enum : Set
+type  List : ^(A : Set) -> Set
+term  nil : .[A : Set] -> List A
+term  cons : .[A : Set] -> ^ A -> ^ List A -> List A
+type  List : ^(A : Set) -> Set
+term  list : List Enum
+term  list = cons [Enum] aa (cons [Enum] bb (cons [Enum] cc (nil [Enum])))
+term  rev : .[A : Set] -> List A -> List A
+term  rev1 : .[A : Set] -> A -> List A -> A
+term  rev2 : .[A : Set] -> A -> List A -> List A
+{ rev [A] (nil [.A]) = nil [A]
+; rev [A] (cons [.A] x xs) = cons [A] (rev1 [A] x xs) (rev2 [A] x xs)
+}
+{ rev1 [A] a (nil [.A]) = a
+; rev1 [A] a (cons [.A] x xs) = rev1 [A] x xs
+}
+{ rev2 [A] a (nil [.A]) = nil [A]
+; rev2 [A] a (cons [.A] x xs) = rev [A] (cons [A] a (rev [A] (rev2 [A] x xs)))
+}
+error during typechecking:
+Termination check for mutual block ["rev","rev1","rev2"] fails for ["rev","rev2"]

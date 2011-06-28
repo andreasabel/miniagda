@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "match_erased.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  illegal_match : Nat -> .[Nat] -> Nat
+error during typechecking:
+illegal_match
+/// clause 1
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : Nat not forced

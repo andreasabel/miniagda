@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "adm/adm2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  zero : .[i : Size] -> Nat $i
+term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+type  Nat : + Size -> Set
+term  foo : .[i : Size] -> Nat i
+error during typechecking:
+foo
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

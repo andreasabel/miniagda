@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ResurrectFromErasedPattern.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  Nat : ^ Bool -> Set
+term  zero : Nat true
+term  succ : .[b : Bool] -> ^ Nat b -> Nat false
+type  Nat : ^ Bool -> Set
+term  f : (b : Bool) -> .[Nat b] -> Nat false
+error during typechecking:
+f
+/// clause 2
+/// right hand side
+/// checkExpr 2 |- succ false (succ b n) : Nat false
+/// inferExpr' succ false (succ b n)
+/// inferExpr' succ b n
+/// inferExpr' n
+/// inferExpr: variable n : Nat b may not occur
+/// , because it is marked as erased

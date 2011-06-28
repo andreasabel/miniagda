@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DoNotEraseDataTeleForConTypes.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Wrap : .[A : Set] -> Set
+error during typechecking:
+Wrap
+/// constructor inn
+/// new Wrap : (.[A : Set] -> Set)
+/// new A : Set
+/// inferExpr' ^(out : A) -> Wrap A
+/// inferExpr' A
+/// inferExpr: variable A : Set may not occur
+/// , because it is marked as erased

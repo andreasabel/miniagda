@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "shouldBeDotPattern_snat.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+term  z : SNat #
+term  z = zero [#]
+term  one : SNat #
+term  one = succ [#] z
+term  two : SNat #
+term  two = succ [#] one
+term  three : SNat #
+term  three = succ [#] two
+term  add : .[i : Size] -> .[j : Size] -> SNat i -> SNat j -> SNat #
+error during typechecking:
+add
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

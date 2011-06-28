@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "HOMatching.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Succ : Set
+term  succ : ^ Succ -> Succ
+type  Succ : Set
+type  homatch : (Succ -> Succ) -> Set
+error during typechecking:
+homatch
+/// clause 1
+/// pattern succ
+/// higher-order matching of pattern succ at type (Succ::Tm -> Succ) not allowed

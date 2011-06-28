@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NotForcedConstructors.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+term  not : Bool -> Bool
+{ not (true) = false
+; not (false) = true
+}
+type  Nat : ^ Bool -> Set
+term  zero : Nat true
+term  succ : ^(b : Bool) -> ^ Nat b -> Nat (_not b)
+type  Nat : ^ Bool -> Set
+term  f : (b : Bool) -> .[Nat b] -> Bool
+error during typechecking:
+f
+/// clause 1
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : (Nat true) not forced

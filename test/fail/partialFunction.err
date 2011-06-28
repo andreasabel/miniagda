@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "partialFunction.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
+term  put : .[A : Set] -> .[P : A -> Set] -> ^(a : A) -> .[P a] -> Subset A P
+type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
+type  PFun : ^(A : Set) -> ^(B : Set) -> Set
+error during typechecking:
+PFun
+/// constructor mkPFun
+/// new PFun : (^(A : Set) -> ^(B : Set) -> Set)
+/// new A : Set
+/// new B : Set
+/// inferExpr' ^(dom : A -> Set) -> ^(app : Subset A dom -> B) -> PFun A B
+/// new dom : (v1::Tm -> Set{B = v2, A = v1, PFun = (v0 Up (^(A : Set) -> ^(B : Set) -> Set))})
+/// leSize': ($ 0) <= 0 failed

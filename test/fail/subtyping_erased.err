@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "subtyping_erased.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+id
+/// checkExpr 0 |- \ A -> \ x -> x : .[A : Set] -> (~1 : .[~2 : A] -> A) -> (~2 : A) -> A
+/// checkForced fromList [] |- \ A -> \ x -> x : .[A : Set] -> (~1 : .[~2 : A] -> A) -> (~2 : A) -> A
+/// new A : Set
+/// checkExpr 1 |- \ x -> x : (~1 : .[~2 : A] -> A) -> (~2 : A) -> A
+/// checkForced fromList [("A",0)] |- \ x -> x : (~1 : .[~2 : A] -> A) -> (~2 : A) -> A
+/// new x : (.[v0::Tm] -> A{A = v0})
+/// checkExpr 2 |- x : (~2 : A) -> A
+/// leqVal' (subtyping) [("A",0),("x",1)] |- .[fresh#1 : A] -> < x fresh#1 : A >  <=+  (~2 : A) -> A
+/// subtyping .[fresh#1 : A] -> < x fresh#1 : A >  <=+  (~2 : A) -> A failed

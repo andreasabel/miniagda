@@ -1,0 +1,7 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "SizedDataWrongPol.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+Nat
+/// sized type Nat has wrong polarity annotation - at Size argument, it should be +

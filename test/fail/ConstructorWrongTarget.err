@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ConstructorWrongTarget.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+type  D : ^(n : Nat) -> Set
+error during typechecking:
+D
+/// constructor d0
+/// new D : (^(n : Nat::Tm) -> Set)
+/// new n : Nat
+/// checking datatype parameters in constructor target
+/// leqVal' [("D",0),("n",1)] |- zero  <=*  n : Nat
+/// leqApp: zero[] !<= v1[]

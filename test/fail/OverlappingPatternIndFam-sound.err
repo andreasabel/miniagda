@@ -1,0 +1,34 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "OverlappingPatternIndFam-sound.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  true : Bool
+term  false : Bool
+type  Bool : Set
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  refl : .[A : Set] -> .[a : A] -> Id A a a
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
+{ subst [A] a .a (refl [.A] [.a]) [P] x = x
+}
+type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  eq : .[A : Set] -> .[a : A] -> DecEq A a a
+term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> DecEq A a b
+type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+error during typechecking:
+fDiag
+/// checkExpr 0 |- \ f -> \ A -> \ a -> refl (DecEq A a a) (eq A a) : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// checkForced fromList [] |- \ f -> \ A -> \ a -> refl (DecEq A a a) (eq A a) : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// new f : (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b)
+/// checkExpr 1 |- \ A -> \ a -> refl (DecEq A a a) (eq A a) : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// checkForced fromList [("f",0)] |- \ A -> \ a -> refl (DecEq A a a) (eq A a) : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// new A : Set
+/// checkExpr 2 |- \ a -> refl (DecEq A a a) (eq A a) : (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// checkForced fromList [("A",1),("f",0)] |- \ a -> refl (DecEq A a a) (eq A a) : (a : A) -> Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// new a : v1
+/// checkExpr 3 |- refl (DecEq A a a) (eq A a) : Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// leqVal' (subtyping) [("A",1),("a",2),("f",0)] |- < refl (DecEq A a a) (eq A a) : Id (DecEq A a a) (eq A a) (eq A a) >  <=+  Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// leqVal' (subtyping) [("A",1),("a",2),("f",0)] |- Id (DecEq A a a) (eq A a) (eq A a)  <=+  Id (DecEq A a a) (f [A] a a) (eq [A] [a])
+/// leqVal' [("A",1),("a",2),("f",0)] |- eq A a  <=^  f [A] a a : DecEq A a a
+/// leqApp: eq[v1,v2] !<= v0[{[A] {a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b))}},v2,v2]

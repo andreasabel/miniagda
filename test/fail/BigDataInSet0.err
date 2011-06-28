@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BigDataInSet0.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  BigOk : Set $0
+term  bigOk : ^ Set -> BigOk
+ty-u  BigOk : Set $0
+type  Big : Set
+error during typechecking:
+Big
+/// constructor big
+/// new Big : Set
+/// inferExpr' ^ Set -> Big
+/// new  : Set
+/// leSize': ($ 0) <= 0 failed

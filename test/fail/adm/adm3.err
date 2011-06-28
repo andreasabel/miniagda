@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "adm/adm3.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Maybe : ^(A : Set) -> Set
+term  nothing : .[A : Set] -> Maybe A
+term  just : .[A : Set] -> ^ A -> Maybe A
+type  Maybe : ^(A : Set) -> Set
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+term  bla : .[i : Size] -> SNat $i -> SNat i
+error during typechecking:
+bla
+/// clause 1
+/// pattern zero $i
+/// pattern $i
+/// successor pattern only allowed in cofun

@@ -1,0 +1,30 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "HetIdFoolingEta.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  Id : ^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set $0
+term  refl : .[A : Set] -> .[a : A] -> Id A a A a
+type  Id : ^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set $0
+error during typechecking:
+offDia
+/// not a type: (f : (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id A a B b) -> (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// inferExpr' (f : (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id A a B b) -> (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// new f : (.[A : Set] -> .[B : Set] -> (a : A) -> (b : B) -> Id A a B b)
+/// inferExpr' (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// new A : Set
+/// inferExpr' (B : Set) -> (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// new B : Set
+/// inferExpr' (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// new a : v1
+/// inferExpr' (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// new b : v2
+/// inferExpr' Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)
+/// inferExpr' Id (Id A B a b) (f A B a b) (Id A a A a)
+/// inferExpr' Id (Id A B a b) (f A B a b)
+/// inferExpr' Id (Id A B a b)
+/// inferExpr' Id A B a b
+/// inferExpr' Id A B a
+/// inferExpr' Id A B
+/// leqVal' (subtyping) [("A",1),("B",2),("a",3),("b",4),("f",0)] |- < B : Set >  <=+  A
+/// leqVal' (subtyping) [("A",1),("B",2),("a",3),("b",4),("f",0)] |- Set  <=+  A
+/// leqApp: Set[] !<= v1[]

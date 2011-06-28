@@ -1,0 +1,34 @@
+\documentclass{scrreprt}
+\usepackage{paralist}
+\usepackage{graphicx}
+\usepackage[final]{hcar}
+
+\begin{document}
+
+\begin{hcarentry}{MiniAgda}
+\report{Andreas Abel}
+\status{Experimental}
+%\participants{(PARTICIPANTS OTHER THAN MYSELF)}% optional
+\makeheader
+
+MiniAgda is a tiny dependently-typed programming language in the style
+of Agda.  It serves as a laboratory to test potential additions to the
+language and type system of Agda.  MiniAgda's termination checker is a
+fusion of sized types and size-change termination and supports
+coinduction.  Equality incorporates eta-expansion at record and
+singleton types.  Function arguments can be declared as static; such
+arguments are discarded during equality checking and compilation.
+
+Currently, I am developing a source translation from MiniAgda to
+Haskell as prototype for an Agda to Haskell compiler.  In the long
+run, I plan to evolve MiniAgda into a core language for Agda with
+termination certificates.
+
+MiniAgda is available as Haskell source code and compiles with GHC
+6.12.x. 
+
+\FurtherReading
+  \url{http://www2.tcs.ifi.lmu.de/\~abel/miniagda/}
+\end{hcarentry}
+
+\end{document}

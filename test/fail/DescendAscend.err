@@ -1,0 +1,18 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DescendAscend.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+term  plus : Nat -> Nat -> Nat
+{}
+term  f : Nat -> Nat
+term  g : Nat -> Nat -> Nat
+{ f (succ (succ (succ n))) = g n n
+}
+{ g (succ n) m = _plus (g n (succ m)) (f m)
+}
+error during typechecking:
+Termination check for mutual block ["f","g"] fails for ["f","g"]

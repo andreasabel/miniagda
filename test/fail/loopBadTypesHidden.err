@@ -1,0 +1,43 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "loopBadTypesHidden.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+type  Maybe : ++(A : Set) -> Set
+term  nothing : .[A : Set] -> Maybe A
+term  just : .[A : Set] -> ^ A -> Maybe A
+type  Maybe : ++(A : Set) -> Set
+type  Nat : Set
+type  Nat = SNat #
+term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
+{ shift_case [i] (nothing [.SNat $i]) = nothing [SNat i]
+; shift_case [.i] (just [.SNat $i] (zero [i])) = nothing [SNat i]
+; shift_case [.i] (just [.SNat $i] (succ [i] x)) = just [SNat i] x
+}
+term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
+term  shift = [\ i ->] \ f -> \ n -> _shift_case [i] (f (succ [#] n))
+term  inc : Nat -> Maybe Nat
+term  inc = \ n -> just [Nat] (succ [#] n)
+type  Unit : Set
+term  unit : Unit
+type  Unit : Set
+type  loopType : Unit -> Set
+{ loopType (unit) = .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+}
+type  loopCaseType : Unit -> Set
+{ loopCaseType (unit) = .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+}
+term  loop : (u : Unit) -> _loopType u
+term  loop_case : (u : Unit) -> _loopCaseType u
+error during typechecking:
+checking type of loop for admissibility
+/// new i : _
+/// new f : _
+/// new i : Size
+/// admType: checking ((SNat v2)::Tm -> (Nat -> Maybe (SNat i)) -> Unit{i = v2}) admissible in v2
+/// new  : (SNat v2)
+/// admType: checking (((SNat #)::Tm -> Maybe (SNat i){i = v2})::Tm -> Unit{i = v2}) admissible in v2
+/// type ((SNat #)::Tm -> Maybe (SNat i){i = v2}) not lower semi continuous in v2

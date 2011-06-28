@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "matchOnNatSuccI.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  zero : .[i : Size] -> Nat $i
+term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+type  Nat : + Size -> Set
+term  foo : .[i : Size] -> Nat i
+{}
+type  foo2 : (i : Size) -> Nat $i -> Set
+{ foo2 i (zero [.i]) = foo2 # (zero [#])
+; foo2 i (succ [.i] x) = Nat #
+}
+error during typechecking:
+Termination check for function foo2 fails 

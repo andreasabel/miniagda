@@ -1,0 +1,5 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "PolarityWrongCast.ma" ---
+--- scope checking ---
+scope check error: kast
+/// Identifier I undefined

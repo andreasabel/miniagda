@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "incompleteSizePattern2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  tt : Bool
+term  ff : Bool
+type  Bool : Set
+term  bad'' : .[Size] -> Bool
+error during typechecking:
+bad''
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

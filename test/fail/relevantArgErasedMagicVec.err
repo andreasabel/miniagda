@@ -1,0 +1,41 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "relevantArgErasedMagicVec.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> Sigma A B
+type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
+G> fun fst : .[A : Set] -> .[B : A -> Set] -> (__pair : Sigma A B) -> A
+G> { fst A B (pair .A .B __fst __snd) = __fst
+}
+term  fst : .[A : Set] -> .[B : A -> Set] -> (__pair : Sigma A B) -> A
+{ fst [A] [B] (pair [.A] [.B] __fst __snd) = __fst
+}
+G> fun snd : .[A : Set] -> .[B : A -> Set] -> (__pair : Sigma A B) -> B (fst A B __pair)
+G> { snd A B (pair .A .B __fst __snd) = __snd
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (__pair : Sigma A B) -> B (fst [A] [B] __pair)
+{ snd [A] [B] (pair [.A] [.B] __fst __snd) = __snd
+}
+type  Nat : Set
+term  zero : Nat
+term  succ : ^ Nat -> Nat
+type  Nat : Set
+type  Empty : Set
+type  Empty : Set
+term  magic : .[A : Set] -> .[p : Empty] -> A
+{}
+type  Unit : Set
+term  unit : Unit
+type  Unit : Set
+type  Vec : .[A : Set] -> (n : Nat) -> Set
+error during typechecking:
+Vec
+/// clause 2
+/// right hand side
+/// checkExpr 2 |- Sigma A (\ z -> Vec A n) : Set
+/// inferExpr' Sigma A (\ z -> Vec A n)
+/// inferExpr' Sigma A
+/// inferExpr' A
+/// inferExpr: variable A : Set may not occur
+/// , because it is marked as erased
