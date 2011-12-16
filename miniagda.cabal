@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.20101126
+version:         0.20111216
 build-type:      Simple
 cabal-version:   >= 1.8 && < 2
 license:         AllRightsReserved
@@ -30,6 +30,8 @@ executable miniagda
                     FlexibleInstances
                     FlexibleContexts
                     GeneralizedNewtypeDeriving
+                    PatternGuards
+                    TupleSections
   main-is:          Main.hs
   other-modules:    Abstract
                     Concrete

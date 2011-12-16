@@ -15,6 +15,7 @@ mkModule hs = Module noLoc main_mod pragmas warning exports imports decls where
   pragmas = [ LanguagePragma noLoc $ map Ident
     [ "NoImplicitPrelude" 
     , "GADTs"
+    , "KindSignatures"
     ]]
   warning = Nothing
   exports = Nothing

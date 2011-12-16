@@ -1049,6 +1049,7 @@ mkConstraint (VMeta i rho n) v           = retret $ arc (Flex i) (m-n) (Rigid (R
 mkConstraint VInfty (VMeta i rho n)      = retret $ arc (Rigid (RConst Infinite)) 0 (Flex i)
 mkConstraint v (VMeta j rho m)           = retret $ arc (Rigid (RVar i)) (m-n) (Flex j)
   where (i,n) = vGenSuccs v 0
+mkConstraint v1 v2 = fail $ "mkConstraint undefined for " ++ show (v1,v2)
 
 -- addMeta k x  adds a metavariable which can refer to VGens < k
 addMeta :: Ren -> MVar -> TypeCheck ()

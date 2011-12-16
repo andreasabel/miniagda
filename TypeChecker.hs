@@ -2077,11 +2077,11 @@ instance Substitute Val where
       VSing v1 vt -> do v1' <- substitute subst v1
                         vt' <- substitute subst vt
                         return $ vSing v1' vt'  -- TODO: Check reevaluation necessary? 
-      VSucc v1 -> do v1' <- substitute subst v1
-                     return $ succSize v1'
-      VMax vs  -> do vs' <- mapM (substitute subst) vs
-                     return $ maxSize vs'
+
+      VSucc v1  -> succSize  <$> substitute subst v1
+      VMax  vs  -> maxSize   <$> mapM (substitute subst) vs
       VPlus vs  -> plusSizes <$> mapM (substitute subst) vs
+
       VCase v1 env cl -> do v1' <- substitute subst v1
                             env' <- substitute subst env
                             return $ VCase v1' env' cl
@@ -2093,6 +2093,9 @@ instance Substitute Val where
           beta' <- substitute subst beta
           bv'   <- substitute subst bv
           return $ VGuard beta' bv'
+
+      VBelow ltle v -> VBelow ltle <$> substitute subst v
+
       VQuant pisig x dom env b ->  
           do dom'  <- Traversable.mapM (substitute subst) dom
              env' <- substitute subst env
@@ -2112,6 +2115,7 @@ instance Substitute Val where
 --      VCon co n -> return $ v
       VMeta x env n -> do env' <- substitute subst env
                           return $ VMeta x env' n
+      _ -> error $ "substitute: internal error: not defined for " ++ show v
 
 instance Substitute (Sort Val) where
   substitute subst s =

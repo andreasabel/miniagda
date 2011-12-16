@@ -1,4 +1,4 @@
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE ImplicitParams, PatternGuards #-}
 
 module Termination where
 

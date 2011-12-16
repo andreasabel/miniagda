@@ -47,12 +47,13 @@ traceMatch msg a = trace msg a
 traceMatchM msg = traceM msg
 -}  
 
+
 traceSize msg a = a -- trace msg a 
 traceSizeM msg = return () -- traceM msg
 {-
 traceSize msg a = trace msg a 
-traceSizeM msg = traceM msg 
--} 
+traceSizeM msg = traceM msg  
+-}
 
 -- evaluation with rewriting -------------------------------------
 
@@ -1324,6 +1325,8 @@ leqVal' f p mt12 u1' u2' = do
                   leqVal' f p Nothing av1 av2
                   leqVal' N mixed (Just (Two av1 av2)) v1 v2  -- compare for eq.     
 
+              (VSing v1 av1, VBelow ltle v2) | av1 == vSize && p == Pos -> leSize ltle p v1 v2
+
               -- unresolved eta-expansions (e.g. at coinductive type)
               (VUp v1 av1, VUp v2 av2) -> do
                   -- leqVal' f p Nothing av1 av2      -- do not compare types
@@ -1577,7 +1580,8 @@ ltSize :: Val -> Val -> TypeCheck ()
 ltSize = leSize Lt Pos
 
 leSize :: LtLe -> Pol -> Val -> Val -> TypeCheck ()
-leSize lt pol v1 v2 = traceSize ("leqSize " ++ show v1 ++ " <=" ++ show pol ++ " " ++ show v2) $ 
+leSize lt pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show lt ++ show pol ++ " " ++ show v2) $ 
+    traceSize ("leSize " ++ show v1 ++ " " ++ show lt ++ show pol ++ " " ++ show v2) $ 
     do case (v1,v2) of
          _ | v1 == v2 && lt == Le -> return () -- TODO: better handling of sums!
          (VSucc v1,VSucc v2) -> leSize lt pol v1 v2
@@ -1604,7 +1608,8 @@ leqSize' :: Val -> Val -> TypeCheck ()
 leqSize' = leSize' Le
 
 leSize' :: LtLe -> Val -> Val -> TypeCheck ()  
-leSize' lt v1 v2 = -- traceSize ("leqSize' " ++ show v1 ++ " <= " ++ show v2) $ 
+leSize' lt v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2) $ 
+    traceSize ("leSize' " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2) $ 
     do let err = "leSize': " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2 ++ " failed"
        case (v1,v2) of
          (VZero,_) | lt == Le -> return ()
@@ -1612,7 +1617,8 @@ leSize' lt v1 v2 = -- traceSize ("leqSize' " ++ show v1 ++ " <= " ++ show v2) $
          (VInfty, VZero) -> fail err
          (VGen{}, VZero) -> fail err
          (VMax vs,_) -> mapM_ (\ v -> leSize' lt v v2) vs -- all v in vs <= v2
-         (_,VMax _)  -> addLe lt v1 v2 -- this produces a disjunction 
+         (_,VMax vs)  -> foldr1 orM $ map (leSize' lt v1) vs -- this produces a disjunction 
+--         (_,VMax _)  -> addLe lt v1 v2 -- this produces a disjunction 
          (_,VInfty) | lt == Le -> return ()
          (VMeta{},VZero) -> addLe lt v1 v2
 {-

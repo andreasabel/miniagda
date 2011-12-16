@@ -38,4 +38,6 @@ loop
 /// leqVal' (subtyping) [(i,0),(j,1),(n,2),(f,3),(xSing#,4)] |- Maybe (SNat i)  <=+  Maybe (SNat $j)
 /// leqVal' [(i,0),(j,1),(n,2),(f,3),(xSing#,4)] |- SNat i  <=+  SNat $j : Set
 /// leqVal' [(i,0),(j,1),(n,2),(f,3),(xSing#,4)] |- i  <=+  $j : Size
+/// leSize v0 <=+ ($ v1)
+/// leSize' v0 <= ($ v1)
 /// bound not entailed

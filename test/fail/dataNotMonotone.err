@@ -16,4 +16,6 @@ NotMon
 /// checking Stream A i  to be isotone in variable i
 /// leqVal' [(A,0),(i,1)] |- Stream A i  <=+  Stream A $i : Set #
 /// leqVal' [(A,0),(i,1)] |- i  <=-  $i : Size
+/// leSize v1 <=- ($ v1)
+/// leSize' ($ v1) <= v1
 /// leSize: 0 + 1 <= 0 failed

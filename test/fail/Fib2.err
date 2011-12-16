@@ -46,4 +46,7 @@ fib2
 /// leqVal' (subtyping) [(i,0)] |- < cons (SNat #) (i + i) (zero #) (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [Nat] [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream (SNat #) $(i + i) >  <=+  Stream Nat ($i + $i)
 /// leqVal' (subtyping) [(i,0)] |- Stream (SNat #) $(i + i)  <=+  Stream Nat ($i + $i)
 /// leqVal' [(i,0)] |- $(i + i)  <=-  $$(i + i) : Size
+/// leSize ($ (v0 + v0)) <=- ($ ($ (v0 + v0)))
+/// leSize (v0 + v0) <=- ($ (v0 + v0))
+/// leSize' ($ (v0 + v0)) <= (v0 + v0)
 /// leSize: 0 + 1 <= 0 failed

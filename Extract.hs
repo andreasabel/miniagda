@@ -211,7 +211,7 @@ extractFun co (Fun (TypeSig n t) n' ar cls) = do
   tv <- whnf' t
   cls <- concat <$> mapM (extractClause n tv) cls
   return [ FunDecl co $ Fun (TypeSig n t) n' ar cls
-         , LetDecl False (TypeSig n' t) (Var n)
+         -- , LetDecl False (TypeSig n' t) (Var n)  -- no longer needed, since n and n' print the same
          ]
 
 {- OLD

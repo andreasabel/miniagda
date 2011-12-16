@@ -24,6 +24,8 @@ mySucc
 /// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
 /// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
 /// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : Size
+/// leSize v0 <=+ v1
+/// leSize' v0 <= v1
 /// bound not entailed
 error during typechecking:
 explicitCast
@@ -42,4 +44,6 @@ explicitCast
 /// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
 /// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
 /// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : Size
+/// leSize v0 <=+ v1
+/// leSize' v0 <= v1
 /// bound not entailed

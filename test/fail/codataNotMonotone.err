@@ -17,4 +17,6 @@ NatEq
 /// checking SNat i  to be antitone in variable i
 /// leqVal' [(i,0)] |- SNat i  <=-  SNat $i : Set #
 /// leqVal' [(i,0)] |- i  <=-  $i : Size
+/// leSize v0 <=- ($ v0)
+/// leSize' ($ v0) <= v0
 /// leSize: 0 + 1 <= 0 failed
