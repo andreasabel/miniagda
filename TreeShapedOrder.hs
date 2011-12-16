@@ -76,7 +76,7 @@ diff a b o = maybe (fmap (\ k -> -k) $ isAncestor b a o) Just $ isAncestor a b o
 
 -- | create a map from parents to list of sons, leaves have an empty list  
 invert :: (Ord a, Eq a) => TSO a -> Map a [(Int,a)]
-invert (TSO o) = Map.foldWithKey step Map.empty o where
+invert (TSO o) = Map.foldrWithKey step Map.empty o where
   step son (dist, parent) m = Map.insertWith (++) son [] $ 
     Map.insertWith (++) parent [(dist, son)] m
 

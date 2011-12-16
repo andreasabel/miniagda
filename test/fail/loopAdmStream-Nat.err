@@ -9,17 +9,17 @@ type  Nat : Set
 type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
-G> fun head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-G> { head A i (cons .A .i __head __tail) = __head
+G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] __head __tail) = __head
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i __head __tail) = __tail
+G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] __head __tail) = __tail
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  guard : .[j : Size] -> (Stream Nat $j -> Stream Nat #) -> Stream Nat j -> Stream Nat #
 { guard [j] g xs = g (cons [Nat] [j] zero xs)
@@ -29,8 +29,8 @@ error during typechecking:
 f
 /// clause 1
 /// pattern $j
-/// checkPattern $j : matching on size, checking that target .[i : Size] -> (~1 : (~2 : Stream Nat i) -> Stream Nat #) -> Stream Nat i ends in correct coinductive sized type
+/// checkPattern $j : matching on size, checking that target .[i : Size] -> (Stream Nat i -> Stream Nat #) -> Stream Nat i ends in correct coinductive sized type
 /// new i : Size
-/// endsInSizedCo: (~1 : (~2 : Stream Nat i) -> Stream Nat #) -> Stream Nat i
+/// endsInSizedCo: (Stream Nat i -> Stream Nat #) -> Stream Nat i
 /// new  : ((Stream {Nat {i = v0}} v0)::Tm -> Stream Nat #{i = v0})
-/// type (~2 : Stream Nat i) -> Stream Nat # not lower semi continuous in i
+/// type Stream Nat i -> Stream Nat # not lower semi continuous in i

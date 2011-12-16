@@ -9,7 +9,7 @@ error during typechecking:
 bad'
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[~0 : Size] -> Empty ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[Size] -> Empty ends in correct coinductive sized type
 /// new  : Size
 /// endsInSizedCo: Empty
-/// endsInSizedCo: target Empty of corecursive function is neither a CoSet or codata of size ~0 nor a tuple type
+/// endsInSizedCo: target Empty of corecursive function is neither a CoSet or codata of size  nor a tuple type

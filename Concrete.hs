@@ -2,8 +2,11 @@
 module Concrete where
 
 import Util
-import Abstract (Name,Co,Sized,Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
+import Abstract (Co,Sized,Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
+import qualified Abstract as A
 import Polarity 
+
+type Name = String -- concrete names
 
 data Expr = Set Expr        -- Type 0 for backward compat
           | CoSet Expr
@@ -20,8 +23,7 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | Lam Name Expr
           | Case Expr [Clause]
           | LLet TBind Expr Expr -- local let
-          | Pi TBind Expr
-          | Sigma TBind Expr
+          | Quant A.PiSigma TBind Expr
           | Pair Expr Expr
           | Record [([Name],Expr)]
           | Proj Name 
@@ -93,14 +95,15 @@ data Clause = Clause
                 (Maybe Expr) -- Nothing for absurd pattern clause  
             deriving (Eq,Show)
 
-data Pattern = ConP Name [Pattern]   -- (c ps)
-             | PairP Pattern Pattern -- (p, p')
-             | SuccP Pattern         -- ($ p)
-             | DotP Expr             -- .p
-             | IdentP Name           -- x
-             | SizeP Name Name       -- (x > y) 
-             | AbsurdP               -- ()
-               deriving (Eq,Show)
+data Pattern 
+  = ConP Name [Pattern]   -- (c ps)
+  | PairP Pattern Pattern -- (p, p')
+  | SuccP Pattern         -- ($ p)
+  | DotP Expr             -- .p
+  | IdentP Name           -- x
+  | SizeP Name Name       -- (x > y) 
+  | AbsurdP               -- ()
+    deriving (Eq,Show)
 
 type Case = (Pattern,Expr)
 
@@ -168,10 +171,8 @@ prettyExpr e =
       Ident n         -> n
       Unknown         -> "_"
       Sing e t        -> "<" ++ prettyExpr e ++ " : " ++ prettyExpr t ++ ">"
-      Pi tb t2        -> parens $ prettyTBind True tb
-                                  ++ " -> " ++ prettyExpr t2
-      Sigma tb t2     -> parens $ prettyTBind True tb
-                                  ++ " & " ++ prettyExpr t2
+      Quant pisig tb t2 -> parens $ prettyTBind True tb
+                                  ++ " " ++ show pisig ++ " " ++ prettyExpr t2
 
 prettyRecordLine (xs, e) = Util.showList " " id xs ++ " = " ++ prettyExpr e
 
@@ -193,5 +194,9 @@ prettyExprs = Util.showList " " prettyExpr
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
-teleToType (tb:tel) t2 = Pi tb (teleToType tel t2)
+teleToType (tb:tel) t2 = Quant A.Pi tb (teleToType tel t2)
 --teleToType (PosTB dec n t:tel) t2 = Pi dec n t (teleToType tel t2)
+
+typeToTele :: Type -> (Telescope, Type)
+typeToTele (Quant A.Pi tb c) = let (tel, a) = typeToTele c in (tb:tel, a)
+typeToTele a = ([],a)

@@ -8,38 +8,38 @@ term  succ : .[i : Size] -> ^ Nat i -> Nat $i
 type  Nat : + Size -> Set
 block fails as expected, error message:
 mySucc
-/// checkExpr 0 |- \ i -> \ j -> \ n -> succ j n : .[i : Size] -> .[j : Size] -> |j| < |i| -> (~2 : Nat i) -> Nat j
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> succ j n : .[i : Size] -> .[j : Size] -> |j| < |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 0 |- \ i -> \ j -> \ n -> succ j n : .[i : Size] -> .[j : Size] -> |j| < |i| -> Nat i -> Nat j
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> succ j n : .[i : Size] -> .[j : Size] -> |j| < |i| -> Nat i -> Nat j
 /// new i : Size
-/// checkExpr 1 |- \ j -> \ n -> succ j n : .[j : Size] -> |j| < |i| -> (~2 : Nat i) -> Nat j
-/// checkForced fromList [("i",0)] |- \ j -> \ n -> succ j n : .[j : Size] -> |j| < |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 1 |- \ j -> \ n -> succ j n : .[j : Size] -> |j| < |i| -> Nat i -> Nat j
+/// checkForced fromList [(i,0)] |- \ j -> \ n -> succ j n : .[j : Size] -> |j| < |i| -> Nat i -> Nat j
 /// new j : Size
-/// checkExpr 2 |- \ n -> succ j n : |j| < |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 2 |- \ n -> succ j n : |j| < |i| -> Nat i -> Nat j
 /// adding size rel. v1 + 1 <= v0
-/// checkExpr 2 |- \ n -> succ j n : (~2 : Nat i) -> Nat j
-/// checkForced fromList [("i",0),("j",1)] |- \ n -> succ j n : (~2 : Nat i) -> Nat j
+/// checkExpr 2 |- \ n -> succ j n : Nat i -> Nat j
+/// checkForced fromList [(j,1),(i,0)] |- \ n -> succ j n : Nat i -> Nat j
 /// new n : (Nat v0)
 /// checkExpr 3 |- succ j n : Nat j
 /// inferExpr' succ j n
-/// leqVal' (subtyping) [("i",0),("j",1),("n",2)] |- < n : Nat i >  <=+  Nat j
-/// leqVal' (subtyping) [("i",0),("j",1),("n",2)] |- Nat i  <=+  Nat j
-/// leqVal' [("i",0),("j",1),("n",2)] |- i  <=+  j : Size
+/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
+/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
+/// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : Size
 /// bound not entailed
 error during typechecking:
 explicitCast
-/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> (~2 : Nat i) -> Nat j
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
 /// new i : Size
-/// checkExpr 1 |- \ j -> \ n -> n : .[j : Size] -> |j| <= |i| -> (~2 : Nat i) -> Nat j
-/// checkForced fromList [("i",0)] |- \ j -> \ n -> n : .[j : Size] -> |j| <= |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 1 |- \ j -> \ n -> n : .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
+/// checkForced fromList [(i,0)] |- \ j -> \ n -> n : .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
 /// new j : Size
-/// checkExpr 2 |- \ n -> n : |j| <= |i| -> (~2 : Nat i) -> Nat j
+/// checkExpr 2 |- \ n -> n : |j| <= |i| -> Nat i -> Nat j
 /// adding size rel. v1 + 0 <= v0
-/// checkExpr 2 |- \ n -> n : (~2 : Nat i) -> Nat j
-/// checkForced fromList [("i",0),("j",1)] |- \ n -> n : (~2 : Nat i) -> Nat j
+/// checkExpr 2 |- \ n -> n : Nat i -> Nat j
+/// checkForced fromList [(j,1),(i,0)] |- \ n -> n : Nat i -> Nat j
 /// new n : (Nat v0)
 /// checkExpr 3 |- n : Nat j
-/// leqVal' (subtyping) [("i",0),("j",1),("n",2)] |- < n : Nat i >  <=+  Nat j
-/// leqVal' (subtyping) [("i",0),("j",1),("n",2)] |- Nat i  <=+  Nat j
-/// leqVal' [("i",0),("j",1),("n",2)] |- i  <=+  j : Size
+/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
+/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
+/// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : Size
 /// bound not entailed

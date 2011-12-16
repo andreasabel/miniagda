@@ -12,7 +12,7 @@ term  not : Bool -> Bool
 }
 type  Nat : ^ Bool -> Set
 term  zero : Nat true
-term  succ : ^(b : Bool) -> ^ Nat b -> Nat (_not b)
+term  succ : ^(b : Bool) -> ^ Nat b -> Nat (not b)
 type  Nat : ^ Bool -> Set
 term  f : (b : Bool) -> .[Nat b] -> Bool
 error during typechecking:

@@ -13,4 +13,4 @@ term  g : BT -> BT -> BT
 { g t u = f (node t u)
 }
 error during typechecking:
-Termination check for mutual block ["f","g"] fails for ["f","g"]
+Termination check for mutual block [f,g] fails for [f,g]

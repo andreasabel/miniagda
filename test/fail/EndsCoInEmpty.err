@@ -9,11 +9,11 @@ type  Bool : Set
 type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
 term  inn : .[A : Set] -> ^(out : A) -> EmptyOr A true
 type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
-G> fun out : .[A : Set] -> (__inn : EmptyOr A true) -> A
-G> { out A (inn .A __out) = __out
+G> fun out : .[A : Set] -> (inn : EmptyOr A true) -> A
+G> { out A (inn .A destructor_argument_out) = destructor_argument_out
 }
-term  out : .[A : Set] -> (__inn : EmptyOr A true) -> A
-{ out [A] (inn [.A] __out) = __out
+term  out : .[A : Set] -> (inn : EmptyOr A true) -> A
+{ out [A] (inn [.A] destructor_argument_out) = destructor_argument_out
 }
 term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A false -> B
 { exFalso [A] [B] ()
@@ -21,17 +21,17 @@ term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A false -> B
 type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
-G> fun head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-G> { head A i (cons .A .i __head __tail) = __head
+G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] __head __tail) = __head
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i __head __tail) = __tail
+G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] __head __tail) = __tail
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  bla : .[A : Set] -> .[i : Size] -> EmptyOr (Stream A i) false
 error during typechecking:

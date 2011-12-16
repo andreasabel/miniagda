@@ -11,9 +11,9 @@ term  plus : Nat -> Nat -> Nat
 term  f : Nat -> Nat -> Nat
 term  g : Nat -> Nat -> Nat
 { f (succ n) m = f n (succ m)
-; f (succ (succ (succ n))) m = _plus m (g n n)
+; f (succ (succ (succ n))) m = plus m (g n n)
 }
-{ g (succ n) m = _plus (g n (succ m)) (f m n)
+{ g (succ n) m = plus (g n (succ m)) (f m n)
 }
 error during typechecking:
-Termination check for mutual block ["f","g"] fails for ["g"]
+Termination check for mutual block [f,g] fails for [g]

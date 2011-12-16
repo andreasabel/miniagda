@@ -20,26 +20,26 @@ term  fmap : .[A : Set] -> .[B : Set] -> (A -> B) -> Twice A -> Twice B
 type  BStr : - Size -> Set
 term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> BStr $i
 type  BStr : - Size -> Set
-G> fun head : .[i : Size] -> (__cons : BStr $i) -> Bool
-G> { head i (cons .i __head __tail) = __head
+G> fun head : .[i : Size] -> (cons : BStr $i) -> Bool
+G> { head i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[i : Size] -> (__cons : BStr $i) -> Bool
-{ head [i] (cons [.i] __head __tail) = __head
+term  head : .[i : Size] -> (cons : BStr $i) -> Bool
+{ head [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[i : Size] -> (__cons : BStr $i) -> BStr i
-G> { tail i (cons .i __head __tail) = __tail
+G> fun tail : .[i : Size] -> (cons : BStr $i) -> BStr i
+G> { tail i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[i : Size] -> (__cons : BStr $i) -> BStr i
-{ tail [i] (cons [.i] __head __tail) = __tail
+term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
+{ tail [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  idAndLast : .[i : Size] -> BStr i -> Twice (BStr i)
 error during typechecking:
 idAndLast
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i : Size] -> (~1 : BStr i) -> Twice (BStr i) ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> BStr i -> Twice (BStr i) ends in correct coinductive sized type
 /// new i : Size
-/// endsInSizedCo: (~1 : BStr i) -> Twice (BStr i)
+/// endsInSizedCo: BStr i -> Twice (BStr i)
 /// new  : (BStr v0)
 /// endsInSizedCo: Twice (BStr i)
 /// endsInSizedCo: target Twice (BStr i) of corecursive function is neither a CoSet or codata of size i nor a tuple type

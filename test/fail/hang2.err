@@ -11,4 +11,4 @@ term  f : Empty -> Empty
 { f x = f (F x)
 }
 error during typechecking:
-Termination check for mutual block ["F","f"] fails for ["F","f"]
+Termination check for mutual block [F,f] fails for [F,f]

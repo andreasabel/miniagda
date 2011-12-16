@@ -18,7 +18,7 @@ term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
 ; shift_case [.i] (just [.SNat $i] (succ [i] x)) = just [SNat i] x
 }
 term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
-term  shift = [\ i ->] \ f -> \ n -> _shift_case [i] (f (succ [#] n))
+term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (succ [#] n))
 term  inc : Nat -> Maybe Nat
 term  inc = \ n -> just [Nat] (succ [#] n)
 type  Unit : Set
@@ -30,8 +30,8 @@ type  loopType : Unit -> Set
 type  loopCaseType : Unit -> Set
 { loopCaseType (unit) = .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 }
-term  loop : (u : Unit) -> _loopType u
-term  loop_case : (u : Unit) -> _loopCaseType u
+term  loop : (u : Unit) -> loopType u
+term  loop_case : (u : Unit) -> loopCaseType u
 error during typechecking:
 checking type of loop for admissibility
 /// new i : _

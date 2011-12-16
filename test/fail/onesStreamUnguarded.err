@@ -14,9 +14,9 @@ error during typechecking:
 copyFirst
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i : Size] -> (~1 : Stream Nat i) -> Stream Nat $i ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> Stream Nat i -> Stream Nat $i ends in correct coinductive sized type
 /// new i : Size
-/// endsInSizedCo: (~1 : Stream Nat i) -> Stream Nat $i
+/// endsInSizedCo: Stream Nat i -> Stream Nat $i
 /// new  : (Stream {Nat {i = v0}} v0)
 /// endsInSizedCo: Stream Nat $i
 /// endsInSizedCo: target Stream Nat $i of corecursive function is neither a CoSet or codata of size i nor a tuple type

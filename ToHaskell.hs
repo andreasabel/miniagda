@@ -107,28 +107,29 @@ translateFuns :: [Fun] -> Translate [H.Decl]
 translateFuns funs = concat <$> mapM translateFun funs
 
 translateFun :: Fun -> Translate [H.Decl]
-translateFun (ts@(TypeSig n t), (ar, cls)) = do
+translateFun (Fun ts@(TypeSig n t) n' ar cls) = do
   ts@(H.TypeSig _ [n] t) <- translateTypeSig ts
   cls <- concat <$> mapM (translateClause n) cls
   return [ts, H.FunBind cls]
 
 translateLet :: TypeSig -> FExpr -> Translate [H.Decl]
-translateLet ts@(TypeSig ('_':n) t) e = return []  -- skip internal decls
-translateLet ts@(TypeSig n t) e = do
-  ts <- translateTypeSig ts
-  e  <- translateExpr e
-  n  <- hsName (DefId Let n)
-  return [ ts, H.mkLet n e ]
+translateLet ts@(TypeSig n t) e 
+  | isEtaAlias n = return []  -- skip internal decls
+  | otherwise = do
+      ts <- translateTypeSig ts
+      e  <- translateExpr e
+      n  <- hsName (DefId LetK n)
+      return [ ts, H.mkLet n e ]
 
 translateTypeSig :: TypeSig -> Translate H.Decl
 translateTypeSig (TypeSig n t) = do
-  n <- hsName (DefId Let n)
+  n <- hsName (DefId LetK n)
   t <- translateType t
   return $ H.mkTypeSig n t
 
 translateDataDecl :: Name -> FTelescope -> FKind -> [FConstructor] -> Translate [H.Decl]
 translateDataDecl n tel k cs = do
-  n   <- hsName (DefId Dat n)
+  n   <- hsName (DefId DatK n)
   tel <- translateTelescope tel
   let k' = translateKind k
   cs  <- mapM translateConstructor cs
@@ -136,7 +137,7 @@ translateDataDecl n tel k cs = do
 
 translateConstructor :: FConstructor -> Translate H.GadtDecl
 translateConstructor (TypeSig n t) = do
-  n  <- hsName (DefId (Con Ind) n)
+  n  <- hsName (DefId (ConK Ind) n)
   t' <- translateType t
   return $ H.mkConDecl n t'
 
@@ -160,8 +161,8 @@ translateKind :: FKind -> H.Kind
 translateKind k = 
   case k of
     k | k == star -> H.KindStar
-    Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
-    Pi (TBind _ dom) k' -> 
+    Quant Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
+    Quant Pi (TBind _ dom) k' -> 
       translateKind (typ dom) `H.mkKindFun` translateKind k'
 
 translateType :: FType -> Translate H.Type
@@ -170,12 +171,12 @@ translateType t =
 
     Irr -> return $ H.unit_tycon
 
-    Pi (TBind _ dom) b | not (erased (decor dom)) -> 
+    Quant Pi (TBind _ dom) b | not (erased (decor dom)) -> 
       H.mkTyFun <$> translateType (typ dom) <*> translateType b
 
-    Pi (TBind _ dom) b | typ dom == Irr -> translateType b
+    Quant Pi (TBind _ dom) b | typ dom == Irr -> translateType b
 
-    Pi (TBind x dom) b -> do
+    Quant Pi (TBind x dom) b -> do
       x <- hsVarName x
       let k = translateKind (typ dom)
       -- todo: add x to context
@@ -184,7 +185,7 @@ translateType t =
 
     App f a -> H.mkTyApp <$> translateType f <*> translateType a
  
-    Def d@(DefId Dat n) -> (H.TyCon . H.UnQual) <$> hsName d
+    Def d@(DefId DatK n) -> (H.TyCon . H.UnQual) <$> hsName d
 
     Var x -> H.TyVar <$> hsVarName x
 
@@ -201,7 +202,7 @@ translateExpr e =
     Var x -> H.mkVar <$> hsVarName x
 
     -- constructors
-    Def f@(DefId (Con{}) n) -> H.mkCon <$> hsName f
+    Def f@(DefId (ConK{}) n) -> H.mkCon <$> hsName f
 
     -- function identifiers
     Def f@(DefId _ n) -> H.mkVar <$> hsName f
@@ -229,7 +230,7 @@ translatePattern p =
   case p of
     VarP y       -> H.PVar <$> hsVarName y
     ConP pi n ps -> 
-       H.PApp <$> (H.UnQual <$> hsName (DefId (Con $ coPat pi) n)) 
+       H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n)) 
               <*> mapM translatePattern ps
 
 {-
@@ -245,26 +246,29 @@ Name translation
 -}
 
 hsVarName :: Name -> Translate H.Name
-hsVarName x = return $ H.Ident x
+hsVarName x = return $ H.Ident $ show x
 
 hsName :: DefId -> Translate H.Name
 hsName id = enter ("error translating identifier " ++ show id) $
   case id of
-  (DefId Dat n) -> do
+  (DefId DatK x) -> do
+    let n = suggestion x
     unless (isUpper $ head n) $ 
       fail $ "data names need to be capitalized"
     return $ H.Ident n
-  (DefId (Con co) n) -> do
-    dataName <- getDataName n
+  (DefId (ConK co) x) -> do
+    let n = suggestion x
+    dataName <- getDataName x
     return $ H.Ident $ dataName ++ "_" ++ n
   -- lets, funs, cofuns. TODO: type-valued funs!
-  (DefId Let ('_':n)) -> return $ H.Ident n
-  (DefId _ n) -> do
+--   (DefId Let ('_':n)) | -> return $ H.Ident n
+  (DefId _ x) -> do
+    let n = suggestion x
 {- ignore for now
      unless (isLower $ head n) $
        fail $ "function names need to start with a lowercase letter"
  -}
-     return $ H.Ident n
+    return $ H.Ident n
 
 -- getDataName constructorName = return dataNamec
 getDataName :: Name -> Translate String

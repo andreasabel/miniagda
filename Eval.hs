@@ -118,9 +118,12 @@ reval u = -- trace ("reval " ++ show u) $
                            env' <- reEnv env
                            evalCase v' env' cl
 
-  VPi x dom env b    -> do dom' <- Traversable.mapM reval dom 
-                           env' <- reEnv env
-                           return $ VPi x dom' env' b
+  VBelow ltle v      -> VBelow ltle <$> reval v
+
+  VQuant pisig x dom env b -> do 
+    dom' <- Traversable.mapM reval dom 
+    env' <- reEnv env
+    return $ VQuant pisig x dom' env' b
 
   VLam x env e       -> do env' <- reEnv env
                            return $ VLam x env' e
@@ -142,10 +145,24 @@ reval u = -- trace ("reval " ++ show u) $
 -- <t : Pi x:a.b> = Pi x:a <t x : b>
 -- <t : <t' : a>> = <t' : a>
 vSing :: Val -> TVal -> TVal
-vSing v (VPi x dom env b) = 
- VPi x' dom (update env xv v) $ Sing (App (Var xv) (Var x')) b
-  where xv = ("vSing#" ++ x)
-        x' = if x == "" then fresh env else x   
+vSing v (VQuant Pi x dom env b) 
+  | not (emptyName x) = -- xv `seq` x' `seq`
+     (VQuant Pi x dom (update env xv v) $ Sing (App (Var xv) (Var x)) b)
+      where xv = fresh ("vSing#" ++ suggestion x)
+vSing v (VQuant Pi x dom env b) =
+--  | otherwise =
+     (VQuant Pi x' dom (update env xv v) $ Sing (App (Var xv) (Var x')) b')
+      where xv = fresh ("vSing#" ++ suggestion x)
+            x' = fresh $ if emptyName x then "xSing#" else suggestion x 
+            b' = parSubst (\ y -> Var $ if y == x then x' else y) b
+
+{-
+vSing v (VQuant Pi x dom env b) = -- xv `seq` x' `seq`
+ (VQuant Pi x' dom (update env xv v) $ Sing (App (Var xv) (Var x')) b')
+  where xv = fresh ("vSing#" ++ suggestion x)
+        x' = fresh $ if emptyName x then "xSing#" else suggestion x 
+        b' = parSubst (\ y -> Var $ if y == x then x' else y) b
+-}
 vSing _ tv@(VSing{}) = tv  
 vSing v tv = VSing v tv
 
@@ -174,13 +191,14 @@ equal u1 u2 = -- trace ("equal " ++ show u1 ++ " =?= " ++ show u2) $
 --    (VSucc v1, VSucc v2) -> equal v1 v2  -- NO REDUCING NECC. HERE (Size expr)
     (VApp v1 vl1, VApp v2 vl2) -> 
        liftM2 (&&) (equal v1 v2) (equals' vl1 vl2)
-    (VPi x1 dom1 env1 b1,VPi x2 dom2 env2 b2) ->
+    (VQuant pisig1 x1 dom1 env1 b1, VQuant pisig2 x2 dom2 env2 b2) | pisig1 == pisig2 ->
        liftM2 (&&) (equal (typ dom1) (typ dom2)) $  -- NO RED. NECC. (Type)
          new x1 dom1 $ \ vx -> do 
            v1 <- whnf (update env1 x1 vx) b1
            v2 <- whnf (update env2 x2 vx) b2 
            equal v1 v2
 
+    (VBelow ltle1 v1, VBelow ltle2 v2) | ltle1 == ltle2 -> equal v1 v2
     (VSing v1 tv1, VSing v2 tv2) -> liftM2 (&&) (equal v1 v2) (equal tv1 tv2) 
 
     (VLam x1 env1 b1, VLam x2 env2 b2) -> -- PROBLEM: DOMAIN MISSING
@@ -228,18 +246,21 @@ reify' m v0 =
                             return $ iterate Succ (Meta x) !! n
     (VSort (CoSet v))    -> reify' m v >>= return . Sort . CoSet
     (VSort s)            -> return $ Sort $ vSortToSort s
-    (VPi x dom rho e) -> do
+    (VBelow ltle v)      -> Below ltle <$> reify' m v
+    (VQuant pisig x dom rho e) -> do
           dom' <- Traversable.mapM (reify' m) dom
           newWithGen x dom $ \ k xv -> do
             vb <- whnf (update rho x xv) e
-            Pi (TBind (x++"~"++show k) dom') <$> reify' m vb
+            let x' = unsafeName (suggestion x ++ "~" ++ show k) 
+            Quant pisig (TBind x' dom') <$> reify' m vb
     (VSing v tv)         -> liftM2 Sing (reify' m v) (reify' m tv)
     (VLam x rho e)       -> do
           addName x $ \ xv@(VGen k) -> do
             vb <- whnf (update rho x xv) e
-            Lam defaultDec (x++"~"++show k) <$> reify' m vb  -- TODO: dec!?
+            let x' = unsafeName (suggestion x ++ "~" ++ show k) 
+            Lam defaultDec x' <$> reify' m vb  -- TODO: dec!?
     (VUp v tv)           -> reify' m v -- TODO: type directed reification
-    (VGen k)             -> return $ Var $ "~" ++ show k
+    (VGen k)             -> return $ Var $ unsafeName $ "~" ++ show k
     (VDef d)             -> return $ Def d
     (VProj n)            -> return $ Proj n
     (VRecord rho)        -> Record <$> mapAssocM (reify' m) rho
@@ -272,10 +293,11 @@ toExpr v =
     VSort (Set v)   -> (Sort . Set) <$> toExpr v
     VSort (SortC s) -> return $ Sort (SortC s)
 -}
-    VMeasured mu bv -> Pi <$> (TMeasure <$> mapM toExpr mu) <*> toExpr bv
-    VGuard beta bv  -> Pi <$> (TBound <$> mapM toExpr beta) <*> toExpr bv
-    VPi x dom rho e -> addNameEnv x rho $ \ x rho ->
-      Pi <$> (TBind x <$> mapM toExpr dom) <*> closToExpr rho e
+    VMeasured mu bv -> Quant Pi <$> (TMeasure <$> mapM toExpr mu) <*> toExpr bv
+    VGuard beta bv  -> Quant Pi <$> (TBound <$> mapM toExpr beta) <*> toExpr bv
+    VBelow ltle bv  -> Below ltle <$> toExpr bv
+    VQuant pisig x dom rho e -> addNameEnv x rho $ \ x rho ->
+      Quant pisig <$> (TBind x <$> mapM toExpr dom) <*> closToExpr rho e
     VSing v tv      -> Sing <$> toExpr v <*> toExpr tv
     VLam x rho e    -> addNameEnv x rho $ \ x rho -> 
       Lam defaultDec x <$> closToExpr rho e 
@@ -353,12 +375,13 @@ closToExpr rho e =
     App e1 e2      -> App <$> closToExpr rho e1 <*> closToExpr rho e2
     Lam dec x e    -> addNameEnv x rho $ \ x rho -> 
       Lam dec x <$> closToExpr rho e
-    Pi (TMeasure mu) e -> 
-      Pi <$> (TMeasure <$> mapM (closToExpr rho) mu) <*> closToExpr rho e
-    Pi (TBound beta) e -> 
-      Pi <$> (TBound <$> mapM (closToExpr rho) beta) <*> closToExpr rho e
-    Pi (TBind x dom) e -> addNameEnv x rho $ \ x rho' -> 
-      Pi <$> (TBind x <$> mapM (closToExpr rho) dom) <*> closToExpr rho' e
+    Below ltle e   -> Below ltle <$> closToExpr rho e
+    Quant Pi (TMeasure mu) e -> 
+      Quant Pi <$> (TMeasure <$> mapM (closToExpr rho) mu) <*> closToExpr rho e
+    Quant Pi (TBound beta) e -> 
+      Quant Pi <$> (TBound <$> mapM (closToExpr rho) beta) <*> closToExpr rho e
+    Quant Pi (TBind x dom) e -> addNameEnv x rho $ \ x rho' -> 
+      Quant Pi <$> (TBind x <$> mapM (closToExpr rho) dom) <*> closToExpr rho' e
     Sing e1 e2     -> Sing <$> closToExpr rho e1 <*> closToExpr rho e2
     Ann taggedE    -> Ann <$> mapM (closToExpr rho) taggedE
     Irr            -> return e
@@ -391,14 +414,15 @@ whnf env e = enter ("whnf " ++ show e) $
                  | otherwise -> return $ VLam x env e1
 -}
     Lam dec x e1 -> return $ VLam x env e1
-    Pi (TBind x dom) b -> do 
+    Below ltle e -> VBelow ltle <$> whnf env e
+    Quant pisig (TBind x dom) b -> do 
       dom' <- Traversable.mapM (whnf env) dom  -- Pi is strict in its first argument
-      return $ VPi x dom' env b
+      return $ VQuant pisig x dom' env b
 
     -- a measured type evaluates to 
     -- * a bounded type if measure present in environment (rhs of funs)
     -- * otherwise to a measured type (lhs of funs)
-    Pi (TMeasure mu) b -> do
+    Quant Pi (TMeasure mu) b -> do
       muv <- whnfMeasure env mu
       bv  <- whnf env b -- not adding measure constraint to context!
       case (envBound env) of
@@ -406,7 +430,7 @@ whnf env e = enter ("whnf " ++ show e) $
            -- fail $ "panic: whnf " ++ show e ++ " : no measure in environment " ++ show env
         Just muv' -> return $ VGuard (Bound Lt muv muv') bv
 
-    Pi (TBound (Bound ltle mu mu')) b -> do
+    Quant Pi (TBound (Bound ltle mu mu')) b -> do
           muv  <- whnfMeasure env mu  
           muv' <- whnfMeasure env mu'
           bv   <- whnf env b  -- not adding measure constraint to context!
@@ -447,7 +471,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Plus es -> do vs <- mapM (whnf env) es   -- plus is strict
                   return $ plusSizes vs
                
-    Def (DefId Let n) -> do 
+    Def (DefId LetK n) -> do 
         item <- lookupSymb n
         whnfClos (definingVal item)
 
@@ -479,7 +503,7 @@ whnfClos :: Clos -> TypeCheck Val
 whnfClos v = -- trace ("whnfClos " ++ show v) $
   case v of
     (VClos e rho) -> whnf e rho
-    (VApp (VDef (DefId Fun n)) vl) -> appDef n vl -- THIS IS TO SOLVE A PROBLEM
+    (VApp (VDef (DefId FunK n)) vl) -> appDef n vl -- THIS IS TO SOLVE A PROBLEM
     v -> return v
 {- THE PROBLEM IS that
   (tail (x Up Stream)) Up Stream is a whnf, because Up Stream is lazy
@@ -523,8 +547,8 @@ evalCase v env cs = do
 
 piApp :: TVal -> Clos -> TypeCheck TVal
 piApp (VGuard beta bv) w = piApp bv w
-piApp (VPi x dom env b) w = whnf (update env x w) b
-piApp tv@(VApp (VDef (DefId Dat n)) vl) (VProj p) = projectType tv p
+piApp (VQuant Pi x dom env b) w = whnf (update env x w) b
+piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj p) = projectType tv p
 piApp tv w = failDoc (text "piApp: IMPOSSIBLE to instantiate" <+> prettyTCM tv <+> text "to argument" <+> prettyTCM w)
 
 piApps :: TVal -> [Clos] -> TypeCheck TVal
@@ -534,22 +558,29 @@ piApps tv (v:vs) = do tv' <- piApp tv v
 
 -- in app u v, u might be a VDef (e.g. when coming from reval)
 app :: Val -> Clos -> TypeCheck Val
-app u v = do  
+app = app' True
+
+app' :: Bool -> Val -> Clos -> TypeCheck Val
+app' expandDefs u v = do  
+         let app = app' expandDefs
+             appDef' True  f vs = appDef f vs
+             appDef' False f vs = return $ VDef (DefId FunK f) `VApp` vs
+             appDef_ = appDef' expandDefs
          case u of
             VRecord rho -> do 
               let VProj n = v
-              maybe (fail $ "app: projection " ++ n ++ " not found in " ++ show u) 
+              maybe (fail $ "app: projection " ++ show n ++ " not found in " ++ show u) 
                 whnfClos (lookup n rho) 
-            VDef (DefId Fun n) -> appDef n [v]
-            VApp (VDef (DefId Fun n)) vl -> appDef n (vl ++ [v])
-            VApp h@(VDef (DefId (Con Ind) n)) vl -> do
+            VDef (DefId FunK n) -> appDef_ n [v]
+            VApp (VDef (DefId FunK n)) vl -> appDef_ n (vl ++ [v])
+            VApp h@(VDef (DefId (ConK Ind) n)) vl -> do
               v <- whnfClos v      -- inductive constructors are strict!
               return $ VApp h (vl ++ [v])
 --            VDef n -> appDef n [v]
 --            VApp (VDef id) vl -> VApp (VDef id) (vl ++ [v])
             VApp v1 vl -> return $ VApp v1 (vl ++ [v])
             VLam x env e  -> whnf (update env x v) e
-            VUp u1 (VPi x dom rho b) -> do
+            VUp u1 (VQuant Pi x dom rho b) -> do
 {- 
 -- ALT: erased functions are not applied to their argument!
               v1 <- if erased dec then return v else app v [w]  -- eta-expand w ??
@@ -558,7 +589,7 @@ app u v = do
               bv <- whnf (update rho x v) b
               up False v1 bv
 
-            VUp u1 (VApp (VDef (DefId Dat n)) vl) -> do
+            VUp u1 (VApp (VDef (DefId DatK n)) vl) -> do
               u' <- force u
               app u' v
               
@@ -602,7 +633,7 @@ force' b (VUp v tv) = up True v tv >>= \ v' -> return (True, v')  -- force eta e
 force' b (VClos rho e) = do
   v <- whnf rho e
   force' b v
-force' b v@(VDef (DefId Fun n)) = failValInv v
+force' b v@(VDef (DefId FunK n)) = failValInv v
 {-
  --trace ("force " ++ show v) $
     do sig <- gets signature
@@ -613,15 +644,15 @@ force' b v@(VDef (DefId Fun n)) = failValInv v
                                           Nothing -> return v
          _ -> return v
 -}
-force' b v@(VApp (VDef (DefId Fun n)) vl) = enterDoc (text "force" <+> prettyTCM v) $
+force' b v@(VApp (VDef (DefId FunK n)) vl) = enterDoc (text "force" <+> prettyTCM v) $
     do sig <- gets signature
        case Map.lookup n sig of
          Just (FunSig isCo t ki ar cl True _) -> traceMatch ("forcing " ++ show v) $
             do m <- matchClauses emptyEnv cl vl
                case m of 
-                 Just v' -> traceMatch ("forcing " ++ n ++ " succeeded") $
+                 Just v' -> traceMatch ("forcing " ++ show n ++ " succeeded") $
                    force' True v'
-                 Nothing -> traceMatch ("forcing " ++ n ++ " failed") $
+                 Nothing -> traceMatch ("forcing " ++ show n ++ " failed") $
                    return (b, v)
          _ -> return (b, v)
 force' b v = return (b, v)
@@ -643,9 +674,9 @@ appDef n vl = --trace ("appDef " ++ n) $
          | length vl >= fullArity ar -> do 
            m <- matchClauses emptyEnv cl vl
            case m of
-              Nothing -> return $ VApp (VDef (DefId Fun n)) vl
+              Nothing -> return $ VApp (VDef (DefId FunK n)) vl
               Just v2 -> return v2
-        _ -> return $ VApp (VDef (DefId Fun n)) vl   
+        _ -> return $ VApp (VDef (DefId FunK n)) vl   
 
 -- reflection and reification  ---------------------------------------
 
@@ -653,10 +684,10 @@ appDef n vl = --trace ("appDef " ++ n) $
 -- force==True also expands at coinductive type
 up :: Bool -> Val -> TVal -> TypeCheck Val
 up f (VUp v tv') tv = up f v tv
-up f v tv@(VPi{}) = return $ VUp v tv
+up f v tv@(VQuant Pi _ _ _ _) = return $ VUp v tv
 up f _ (VSing v vt) = up f v vt
 up f v (VDef d) = failValInv (VDef d) -- upData v d []
-up f v (VApp (VDef (DefId Dat d)) vl) = upData f v d vl
+up f v (VApp (VDef (DefId DatK d)) vl) = upData f v d vl
 up f v _ = return $ v
 
 {- Most of the code to eta expand on data types is in 
@@ -692,7 +723,7 @@ For vcons
 -- of family D whose target matches (D vs) under substitution rho
 matchingConstructors :: Val -> TypeCheck (Maybe [(ConstructorInfo,Env)])
 matchingConstructors v@(VDef d) = failValInv v -- matchingConstructors' d []
-matchingConstructors (VApp (VDef (DefId Dat d)) vl) = matchingConstructors' d vl >>= return . Just
+matchingConstructors (VApp (VDef (DefId DatK d)) vl) = matchingConstructors' d vl >>= return . Just
 matchingConstructors v = return Nothing
 -- fail $ "matchingConstructors: not a data type: " ++ show v -- return []
 
@@ -789,9 +820,9 @@ getFieldsAtType n vl = do
 projectType :: TVal -> Name -> TypeCheck TVal
 projectType tv p = do
   let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj p) <> comma <+> text "but found type" <+> prettyTCM tv)
-  let fail2 = failDoc (text "record type" <+> prettyTCM tv <+> text "does not have field" <+> text p)
+  let fail2 = failDoc (text "record type" <+> prettyTCM tv <+> text "does not have field" <+> prettyTCM p)
   case tv of
-    VApp (VDef (DefId Dat d)) vl -> do
+    VApp (VDef (DefId DatK d)) vl -> do
       mfs <- getFieldsAtType d vl
       case mfs of
         Nothing -> fail1
@@ -805,13 +836,13 @@ projectType tv p = do
 upData :: Bool -> Val -> Name -> [Val] -> TypeCheck Val
 upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $ 
  do
-  let ret v' = traceEta ("Eta-expanding: " ++ show v ++ " --> " ++ show v' ++ " at type " ++ n ++ show vl) $ return v'
+  let ret v' = traceEta ("Eta-expanding: " ++ show v ++ " --> " ++ show v' ++ " at type " ++ show n ++ show vl) $ return v'
   mc <- getMatchingConstructor n vl
   case mc of
     NoConstructor -> ret VIrr
     OneConstructor (co, pars, env, indvs, ci) -> 
       -- lazy eta-expansion for coinductive records like streams!
-      if (co==CoInd && not force) then return $ VUp v (VApp (VDef $ DefId Dat n) vl) else do
+      if (co==CoInd && not force) then return $ VUp v (VApp (VDef $ DefId DatK n) vl) else do
           -- get list of index values from environment
           let fis = cFields ci
           let piv = pars ++ indvs ++ [v]
@@ -820,12 +851,24 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
                 lookupEnv env x 
               arg (FieldInfo { fName = d, fClass = Field _ }) = do
                 -- lookup type sig  t  of destructor  d
+                LetSig {symbTyp = t, definingVal = w} <- lookupSymb d 
+                -- pi-apply destructor type to parameters, indices and value v
+                t' <- piApps t piv
+                -- recursively eta expand  (d <pars> v)
+                w <- foldM (app' False) w piv -- LAZY: only unfolds let, not def
+                up False w t' -- now: LAZY
+{-
+                -- lookup type sig  t  of destructor  d
                 t <- lookupSymbTyp d 
                 -- pi-apply destructor type to parameters, indices and value v
                 t' <- piApps t piv
                 -- recursively eta expand  (d <pars> v)
-                -- WAS: up (VDef (DefId Fun d) `VApp` piv) t'
-                up False (VDef (DefId Fun d) `VApp` piv) t' -- now: LAZY
+                w <- reval (VDef (DefId LetK d))
+                w <- w `apps` piv
+                up False w t' -- now: LAZY
+-}
+--                up False (VDef (DefId LetK d) `VApp` piv) t' -- now: LAZY
+--                up False (VDef (DefId FunK d) `VApp` piv) t' -- now: LAZY
           vs <- mapM arg fis 
           v' <- foldM app (vCon co (cName ci)) (pars ++ vs) 
           ret v'
@@ -971,8 +1014,8 @@ match env p v0 = --trace (show env ++ show v0) $
       (VarP x,   _) -> return $ Just (update env x v)
       (SizeP _ x,_) -> return $ Just (update env x v)
       (ProjP x, VProj y) | x == y -> return $ Just env
-      (ConP _ x [],VDef (DefId (Con _) y)) -> failValInv v -- | x == y -> return $ Just env
-      (ConP _ x pl,VApp (VDef (DefId (Con _) y)) vl) | x == y -> matchList env pl vl
+      (ConP _ x [],VDef (DefId (ConK _) y)) -> failValInv v -- | x == y -> return $ Just env
+      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
       (SuccP p',v) -> do
          v <- whnfClos v
          case predSize v of
@@ -1017,8 +1060,8 @@ nonLinMatch symm env p v0 tv = do
                           b <- eqValBool tv v v' 
                           if b then return $ Just env else return Nothing
         (ProjP x, VProj y) | x == y -> return $ Just env
-        (ConP _ c [],VDef (DefId (Con _) c')) -> failValInv v -- | c == c' -> return $ Just env
-        (ConP _ c pl,VApp (VDef (DefId (Con _) c')) vl) | c == c' -> do
+        (ConP _ c [],VDef (DefId (ConK _) c')) -> failValInv v -- | c == c' -> return $ Just env
+        (ConP _ c pl,VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
            sy <- lookupSymb c
            nonLinMatchList symm env pl vl (symbTyp sy)
         (SuccP p',v) -> do
@@ -1037,7 +1080,7 @@ nonLinMatchList :: Bool -> Env -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe
 nonLinMatchList symm env [] [] tv = return $ Just env
 nonLinMatchList symm env (p:pl) (v:vl) tv =
   case tv of
-    VPi x dom rho b -> do 
+    VQuant Pi x dom rho b -> do 
       m <- nonLinMatch symm env p v (typ dom) 
       case m of 
          Just env' -> do
@@ -1112,7 +1155,8 @@ type MT12 = Maybe (OneOrTwo TVal)
 
 -- view the shape of a type or a pair of types
 data TypeShape 
-  = ShPi    (OneOrTwo Name) 
+  = ShQuant PiSigma
+            (OneOrTwo Name) 
             (OneOrTwo Domain) 
             (OneOrTwo Env) 
             (OneOrTwo Type)      -- both are function types
@@ -1134,11 +1178,11 @@ data SortShape
 typeView :: TVal -> TypeShape
 typeView tv = 
   case tv of
-    VPi x dom env b              -> ShPi (One x) (One dom) (One env) (One b)
+    VQuant pisig x dom env b     -> ShQuant pisig (One x) (One dom) (One env) (One b)
     VSort s                      -> ShSort (sortView s)
     VSing v tv                   -> ShSing v tv
-    VApp (VDef (DefId Dat n)) vs -> ShData n (One tv)
-    VApp (VDef (DefId Fun n)) vs -> ShNe (One tv)  -- stuck fun
+    VApp (VDef (DefId DatK n)) vs -> ShData n (One tv)
+    VApp (VDef (DefId FunK n)) vs -> ShNe (One tv)  -- stuck fun
     VApp (VGen i) vs             -> ShNe (One tv)  -- type variable
     VGen i                       -> ShNe (One tv)  -- type variable
     VCase{}                      -> ShNe (One tv)  -- stuck case
@@ -1156,9 +1200,9 @@ typeView12 :: (Functor m, Error e, MonadError e m) => OneOrTwo TVal -> m TypeSha
 typeView12 (One tv) = return $ typeView tv
 typeView12 (Two tv1 tv2) =
   case (tv1, tv2) of
-    (VPi x1 dom1 env1 b1, VPi x2 dom2 env2 b2) 
-      | erased (decor dom1) == erased (decor dom2) -> 
-        return $ ShPi (Two x1 x2) (Two dom1 dom2) (Two env1 env2) (Two b1 b2)
+    (VQuant pisig1 x1 dom1 env1 b1, VQuant pisig2 x2 dom2 env2 b2) 
+      | pisig1 == pisig2 && erased (decor dom1) == erased (decor dom2) -> 
+        return $ ShQuant pisig1 (Two x1 x2) (Two dom1 dom2) (Two env1 env2) (Two b1 b2)
     (VSort s1, VSort s2) -> ShSort <$> sortView12 (Two s1 s2)
     (VSing v tv, _)      -> return $ ShSingL v tv tv2
     (_, VSing v tv)      -> return $ ShSingR tv1 v tv
@@ -1212,7 +1256,7 @@ leqVal' f p mt12 u1' u2' = do
    ----------------------------------------------------------
    Gamma |- t : p(x:A) -> B  <=  Gamma' |- t' : p'(x:A') -> B'
 -}
-      Just (ShPi x12 dom12 env12 b12)  -> 
+      Just (ShQuant Pi x12 dom12 env12 b12)  -> 
          newVar (name12 x12) dom12 $ \ _ xv12 -> do
             u1' <- app u1' (first12  xv12)
             u2' <- app u2' (second12 xv12)
@@ -1264,8 +1308,8 @@ leqVal' f p mt12 u1' u2' = do
   ---------------------------------------------------------
   Gamma |- p(x:A) -> B : s <= Gamma' |- p'(x:A') -> B' : s'
 -}
-              (VPi x1 dom1@(Domain av1 _ dec1) env1 b1, 
-               VPi x2 dom2@(Domain av2 _ dec2) env2 b2) ->
+              (VQuant Pi x1 dom1@(Domain av1 _ dec1) env1 b1, 
+               VQuant Pi x2 dom2@(Domain av2 _ dec2) env2 b2) ->
                  if not $ leqDec p dec2 dec1 then
                     recoverFailDoc $ text "subtyping" <+> prettyTCM u1 <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2 <+> text "failed"
                   else do     
@@ -1367,7 +1411,7 @@ leqVals' f q tv12 vl1 vl2 = do
  
     ([], [], _) -> return tv12
 
-    (w1:vs1, w2:vs2, ShPi x12 dom12 env12 b12) -> do
+    (w1:vs1, w2:vs2, ShQuant Pi x12 dom12 env12 b12) -> do
       let p = oneOrTwo id polAnd (fmap (polarity . decor) dom12)
       let dec = Dec { polarity = p } -- WAS: , erased = erased $ decor $ first12 dom12 }
       v1 <- whnfClos w1
@@ -1422,6 +1466,14 @@ leqApp :: Force -> Pol -> Val -> [Val] -> Val -> [Val] -> TypeCheck ()
 leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- " 
                                   ++ show v1 ++ show w1 ++ " <=" ++ show pol ++ " " ++ show v2 ++ show w2) $ -}
   do case (v1,v2) of
+      (VApp v1 [], v2) -> leqApp f pol v1 w1 v2 w2
+      (v1, VApp v2 []) -> leqApp f pol v1 w1 v2 w2
+{-
+      (VApp{}, _)    -> throwErrorMsg $ "leqApp: internal error: hit application v1 = " ++ show v1 
+      (_, VApp{})    -> throwErrorMsg $ "leqApp: internal error: hit application v2 = " ++ show v2 
+-}
+      (VUp v1 _, v2) -> leqApp f pol v1 w1 v2 w2
+      (v1, VUp v2 _) -> leqApp f pol v1 w1 v2 w2
       (VGen k1, VGen k2) -> 
         if k1 /= k2 
           then recoverFail $ 
@@ -1780,7 +1832,7 @@ checkPositivityGraph = enter ("checking positivity") $ do
   let m0 = mkMatrix n (graph gr)
   let m  = warshall m0
   let isDataId i = case Map.lookup i (intMap gr) of
-                     Just (Rigid (DefId Dat _)) -> True
+                     Just (Rigid (DefId DatK _)) -> True
                      _ -> False
   let dataDiag = [ m Array.! (i,i) | i <- [0..n-1], isDataId i ]
   mapM_ (\ x -> leqPolPoly oone x) dataDiag

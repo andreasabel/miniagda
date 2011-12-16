@@ -4,12 +4,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 error during typechecking:
 id
-/// checkExpr 0 |- \ A -> \ x -> x : .[A : Set] -> (~1 : (~2 : A) -> A) -> .[~2 : A] -> A
-/// checkForced fromList [] |- \ A -> \ x -> x : .[A : Set] -> (~1 : (~2 : A) -> A) -> .[~2 : A] -> A
+/// checkExpr 0 |- \ A -> \ x -> x : .[A : Set] -> (A -> A) -> .[A] -> A
+/// checkForced fromList [] |- \ A -> \ x -> x : .[A : Set] -> (A -> A) -> .[A] -> A
 /// new A : Set
-/// checkExpr 1 |- \ x -> x : (~1 : (~2 : A) -> A) -> .[~2 : A] -> A
-/// checkForced fromList [("A",0)] |- \ x -> x : (~1 : (~2 : A) -> A) -> .[~2 : A] -> A
+/// checkExpr 1 |- \ x -> x : (A -> A) -> .[A] -> A
+/// checkForced fromList [(A,0)] |- \ x -> x : (A -> A) -> .[A] -> A
 /// new x : (v0::Tm -> A{A = v0})
-/// checkExpr 2 |- x : .[~2 : A] -> A
-/// leqVal' (subtyping) [("A",0),("x",1)] |- (fresh#1 : A) -> < x fresh#1 : A >  <=+  .[~2 : A] -> A
-/// subtyping (fresh#1 : A) -> < x fresh#1 : A >  <=+  .[~2 : A] -> A failed
+/// checkExpr 2 |- x : .[A] -> A
+/// leqVal' (subtyping) [(x,1),(A,0)] |- (xSing# : A) -> < x xSing# : A >  <=+  .[A] -> A
+/// subtyping (xSing# : A) -> < x xSing# : A >  <=+  .[A] -> A failed

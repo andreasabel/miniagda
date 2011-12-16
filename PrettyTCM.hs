@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module PrettyTCM where
 
 import Prelude hiding (sequence, mapM)
@@ -61,6 +63,9 @@ instance ToExpr Val where
 
 class PrettyTCM a where
   prettyTCM :: a -> TypeCheck Doc 
+
+instance PrettyTCM Name where
+  prettyTCM = pretty
 
 instance PrettyTCM Pattern where
   prettyTCM = pretty

@@ -14,17 +14,17 @@ type  Vec : ++(A : Set) -> ^ Nat -> Set
 term  vnil : .[A : Set] -> Vec A zero
 term  vcons : .[A : Set] -> ^(head : A) -> .[n : Nat] -> ^(tail : Vec A n) -> Vec A (succ n)
 type  Vec : ++(A : Set) -> ^ Nat -> Set
-G> fun head : .[A : Set] -> .[n : Nat] -> (__vcons : Vec A (succ n)) -> A
-G> { head A n (vcons .A __head .n __tail) = __head
+G> fun head : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> A
+G> { head A n (vcons .A destructor_argument_head .n destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[A : Set] -> .[n : Nat] -> (__vcons : Vec A (succ n)) -> A
-{ head [A] [n] (vcons [.A] __head [.n] __tail) = __head
+term  head : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> A
+{ head [A] [n] (vcons [.A] destructor_argument_head [.n] destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[A : Set] -> .[n : Nat] -> (__vcons : Vec A (succ n)) -> Vec A n
-G> { tail A n (vcons .A __head .n __tail) = __tail
+G> fun tail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> Vec A n
+G> { tail A n (vcons .A destructor_argument_head .n destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[A : Set] -> .[n : Nat] -> (__vcons : Vec A (succ n)) -> Vec A n
-{ tail [A] [n] (vcons [.A] __head [.n] __tail) = __tail
+term  tail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> Vec A n
+{ tail [A] [n] (vcons [.A] destructor_argument_head [.n] destructor_argument_tail) = destructor_argument_tail
 }
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> Id A a a
@@ -35,16 +35,16 @@ vec0vnil
 /// checkForced fromList [] |- \ A -> \ n -> \ v -> \ v' -> refl (Vec A n) v : .[A : Set] -> (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
 /// new A : Set
 /// checkExpr 1 |- \ n -> \ v -> \ v' -> refl (Vec A n) v : (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
-/// checkForced fromList [("A",0)] |- \ n -> \ v -> \ v' -> refl (Vec A n) v : (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
+/// checkForced fromList [(A,0)] |- \ n -> \ v -> \ v' -> refl (Vec A n) v : (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
 /// new n : Nat
 /// checkExpr 2 |- \ v -> \ v' -> refl (Vec A n) v : (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
-/// checkForced fromList [("A",0),("n",1)] |- \ v -> \ v' -> refl (Vec A n) v : (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
+/// checkForced fromList [(n,1),(A,0)] |- \ v -> \ v' -> refl (Vec A n) v : (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'
 /// new v : (Vec v0 v1)
 /// checkExpr 3 |- \ v' -> refl (Vec A n) v : (v' : Vec A n) -> Id (Vec A n) v v'
-/// checkForced fromList [("A",0),("n",1),("v",2)] |- \ v' -> refl (Vec A n) v : (v' : Vec A n) -> Id (Vec A n) v v'
+/// checkForced fromList [(n,1),(A,0),(v,2)] |- \ v' -> refl (Vec A n) v : (v' : Vec A n) -> Id (Vec A n) v v'
 /// new v' : (Vec v0 v1)
 /// checkExpr 4 |- refl (Vec A n) v : Id (Vec A n) v v'
-/// leqVal' (subtyping) [("A",0),("n",1),("v",2),("v'",3)] |- < refl (Vec A n) v : Id (Vec A n) v v >  <=+  Id (Vec A n) v v'
-/// leqVal' (subtyping) [("A",0),("n",1),("v",2),("v'",3)] |- Id (Vec A n) v v  <=+  Id (Vec A n) v v'
-/// leqVal' [("A",0),("n",1),("v",2),("v'",3)] |- v  <=^  v' : Vec A n
+/// leqVal' (subtyping) [(n,1),(A,0),(v,2),(v',3)] |- < refl (Vec A n) v : Id (Vec A n) v v >  <=+  Id (Vec A n) v v'
+/// leqVal' (subtyping) [(n,1),(A,0),(v,2),(v',3)] |- Id (Vec A n) v v  <=+  Id (Vec A n) v v'
+/// leqVal' [(n,1),(A,0),(v,2),(v',3)] |- v  <=^  v' : Vec A n
 /// leqApp: head mismatch v2 != v3

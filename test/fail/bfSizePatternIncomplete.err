@@ -21,7 +21,7 @@ term  rose : .[A : Set] -> .[i : Size] -> ^ A -> ^ List (Rose A i) # -> Rose A $
 type  Rose : ++(A : Set) -> + Size -> Set
 term  step : .[j : Size] -> .[A : Set] -> .[i : Size] -> List (Rose A $i) j -> Prod (List A j) (List (Rose A i) #)
 { step [.$j] [A] [i] (nil [.Rose A $i] [j]) = pair [List A $j] [List (Rose A i) #] (nil [A] [j]) (nil [Rose A i] [#])
-; step [.$j] [A] [.i] (cons [.Rose A $i] [j] (rose [.A] [i] a rs') rs) = _split [List A j] [List (Rose A i) #] (step [j] [A] [i] rs) [Prod (List A $j) (List (Rose A i) #)] (\ as -> \ rs'' -> pair [List A $j] [List (Rose A i) #] (cons [A] [j] a as) (_append [Rose A i] rs' rs''))
+; step [.$j] [A] [.i] (cons [.Rose A $i] [j] (rose [.A] [i] a rs') rs) = split [List A j] [List (Rose A i) #] (step [j] [A] [i] rs) [Prod (List A $j) (List (Rose A i) #)] (\ as -> \ rs'' -> pair [List A $j] [List (Rose A i) #] (cons [A] [j] a as) (append [Rose A i] rs' rs''))
 }
 term  bf' : .[A : Set] -> .[i : Size] -> List A # -> List (Rose A i) # -> List A #
 error during typechecking:

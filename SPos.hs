@@ -34,7 +34,7 @@ nocc k a tv = -- trace ("noccRecArg " ++ show tv)
   do tv <- whnfClos tv
      case tv of
          a' | a == a' -> return False
-         VPi x dom env b -> 
+         VQuant Pi x dom env b -> 
              do no <- nocc k a (typ dom)
                 case no of 
                   True -> do

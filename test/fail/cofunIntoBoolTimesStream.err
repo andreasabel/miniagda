@@ -9,44 +9,44 @@ type  Bool : Set
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
 term  pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> Prod A B
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
-G> fun fst : .[A : Set] -> .[B : Set] -> (__pair : Prod A B) -> A
-G> { fst A B (pair .A .B __fst __snd) = __fst
+G> fun fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+G> { fst A B (pair .A .B destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
 }
-term  fst : .[A : Set] -> .[B : Set] -> (__pair : Prod A B) -> A
-{ fst [A] [B] (pair [.A] [.B] __fst __snd) = __fst
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (pair [.A] [.B] destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
 }
-G> fun snd : .[A : Set] -> .[B : Set] -> (__pair : Prod A B) -> B
-G> { snd A B (pair .A .B __fst __snd) = __snd
+G> fun snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+G> { snd A B (pair .A .B destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
-term  snd : .[A : Set] -> .[B : Set] -> (__pair : Prod A B) -> B
-{ snd [A] [B] (pair [.A] [.B] __fst __snd) = __snd
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (pair [.A] [.B] destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
 type  BStr : - Size -> Set
 term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> BStr $i
 type  BStr : - Size -> Set
-G> fun head : .[i : Size] -> (__cons : BStr $i) -> Bool
-G> { head i (cons .i __head __tail) = __head
+G> fun head : .[i : Size] -> (cons : BStr $i) -> Bool
+G> { head i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[i : Size] -> (__cons : BStr $i) -> Bool
-{ head [i] (cons [.i] __head __tail) = __head
+term  head : .[i : Size] -> (cons : BStr $i) -> Bool
+{ head [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[i : Size] -> (__cons : BStr $i) -> BStr i
-G> { tail i (cons .i __head __tail) = __tail
+G> fun tail : .[i : Size] -> (cons : BStr $i) -> BStr i
+G> { tail i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[i : Size] -> (__cons : BStr $i) -> BStr i
-{ tail [i] (cons [.i] __head __tail) = __tail
+term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
+{ tail [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  idAndLast : .[i : Size] -> BStr i -> Prod Bool (BStr i)
 error during typechecking:
 idAndLast
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i : Size] -> (~1 : BStr i) -> Prod Bool (BStr i) ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> BStr i -> Prod Bool (BStr i) ends in correct coinductive sized type
 /// new i : Size
-/// endsInSizedCo: (~1 : BStr i) -> Prod Bool (BStr i)
+/// endsInSizedCo: BStr i -> Prod Bool (BStr i)
 /// new  : (BStr v0)
 /// endsInSizedCo: Prod Bool (BStr i)
 /// endsInSizedCo: detected tuple target, checking components
-/// fieldsEndInSizedCo: checking fields of tuple type [field fst : A,field snd : B] in environment Environ {envMap = [("B",{BStr i {i = v0}}),("A",{Bool {i = v0}})], envBound = Nothing}
+/// fieldsEndInSizedCo: checking fields of tuple type [field fst : A,field snd : B] in environment Environ {envMap = [(B,{BStr i {i = v0}}),(A,{Bool {i = v0}})], envBound = Nothing}
 /// endsInSizedCo: Bool
 /// endsInSizedCo: target Bool of corecursive function is neither a CoSet or codata of size i nor a tuple type

@@ -14,35 +14,35 @@ type  T : Bool -> Set
 { T (true) = Nat
 ; T (false) = Bool
 }
-term  good : .[F : Nat -> Set] -> .[f : .[b : Bool] -> (.[_T b] -> Nat) -> Nat] -> (g : (n : Nat) -> F (f [true] ([\ x ->] n))) -> (h : F (f [false] ([\ x ->] zero)) -> Bool) -> Bool
+term  good : .[F : Nat -> Set] -> .[f : .[b : Bool] -> (.[T b] -> Nat) -> Nat] -> (g : (n : Nat) -> F (f [true] ([\ x ->] n))) -> (h : F (f [false] ([\ x ->] zero)) -> Bool) -> Bool
 { good [F] [f] g h = h (g zero)
 }
-term  good' : .[F : .[b : Bool] -> (.[_T b] -> Nat) -> Set] -> (g : F [false] ([\ x ->] zero) -> Bool) -> (h : (n : Nat) -> F [true] ([\ x ->] n)) -> Bool
+term  good' : .[F : .[b : Bool] -> (.[T b] -> Nat) -> Set] -> (g : F [false] ([\ x ->] zero) -> Bool) -> (h : (n : Nat) -> F [true] ([\ x ->] n)) -> Bool
 term  good' = [\ F ->] \ g -> \ h -> g (h zero)
 warning: ignoring error: type Nat has different shape than Bool
-term  bad1 : .[F : .[b : Bool] -> (_T b -> _T b) -> Nat -> Set] -> (g : F [false] (\ x -> x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> x) n) -> Bool
+term  bad1 : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [false] (\ x -> x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> x) n) -> Bool
 term  bad1 = [\ F ->] \ g -> \ h -> g (h zero)
-term  f : (b : Bool) -> _T b -> _T b
+term  f : (b : Bool) -> T b -> T b
 { f (true) x = x
 ; f (false) (true) = false
 ; f (false) (false) = true
 }
 error during typechecking:
 bad2
-/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (~2 : (~3 : _T b) -> _T b) -> (~3 : Nat) -> Set] -> (g : (~2 : F [false] (\ x -> _f false x) zero) -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (~2 : (~3 : _T b) -> _T b) -> (~3 : Nat) -> Set] -> (g : (~2 : F [false] (\ x -> _f false x) zero) -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// new F : (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set)
-/// checkExpr 1 |- \ g -> \ h -> g (h zero) : (g : (~2 : F [false] (\ x -> _f false x) zero) -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// checkForced fromList [("F",0)] |- \ g -> \ h -> g (h zero) : (g : (~2 : F [false] (\ x -> _f false x) zero) -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// new g : ((v0 {[false] {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}} {\ x -> _f false x {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))})
-/// checkExpr 2 |- \ h -> g (h zero) : (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// checkForced fromList [("F",0),("g",1)] |- \ h -> g (h zero) : (h : (n : Nat) -> F [true] (\ x -> _f true x) n) -> Bool
-/// new h : ((n : Nat::Tm) -> F [true] (\ x -> _f true x) n{g = (v1 Up ((v0 {[false] {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}} {\ x -> _f false x {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (_T b -> _T b) -> Nat -> Set))})
+/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [false] (\ x -> f false x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [false] (\ x -> f false x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// new F : (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set)
+/// checkExpr 1 |- \ g -> \ h -> g (h zero) : (g : F [false] (\ x -> f false x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ h -> g (h zero) : (g : F [false] (\ x -> f false x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// new g : ((v0 {[false] {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
+/// checkExpr 2 |- \ h -> g (h zero) : (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ h -> g (h zero) : (h : (n : Nat) -> F [true] (\ x -> f true x) n) -> Bool
+/// new h : ((n : Nat::Tm) -> F [true] (\ x -> f true x) n{g = (v1 Up ((v0 {[false] {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
 /// checkExpr 3 |- g (h zero) : Bool
 /// inferExpr' g (h zero)
-/// leqVal' (subtyping) [("F",0),("g",1),("h",2)] |- < h zero : F [true] (\ x -> _f true x) zero >  <=+  F [false] (\ x -> _f false x) zero
-/// leqVal' (subtyping) [("F",0),("g",1),("h",2)] |- F [true] (\ x -> _f true x) zero  <=+  F [false] (\ x -> _f false x) zero
-/// leqVal' [("F",0),("g",1),("h",2)] |- \ x -> _f true x : (~3 : Nat) -> _T true  <=*  \ x -> _f false x : (~3 : Bool) -> _T false
+/// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- < h zero : F [true] (\ x -> f true x) zero >  <=+  F [false] (\ x -> f false x) zero
+/// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- F [true] (\ x -> f true x) zero  <=+  F [false] (\ x -> f false x) zero
+/// leqVal' [(g,1),(F,0),(h,2)] |- \ x -> f true x : Nat -> T true  <=*  \ x -> f false x : Bool -> T false
 /// new || : Nat||Bool
-/// leqVal' [("F",0),("g",1),("h",2),("||",3)] |- || : Nat  <=*  f false || : Bool
+/// leqVal' [(g,1),(F,0),(h,2),(||,3)] |- || : Nat  <=*  f false || : Bool
 /// type Nat has different shape than Bool

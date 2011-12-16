@@ -22,16 +22,16 @@ offDiag
 /// checkForced fromList [] |- \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : .[A : Set] -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
 /// new A : Set
 /// checkExpr 1 |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [("A",0)] |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [(A,0)] |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
 /// new f : ((a : v0::Tm) -> (b : A) -> DecEq A a b{A = v0})
 /// checkExpr 2 |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [("A",0),("f",1)] |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [(f,1),(A,0)] |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
 /// new a : v0
 /// checkExpr 3 |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [("A",0),("a",2),("f",1)] |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// checkForced fromList [(f,1),(A,0),(a,2)] |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
 /// new b : v0
 /// checkExpr 4 |- refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' (subtyping) [("A",0),("a",2),("b",3),("f",1)] |- < refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (notEq A a b) (notEq A a b) >  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' (subtyping) [("A",0),("a",2),("b",3),("f",1)] |- Id (DecEq A a b) (notEq A a b) (notEq A a b)  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' [("A",0),("a",2),("b",3),("f",1)] |- notEq A a b  <=^  f a b : DecEq A a b
+/// leqVal' (subtyping) [(f,1),(A,0),(a,2),(b,3)] |- < refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (notEq A a b) (notEq A a b) >  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// leqVal' (subtyping) [(f,1),(A,0),(a,2),(b,3)] |- Id (DecEq A a b) (notEq A a b) (notEq A a b)  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// leqVal' [(f,1),(A,0),(a,2),(b,3)] |- notEq A a b  <=^  f a b : DecEq A a b
 /// leqApp: notEq[v0,v2,v3] !<= v1[v2,v3]

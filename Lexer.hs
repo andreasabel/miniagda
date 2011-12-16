@@ -1,4 +1,4 @@
-{-# OPTIONS -cpp #-}
+{-# LANGUAGE CPP #-}
 {-# LINE 2 "Lexer.x" #-}
 
 
@@ -110,7 +110,7 @@ alexScanTokens str = go (alexStartPos,'\n',str)
   where go inp@(pos,_,str) =
           case alexScan inp 0 of
                 AlexEOF -> []
-                AlexError _ -> error "lexical error"
+                AlexError ((AlexPn _ line column),_,_) -> error $ "lexical error at " ++ (show line) ++ " line, " ++ (show column) ++ " column"
                 AlexSkip  inp' len     -> go inp'
                 AlexToken inp' len act -> act pos (take len str) : go inp'
 

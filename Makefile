@@ -3,7 +3,7 @@
 files=Main Lexer Parser Polarity Abstract ScopeChecker TypeChecker Value TCM Eval Termination SPos Concrete Warshall Util TreeShapedOrder TraceError Extract HsSyntax ToHaskell PrettyTCM Semiring SparseMatrix
 # RETIRED: Completness
 hsfiles=$(foreach file,$(files),$(file).hs)
-ghcflags=-fglasgow-exts 
+ghcflags=-fglasgow-exts -ignore-package monads-fd
 optflags=
 # -O
 profflags=-prof -auto-all
@@ -17,7 +17,9 @@ default : Main test
 #current : miniagda-prof
 #	miniagda-prof privateExamples/NisseContNorm/negative-2010-11-23.ma +RTS -prof
 current : Main
-	Main test/features/records.ma
+	Main test/fail/InvalidField.ma
+#	Main test/succeed/BuiltinSigma.ma
+#	Main test/features/records.ma
 #	Main test/succeed/MeasuredHerSubst2.ma
 #	Main examples/Coinductive/SubjectReductionProblem.ma
 #	Main examples/Sized/Maximum.ma

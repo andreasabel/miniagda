@@ -4,11 +4,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 error during typechecking:
 U
-/// checkExpr 0 |- \ X -> X -> X : +(~0 : Set) -> Set
-/// checkForced fromList [] |- \ X -> X -> X : +(~0 : Set) -> Set
+/// checkExpr 0 |- \ X -> X -> X : + Set -> Set
+/// checkForced fromList [] |- \ X -> X -> X : + Set -> Set
 /// new X : Set
 /// checkExpr 1 |- X -> X : Set
-/// checkForced fromList [("X",0)] |- X -> X : Set
+/// checkForced fromList [(X,0)] |- X -> X : Set
 /// inferExpr' X -> X
 /// inferExpr' X
 /// inferExpr: variable X : Set may not occur

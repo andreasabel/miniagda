@@ -32,15 +32,16 @@ mainFile fileName = do
   putStrLn $ "--- opening " ++ show fileName ++ " ---"
   file <- readFile fileName
   let t = alexScanTokens file 
-  let ast =  parse t
+  let cdecls =  parse t
   -- putStrLn "--- parsing ---"
-  -- putStrLn (show ast)
+  -- mapM (putStrLn . show) cdecls
   putStrLn "--- scope checking ---"
-  ast2 <- doScopeCheck ast
+  adecls <- doScopeCheck cdecls
+  -- mapM (putStrLn . show) adecls
   putStrLn "--- type checking ---"
-  (edecls, sig) <- doTypeCheck ast2
+  (edecls, sig) <- doTypeCheck adecls
   putStrLn "--- evaluating ---" 
-  showAll sig ast2
+  showAll sig adecls
   putStrLn "--- extracting ---"
   edecls <- doExtract sig edecls 
   hsmodule <- doTranslate edecls
@@ -83,12 +84,12 @@ showLet :: Signature -> (Name,A.Expr) -> IO ()
 showLet sig (n,e) = do 
   r <- doWhnf sig e 
   case r of
-    Right (v,_) -> putStrLn $ n ++ " has whnf " ++ show v
+    Right (v,_) -> putStrLn $ show n ++ " has whnf " ++ show v
     Left err    -> do putStrLn $ "error during evaluation:\n" ++ show err
                       exitFailure
   r <- doNf sig e 
   case r of
-    Right (v,_) -> putStrLn $ n ++ " evaluates to " ++ show v
+    Right (v,_) -> putStrLn $ show n ++ " evaluates to " ++ show v
     Left err    -> do putStrLn $ "error during evaluation:\n" ++ show err
                       exitFailure
 

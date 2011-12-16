@@ -5,16 +5,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 ty-u  WrapSize : Set $0
 term  inn : .[out : Size] -> WrapSize
 type  WrapSize : Set $0
-G> fun out : (__inn : WrapSize) -> Size
-G> { out (inn __out) = __out
+G> fun out : (inn : WrapSize) -> Size
+G> { out (inn destructor_argument_out) = destructor_argument_out
 }
-size  out : (__inn : WrapSize) -> Size
+size  out : (inn : WrapSize) -> Size
 error during typechecking:
 WrapSize
 /// out
 /// clause 1
 /// right hand side
-/// checkExpr 1 |- __out : Size
-/// inferExpr' __out
-/// inferExpr: variable __out : Size may not occur
+/// checkExpr 1 |- destructor_argument_out : Size
+/// inferExpr' destructor_argument_out
+/// inferExpr: variable destructor_argument_out : Size may not occur
 /// , because it is marked as erased

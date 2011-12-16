@@ -58,7 +58,7 @@ lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.look
 
 
 mapMapM :: (Monad m, Ord k) => (a -> m b) -> Map k a -> m (Map k b)
-mapMapM f = Map.foldWithKey step (return $ Map.empty)
+mapMapM f = Map.foldrWithKey step (return $ Map.empty)
   where step k a m = do a' <- f a
                         m' <- m
                         return $ Map.insert k a' m'

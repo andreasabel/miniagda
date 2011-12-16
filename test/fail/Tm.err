@@ -5,17 +5,17 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
-G> fun head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-G> { head A i (cons .A .i __head __tail) = __head
+G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-term  head : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] __head __tail) = __head
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
-G> fun tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i __head __tail) = __tail
+G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
-term  tail : .[A : Set] -> .[i : Size] -> (__cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] __head __tail) = __tail
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  iterate : .[A : Set] -> (step : A -> A) -> (start : A) -> .[i : Size] -> Stream A i
 { iterate [A] step start $[i] = cons [A] [i] start (iterate [A] step (step start) [i])
@@ -30,7 +30,7 @@ term  sapp : ^ Tm -> Tm
 { sapp x = app x x
 }
 term  delta : Tm
-term  delta = abs (\ x -> _sapp x)
+term  delta = abs (\ x -> sapp x)
 term  omega : Tm
 term  omega = app delta delta
 term  step : Tm -> Tm
@@ -40,8 +40,8 @@ step
 /// right hand side
 /// checkExpr 1 |- abs (\ x -> step (f x)) : Tm
 /// inferExpr' abs (\ x -> step (f x))
-/// checkExpr 1 |- \ x -> step (f x) : ^(~1 : Tm) -> Tm
-/// checkForced fromList [("f",0)] |- \ x -> step (f x) : ^(~1 : Tm) -> Tm
+/// checkExpr 1 |- \ x -> step (f x) : ^ Tm -> Tm
+/// checkForced fromList [(f,0)] |- \ x -> step (f x) : ^ Tm -> Tm
 /// new x : Tm
 /// checkExpr 2 |- step (f x) : Tm
 /// inferExpr' step (f x)

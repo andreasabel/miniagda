@@ -313,7 +313,7 @@ compareExpr' tso e p =
                          compareVar tso i p 
 --      (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Decr 0
 --      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr' tso e1 p1 
-      ((Def (DefId (Con _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
+      ((Def (DefId (ConK _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
           orderMat $ 
             M.fromLists (M.Size { M.rows = length args, M.cols = length pl }) $
                map (\ e -> map (compareExpr' tso e) pl) args
@@ -321,7 +321,7 @@ compareExpr' tso e p =
       ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2     
       -- new cases for counting constructors
       ((Succ e2,_),p) ->  Decr (-1) `comp` compareExpr' tso e2 p
-      ((Def (DefId (Con _) n1),args@(_:_)), p) ->  Decr (-1) `comp` minimumO (map (\e -> compareExpr' tso e p) args)
+      ((Def (DefId (ConK _) n1),args@(_:_)), p) ->  Decr (-1) `comp` minimumO (map (\e -> compareExpr' tso e p) args)
       ((Proj n1,[]), ProjP n2) | n1 == n2 -> Decr 0
       _ -> Un
 
@@ -347,7 +347,7 @@ compareVar tso n p =
       DotP e -> case (exprToPattern e) of
                     Nothing -> ret $ Un
                     Just p' -> compareVar tso n p'
-      _ -> error $ "NYI: compareVar " ++ n ++ " to " ++ show p -- ret $ Un
+      _ -> error $ "NYI: compareVar " ++ show n ++ " to " ++ show p -- ret $ Un
       
 {- REIMPLEMENTED in Abstract.hs
 exprToPattern :: Expr -> Maybe Pattern
@@ -429,8 +429,8 @@ decrToward0 _ _ = False
 newtype CallPath = CallPath { getCallPath :: [Name] } deriving Eq
 
 instance Show CallPath where
-  show (CallPath [g]) = g
-  show (CallPath (f:l)) = f ++ "-->" ++ show (CallPath l)
+  show (CallPath [g]) = show g
+  show (CallPath (f:l)) = show f ++ "-->" ++ show (CallPath l)
 
 emptyCP :: CallPath
 emptyCP = CallPath []
@@ -670,13 +670,14 @@ terminationCheck funs = do
        case (and bl) of
             True -> return ()
             False -> case nl of
-                    [f] -> recoverFail ("Termination check for function " ++ f ++ " fails ") 
+                    [f] -> recoverFail ("Termination check for function " ++ show f ++ " fails ") 
                     _   -> recoverFail ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) 
                                    
 
 terminationCheckFuns :: (?cutoff :: Int) => [Fun] -> [(Name,Bool)]
 terminationCheckFuns funs =
-   let namar = collectNames funs
+   let namar = map (\ (Fun (TypeSig n _) _ ar _) -> (n, ar)) funs
+               -- collectNames funs
        names = map fst namar
        cg0 = collectCGFunDecl namar funs
    in sizeChangeTermination names cg0  
@@ -727,7 +728,7 @@ collectCGFunDecl names funs =
       concatMap (collectClauses names) funs
           where
             collectClauses :: [(Name,Arity)] -> Fun -> [Call]
-            collectClauses names ((TypeSig n _),(ar,cll)) = collectClause names n cll
+            collectClauses names (Fun (TypeSig n _) _ ar cll) = collectClause names n cll
             collectClause :: [(Name,Arity)] -> Name -> [Clause] -> [Call]
             collectClause names n ((Clause _ pl Nothing):rest) = collectClause names n rest
             collectClause names n ((Clause _ pl (Just rhs)):rest) =
@@ -741,9 +742,11 @@ arity [] = 0
 arity (Clause pl e:l) = length pl
 -}
 
+{- RETIRED (map)
 collectNames :: [Fun] -> [(Name,Arity)]
 collectNames [] = []                
-collectNames ((TypeSig n _,(ar,cls)):rest) = (n,ar) : (collectNames rest)
+collectNames (Fun (TypeSig n _) ar cls : rest) = (n,ar) : (collectNames rest)
+-}
 
 -- | harvest i > j  from  case i { $ j -> ...} 
 tsoCase :: TSO Name -> Expr -> [Clause] -> TSO Name
@@ -759,11 +762,11 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
       (hd, args) = spineView e -- $ ignoreTopErasure e  
       argcalls = concatMap (loop tso) args
       headcalls = case hd of
-          (Def (DefId Fun g)) -> 
+          (Def (DefId FunK g)) -> 
               case lookup g nl of
                 Nothing -> []
                 Just ar_g -> 
-                  traceTerm ("found call from " ++ f ++ " to " ++ g) $ 
+                  traceTerm ("found call from " ++ show f ++ " to " ++ show g) $ 
                              let (Just ar_f) = lookup f nl
                                  (Just f') = List.elemIndex (f,ar_f) nl
                                  (Just g') = List.elemIndex (g,ar_g) nl
@@ -779,9 +782,9 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           (LLet tb e1 e2) ->  
              (loop tso e1) ++ -- type won't get evaluated 
              (loop tso e2) 
-          (Pi (TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop tso e2)
-          (Pi (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
-          (Pi (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
+          (Quant Pi (TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop tso e2)
+          (Quant Pi (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
+          (Quant Pi (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Succ e) -> loop tso e
           (Max es) -> concatMap (loop tso) es

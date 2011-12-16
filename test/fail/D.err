@@ -11,17 +11,17 @@ term  app : D -> ^ D -> D
 { app (abs f) d = f d
 }
 term  sapp : D -> D
-{ sapp x = _app x x
+{ sapp x = app x x
 }
 error during typechecking:
 delta
-/// checkExpr 0 |- abs (\ x -> _sapp x) : D
-/// inferExpr' abs (\ x -> _sapp x)
-/// checkExpr 0 |- \ x -> _sapp x : ^(~0 : D) -> D
-/// checkForced fromList [] |- \ x -> _sapp x : ^(~0 : D) -> D
+/// checkExpr 0 |- abs (\ x -> sapp x) : D
+/// inferExpr' abs (\ x -> sapp x)
+/// checkExpr 0 |- \ x -> sapp x : ^ D -> D
+/// checkForced fromList [] |- \ x -> sapp x : ^ D -> D
 /// new x : D
-/// checkExpr 1 |- _sapp x : D
-/// inferExpr' _sapp x
+/// checkExpr 1 |- sapp x : D
+/// inferExpr' sapp x
 /// inferExpr' x
 /// inferExpr: variable x : D may not occur
 /// , because of polarity

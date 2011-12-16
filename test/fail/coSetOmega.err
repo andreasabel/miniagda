@@ -8,7 +8,7 @@ D
 /// clause 1
 /// right hand side
 /// checkExpr 1 |- D i -> D i : CoSet $i
-/// checkForced fromList [("i",0)] |- D i -> D i : CoSet $i
+/// checkForced fromList [(i,0)] |- D i -> D i : CoSet $i
 /// inferExpr' D i -> D i
 /// new  : (D v0)
 /// ptsRule ((CoSet v0),(CoSet v0)) : domain cannot be sized

@@ -4,14 +4,14 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 error during typechecking:
 DNeg
-/// checkExpr 0 |- \ B -> \ A -> (A -> B) -> B : (~0 : Set) -> ++(~1 : Set) -> Set
-/// checkForced fromList [] |- \ B -> \ A -> (A -> B) -> B : (~0 : Set) -> ++(~1 : Set) -> Set
+/// checkExpr 0 |- \ B -> \ A -> (A -> B) -> B : Set -> ++ Set -> Set
+/// checkForced fromList [] |- \ B -> \ A -> (A -> B) -> B : Set -> ++ Set -> Set
 /// new B : Set
-/// checkExpr 1 |- \ A -> (A -> B) -> B : ++(~1 : Set) -> Set
-/// checkForced fromList [("B",0)] |- \ A -> (A -> B) -> B : ++(~1 : Set) -> Set
+/// checkExpr 1 |- \ A -> (A -> B) -> B : ++ Set -> Set
+/// checkForced fromList [(B,0)] |- \ A -> (A -> B) -> B : ++ Set -> Set
 /// new A : Set
 /// checkExpr 2 |- (A -> B) -> B : Set
-/// checkForced fromList [("A",1),("B",0)] |- (A -> B) -> B : Set
+/// checkForced fromList [(A,1),(B,0)] |- (A -> B) -> B : Set
 /// inferExpr' (A -> B) -> B
 /// inferExpr' A -> B
 /// inferExpr' A

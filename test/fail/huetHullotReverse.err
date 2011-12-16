@@ -26,4 +26,4 @@ term  rev2 : .[A : Set] -> A -> List A -> List A
 ; rev2 [A] a (cons [.A] x xs) = rev [A] (cons [A] a (rev [A] (rev2 [A] x xs)))
 }
 error during typechecking:
-Termination check for mutual block ["rev","rev1","rev2"] fails for ["rev","rev2"]
+Termination check for mutual block [rev,rev1,rev2] fails for [rev,rev2]

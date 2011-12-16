@@ -207,11 +207,11 @@ extractFuns co funs = do
   concat <$> mapM (extractFun co) funs
 
 extractFun :: Co -> Fun -> TypeCheck [FDeclaration]
-extractFun co (TypeSig n t, (ar, cls)) = do
+extractFun co (Fun (TypeSig n t) n' ar cls) = do
   tv <- whnf' t
   cls <- concat <$> mapM (extractClause n tv) cls
-  return [ FunDecl co (TypeSig n t, (ar, cls))
-         , LetDecl False (TypeSig (mkExtName n) t) (Var n)
+  return [ FunDecl co $ Fun (TypeSig n t) n' ar cls
+         , LetDecl False (TypeSig n' t) (Var n)
          ]
 
 {- OLD
@@ -235,10 +235,10 @@ extractFunTypeSigs = mapM extractFunTypeSig
 
 -- only extract type sigs
 extractFunTypeSig :: Fun -> TypeCheck [Fun]
-extractFunTypeSig (ts@(TypeSig n t), arcls) = extractIfTerm n $ do
+extractFunTypeSig (Fun ts@(TypeSig n t) n' ar cls) = extractIfTerm n $ do
   ts@(TypeSig n t) <- extractTypeSig ts
-  setExtrTyp (mkExtName n) t
-  return [(ts, arcls)]
+  setExtrTyp n' t
+  return [Fun ts n' ar cls]
 
 extractLet :: Bool -> TypeSig -> Expr -> TypeCheck [FDeclaration]
 extractLet evl ts@(TypeSig n t) e = extractIfTerm n $ do
@@ -411,13 +411,13 @@ funView :: FTVal -> TypeCheck FunView
 funView tv = 
   case tv of
     -- erasure mark
-    VPi x dom env e | erased (decor dom) && typ dom == VIrr -> 
+    VQuant Pi x dom env e | erased (decor dom) && typ dom == VIrr -> 
       EraseArg <$> whnf (update env x VIrr) e
     -- forall
-    VPi x dom env e | erased (decor dom) -> 
+    VQuant Pi x dom env e | erased (decor dom) -> 
       return $ Forall x dom env e
     -- function type
-    VPi x dom env e ->
+    VQuant Pi x dom env e ->
       Arrow (typ dom) <$> whnf (update env x VIrr) e
     -- any other type can be a function type, but this needs casts!
     _ -> return NotFun -- $ Arrow VIrr VIrr
@@ -451,8 +451,9 @@ extractKindTel (TBind x dom : tel) = do
   if erased (decor dom') then
     newIrr x $  
       (TBind x dom' :) <$> extractKindTel tel
-   else newTyVar x (typ dom') $ \ i ->
-      (TBind (tyVarName i) dom' :) <$> extractKindTel tel 
+   else newTyVar x (typ dom') $ \ i -> do
+      x <- nameOfGen i
+      (TBind x dom' :) <$> extractKindTel tel 
 
 {-
 -- keep irrelevant entries
@@ -478,14 +479,15 @@ extractKind tv =
     VSort s -> return $ extractSet s
     VMeasured mu vb -> extractKind vb
     VGuard beta vb -> extractKind vb
-    VPi x dom env b -> new' x dom $ do
+    VQuant Pi x dom env b -> new' x dom $ do
        bv  <- whnf (update env x VIrr) b
        mk' <- extractKind bv
        case mk' of
          Nothing -> return Nothing     
          Just k' -> do
            dom' <- extractKindDom dom
-           return $ Just $ Pi (TBind "" dom') k' 
+           let x = fresh ""
+           return $ Just $ Quant Pi (TBind x dom') k' 
     _ -> return Nothing
 
 -- extracting a type constructor from a value ------------------------
@@ -499,7 +501,7 @@ type FType = Expr
            | [Irr] -> FType      -- erasure marker
  -}
 
-tyVarName i = "a" ++ show i
+-- tyVarName i = fresh $ "a" ++ show i
 
 newTyVar :: Name -> FKind -> (Int -> TypeCheck a) -> TypeCheck a
 newTyVar x k cont = newWithGen x (defaultDomain (VClos emptyEnv k)) $ 
@@ -528,48 +530,54 @@ extractTypeAt k tv = do
     (VGuard beta vb, _) -> extractTypeAt k vb
 
     -- relevant function space --> non-dependent
-    (VPi x dom env b,_) | not (erased (decor dom)) -> do
+    (VQuant Pi x dom env b,_) | not (erased (decor dom)) -> do
       a <- extractType (typ dom) 
       -- new' x dom $ do
       bv <- whnf (update env x VIrr) b
       b  <- extractType bv 
-      return $ Pi (TBind "" (defaultDomain a)) b
+      let x = fresh ""
+      return $ Quant Pi (TBind x (defaultDomain a)) b
 
     -- irrelevant function space --> forall or erasure marker  
-    (VPi x dom env b,_) | erased (decor dom) -> do
+    (VQuant Pi x dom env b,_) | erased (decor dom) -> do
       mk <- extractKind (typ dom)
       case mk of
         Nothing -> do -- new' x dom $ do
           bv <- whnf (update env x VIrr) b
           b  <- extractType bv 
-          return $ Pi (TBind "" (defaultIrrDom Irr)) b
+          let x = fresh ""
+          return $ Quant Pi (TBind x (defaultIrrDom Irr)) b
         Just k' -> do
           newTyVar x k' $ \ i -> do
             bv <- whnf (update env x (VGen i)) b
             b  <- extractType bv 
-            return $ Pi (TBind (tyVarName i) (defaultIrrDom k')) b 
+            x  <- nameOfGen i
+            return $ Quant Pi (TBind x (defaultIrrDom k')) b 
 
-    (VApp (VDef (DefId Dat n)) vs, _) -> do
+    (VApp (VDef (DefId DatK n)) vs, _) -> do
       k  <- extrTyp <$> lookupSymb n  -- get kind of dname from signature
       as <- extractTypes k vs  -- turn vs into types as at kind k
-      return $ foldl App (Def (DefId Dat n)) as
+      return $ foldl App (Def (DefId DatK n)) as
 
     (VGen i,_) -> do     
 --      VClos _ k <- (typ . fromOne . domain) <$> lookupGen i  -- get kind of var from cxt
-      return $ Var (tyVarName i)
+      Var <$> nameOfGen i
+      -- return $ Var (tyVarName i)
 
     (VApp (VGen i) vs,_) -> do     
       VClos _ k <- (typ . fromOne . domain) <$> lookupGen i  -- get kind of var from cxt
       as <- extractTypes k vs  -- turn vs into types as at kind k
-      return $ foldl App (Var (tyVarName i)) as
+      x <- nameOfGen i
+      return $ foldl App (Var x) as
 
-    (VLam x env e, Pi (TBind _ dom) k) | erased (decor dom) -> do 
+    (VLam x env e, Quant Pi (TBind _ dom) k) | erased (decor dom) -> do 
       tv <- whnf (update env x VIrr) e
       extractTypeAt k tv 
  
-    (VLam x env e, Pi (TBind _ dom) k) -> newTyVar x (typ dom) $ \ i -> do
+    (VLam x env e, Quant Pi (TBind _ dom) k) -> newTyVar x (typ dom) $ \ i -> do
       tv <- whnf (update env x (VGen i)) e
-      Lam defaultDec (tyVarName i) <$> extractTypeAt k tv 
+      x  <- nameOfGen i
+      Lam defaultDec x <$> extractTypeAt k tv 
  
     (VLam{},_) -> error $ "panic! extractTypeAt " ++ show (tv,k)
  
@@ -583,8 +591,8 @@ extractTypes :: FKind -> [TVal] -> TypeCheck [FType]
 extractTypes k vs = 
   case (k,vs) of
     (_, []) -> return []
-    (Pi (TBind _ dom) k, v:vs) | erased (decor dom) -> extractTypes k vs
-    (Pi (TBind _ dom) k, v:vs) -> do
+    (Quant Pi (TBind _ dom) k, v:vs) | erased (decor dom) -> extractTypes k vs
+    (Quant Pi (TBind _ dom) k, v:vs) -> do
       v  <- whnfClos v
       a  <- extractTypeAt (typ dom) v
       as <- extractTypes k vs

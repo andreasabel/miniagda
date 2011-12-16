@@ -8,7 +8,7 @@ import Abstract (Decoration(..),Dec,defaultDec,Override(..))
 import Polarity (Pol(..))
 import qualified Abstract as A
 import qualified Polarity as A
-import Abstract (Name)
+import Concrete (Name)
 }
 
 %name parse
@@ -207,8 +207,8 @@ ExprT : Expr               { $1 }
 
 -- general form of expression
 Expr :: { C.Expr }
-Expr : Domain '->' Expr                 { C.Pi $1 $3 } 
-     | Domain '&' Expr                  { C.Sigma $1 $3 } 
+Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 } 
+     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
      | case ExprT '{' Cases '}'          { C.Case $2 $4 }  

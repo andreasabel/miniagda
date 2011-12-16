@@ -8,12 +8,12 @@ K
 /// checkForced fromList [] |- \ A -> \ x -> \ y -> y : .[A : Set] -> (x : A) -> (y : A) -> < x : A >
 /// new A : Set
 /// checkExpr 1 |- \ x -> \ y -> y : (x : A) -> (y : A) -> < x : A >
-/// checkForced fromList [("A",0)] |- \ x -> \ y -> y : (x : A) -> (y : A) -> < x : A >
+/// checkForced fromList [(A,0)] |- \ x -> \ y -> y : (x : A) -> (y : A) -> < x : A >
 /// new x : v0
 /// checkExpr 2 |- \ y -> y : (y : A) -> < x : A >
-/// checkForced fromList [("A",0),("x",1)] |- \ y -> y : (y : A) -> < x : A >
+/// checkForced fromList [(x,1),(A,0)] |- \ y -> y : (y : A) -> < x : A >
 /// new y : v0
 /// checkExpr 3 |- y : < x : A >
-/// leqVal' (subtyping) [("A",0),("x",1),("y",2)] |- < y : A >  <=+  < x : A >
-/// leqVal' [("A",0),("x",1),("y",2)] |- y : A  <=*  x : A
+/// leqVal' (subtyping) [(x,1),(A,0),(y,2)] |- < y : A >  <=+  < x : A >
+/// leqVal' [(x,1),(A,0),(y,2)] |- y : A  <=*  x : A
 /// leqApp: head mismatch v2 != v1

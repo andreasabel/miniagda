@@ -14,15 +14,15 @@ type  T : Bool -> Set
 { T (true) = Nat
 ; T (false) = Bool
 }
-term  bad : .[F : Nat -> Set] -> .[f : .[x : Bool] -> _T x -> Nat] -> (g : (n : Nat) -> F (f [true] n)) -> (h : F (f [false] false) -> Bool) -> Bool
+term  bad : .[F : Nat -> Set] -> .[f : .[x : Bool] -> T x -> Nat] -> (g : (n : Nat) -> F (f [true] n)) -> (h : F (f [false] false) -> Bool) -> Bool
 error during typechecking:
 bad
 /// clause 1
 /// right hand side
 /// checkExpr 4 |- h (g zero) : Bool
 /// inferExpr' h (g zero)
-/// leqVal' (subtyping) [("F",0),("f",1),("g",2),("h",3)] |- < g zero : F (f [true] zero) >  <=+  F (f [false] false)
-/// leqVal' (subtyping) [("F",0),("f",1),("g",2),("h",3)] |- F (f [true] zero)  <=+  F (f [false] false)
-/// leqVal' [("F",0),("f",1),("g",2),("h",3)] |- f [true] zero  <=*  f [false] false : Nat
-/// leqVal' [("F",0),("f",1),("g",2),("h",3)] |- zero : Nat  <=*  false : Bool
+/// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- < g zero : F (f [true] zero) >  <=+  F (f [false] false)
+/// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- F (f [true] zero)  <=+  F (f [false] false)
+/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- f [true] zero  <=*  f [false] false : Nat
+/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- zero : Nat  <=*  false : Bool
 /// type Nat has different shape than Bool

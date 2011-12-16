@@ -1,9 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "RecursivelyDefinedTypeWithBoundedQNoMeasure.ma" ---
---- scope checking ---
---- type checking ---
-type  T : -(i : Size) -> Set
-{ T i = .[j : Size] -> |j| < |i| -> T j
-}
-error during typechecking:
-Termination check for function T fails 

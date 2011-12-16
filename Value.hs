@@ -27,7 +27,8 @@ data Val
   | VSort (Sort Val)
   | VMeasured (Measure Val) Val  -- mu -> A  (only in checkPattern)
   | VGuard (Bound Val) Val       -- mu<mu' -> A
-  | VPi Name Domain Env Expr     
+  | VBelow LtLe Val              -- domain in bounded size quant.
+  | VQuant PiSigma Name Domain Env Expr     
   | VSing Val TVal               -- Singleton type (TVal is base type)
   -- functions                   
   | VLam Name Env Expr           
@@ -70,6 +71,8 @@ data MeasVal = MeasVal [Val]  -- lexicographic termination measure
 vSize :: Val
 vSize = VSort $ SortC Size
 
+vTSize = VSort $ SortC TSize
+
 vTopSort :: Val
 vTopSort = VSort $ Set VInfty
 
@@ -87,16 +90,23 @@ filterEnv ns ((x,v) : rho) =
    else filterEnv ns rho  
 
 vDef id   = VDef id `VApp` []
-vCon co n = vDef $ DefId (Con co) n
-vFun n    = vDef $ DefId Fun n
-vDat n    = vDef $ DefId Dat n
+vCon co n = vDef $ DefId (ConK co) n
+vFun n    = vDef $ DefId FunK n
+vDat n    = vDef $ DefId DatK n
+
+{- POSSIBLY BREAKS INVARIANT!
+vApp :: Val -> [Val] -> Val
+vApp f [] = f
+vApp f vs = VApp f vs
+-}
 
 failValInv :: (Monad m) => Val -> m a
 failValInv v = fail $ "internal error: value " ++ show v ++ " violates representation invariant"
 
 arrow :: TVal -> TVal -> TVal
-arrow a b = VPi "" (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
-  where bla = "#ARROW#"
+arrow a b = VQuant Pi x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
+  where x   = fresh ""
+        bla = fresh "#ARROW#"
 
 -- Sizes form a commutative semiring with multiplication (Plus) and 
 -- idempotent addition (Max) 
@@ -197,11 +207,11 @@ instance HasPred Val where
   predecessor v = predSize v
 
 isFunType :: TVal -> Bool
-isFunType (VPi{}) = True
+isFunType (VQuant Pi _ _ _ _) = True
 isFunType _ = False
 
 isDataType :: TVal -> Bool
-isDataType (VApp (VDef (DefId Dat _)) _) = True
+isDataType (VApp (VDef (DefId DatK _)) _) = True
 isDataType (VSing v tv) = isDataType tv
 isDataType _ = False
 
@@ -228,15 +238,15 @@ showVal (VPlus (v:vl)) = parens $ foldr (\ v s -> showVal v ++ " + " ++ s) (show
 showVal (VApp v []) = showVal v
 showVal (VApp v vl) = "(" ++ showVal v ++ " " ++ showVals vl ++ ")"
 -- showVal (VCon _ n) = n
-showVal (VDef id) = name id
-showVal (VProj id) = "." ++ id
+showVal (VDef id) = show id -- show $ name id
+showVal (VProj id) = "." ++ show id
 showVal (VGen k) = "v" ++ show k
 showVal (VMeta k rho 0) = "?" ++ show k ++ showEnv rho
 showVal (VMeta k rho 1) = "$?" ++ show k ++ showEnv rho
 showVal (VMeta k rho n) = "(?" ++ show k ++ showEnv rho ++ " + " ++ show n ++")"
-showVal (VRecord env) = "{" ++ Util.showList "; " (\ (n, v) -> n ++ " = " ++ showVal v) env ++ "}"
+showVal (VRecord env) = "{" ++ Util.showList "; " (\ (n, v) -> show n ++ " = " ++ showVal v) env ++ "}"
 showVal (VCase v env cs) = "case " ++ showVal v ++ "{ " ++ showCases cs ++ " } " ++ showEnv env 
-showVal (VLam x env e) = "(\\" ++ x ++ " -> " ++ show e ++ showEnv env ++ ")" 
+showVal (VLam x env e) = "(\\" ++ show x ++ " -> " ++ show e ++ showEnv env ++ ")" 
 showVal (VClos (Environ [] Nothing) e) = showsPrec precAppR e ""
 showVal (VClos env e) = "{" ++ show e ++ " " ++ showEnv env ++ "}" 
 showVal (VUp v vt) = "(" ++ show v ++ " Up " ++ show vt ++ ")" 
@@ -244,16 +254,24 @@ showVal (VSing v vt) = "<" ++ show v ++ " : " ++ show vt ++ ">"
 showVal VIrr  = "."
 showVal (VMeasured mu tv) = parens $ show mu ++ " -> " ++ show tv
 showVal (VGuard beta tv) = parens $ show beta ++ " -> " ++ show tv
-showVal (VPi x (Domain av ki dec) env b) =
+showVal (VBelow ltle v) = show ltle ++ " " ++ show v
+
+showVal (VQuant pisig x (Domain (VBelow ltle v) ki dec) env b) =
+  parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
+            (if erased dec then brackets binding else parens binding) 
+              ++ " " ++ show pisig ++ show " " ++ show b ++ showEnv env
+         where binding = show x ++ " " ++ show ltle ++ " " ++ showVal v
+
+showVal (VQuant pisig x (Domain av ki dec) env b) =
   parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
             (if erased dec then brackets binding
-              else if x=="" then s1 else parens binding) 
-                                  ++ " -> " ++ show b ++ showEnv env
+              else if emptyName x then s1 else parens binding) 
+                ++ " " ++ show pisig ++ " " ++ show b ++ showEnv env
          where s1 = s2 ++ s0
                s2 = showVal av
                s3 = show ki
                s0 = if ki == defaultKind || s2 == s3 then "" else "::" ++ s3 
-               binding = if x == "" then s1 else x ++ " : " ++ s1 
+               binding = if emptyName x then  s1 else show x ++ " : " ++ s1 
 
 {-
 showVal (VPi dec "" av env e) = "(" ++ showVal av ++ " -> " ++ show e ++ showEnv env ++ ")"
@@ -275,20 +293,20 @@ appendEnv (Environ rho mmeas) (Environ rho' mmeas') =
 
 -- enviroment extension / update
 update :: Environ a -> Name -> a -> Environ a
-update env "" v = env
-update env n v = env { envMap = (n,v) : envMap env }
+update env n v | emptyName n = env
+               | otherwise   = env { envMap = (n,v) : envMap env }
 
 lookupPure :: Show a => Environ a -> Name -> a
 lookupPure rho x = 
     case lookup x (envMap rho) of
       Just v -> v
-      Nothing -> error $ "lookupPure: unbound identifier " ++ x ++ " in environment " ++ show rho
+      Nothing -> error $ "lookupPure: unbound identifier " ++ show x ++ " in environment " ++ show rho
 
 lookupEnv :: Monad m => Environ a -> Name -> m a
 lookupEnv rho x = 
     case lookup x (envMap rho) of
       Just v -> return $ v
-      Nothing -> fail $ "lookupEnv: unbound identifier " ++ x --  ++ " in environment " ++ show rho
+      Nothing -> fail $ "lookupEnv: unbound identifier " ++ show x --  ++ " in environment " ++ show rho
 {-
 lookupEnv :: Monad m => Environ a -> Name -> m a
 lookupEnv [] n = fail $ "lookupEnv: identifier " ++ show n ++ " not bound" 
@@ -303,11 +321,13 @@ showEnv (Environ [] (Just mu)) = "{ measure=" ++ show mu ++ " }"
 showEnv (Environ rho (Just mu)) = "{" ++ showEnv' rho ++ " | measure=" ++ show mu ++ " }" 
 
 showEnv' :: EnvMap -> String 
-showEnv' = Util.showList ", " (\ (n,v) -> n ++ " = " ++ showVal v)
+showEnv' = Util.showList ", " (\ (n,v) -> show n ++ " = " ++ showVal v)
 {-
 showEnv' ((n,v):env) = n ++ " = " ++ showVal v ++ 
       (if null env then "" else ", " ++ showEnv' env) 
 -}
 
+{-
 fresh :: Environ a -> Name
 fresh env = "fresh#" ++ show (length (envMap env))
+-}

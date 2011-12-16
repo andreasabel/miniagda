@@ -12,6 +12,6 @@ Mu
 /// inferExpr' F (Mu F)
 /// inferExpr' Mu F
 /// inferExpr' F
-/// inferExpr: variable F : +(~2 : Set) -> Set may not occur
+/// inferExpr: variable F : + Set -> Set may not occur
 /// , because of polarity
 /// polarity check ++ <= + failed

@@ -4,9 +4,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 error during typechecking:
 MakePos
-/// checkExpr 0 |- \ F -> F : (~0 : -(~1 : Set) -> Set) -> +(~1 : Set) -> Set
-/// checkForced fromList [] |- \ F -> F : (~0 : -(~1 : Set) -> Set) -> +(~1 : Set) -> Set
+/// checkExpr 0 |- \ F -> F : (- Set -> Set) -> + Set -> Set
+/// checkForced fromList [] |- \ F -> F : (- Set -> Set) -> + Set -> Set
 /// new F : (-Set -> Set)
-/// checkExpr 1 |- F : +(~1 : Set) -> Set
-/// leqVal' (subtyping) [("F",0)] |- -(fresh#0 : Set) -> < F fresh#0 : Set >  <=+  +(~1 : Set) -> Set
-/// subtyping -(fresh#0 : Set) -> < F fresh#0 : Set >  <=+  +(~1 : Set) -> Set failed
+/// checkExpr 1 |- F : + Set -> Set
+/// leqVal' (subtyping) [(F,0)] |- -(xSing# : Set) -> < F xSing# : Set >  <=+  + Set -> Set
+/// subtyping -(xSing# : Set) -> < F xSing# : Set >  <=+  + Set -> Set failed

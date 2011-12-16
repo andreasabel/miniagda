@@ -37,6 +37,8 @@ import Util
 
 import Warshall
 
+-- traceSig msg a = trace msg a
+traceSig msg a = a
 
 traceRew msg a = a -- trace msg a 
 traceRewM msg = return () -- traceM msg
@@ -72,7 +74,7 @@ instance Show a => Show (OneOrTwo a) where
 
 name12 :: OneOrTwo Name -> Name
 name12 (One n) = n
-name12 (Two n1 n2) = n1 ++ "||" ++ n2
+name12 (Two n1 n2) = fresh (suggestion n1 ++ "||" ++ suggestion n2)
 
 instance Functor OneOrTwo where
   fmap f (One a)   = One (f a)
@@ -347,7 +349,7 @@ cxtPush2 dec tvl tvr delta =
 
 cxtPushGen ::  Name -> SemCxt -> (Int, SemCxt)
 cxtPushGen x delta = cxtPush bot delta
-  where bot = error $ "IMPOSSIBLE: name " ++ x ++ " is not bound to any type"
+  where bot = error $ "IMPOSSIBLE: name " ++ show x ++ " is not bound to any type"
 
 -- only defined for single bindings
 cxtSetType :: Int -> Domain -> SemCxt -> SemCxt
@@ -416,6 +418,13 @@ cxtResurrect delta = delta { upperDecs = Map.map (\ dec -> dec { erased = True})
 
 -- manipulating the context ------------------------------------------
 
+{-
+-- | Size decrements in bounded quantification do not count for termination
+data LamPi 
+  = LamBind -- ^ add a lambda binding to the context
+  | PiBind  -- ^ add a pi binding to the context
+-}
+
 class Monad m => MonadCxt m where
 --  bind     :: Name -> Domain -> Val -> m a -> m a
 --  new performs eta-expansion "up" of new gen 
@@ -459,9 +468,12 @@ class Monad m => MonadCxt m where
   setTypeOfName :: Name -> Domain -> m a -> m a
   genOfName  :: Name -> m Int
   nameOfGen  :: Int -> m Name
-  nameTaken  :: Name -> m Bool
+--  nameTaken  :: Name -> m Bool
   uniqueName :: Name -> Int -> m Name
-  uniqueName x k = ifM (nameTaken x) (return $ x ++ "~" ++ show k) (return x)
+  uniqueName x _ = return $ freshen x
+{-
+  uniqueName x k = ifM (nameTaken x) (return $ show x ++ "~" ++ show k) (return x)
+-}
   lookupGen  :: Int -> m CxtEntry
   lookupGenType2 :: Int -> m (TVal, TVal)
   lookupGenType2 i = do
@@ -507,7 +519,7 @@ instance MonadCxt TypeCheck where
   newIrr x = local (\ ce -> ce { environ = update (environ ce) x (One VIrr) })
 
   -- UPDATE to 2?
-  addName x f = enter ("new " ++ x ++ " : _") $ do
+  addName x f = enter ("new " ++ show x ++ " : _") $ do
     cxtenv <- ask
     let (k, delta) = cxtPushGen x (context cxtenv)
     let v = VGen k
@@ -518,9 +530,26 @@ instance MonadCxt TypeCheck where
                         , naming = Map.insert k x' (naming cxt)
                         , environ = rho }) (f v)
 
+
+  newVar x dom12@(One (Domain (VBelow ltle v) ki dec)) f = do 
+    enter ("new " ++ show x ++ " " ++ show ltle ++ " " ++ show v) $ do
+      cxtenv <- ask
+      let (k, delta) = cxtPushEntry (One (Domain vSize kSize dec)) (context cxtenv)
+      let xv  = VGen k
+      let v12 = One xv
+      let rho = update (environ cxtenv) x v12
+      let beta = Bound ltle (Measure [xv]) (Measure [v])
+      x' <- uniqueName x k 
+      local (\ cxt -> cxt { context = delta
+                          , renaming = Map.insert x k (renaming cxtenv)
+                          , naming = Map.insert k x' (naming cxtenv)
+                          , environ = rho }) $
+        addBoundHyp beta $ (f k v12)
+
+
   newVar x dom12 f = do 
     let tv12 = fmap typ dom12
-    enter ("new " ++ x ++ " : " ++ show tv12) $ do
+    enter ("new " ++ show x ++ " : " ++ show tv12) $ do
       cxtenv <- ask
       let (k, delta) = cxtPushEntry dom12 (context cxtenv)
       v12 <- Traversable.mapM (up False (VGen k)) tv12
@@ -560,11 +589,13 @@ instance MonadCxt TypeCheck where
       Nothing -> fail $ "internal error: no name for variable " ++ show k
       Just x -> return x
 
+{-
   nameTaken "" = return True
   nameTaken x = do
     ce <- ask
     st <- get
     return (Map.member x (renaming ce) || Map.member x (signature st))
+-}
 
   lookupGen k = do
     ce <- ask
@@ -632,7 +663,7 @@ instance MonadCxt TypeCheck where
                         , environ = en' }) $ cont vs' 
 
   -- addPattern :: TVal -> Pattern -> (TVal -> Val -> Env -> m a) -> m a
-  addPattern tv@(VPi x dom env b) p rho cont =  
+  addPattern tv@(VQuant Pi x dom env b) p rho cont =  
        case p of
           VarP y -> new y dom $ \ xv -> do
               bv <- whnf (update env x xv) b
@@ -749,8 +780,10 @@ instance MonadCxt TypeCheck where
 
   setCo co = local (\ cxt -> cxt { mutualCo = co })
 
+  -- install functions for checking function clauses
+  -- ==> use internal names
   installFuns co kfuns k = do
-    let funt = foldl (\ m fun@(Kinded _ (TypeSig n _, _)) -> Map.insert n fun m) 
+    let funt = foldl (\ m fun@(Kinded _ (Fun (TypeSig n _) n' _ _)) -> Map.insert n fun m) 
                      Map.empty 
                      kfuns    
     local (\ cxt -> cxt { mutualCo = co, funsTemplate = funt }) k
@@ -772,7 +805,7 @@ instance MonadCxt TypeCheck where
                  Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt) 
              }) k
     where boundFun :: Env -> Co -> Kinded Fun -> SigDef
-          boundFun rho co (Kinded ki (TypeSig n t, (ar, cls))) = 
+          boundFun rho co (Kinded ki (Fun (TypeSig n t) n' ar cls)) = 
             FunSig co (VClos rho t) ki ar cls False undefined
 
 {-
@@ -837,11 +870,11 @@ introPatType :: (Pattern,Val) -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 introPatType (p,v) tv cont = do
   case tv of
     VGuard beta bv -> addBoundHyp beta $ introPatType (p,v) bv cont
-    VApp (VDef (DefId Dat d)) vl -> 
+    VApp (VDef (DefId DatK d)) vl -> 
       case p of 
         ProjP n -> cont =<< projectType tv n
         _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv 
-    VPi x dom env b -> do
+    VQuant Pi x dom env b -> do
        v <- whnfClos v
        bv <- whnf (update env x v) b
        matchPatType (p,v) (typ dom) $ cont bv
@@ -863,7 +896,7 @@ matchPatType (p,v) av cont =
 
           (ConP co n [], _) -> cont
 
-          (ConP co n pl, VApp (VDef (DefId Con{} _)) vl) -> do
+          (ConP co n pl, VApp (VDef (DefId ConK{} _)) vl) -> do
              sige <- lookupSymb n
              let vc = symbTyp sige
              introPatTypes (zip pl vl) vc $ \ _ -> cont
@@ -933,7 +966,9 @@ data SigDef
             } -- # parameters, positivity of parameters  , sized , co , type  
               deriving (Show)
 
-undefinedFType n = error $ "no extracted type for " ++ n
+undefinedFType :: Name -> Expr
+undefinedFType n = Irr
+-- undefinedFType n = error $ "no extracted type for " ++ show n
 
 symbKind :: SigDef -> Kind
 symbKind ConSig{}  = kTerm          -- constructors are always terms
@@ -966,11 +1001,11 @@ lookupSymb n = do
           lookupSig :: Name -> Signature -> TypeCheck SigDef
           lookupSig n sig = 
             case (Map.lookup n sig) of
-              Nothing -> fail $ "identifier " ++ n ++ " not in signature "  ++ show (Map.keys sig)
+              Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
               Just k -> return k
     
 addSig :: Name -> SigDef -> TypeCheck ()
-addSig n def = do
+addSig n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
   st <- get
   put $ st { signature = Map.insert n def $ signature st }
 
