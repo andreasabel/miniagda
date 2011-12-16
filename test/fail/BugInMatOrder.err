@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BugInMatOrder.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  zero : .[i : Size] -> SNat $i
+term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+type  SNat : + Size -> Set
+term  test : .[i : Size] -> SNat i -> SNat i -> SNat i
+{ test [i] (succ [k < i] x) (succ [l < k] y) = test [i] (succ [l] y) (succ [k] x)
+}
+error during typechecking:
+Termination check for function  

@@ -314,10 +314,13 @@ compareExpr' tso e p =
 --      (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Decr 0
 --      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr' tso e1 p1 
       ((Def (DefId (ConK _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
+          minL $ Decr 0 : zipWith (compareExpr' tso) args pl 
+{- 2011-12-16 deactivate structured (matrix) orders
           orderMat $ 
             M.fromLists (M.Size { M.rows = length args, M.cols = length pl }) $
                map (\ e -> map (compareExpr' tso e) pl) args
               -- without extended order :  minL $ zipWith compareExpr' tso args pl
+-}
       ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2     
       -- new cases for counting constructors
       ((Succ e2,_),p) ->  Decr (-1) `comp` compareExpr' tso e2 p
