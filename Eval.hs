@@ -1580,11 +1580,11 @@ ltSize :: Val -> Val -> TypeCheck ()
 ltSize = leSize Lt Pos
 
 leSize :: LtLe -> Pol -> Val -> Val -> TypeCheck ()
-leSize lt pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show lt ++ show pol ++ " " ++ show v2) $ 
-    traceSize ("leSize " ++ show v1 ++ " " ++ show lt ++ show pol ++ " " ++ show v2) $ 
+leSize ltle pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show ltle ++ show pol ++ " " ++ show v2) $ 
+    traceSize ("leSize " ++ show v1 ++ " " ++ show ltle ++ show pol ++ " " ++ show v2) $ 
     do case (v1,v2) of
-         _ | v1 == v2 && lt == Le -> return () -- TODO: better handling of sums!
-         (VSucc v1,VSucc v2) -> leSize lt pol v1 v2
+         _ | v1 == v2 && ltle == Le -> return () -- TODO: better handling of sums!
+         (VSucc v1,VSucc v2) -> leSize ltle pol v1 v2
 {-
          (VGen i1,VGen i2) -> do 
            d <- getSizeDiff i1 i2 -- check size relation from constraints
@@ -1600,90 +1600,90 @@ leSize lt pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show lt ++ show pol 
            if v1 == v2 then return ()
            else throwErrorMsg $ "leqSize: head mismatch: " ++ show v1 ++ " !<= " ++ show v2 
 -}
-         (VInfty,VInfty) | lt == Le -> return ()
+         (VInfty,VInfty) | ltle == Le -> return ()
          (VApp h1 tl1,VApp h2 tl2) -> leqApp N pol h1 tl1 h2 tl2
-         _ -> relPolM pol (leSize' lt) v1 v2
+         _ -> relPolM pol (leSize' ltle) v1 v2
 
 leqSize' :: Val -> Val -> TypeCheck ()  
 leqSize' = leSize' Le
 
 leSize' :: LtLe -> Val -> Val -> TypeCheck ()  
-leSize' lt v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2) $ 
-    traceSize ("leSize' " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2) $ 
-    do let err = "leSize': " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2 ++ " failed"
+leSize' ltle v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2) $ 
+    traceSize ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2) $ 
+    do let err = "leSize': " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2 ++ " failed"
        case (v1,v2) of
-         (VZero,_) | lt == Le -> return ()
+         (VZero,_) | ltle == Le -> return ()
          (VSucc{}, VZero) -> fail err
          (VInfty, VZero) -> fail err
          (VGen{}, VZero) -> fail err
-         (VMax vs,_) -> mapM_ (\ v -> leSize' lt v v2) vs -- all v in vs <= v2
-         (_,VMax vs)  -> foldr1 orM $ map (leSize' lt v1) vs -- this produces a disjunction 
---         (_,VMax _)  -> addLe lt v1 v2 -- this produces a disjunction 
-         (_,VInfty) | lt == Le -> return ()
-         (VMeta{},VZero) -> addLe lt v1 v2
+         (VMax vs,_) -> mapM_ (\ v -> leSize' ltle v v2) vs -- all v in vs <= v2
+         (_,VMax vs)  -> foldr1 orM $ map (leSize' ltle v1) vs -- this produces a disjunction 
+--         (_,VMax _)  -> addLe ltle v1 v2 -- this produces a disjunction 
+         (_,VInfty) | ltle == Le -> return ()
+         (VMeta{},VZero) -> addLe ltle v1 v2
 {-
          (0,VMeta i n', VMeta j m') -> 
            let (n,m) = if bal <= 0 then (n', m' - bal) else (n' + bal, m') in
 -}
          (VMeta i rho n, VMeta j rho' m) -> 
-               addLe lt (VMeta i rho  (n - min n m))
+               addLe ltle (VMeta i rho  (n - min n m))
                         (VMeta j rho' (m - min n m)) 
-         (VMeta i rho n, VSucc v2) | n > 0 -> leSize' lt (VMeta i rho (n-1)) v2
-         (VMeta i rho n, v2)  -> addLe lt v1 v2
-         (VSucc v1, VMeta i rho n) | n > 0 -> leSize' lt v1 (VMeta i rho (n-1))
-         (v1,VMeta i rho n) -> addLe lt v1 v2
-         _ -> leSize'' lt 0 v1 v2
-{- HANDLED BY leSize'' lt
+         (VMeta i rho n, VSucc v2) | n > 0 -> leSize' ltle (VMeta i rho (n-1)) v2
+         (VMeta i rho n, v2)  -> addLe ltle v1 v2
+         (VSucc v1, VMeta i rho n) | n > 0 -> leSize' ltle v1 (VMeta i rho (n-1))
+         (v1,VMeta i rho n) -> addLe ltle v1 v2
+         _ -> leSize'' ltle 0 v1 v2
+{- HANDLED BY leSize'' ltle
          (VSucc{}, VGen{}) -> fail err
          (VSucc{}, VPlus{}) -> fail err
 -}
--- leSize'' lt bal v v'  checks whether  Succ^bal v `lt` v'
+-- leSize'' ltle bal v v'  checks whether  Succ^bal v `lt` v'
 -- invariant: bal is zero in cases for VMax and VMeta
 leSize'' :: LtLe -> Int -> Val -> Val -> TypeCheck ()  
-leSize'' lt bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal ++ " " ++ show lt ++ " " ++ show v2) $ 
-    do let ltz = case lt of { Le -> 0 ; Lt -> -1 }
+leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal ++ " " ++ show ltle ++ " " ++ show v2) $ 
+    do let ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
        case (v1,v2) of
-         _ | v1 == v2 && bal <= ltz -> return () -- TODO: better handling of sums!
-         (VZero,_) | bal <= ltz -> return ()
-         (VZero,VGen _) | bal > ltz -> fail $ "0 not < " ++ show v2
-         (VSucc v1, v2) -> leSize'' lt (bal + 1) v1 v2
-         (v1, VSucc v2) -> leSize'' lt (bal - 1) v1 v2
-         (VPlus vs1, VPlus vs2) -> leSizePlus lt bal vs1 vs2
-         (VPlus vs1, VZero) -> leSizePlus lt bal vs1 []
-         (VZero, VPlus vs2) -> leSizePlus lt bal [] vs2
-         (VPlus vs1, _) -> leSizePlus lt bal vs1 [v2]
-         (_, VPlus vs2) -> leSizePlus lt bal [v1] vs2
-         (VZero,_) -> leSizePlus lt bal [] [v2]
-         (_,VZero) -> leSizePlus lt bal [v1] []
-         _ -> leSizePlus lt bal [v1] [v2]
+         _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
+         (VZero,_) | bal <= ltlez -> return ()
+         (VZero,VGen _) | bal > ltlez -> fail $ "0 not < " ++ show v2
+         (VSucc v1, v2) -> leSize'' ltle (bal + 1) v1 v2
+         (v1, VSucc v2) -> leSize'' ltle (bal - 1) v1 v2
+         (VPlus vs1, VPlus vs2) -> leSizePlus ltle bal vs1 vs2
+         (VPlus vs1, VZero) -> leSizePlus ltle bal vs1 []
+         (VZero, VPlus vs2) -> leSizePlus ltle bal [] vs2
+         (VPlus vs1, _) -> leSizePlus ltle bal vs1 [v2]
+         (_, VPlus vs2) -> leSizePlus ltle bal [v1] vs2
+         (VZero,_) -> leSizePlus ltle bal [] [v2]
+         (_,VZero) -> leSizePlus ltle bal [v1] []
+         _ -> leSizePlus ltle bal [v1] [v2]
 
 leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
-leSizePlus lt bal vs1 vs2 = leSizePlus' lt bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+leSizePlus ltle bal vs1 vs2 = leSizePlus' ltle bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
 
 leSizePlus' :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
-leSizePlus' lt bal vs1 vs2 = do
+leSizePlus' ltle bal vs1 vs2 = do
   let v1 = plusSizes vs1
   let v2 = plusSizes vs2
   let exit True  = return ()
-      exit False | bal >= 0  = recoverFailDoc (text "leSize:" <+> prettyTCM v1 <+> text ("+ " ++ show bal ++ " " ++ show lt) <+> prettyTCM v2 <+> text "failed") 
-                 | otherwise = recoverFailDoc (text "leSize:" <+> prettyTCM v1 <+> text (show lt) <+> prettyTCM v2 <+> text ("+ " ++ show (-bal) ++ " failed")) 
-  traceSizeM ("leSizePlus' lt " ++ show v1 ++ " + " ++ show bal ++ " " ++ show lt ++ " " ++ show v2) 
-  let ltz = case lt of { Le -> 0 ; Lt -> -1 }     
+      exit False | bal >= 0  = recoverFailDoc (text "leSize:" <+> prettyTCM v1 <+> text ("+ " ++ show bal ++ " " ++ show ltle) <+> prettyTCM v2 <+> text "failed") 
+                 | otherwise = recoverFailDoc (text "leSize:" <+> prettyTCM v1 <+> text (show ltle) <+> prettyTCM v2 <+> text ("+ " ++ show (-bal) ++ " failed")) 
+  traceSizeM ("leSizePlus' ltle " ++ show v1 ++ " + " ++ show bal ++ " " ++ show ltle ++ " " ++ show v2) 
+  let ltlez = case ltle of { Le -> 0 ; Lt -> -1 }     
   case (vs1,vs2) of
-    ([],_) | bal <= ltz -> return ()
+    ([],_) | bal <= ltlez -> return ()
     ([],[VGen i]) -> do
       n <- getMinSize i
       -- traceM ("getMinSize = " ++ show n)
       case n of
         Nothing -> exit False -- height of VGen i == 0
-        Just n  -> exit (bal <= n + ltz)
+        Just n  -> exit (bal <= n + ltlez)
     ([VGen i1],[VGen i2]) -> do 
       d <- sizeVarBelow i1 i2
       traceSizeM ("sizeVarBelow " ++ show (i1,i2) ++ " returns " ++ show d)
       case d of
-        Nothing -> tryIrregularBound i1 i2 (ltz - bal)
--- recoverFail $ "leSize: head mismatch: " ++ show v1 ++ " " ++ show lt ++ " " ++ show v2
-        Just k -> exit (bal <= k + ltz)
+        Nothing -> tryIrregularBound i1 i2 (ltlez - bal)
+-- recoverFail $ "leSize: head mismatch: " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2
+        Just k -> exit (bal <= k + ltlez)
     _ -> exit False
 
 -- BAD HACK!
@@ -1742,22 +1742,22 @@ leqMeasure Neg (Measure mu1) (Measure mu2) = lexSizes mu2 mu1
 -- lexSizes True  mu mu' checkes mu <  mu'
 -- lexSizes False mu mu' checkes mu <= mu'
 lexSizes :: LtLe -> [Val] -> [Val] -> TypeCheck ()
-lexSizes lt mu1 mu2 = traceSize ("lexSizes " ++ show (lt,mu1,mu2)) $
-  case (lt, mu1, mu2) of
+lexSizes ltle mu1 mu2 = traceSize ("lexSizes " ++ show (ltle,mu1,mu2)) $
+  case (ltle, mu1, mu2) of
     (Lt, [], []) -> recoverFail $ "lexSizes: no descent detected"
     (Le, [], []) -> return ()
     (lt, a1:mu1, a2:mu2) -> do
-      b <- newAssertionHandling Failure $ errorToBool $ leSize lt Pos a1 a2
+      b <- newAssertionHandling Failure $ errorToBool $ leSize ltle Pos a1 a2
       case (lt,b) of
         (Le,False) -> recoverFail $ "lexSizes: expected " ++ show a1 ++ " <= " ++ show a2
         (Lt,True) -> return ()
-        _ -> lexSizes lt mu1 mu2
+        _ -> lexSizes ltle mu1 mu2
 
 {-
       r <- compareSize a1 a2 
       case r of
         LT -> return ()         
-        EQ -> lexSizes lt mu1 mu2
+        EQ -> lexSizes ltle mu1 mu2
         GT -> recoverFail $ "lexSizes: expected " ++ show a1 ++ " <= " ++ show a2
 -}
 
