@@ -789,6 +789,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           (Quant Pi (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
           (Quant Pi (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
+          (Pair e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Succ e) -> loop tso e
           (Max es) -> concatMap (loop tso) es
           (Plus es) -> concatMap (loop tso) es

@@ -319,7 +319,8 @@ extractPattern tv p cont = do
     Forall x ki env t -> new x ki $ \ xv ->
       cont [] =<< whnf (update env x xv) t -- TODO!
 -}
-    Arrow av bv ->
+    Arrow av bv -> extractPattern' av p (flip cont bv)
+{-
       case p of
         VarP y -> setTypeOfName y (defaultDomain av) $ 
           cont [VarP y] bv
@@ -327,6 +328,10 @@ extractPattern tv p cont = do
         VarP y -> new y (defaultDomain av) $ const $  -- TODO! 
           cont [VarP y] bv
 -}
+        PairP p1 p2 -> do
+          case av of
+            VQuant Sigma x dom env b -> do
+              extractPatterns
         ConP pi n ps -> do
           tv <- whnf' =<< extrTyp <$> lookupSymb n
           extractPatterns tv ps $ \ ps _ ->
@@ -334,6 +339,28 @@ extractPattern tv p cont = do
 
 --        ErasedP p -> extractPattern av p $ \ _ bv -> cont [] bv
         _ -> cont [] bv 
+-}
+
+extractPattern' :: FTVal -> Pattern -> 
+                  ([FPattern] -> TypeCheck a) -> TypeCheck a
+extractPattern' av p cont =
+      case p of
+        VarP y -> setTypeOfName y (defaultDomain av) $ 
+          cont [VarP y]
+        PairP p1 p2 -> do
+          case av of
+            VQuant Sigma x dom env b -> do
+              extractPattern' (typ dom) p1 $ \ [p1] -> do
+                bv <- whnf (update env x VIrr) b
+                extractPattern' bv p2 $ \ [p2] -> cont [PairP p1 p2]
+            _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++ 
+                          show p ++ " : " ++ show av
+        ConP pi n ps -> do
+          tv <- whnf' =<< extrTyp <$> lookupSymb n
+          extractPatterns tv ps $ \ ps _ ->
+            cont [ConP pi n ps]
+        _ -> cont []
+
 
 -- extracting a term from a term -------------------------------------
 

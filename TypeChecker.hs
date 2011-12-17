@@ -2124,6 +2124,7 @@ instance Substitute Val where
           do dom'  <- Traversable.mapM (substitute subst) dom
              env' <- substitute subst env
              return $ VQuant pisig x dom' env' b
+      VPair v1 v2 -> VPair <$> substitute subst v1 <*> substitute subst v2
       VLam x env b -> do env' <- substitute subst env
                          return $ VLam x env' b
       VClos env e  -> do env' <- substitute subst env

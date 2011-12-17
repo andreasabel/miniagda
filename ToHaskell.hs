@@ -229,6 +229,7 @@ translatePattern :: Pattern -> Translate H.Pat
 translatePattern p = 
   case p of
     VarP y       -> H.PVar <$> hsVarName y
+    PairP p1 p2  -> H.PTuple <$> mapM translatePattern [p1,p2]
     ConP pi n ps -> 
        H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n)) 
               <*> mapM translatePattern ps

@@ -470,7 +470,7 @@ class Monad m => MonadCxt m where
   nameOfGen  :: Int -> m Name
 --  nameTaken  :: Name -> m Bool
   uniqueName :: Name -> Int -> m Name
-  uniqueName x _ = return $ freshen x
+  uniqueName x _ = return x -- $ freshen x -- TODO!  now freshen causes problems in extraction
 {-
   uniqueName x k = ifM (nameTaken x) (return $ show x ++ "~" ++ show k) (return x)
 -}
@@ -878,7 +878,7 @@ introPatType (p,v) tv cont = do
     VQuant Pi x dom env b -> do
        v <- whnfClos v
        bv <- whnf (update env x v) b
-       matchPatType (p,v) (typ dom) $ cont bv
+       matchPatType (p,v) dom $ cont bv
     _ -> fail $ "introPatType: internal error, expected Pi-type, found " ++ show tv 
 
 introPatTypes :: [(Pattern,Val)] -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
@@ -887,13 +887,13 @@ introPatTypes pvs tv f = do
     [] -> f tv
     (pv:pvs') -> introPatType pv tv $ \ tv' -> introPatTypes pvs' tv' f
 
-matchPatType :: (Pattern, Val) -> TVal -> TypeCheck a -> TypeCheck a
-matchPatType (p,v) av cont = 
+matchPatType :: (Pattern, Val) -> Domain -> TypeCheck a -> TypeCheck a
+matchPatType (p,v) dom cont = 
        case (p,v) of
                                                    -- erasure does not matter!
-          (VarP y, VGen k) -> setType k (defaultDomain av) $ cont
+          (VarP y, VGen k) -> setType k dom $ cont
 
-          (SizeP z y, VGen k) -> setType k (defaultDomain av) $ cont
+          (SizeP z y, VGen k) -> setType k dom $ cont
 
           (ConP co n [], _) -> cont
 
@@ -902,11 +902,19 @@ matchPatType (p,v) av cont =
              let vc = symbTyp sige
              introPatTypes (zip pl vl) vc $ \ _ -> cont
  
-          (SuccP p2, VSucc v2) -> matchPatType (p2, v2) vSize $ cont 
+          (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont 
+
+          (PairP p1 p2, VPair v1 v2) -> do
+             case typ dom of
+               VQuant Sigma x dom1@(Domain av1 ki dec) env b -> do
+                 matchPatType (p1,v1) dom1 $ do
+                   bv <- whnf (update env x v1) b
+                   matchPatType (p2,v2) (Domain bv ki dec) cont
+               _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show p ++ "  :  " ++ show dom
 
           (DotP e, _) -> cont
           (AbsurdP, _) -> cont
-          (ErasedP p,_) -> matchPatType (p,v) av cont
+          (ErasedP p,_) -> matchPatType (p,v) dom cont
           _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show (p,v)
 
 -- signature -----------------------------------------------------

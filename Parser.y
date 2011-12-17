@@ -172,6 +172,7 @@ Bound :: { A.Bound C.Expr }
 Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
       | Measure '<=' Measure { A.Bound A.Le $1 $3 } {- (A.succMeasure C.Succ $3) } -}
 
+
 TBind :: { C.TBind }
 TBind :  '(' Ids ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
       |  '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
@@ -189,8 +190,6 @@ LBind :  Id ':' Expr         { C.TBind A.defaultDec [$1] $3 } -- ordinary bindin
       |  '[' Id ':' Expr ']' { C.TBind A.irrelevantDec [$2] $4 }  -- erased binding
       |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
 --      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
-
-
 Domain :: { C.TBind }
 Domain : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
@@ -200,10 +199,40 @@ Domain : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | Measure           { C.TMeasure $1 }
        | Bound             { C.TBound $1 }
 
+{-
+TBind :: { C.TBind }
+TBind :  '(' Ids ':' Type ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
+      |  '[' Ids ':' Type ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
+      |  Pol '(' Ids ':' Type ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
+--      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
+      | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
+      | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
+      | '(' Id '<=' Expr ')'  { C.TBounded A.defaultDec    $2 A.Le $4 }
+      | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
+
+-- let binding
+LBind :: { C.TBind }
+LBind :  Id ':' Type         { C.TBind A.defaultDec [$1] $3 } -- ordinary binding
+      |  '(' Id ':' Type ')' { C.TBind A.defaultDec [$2] $4 } -- ordinary binding
+      |  '[' Id ':' Type ']' { C.TBind A.irrelevantDec [$2] $4 }  -- erased binding
+      |  Pol '(' Id ':' Type ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
+--      |  Pol '[' Id ':' Type ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
+
+Domain :: { C.TBind }
+Domain : Type1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
+       | '[' Type ']'      { C.TBind A.irrelevantDec [] $2 }
+       | Pol Type1         { C.TBind (Dec $1) [] $2 }
+--       | Pol '[' Type ']'  { C.TBind (Dec True  $1) [] $3 }
+       | TBind             { $1 }
+       | Measure           { C.TMeasure $1 }
+       | Bound             { C.TBound $1 }
+-}
+
 -- expressions which can be tuples e , e'
 ExprT :: { C.Expr}
 ExprT : Expr               { $1 }
       | Expr ',' ExprT     { C.Pair $1 $3 }
+--      | '(' ExprT ')'      { $2 }
 
 -- general form of expression
 Expr :: { C.Expr }
@@ -249,6 +278,39 @@ Expr3 : size                      { C.Size }
       | succ Expr3                { C.Succ $2 }  -- succ is a prefix op
       | number                    { iterate C.Succ C.Zero !! (read $1) }
       | record '{' RecordDefs '}' { C.Record $3 }
+
+{-
+-- general form of type expression
+Type :: { C.Expr }
+Type : Domain '->' Type                 { C.Quant A.Pi $1 $3 } 
+     | let LBind '=' ExprT in Type      { C.LLet $2 $4 $6 }
+     | case ExprT '{' Cases '}'         { C.Case $2 $4 }  
+     | Type1                            { $1 }
+
+-- perform applications
+Type1 :: { C.Expr }
+Type1 : Type2 { let (f : args) = reverse $1 in
+                if null args then f else C.App f args 
+	      }
+       | coset Expr3                      { C.CoSet $2 }
+       | set                              { C.Set C.Zero }
+       | set Expr3                        { C.Set $2 }
+       | Domain '&' Type1                 { C.Quant A.Sigma $1 $3 } 
+
+-- gather applications
+Type2 :: { [C.Expr] }
+Type2 : Type3 { [$1] }
+      | Type2 Expr3 { $2 : $1 }
+      | Type2 '.' Id { C.Proj $3 : $1 }
+      | Type2 set   { C.Set C.Zero : $1 }
+
+-- type atoms
+Type3 :: { C.Expr }
+Type3 : size                      { C.Size }
+      | Id                        { C.Ident $1}
+      | '(' Type ')'              { $2 }
+      | '_'                       { C.Unknown }
+-}
 
 RecordDefs :: { [([Name],C.Expr)] }
 RecordDefs 
