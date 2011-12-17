@@ -1556,8 +1556,8 @@ Input :
   flex  : list of pairs (flexible variable, its dot pattern + supposed type)
   subst : list of pairs (flexible variable, its valuation)
   cxt   : in monad, containing
-  rho   : binding of variables to values
-  delta : binding of generic values to their types
+    rho   : binding of variables to values
+    delta : binding of generic values to their types
   tv    : type of the expression \ p -> t
   p     : the pattern to check
 
@@ -1571,8 +1571,7 @@ Output
 
 checkPattern :: Dec -> [Goal] -> Substitution -> TVal -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,TVal,EPattern,Val,Bool)
 checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, environ = rho } -> trace ("checkPattern" ++ ("\n  dot pats: " +?+ show flex) ++ ("\n  substion: " +?+ show ins) ++ ("\n  environ : " +?+ show rho) ++ ("\n  context : " +?+ show delta) ++ "\n  pattern : " ++ show p ++ "\n  at type : " ++ show tv ++ "\t<>") $ 
- (
- do 
+ enter ("pattern " ++ show p) $ do 
   case tv of
     -- record type can be eliminated
     VApp (VDef (DefId DatK d)) vl ->
@@ -1602,12 +1601,59 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
        let decEr   = if erased' then irrelevantDec else dec -- dec {erased = erased'}
 -}
        let decEr = dec `compose` dec0
-       let erased' = erased decEr
        let domEr   =  (Domain av ki decEr)
+       case p of 
+         
+         -- treat successor pattern here, because of admissibility check
+         SuccP p2 -> do  
+                 when (av /= vSize) (throwErrorMsg "checkPattern: expected type Size") 
+
+                 when (isSuccessorPattern p2) $
+                   fail ("cannot match against deep successor pattern " 
+                    ++ show p ++ "; type: " ++ show tv)
+
+                 co <- asks mutualCo
+                 when (co /= CoInd) $
+                   fail ("successor pattern only allowed in cofun")
+
+                 enterDoc (text ("checkPattern " ++ show p ++" : matching on size, checking that target") <+> prettyTCM tv <+> text "ends in correct coinductive sized type") $
+                   newWithGen x domEr $ \ i xv -> do
+                     vb0 <- whnf (update env x xv) b
+                     endsInSizedCo i vb0
+
+                 cxt <- ask
+                 (flex',ins',cxt',tv',p2e,p2v,absp) <- checkPattern decEr flex ins (vSize `arrow` vSize) p2
+                 -- leqVal Mixed delta' VSet VSize av -- av = VSize 
+                 let pe = SuccP p2e
+                 let pv = VSucc p2v
+--                 pv0 <- local (\ _ -> cxt') $ whnf' $ patternToExpr pe
+                 -- pv0 <- patternToVal p -- RETIRE patternToVal
+                 -- pv  <- up False pv0 av -- STUPID what can be eta-exanded at type Size??
+                 vb  <- whnf (update env x pv) b
+{-
+                 endsInCoind <- endsInSizedCo pv vb
+                 when (not endsInCoind) $ throwErrorMsg $ "checkPattern " ++ show p ++" : cannot match on size since target " ++ show tv ++ " does not end in correct coinductive sized type"
+-}
+                 return (flex',ins',cxt',vb,pe,pv,absp) 
+
+         -- other patterns: no need to know about result type
+         _ -> do
+           (flex',ins',cxt',pe,pv,absp) <- checkPattern' flex ins domEr p
+           vb  <- whnf (update env x pv) b
+           vb  <- substitute ins' vb  -- from ConP case -- ?? why not first subst and then whnf?
+           -- traceCheck ("Returning type " ++ show vb) $
+           return (flex',ins',cxt',vb,pe,pv,absp) 
+
+    _ -> throwErrorMsg $ "checkPattern: expected function type, found " ++ show tv
+         
+
+checkPattern' :: [Goal] -> Substitution -> Domain -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,EPattern,Val,Bool)
+checkPattern' flex ins domEr@(Domain av ki decEr) p = do
+       let erased' = erased decEr
        let maybeErase p = if erased' then ErasedP p else p
 --       let erasedOrIrrefutable p = if erased' then ErasedP p else IrrefutableP p
-
        case p of
+          SuccP{} -> failDoc (text "successor pattern" <+> prettyTCM p <+> text "not allowed here")
 
 {-
           PairP p1 p2 -> do
@@ -1626,28 +1672,25 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                            Quant x' (Domain a2
 -}
 
-          ProjP proj -> failDoc (text "cannot eliminate function type" <+> prettyTCM tv <+> text "with projection pattern" <+> prettyTCM p)
+          ProjP proj -> failDoc (text "cannot eliminate type" <+> prettyTCM av <+> text "with projection pattern" <+> prettyTCM p)
 
           VarP y -> do
             new y domEr $ \ xv -> do
-              bv <- whnf (update env x xv) b
               cxt' <- ask 
-              return (flex, ins, cxt', bv, maybeErase $ VarP y, xv, False)
+              return (flex, ins, cxt', maybeErase $ VarP y, xv, False)
 
           SizeP z y -> do -- pattern (z > y), y is the bound variable, z the bound of z
             resurrect $ checkSize (Var z)
             newWithGen y domEr $ \ j xv -> do
-               bv <- whnf (update env x xv) b
                VGen k <- whnf' (Var z)
                addSizeRel j 1 k $ do
                  cxt' <- ask 
-                 return (flex, ins, cxt', bv, maybeErase $ SizeP z y, xv, False)
+                 return (flex, ins, cxt', maybeErase $ SizeP z y, xv, False)
 
           AbsurdP -> do
                  when (isFunType av) $ fail ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)     
-                 bv   <- whnf (update env x VIrr) b
                  cxt' <- ask 
-                 return (MaxMatches 0 av : flex, ins, cxt', bv, maybeErase $ AbsurdP, VIrr, True)
+                 return (MaxMatches 0 av : flex, ins, cxt', maybeErase $ AbsurdP, VIrr, True)
 {-
                  cenvs <- matchingConstructors av  -- TODO: av might be MVar
                                                    -- need to be postponed 
@@ -1734,48 +1777,14 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                  traceCheckM $ "delta'' = " ++ show delta''
                  av  <- substitute ins'' av  -- 2010-09-22: update av
                  pv  <- up False pv0 av
-                 vb  <- whnf (update env x pv) b
-                 vb' <- substitute ins'' vb  -- ?? why not first subst and then whnf?
-                 -- traceCheck ("Returning type " ++ show vb') $
 
-                 return (flex', ins'', cxt' { context = delta'' }, vb',
+                 return (flex', ins'', cxt' { context = delta'' }, 
                          maybeErase pe, pv, absp)
 {- DO NOT UPDATE measure here, its done in checkRHS
                  return (flex', ins'', cxt' { context = delta'', environ = (environ cxt') { envBound = mmu' } }, vb',
                          maybeErase pe, absp)
 -}
 
-
-          SuccP p2 -> do  
-                 when (av /= vSize) (throwErrorMsg "checkPattern: expected type Size") 
-
-                 when (isSuccessorPattern p2) $
-                   fail ("cannot match against deep successor pattern " 
-                    ++ show p ++ "; type: " ++ show tv)
-
-                 co <- asks mutualCo
-                 when (co /= CoInd) $
-                   fail ("successor pattern only allowed in cofun")
-
-                 enterDoc (text ("checkPattern " ++ show p ++" : matching on size, checking that target") <+> prettyTCM tv <+> text "ends in correct coinductive sized type") $
-                   newWithGen x domEr $ \ i xv -> do
-                     vb0 <- whnf (update env x xv) b
-                     endsInSizedCo i vb0
-
-                 cxt <- ask
-                 (flex',ins',cxt',tv',p2e,p2v,absp) <- checkPattern decEr flex ins (vSize `arrow` vSize) p2
-                 -- leqVal Mixed delta' VSet VSize av -- av = VSize 
-                 let pe = SuccP p2e
-                 let pv = VSucc p2v
---                 pv0 <- local (\ _ -> cxt') $ whnf' $ patternToExpr pe
-                 -- pv0 <- patternToVal p -- RETIRE patternToVal
-                 -- pv  <- up False pv0 av -- STUPID what can be eta-exanded at type Size??
-                 vb  <- whnf (update env x pv) b
-{-
-                 endsInCoind <- endsInSizedCo pv vb
-                 when (not endsInCoind) $ throwErrorMsg $ "checkPattern " ++ show p ++" : cannot match on size since target " ++ show tv ++ " does not end in correct coinductive sized type"
--}
-                 return (flex',ins',cxt',vb,pe,pv,absp) 
 
           DotP e -> do
 {-
@@ -1786,13 +1795,11 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
             -- create an informative, but irrelevant identifier for dot pattern
             let xp = fresh $ "." ++ case e of Var z -> suggestion z; _ -> Util.parens $ show e 
             newWithGen xp domEr $ \ k xv -> do
-                       vb <- whnf (update env x xv) b
                        cxt' <- ask
                        -- traceCheck ("Returning type " ++ show vb) $
                        return (DotFlex k e domEr : flex
                               ,ins
                               ,cxt'
-                              ,vb                         -- e leads to unbound ids in evaluating patterns!
                               ,maybeErase $ DotP e -- $ Var xp -- DotP $ Meta k -- e -- Meta k
                               -- ,maybeErase $ -- AbsurdP -- VarP $ show e
                               ,xv
@@ -1806,8 +1813,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                               ,delta'
                               ,vb)
 -}
-    _ -> throwErrorMsg $ "checkPattern: expected function type, found " ++ show tv
-  ) `throwTrace` ("pattern " ++ show p)
+
  
 
 {- New treatment of size matching  (see examples/Sized/Cody.ma)

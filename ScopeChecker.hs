@@ -942,6 +942,7 @@ scopeCheckDotPattern :: A.Pat C.Name C.Expr -> ScopeCheck A.Pattern
 scopeCheckDotPattern p = 
     case p of 
       A.DotP e -> A.DotP <$> scopeCheckExpr e
+      A.PairP p1 p2 -> A.PairP <$> scopeCheckDotPattern p1 <*>  scopeCheckDotPattern p2
       A.SuccP p -> A.SuccP <$> scopeCheckDotPattern p
       A.ConP co n pl -> A.ConP co n <$> mapM scopeCheckDotPattern pl
       A.SizeP m n -> flip A.SizeP n <$> scopeCheckLocalVar m -- return $ A.SizeP m n
