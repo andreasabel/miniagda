@@ -41,6 +41,7 @@ data Val
   | VApp Val [Clos]
   | VRecord EnvMap               -- a record value             
   | VProj Name                   -- a projection as an argument to a neutral 
+  | VPair Val Val                -- eager pair
   | VClos Env Expr               -- closure for cbn evaluation
   -- don't care                  
   | VIrr                         -- erased hypothetical inhabitant of empty type
@@ -240,6 +241,7 @@ showVal (VApp v vl) = "(" ++ showVal v ++ " " ++ showVals vl ++ ")"
 -- showVal (VCon _ n) = n
 showVal (VDef id) = show id -- show $ name id
 showVal (VProj id) = "." ++ show id
+showVal (VPair v1 v2) = "(" ++ show v1 ++ ", " ++ show v2 ++ ")" 
 showVal (VGen k) = "v" ++ show k
 showVal (VMeta k rho 0) = "?" ++ show k ++ showEnv rho
 showVal (VMeta k rho 1) = "$?" ++ show k ++ showEnv rho

@@ -854,6 +854,7 @@ introPatVar p cont =
       VarP n -> addName n $ \ _ -> cont 
       SizeP m n -> addName n $ \ _ -> cont 
       ConP co n pl -> introPatVars pl cont
+      PairP p1 p2 -> introPatVars [p1,p2] cont
       SuccP p -> introPatVar p cont
       ProjP{} -> cont
       DotP e -> cont

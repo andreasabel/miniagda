@@ -99,6 +99,7 @@ reval u = -- trace ("reval " ++ show u) $
   VMax{}  -> return u
   VPlus{}  -> return u
   VProj{}  -> return u -- cannot rewrite projection
+  VPair v1 v2 -> VPair <$> reval v1 <*> reval v2
   VRecord rho -> VRecord <$> mapAssocM reval rho
 {-
   VSucc v -> do v' <- reval v
@@ -142,6 +143,8 @@ reval u = -- trace ("reval " ++ show u) $
                            return $ vSing v' tv'
   VIrr -> return u
 
+
+-- TODO: singleton Sigma types
 -- This is a bit of a hack (finding a fresh name)
 -- <t : Pi x:a.b> = Pi x:a <t x : b>
 -- <t : <t' : a>> = <t' : a>
@@ -199,6 +202,7 @@ equal u1 u2 = -- trace ("equal " ++ show u1 ++ " =?= " ++ show u2) $
            v2 <- whnf (update env2 x2 vx) b2 
            equal v1 v2
 
+    (VPair v1 w1, VPair v2 w2) -> liftM2 (&&) (equal v1 v2) (equal w1 w2)
     (VBelow ltle1 v1, VBelow ltle2 v2) | ltle1 == ltle2 -> equal v1 v2
     (VSing v1 tv1, VSing v2 tv2) -> liftM2 (&&) (equal v1 v2) (equal tv1 tv2) 
 
@@ -235,42 +239,44 @@ reify v = reify' (5, True) v
 
 -- normalize to depth m
 reify' :: (Int, Bool) -> Val -> TypeCheck Expr
-reify' m v0 = 
+reify' m v0 = do
+  let reify = reify' m  -- default recursive call
   case v0 of
-    (VClos rho e)        -> whnf rho e >>= reify' m
+    (VClos rho e)        -> whnf rho e >>= reify
     (VZero)              -> return $ Zero
     (VInfty)             -> return $ Infty
-    (VSucc v)            -> Succ <$> reify' m v
-    (VMax vs)            -> Max  <$> mapM (reify' m) vs
-    (VPlus vs)           -> Plus <$> mapM (reify' m) vs
+    (VSucc v)            -> Succ <$> reify v
+    (VMax vs)            -> Max  <$> mapM reify vs
+    (VPlus vs)           -> Plus <$> mapM reify vs
     (VMeta x rho n)      -> -- error $ "cannot reify meta-variable " ++ show v0
                             return $ iterate Succ (Meta x) !! n
-    (VSort (CoSet v))    -> reify' m v >>= return . Sort . CoSet
+    (VSort (CoSet v))    -> reify v >>= return . Sort . CoSet
     (VSort s)            -> return $ Sort $ vSortToSort s
-    (VBelow ltle v)      -> Below ltle <$> reify' m v
+    (VBelow ltle v)      -> Below ltle <$> reify v
     (VQuant pisig x dom rho e) -> do
-          dom' <- Traversable.mapM (reify' m) dom
+          dom' <- Traversable.mapM reify dom
           newWithGen x dom $ \ k xv -> do
             vb <- whnf (update rho x xv) e
             let x' = unsafeName (suggestion x ++ "~" ++ show k) 
-            Quant pisig (TBind x' dom') <$> reify' m vb
-    (VSing v tv)         -> liftM2 Sing (reify' m v) (reify' m tv)
+            Quant pisig (TBind x' dom') <$> reify vb
+    (VSing v tv)         -> liftM2 Sing (reify v) (reify tv)
     (VLam x rho e)       -> do
           addName x $ \ xv@(VGen k) -> do
             vb <- whnf (update rho x xv) e
             let x' = unsafeName (suggestion x ++ "~" ++ show k) 
-            Lam defaultDec x' <$> reify' m vb  -- TODO: dec!?
-    (VUp v tv)           -> reify' m v -- TODO: type directed reification
+            Lam defaultDec x' <$> reify vb  -- TODO: dec!?
+    (VUp v tv)           -> reify v -- TODO: type directed reification
     (VGen k)             -> return $ Var $ unsafeName $ "~" ++ show k
     (VDef d)             -> return $ Def d
     (VProj n)            -> return $ Proj n
-    (VRecord rho)        -> Record <$> mapAssocM (reify' m) rho
+    (VPair v1 v2)        -> Pair <$> reify v1 <*> reify v2
+    (VRecord rho)        -> Record <$> mapAssocM reify rho
     (VApp v vl)          -> if fst m > 0 && snd m 
                              then force v0 >>= reify' (fst m - 1, True) -- forgotten the meaning of the boolean, WAS: False) 
                              else let m' = (fst m, True) in
                                liftM2 (foldl App) (reify' m' v) (mapM (reify' m') vl)
     (VCase v rho cls)    -> do
-          e <- reify' m v
+          e <- reify v
           return $ Case e cls -- TODO: properly evaluate clauses!!
     (VIrr)               -> return $ Irr
     v -> failDoc (text "Eval.reify" <+> prettyTCM v <+> text "not implemented")
@@ -306,6 +312,7 @@ toExpr v =
     VGen k          -> Var <$> nameOfGen k
     VDef d          -> return $ Def d
     VProj n         -> return $ Proj n
+    VPair v1 v2     -> Pair <$> toExpr v1 <*> toExpr v2
     VRecord rho     -> Record <$> mapAssocM toExpr rho
     VApp v vl       -> liftM2 (foldl App) (toExpr v) (mapM toExpr vl)
     VCase v rho cls -> Case <$> toExpr v <*> mapM (clauseToExpr rho) cls 
@@ -331,6 +338,8 @@ addPatternEnv :: Pattern -> Env -> (Pattern -> Env -> TypeCheck a) -> TypeCheck 
 addPatternEnv p rho cont = 
   case p of
     VarP x       -> addNameEnv     x  rho $ cont . VarP -- \ x rho -> cont (VarP x) rho
+    PairP p1 p2  -> addPatternEnv  p1 rho $ \ p1 rho -> 
+                     addPatternEnv p2 rho $ \ p2 rho -> cont (PairP p1 p2) rho 
     ConP pi n ps -> addPatternsEnv ps rho $ cont . ConP pi n -- \ ps rho -> cont (ConP pi n ps) rho
     SuccP p      -> addPatternEnv  p  rho $ cont . SuccP
     UnusableP p  -> addPatternEnv  p  rho $ cont . UnusableP
@@ -373,6 +382,7 @@ closToExpr rho e =
 -}
     Proj n         -> return e
     Record rs      -> Record <$> mapAssocM (closToExpr rho) rs
+    Pair e1 e2     -> Pair <$> closToExpr rho e1 <*> closToExpr rho e2
     App e1 e2      -> App <$> closToExpr rho e1 <*> closToExpr rho e2
     Lam dec x e    -> addNameEnv x rho $ \ x rho -> 
       Lam dec x <$> closToExpr rho e
@@ -381,8 +391,8 @@ closToExpr rho e =
       Quant Pi <$> (TMeasure <$> mapM (closToExpr rho) mu) <*> closToExpr rho e
     Quant Pi (TBound beta) e -> 
       Quant Pi <$> (TBound <$> mapM (closToExpr rho) beta) <*> closToExpr rho e
-    Quant Pi (TBind x dom) e -> addNameEnv x rho $ \ x rho' -> 
-      Quant Pi <$> (TBind x <$> mapM (closToExpr rho) dom) <*> closToExpr rho' e
+    Quant piSig (TBind x dom) e -> addNameEnv x rho $ \ x rho' -> 
+      Quant piSig <$> (TBind x <$> mapM (closToExpr rho) dom) <*> closToExpr rho' e
     Sing e1 e2     -> Sing <$> closToExpr rho e1 <*> closToExpr rho e2
     Ann taggedE    -> Ann <$> mapM (closToExpr rho) taggedE
     Irr            -> return e
@@ -440,6 +450,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Sing e t  -> do tv <- whnf env t
                     sing env e tv
 
+    Pair e1 e2 -> VPair <$> whnf env e1 <*> whnf env e2
     Proj n    -> return $ VProj n
     Record rs -> return $ VRecord $ mapAssoc (mkClos env) rs
 {-
@@ -680,6 +691,8 @@ appDef n vl = --trace ("appDef " ++ n) $
         _ -> return $ VApp (VDef (DefId FunK n)) vl   
 
 -- reflection and reification  ---------------------------------------
+
+-- TODO: eta for builtin sigma-types !?
 
 -- up force v tv
 -- force==True also expands at coinductive type
@@ -1015,6 +1028,7 @@ match env p v0 = --trace (show env ++ show v0) $
       (VarP x,   _) -> return $ Just (update env x v)
       (SizeP _ x,_) -> return $ Just (update env x v)
       (ProjP x, VProj y) | x == y -> return $ Just env
+      (PairP p1 p2, VPair v1 v2) -> matchList env [p1,p2] [v1,v2]
       (ConP _ x [],VDef (DefId (ConK _) y)) -> failValInv v -- | x == y -> return $ Just env
       (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
       (SuccP p',v) -> do
@@ -1065,6 +1079,7 @@ nonLinMatch symm env p v0 tv = do
         (ConP _ c pl,VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
            sy <- lookupSymb c
            nonLinMatchList symm env pl vl (symbTyp sy)
+        (PairP p1 p2, VPair v1 v2) -> fail $ "nonLinMatch of pairs: NYI"
         (SuccP p',v) -> do
            v <- whnfClos v
            case predSize v of
@@ -1309,12 +1324,13 @@ leqVal' f p mt12 u1' u2' = do
   ---------------------------------------------------------
   Gamma |- p(x:A) -> B : s <= Gamma' |- p'(x:A') -> B' : s'
 -}
-              (VQuant Pi x1 dom1@(Domain av1 _ dec1) env1 b1, 
-               VQuant Pi x2 dom2@(Domain av2 _ dec2) env2 b2) ->
-                 if not $ leqDec p dec2 dec1 then
+              (VQuant piSig1 x1 dom1@(Domain av1 _ dec1) env1 b1, 
+               VQuant piSig2 x2 dom2@(Domain av2 _ dec2) env2 b2) -> do
+                 let p' = if piSig1 == Pi then switch p else p
+                 if piSig1 /= piSig2 || not (leqDec p' dec1 dec2) then
                     recoverFailDoc $ text "subtyping" <+> prettyTCM u1 <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2 <+> text "failed"
                   else do     
-                    leqVal' (switch f) (switch p) Nothing av1 av2
+                    leqVal' (switch f) p' Nothing av1 av2
                     new2 x1 (dom1, dom2) $ \ (xv1, xv2) -> do
                       bv1 <- whnf (update env1 x1 xv1) b1
                       bv2 <- whnf (update env2 x2 xv2) b2

@@ -208,7 +208,7 @@ ExprT : Expr               { $1 }
 -- general form of expression
 Expr :: { C.Expr }
 Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 } 
-     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
+--     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
      | case ExprT '{' Cases '}'          { C.Case $2 $4 }  
@@ -227,6 +227,7 @@ Expr1 : Expr2 { let (f : args) = reverse $1 in
        | number '*' Expr1                 { let n = read $1 in
                                             if n==0 then C.Zero else
                                             iterate (C.Plus $3) $3 !! (n-1) }
+       | Domain '&' Expr1                 { C.Quant A.Sigma $1 $3 } 
 
 -- gather applications
 Expr2 :: { [C.Expr] }

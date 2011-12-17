@@ -529,14 +529,14 @@ extractTypeAt k tv = do
     (VMeasured mu vb, _) -> extractTypeAt k vb
     (VGuard beta vb, _) -> extractTypeAt k vb
 
-    -- relevant function space --> non-dependent
-    (VQuant Pi x dom env b,_) | not (erased (decor dom)) -> do
+    -- relevant function space / sigma type --> non-dependent
+    (VQuant piSig x dom env b,_) | not (erased (decor dom)) -> do
       a <- extractType (typ dom) 
       -- new' x dom $ do
       bv <- whnf (update env x VIrr) b
       b  <- extractType bv 
       let x = fresh ""
-      return $ Quant Pi (TBind x (defaultDomain a)) b
+      return $ Quant piSig (TBind x (defaultDomain a)) b
 
     -- irrelevant function space --> forall or erasure marker  
     (VQuant Pi x dom env b,_) | erased (decor dom) -> do

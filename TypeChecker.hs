@@ -1035,6 +1035,13 @@ checkForced e v = do
         return $ Kinded kSize $ Meta i 
 {-  problem: what to return here
 -}
+      (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) -> do
+         Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
+         v1 <- whnf' e1
+         bv <- whnf (update env y v1) b
+         Kinded k2 e2 <- checkExpr e2 bv
+         return $ Kinded (unionKind k1 k2) $ Pair e1 e2
+
       (Record rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
          let fail1 = failDoc (text "expected" <+> prettyTCM t <+> text "to be a record type")
 --         DataSig { numPars, isTuple } <- lookupSymb d
@@ -1646,6 +1653,8 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 
     _ -> throwErrorMsg $ "checkPattern: expected function type, found " ++ show tv
          
+-- TODO: refactor with monad transformers
+-- put absp into writer monad
 
 checkPattern' :: [Goal] -> Substitution -> Domain -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,EPattern,Val,Bool)
 checkPattern' flex ins domEr@(Domain av ki decEr) p = do
@@ -1655,8 +1664,16 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
        case p of
           SuccP{} -> failDoc (text "successor pattern" <+> prettyTCM p <+> text "not allowed here")
 
-{-
           PairP p1 p2 -> do
+            case av of
+              VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
+              (flex, ins, cxt, pe1, pv1, absp1) <- 
+                 checkPattern' flex ins (Domain av1 ki1 $ dec1 `compose` decEr) p1
+              av2 <- whnf (update env1 y pv1) a2
+              (flex, ins, cxt, pe2, pv2, absp2) <- 
+                 local (const cxt) $
+                   checkPattern' flex ins (Domain av2 ki decEr) p2 
+              return (flex, ins, cxt, PairP pe1 pe2, VPair pv1 pv2, absp1 || absp2)
 {- 
    (x : Sigma y:A. B) -> C  
      =iso= (y : A) -> (x' : B) -> C[(y,x')/x]
@@ -1664,6 +1681,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
    (x : Sigma y:V. <B;rho1>) -> <C;rho2> 
      =iso= (y : V) -> <(x': B) -> C; ?? x=(y,x')>
  -}
+{-
             case av of
               VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
                 let x' = x ++ "#2"
