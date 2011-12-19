@@ -172,11 +172,13 @@ Bound :: { A.Bound C.Expr }
 Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
       | Measure '<=' Measure { A.Bound A.Le $1 $3 } {- (A.succMeasure C.Succ $3) } -}
 
+EIds :: { [Name] } -- non-empty list
+EIds : ExprList       { map (\ (C.Ident x) -> x) $1 }
 
 TBind :: { C.TBind }
-TBind :  '(' Ids ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
+TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
       |  '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
-      |  Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
+      |  Pol '(' EIds ':' Expr ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
 --      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
       | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
       | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
@@ -230,9 +232,15 @@ Domain : Type1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
 
 -- expressions which can be tuples e , e'
 ExprT :: { C.Expr}
+ExprT : ExprList           { foldr1 C.Pair $1 }
+{-
 ExprT : Expr               { $1 }
       | Expr ',' ExprT     { C.Pair $1 $3 }
---      | '(' ExprT ')'      { $2 }
+-}
+ExprList :: { [C.Expr] }
+ExprList : Expr               { [$1] }
+         | Expr ',' ExprList     { $1 : $3 }
+
 
 -- general form of expression
 Expr :: { C.Expr }
