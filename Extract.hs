@@ -314,32 +314,11 @@ extractPattern tv p cont = do
       case p of
         ErasedP (VarP y) -> setTypeOfName y dom $ cont [] bv
         _ -> cont [] bv
-
 {-
     Forall x ki env t -> new x ki $ \ xv ->
       cont [] =<< whnf (update env x xv) t -- TODO!
 -}
     Arrow av bv -> extractPattern' av p (flip cont bv)
-{-
-      case p of
-        VarP y -> setTypeOfName y (defaultDomain av) $ 
-          cont [VarP y] bv
-{-
-        VarP y -> new y (defaultDomain av) $ const $  -- TODO! 
-          cont [VarP y] bv
--}
-        PairP p1 p2 -> do
-          case av of
-            VQuant Sigma x dom env b -> do
-              extractPatterns
-        ConP pi n ps -> do
-          tv <- whnf' =<< extrTyp <$> lookupSymb n
-          extractPatterns tv ps $ \ ps _ ->
-            cont [ConP pi n ps] bv
-
---        ErasedP p -> extractPattern av p $ \ _ bv -> cont [] bv
-        _ -> cont [] bv 
--}
 
 extractPattern' :: FTVal -> Pattern -> 
                   ([FPattern] -> TypeCheck a) -> TypeCheck a
@@ -348,11 +327,11 @@ extractPattern' av p cont =
         VarP y -> setTypeOfName y (defaultDomain av) $ 
           cont [VarP y]
         PairP p1 p2 -> do
-          case av of
-            VQuant Sigma x dom env b -> do
-              extractPattern' (typ dom) p1 $ \ [p1] -> do
-                bv <- whnf (update env x VIrr) b
-                extractPattern' bv p2 $ \ [p2] -> cont [PairP p1 p2]
+          view <- prodView av
+          case view of
+            Prod av1 av2 ->
+              extractPattern' av1 p1 $ \ [p1] -> do
+                extractPattern' av2 p2 $ \ [p2] -> cont [PairP p1 p2]
             _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++ 
                           show p ++ " : " ++ show av
         ConP pi n ps -> do
@@ -385,6 +364,7 @@ extractInfer e = do
  
     Def f -> (Def f,) <$> do (whnf' . extrTyp) =<< lookupSymb (name f)
  
+    Pair{} -> fail $ "extractInfer: IMPOSSIBLE: pair " ++ show e
     -- other expressions are erased or types
 
     _ -> return (Irr, VIrr)
@@ -420,9 +400,17 @@ extractCheck e tv = do
        LLet (TBind x dom) e1 <$> do
          new' x vdom $ extractCheck e2 tv
 
+    Pair e1 e2 -> do
+      view <- prodView tv
+      case view of
+        Prod av1 av2 -> Pair <$> extractCheck e1 av1 <*> extractCheck e2 av2
+        _ -> fail $ "extractCheck: tuple type expected " ++ show e ++ " : " ++ show tv
+
     -- TODO: case
 
-    _ -> do
+    _ -> fallback
+  where 
+    fallback = do
       (e,tv') <- extractInfer e
       insertCast e tv tv'
 
@@ -454,6 +442,16 @@ data FunView
   | Forall   Name Domain Env FType  -- forall X:K. A
   | EraseArg FTVal                  -- [] -> B
   | NotFun                          -- ()
+
+prodView :: FTVal -> TypeCheck ProdView
+prodView tv =
+  case tv of
+    VQuant Sigma x dom env b -> Prod (typ dom) <$> whnf (update env x VIrr) b
+    _                        -> return $ NotProd
+
+data ProdView
+  = Prod FTVal FTVal -- A * B
+  | NotProd
 
 -- extracting a kind from a value ------------------------------------
 

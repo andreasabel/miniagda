@@ -2,6 +2,7 @@
 
 module HsSyntax where
 
+import Abstract (PiSigma(..))
 import Language.Haskell.Exts.Syntax
 
 noLoc :: SrcLoc
@@ -61,6 +62,13 @@ mkKindFun k k' = parens k `KindFn` k'
             parens k          = H.KindParen k
 -}
 
+mkTyPiSig :: PiSigma -> Type -> Type -> Type
+mkTyPiSig Pi    = mkTyFun
+mkTyPiSig Sigma = mkTyProd
+
+mkTyProd :: Type -> Type -> Type
+mkTyProd a b = TyTuple Boxed [a,b]
+
 mkTyFun :: Type -> Type -> Type
 mkTyFun = TyFun
 -- mkTyFun a b = mkTyParen a `TyFun` b
@@ -108,6 +116,12 @@ mkParen e = Paren e
 
 mkApp :: Exp -> Exp -> Exp
 mkApp f e = App f e -- (mkParen e) 
+
+mkLLet :: Name -> Type -> Exp -> Exp -> Exp
+mkLLet x t e e' = Let (BDecls [mkLet x e]) e'
+
+mkPair :: Exp -> Exp -> Exp
+mkPair e1 e2 = Tuple [e1,e2]
 
 {- this is already predefined as unit_con
 hsDummyExp :: HsExp

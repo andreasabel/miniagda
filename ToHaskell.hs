@@ -171,8 +171,8 @@ translateType t =
 
     Irr -> return $ H.unit_tycon
 
-    Quant Pi (TBind _ dom) b | not (erased (decor dom)) -> 
-      H.mkTyFun <$> translateType (typ dom) <*> translateType b
+    Quant piSig (TBind _ dom) b | not (erased (decor dom)) -> 
+      H.mkTyPiSig piSig <$> translateType (typ dom) <*> translateType b
 
     Quant Pi (TBind _ dom) b | typ dom == Irr -> translateType b
 
@@ -218,6 +218,16 @@ translateExpr e =
       y <- hsVarName y
       e <- translateExpr e
       return $ if erased dec then e else H.mkLam y e
+
+    LLet (TBind x dom) e1 e2 -> do
+      x  <- hsVarName x
+      e2 <- translateExpr e2 
+      if erased (decor dom) then return e2 else do
+        t  <- translateType (typ dom)
+        e1 <- translateExpr e1
+        return $ H.mkLLet x t e1 e2
+
+    Pair e1 e2 -> H.mkPair <$> translateExpr e1 <*> translateExpr e2
 
     -- TODO
 
