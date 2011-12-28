@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, PatternGuards #-}
+{-# LANGUAGE TypeSynonymInstances, PatternGuards, FlexibleContexts #-}
  
 module TCM where
 
@@ -55,6 +55,11 @@ traceMetaM msg = return () -- traceM msg
 -}
 traceMeta msg a = trace msg a 
 traceMetaM msg = traceM msg
+
+-- type checking monad -----------------------------------------------
+
+class (MonadCxt m, MonadSig m, MonadMeta m, MonadError TraceError m) => 
+  MonadTCM m where
 
 
 -- lists of exactly one or two elements ------------------------------
@@ -138,7 +143,6 @@ toMaybe12 l = error $ "toMaybe12 " ++ show l
 
 
 -- reader monad for local environment 
--- COMMENT "(not used right now)" <-- what does this mean?
 
 data TCContext = TCContext 
   { context   :: SemCxt
@@ -827,6 +831,7 @@ instance MonadCxt TypeCheck where
   checkingMutual mn = local (\ cxt -> cxt { checkingMutualName = mn })
 
 
+-- addBind :: MonadTCM m => TBind -> m a -> m a
 addBind :: TBind -> TypeCheck a -> TypeCheck a
 addBind (TBind x dom) cont = do
   dom' <- (Traversable.mapM whnf' dom) 
@@ -917,7 +922,9 @@ matchPatType (p,v) dom cont =
           (ErasedP p,_) -> matchPatType (p,v) dom cont
           _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show (p,v)
 
+
 -- signature -----------------------------------------------------
+
 -- input to and output of the type-checker
 
 type Signature = Map Name SigDef
@@ -988,43 +995,57 @@ symbKind DataSig{} = kType          -- data types are never universes
 
 emptySig = Map.empty
 
--- first in context, then in signature
-lookupSymbTyp :: Name -> TypeCheck TVal
-lookupSymbTyp n = do
-  mdom <- errorToMaybe $ lookupName1 n
-  case mdom of
-    Just (CxtEntry dom udec) -> return (typ dom)
-    Nothing -> do
-      entry <- lookupSymb n
-      return $ symbTyp entry
+-- Signature specification -------------------------------------------
 
-lookupSymb :: Name -> TypeCheck SigDef
-lookupSymb n = do
-  cxt <- ask
-  case Map.lookup n (mutualFuns cxt) of
-    Just k -> return $ k
-    Nothing -> do
-      sig <- gets signature
-      lookupSig n sig 
-        where
-          lookupSig :: Name -> Signature -> TypeCheck SigDef
-          lookupSig n sig = 
-            case (Map.lookup n sig) of
-              Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
-              Just k -> return k
-    
-addSig :: Name -> SigDef -> TypeCheck ()
-addSig n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
-  st <- get
-  put $ st { signature = Map.insert n def $ signature st }
+class MonadCxt m => MonadSig m where
+  lookupSymbTyp :: Name -> m TVal
+  lookupSymb    :: Name -> m SigDef
+  addSig        :: Name -> SigDef -> m ()
+  modifySig     :: Name -> (SigDef -> SigDef) -> m ()
+  setExtrTyp    :: Name -> Expr -> m ()
 
-modifySig :: Name -> (SigDef -> SigDef) -> TypeCheck ()
-modifySig n f = do
-  st <- get
-  put $ st { signature = Map.adjust f n $ signature st }
+-- Signature implementation ------------------------------------------
 
-setExtrTyp :: Name -> Expr -> TypeCheck ()
-setExtrTyp n t = modifySig n (\ d -> d { extrTyp = t })
+
+instance MonadSig TypeCheck where
+
+  -- first in context, then in signature
+  -- lookupSymbTyp :: Name -> TypeCheck TVal
+  lookupSymbTyp n = do
+    mdom <- errorToMaybe $ lookupName1 n
+    case mdom of
+      Just (CxtEntry dom udec) -> return (typ dom)
+      Nothing -> do
+        entry <- lookupSymb n
+        return $ symbTyp entry
+
+  -- lookupSymb :: Name -> TypeCheck SigDef
+  lookupSymb n = do
+    cxt <- ask
+    case Map.lookup n (mutualFuns cxt) of
+      Just k -> return $ k
+      Nothing -> do
+        sig <- gets signature
+        lookupSig n sig 
+          where
+            -- lookupSig :: Name -> Signature -> TypeCheck SigDef
+            lookupSig n sig = 
+              case (Map.lookup n sig) of
+                Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
+                Just k -> return k
+
+  -- addSig :: Name -> SigDef -> TypeCheck ()
+  addSig n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
+    st <- get
+    put $ st { signature = Map.insert n def $ signature st }
+
+  -- modifySig :: Name -> (SigDef -> SigDef) -> TypeCheck ()
+  modifySig n f = do
+    st <- get
+    put $ st { signature = Map.adjust f n $ signature st }
+
+  -- setExtrTyp :: Name -> Expr -> TypeCheck ()
+  setExtrTyp n t = modifySig n (\ d -> d { extrTyp = t })
 
 -- more on the type checking monad -------------------------------
 
@@ -1034,78 +1055,93 @@ initSt = TCState emptySig emptyMetaVars emptyConstraints emptyPosGraph
 initWithSig :: Signature -> TCState
 initWithSig sig = TCState sig emptyMetaVars emptyConstraints emptyPosGraph
 
-resetConstraints :: TypeCheck ()
-resetConstraints = do
-  st <- get
-  put $ st { constraints = emptyConstraints }
+-- Meta-variable and constraint handling specification ---------------
+
+class Monad m => MonadMeta m where
+  resetConstraints :: m ()
+  mkConstraint     :: Val -> Val -> m (Maybe Constraint)
+  addMeta          :: Ren -> MVar -> m ()
+  addLeq           :: Val -> Val -> m () 
+
+  addLe            :: LtLe -> Val -> Val -> m ()
+  addLe Le v1 v2 = addLeq v1 v2
+  addLe Lt v1 v2 = addLeq (succSize v1) v2
+
+  solveConstraints :: m Solution
+
+  -- solve constraints and substitute solution into the analyzed expressions
+  solveAndModify   :: [Expr] -> Env -> m [Expr]
+  solveAndModify es rho = do
+        sol <- solveConstraints
+        let es' = map (subst (solToSubst sol rho)) es
+        resetConstraints
+        return es'
+
+-- Constraints implementation ----------------------------------------
+
+instance MonadMeta TypeCheck where
+
+  --resetConstraints :: TypeCheck ()
+  resetConstraints = do
+    st <- get
+    put $ st { constraints = emptyConstraints }
+
+  -- mkConstraint :: Val -> Val -> TypeCheck (Maybe Constraint)
+  mkConstraint v (VMax vs) = do
+    bs <- mapM (errorToBool . leqSize' v) vs
+    if any id bs then return Nothing else 
+     fail $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs) 
+  mkConstraint w@(VMax vs) v = fail $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
+  mkConstraint (VMeta i rho n) (VMeta j rho' m) = retret $ arc (Flex i) (m-n) (Flex j)
+  mkConstraint (VMeta i rho n) VInfty      = retret $ arc (Flex i) 0 (Rigid (RConst Infinite))
+  mkConstraint (VMeta i rho n) v           = retret $ arc (Flex i) (m-n) (Rigid (RVar j))
+    where (j,m) = vGenSuccs v 0
+  mkConstraint VInfty (VMeta i rho n)      = retret $ arc (Rigid (RConst Infinite)) 0 (Flex i)
+  mkConstraint v (VMeta j rho m)           = retret $ arc (Rigid (RVar i)) (m-n) (Flex j)
+    where (i,n) = vGenSuccs v 0
+  mkConstraint v1 v2 = fail $ "mkConstraint undefined for " ++ show (v1,v2)
+
+  -- addMeta k x  adds a metavariable which can refer to VGens < k
+  -- addMeta :: Ren -> MVar -> TypeCheck ()
+  addMeta ren i = do
+    scope <- getSizeVarsInScope
+    traceMetaM ("addMeta " ++ show i ++ " scope " ++ show scope)
+    st <- get
+    put $ st { metaVars = Map.insert i (MetaVar scope Nothing) (metaVars st)
+             , constraints = NewFlex i (\ k' -> True) -- k' < k)
+            -- DO NOT ADD constraints of form <= infty !!
+            --               : arc (Flex i) 0 (Rigid (RConst Infinite))
+                           : constraints st }
+
+  -- addLeq :: Val -> Val -> TypeCheck ()
+  addLeq v1 v2 = traceMeta ("Constraint: " ++ show v1 ++ " <= " ++ show v2) $
+    do mc <- mkConstraint v1 v2 
+       case mc of
+         Nothing -> return ()
+         Just c -> do
+           st <- get
+           put $ st { constraints = c : constraints st }
+
+  -- solveConstraints :: TypeCheck Solution
+  solveConstraints = do
+    cs <- gets constraints
+    if null cs then return emptySolution
+     else case solve cs of 
+        Just subst -> -- trace ("solution" ++ show subst) $ 
+                      return subst 
+        Nothing    -> fail $ "size constraints " ++ show cs ++ " unsolvable" 
+
+
+nameOf :: EnvMap -> Int -> Maybe Name
+nameOf [] j = Nothing
+nameOf ((x,VGen i):rho) j | i == j = Just x
+nameOf (_:rho) j = nameOf rho j
 
 vGenSuccs (VGen k)  m = (k,m)
 vGenSuccs (VSucc v) m = vGenSuccs v (m+1)
 vGenSuccs v m = error $ "vGenSuccs fails on " ++ Util.parens (show v) ++ " " ++ show m
 
 retret = return . return
-
-mkConstraint :: Val -> Val -> TypeCheck (Maybe Constraint)
-mkConstraint v (VMax vs) = do
-  bs <- mapM (errorToBool . leqSize' v) vs
-  if any id bs then return Nothing else 
-   fail $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs) 
-mkConstraint w@(VMax vs) v = fail $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
-mkConstraint (VMeta i rho n) (VMeta j rho' m) = retret $ arc (Flex i) (m-n) (Flex j)
-mkConstraint (VMeta i rho n) VInfty      = retret $ arc (Flex i) 0 (Rigid (RConst Infinite))
-mkConstraint (VMeta i rho n) v           = retret $ arc (Flex i) (m-n) (Rigid (RVar j))
-  where (j,m) = vGenSuccs v 0
-mkConstraint VInfty (VMeta i rho n)      = retret $ arc (Rigid (RConst Infinite)) 0 (Flex i)
-mkConstraint v (VMeta j rho m)           = retret $ arc (Rigid (RVar i)) (m-n) (Flex j)
-  where (i,n) = vGenSuccs v 0
-mkConstraint v1 v2 = fail $ "mkConstraint undefined for " ++ show (v1,v2)
-
--- addMeta k x  adds a metavariable which can refer to VGens < k
-addMeta :: Ren -> MVar -> TypeCheck ()
-addMeta ren i = do
-  scope <- getSizeVarsInScope
-  traceMetaM ("addMeta " ++ show i ++ " scope " ++ show scope)
-  st <- get
-  put $ st { metaVars = Map.insert i (MetaVar scope Nothing) (metaVars st)
-           , constraints = NewFlex i (\ k' -> True) -- k' < k)
-          -- DO NOT ADD constraints of form <= infty !!
-          --               : arc (Flex i) 0 (Rigid (RConst Infinite))
-                         : constraints st }
- 
-addLe :: LtLe -> Val -> Val -> TypeCheck ()
-addLe Le v1 v2 = addLeq v1 v2
-addLe Lt v1 v2 = addLeq (succSize v1) v2
-
-addLeq :: Val -> Val -> TypeCheck ()
-addLeq v1 v2 = traceMeta ("Constraint: " ++ show v1 ++ " <= " ++ show v2) $
-  do mc <- mkConstraint v1 v2 
-     case mc of
-       Nothing -> return ()
-       Just c -> do
-         st <- get
-         put $ st { constraints = c : constraints st }
-  
-solveConstraints :: TypeCheck Solution
-solveConstraints = do
-  cs <- gets constraints
-  if null cs then return emptySolution
-   else case solve cs of 
-      Just subst -> -- trace ("solution" ++ show subst) $ 
-                    return subst 
-      Nothing    -> fail $ "size constraints " ++ show cs ++ " unsolvable" 
-
--- solve constraints and substitute solution into the analyzed expressions
-solveAndModify :: [Expr] -> Env -> TypeCheck [Expr]
-solveAndModify es rho = do
-      sol <- solveConstraints
-      let es' = map (subst (solToSubst sol rho)) es
-      resetConstraints
-      return es'
-
-nameOf :: EnvMap -> Int -> Maybe Name
-nameOf [] j = Nothing
-nameOf ((x,VGen i):rho) j | i == j = Just x
-nameOf (_:rho) j = nameOf rho j
 
 sizeExprToExpr :: Env -> SizeExpr -> Expr
 sizeExprToExpr rho (SizeConst Infinite) = Infty
