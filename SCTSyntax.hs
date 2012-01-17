@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module SCTSyntax where
 
 import Prelude hiding (showList)

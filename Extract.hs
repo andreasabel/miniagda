@@ -148,7 +148,7 @@ Inferring application:
 
 -}
 
-import Char
+import Data.Char
 
 import Control.Applicative
 import Control.Monad

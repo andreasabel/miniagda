@@ -39,7 +39,7 @@ Translation from MiniAgda identifiers to Haskell identifiers
 
 -}
 
-import Char
+import Data.Char
 
 import Control.Applicative
 import Control.Monad

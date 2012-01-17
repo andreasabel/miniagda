@@ -16,7 +16,8 @@ import ToHaskell
 import qualified Language.Haskell.Exts.Syntax as H
 import qualified Language.Haskell.Exts.Pretty as H
 
-import System
+import System.Environment
+import System.Exit
 import System.IO (stdout, hSetBuffering, BufferMode(..))
 
 

@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections, FlexibleInstances #-}
-
+{-# LANGUAGE NoImplicitPrelude #-}
+ 
 module Eval where
 
 import Util

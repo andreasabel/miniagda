@@ -211,7 +211,7 @@ fromLists sz bs = fromIndexList sz $
 
 -- | Converts a sparse matrix to a sparse list of rows
 
-toSparseRows :: (Num i, Enum i) => Matrix i b -> [(i,[(i,b)])]
+toSparseRows :: (Num i, Enum i, Eq i) => Matrix i b -> [(i,[(i,b)])]
 toSparseRows m = aux 1 [] (unM m)
   where aux i' [] []  = []
         aux i' row [] = [(i', reverse row)]
@@ -220,7 +220,7 @@ toSparseRows m = aux 1 [] (unM m)
             | otherwise = (i', reverse row) : aux i [(j,b)] m
 
 -- sparse vectors cannot have two entries in one column
-blowUpSparseVec :: (Ord i, Num i, Enum i) => b -> i -> [(i,b)] -> [b]
+blowUpSparseVec :: (Eq i, Ord i, Num i, Enum i, Show i) => b -> i -> [(i,b)] -> [b]
 blowUpSparseVec zero n l = aux 1 l
   where aux i [] | i > n = []
                  | otherwise = zero : aux (i+1) []
@@ -231,7 +231,7 @@ blowUpSparseVec zero n l = aux 1 l
 
 -- | Converts a matrix to a list of row lists.
 
-toLists :: (Ord i, Integral i, Enum i, HasZero b) => Matrix i b -> [[b]]
+toLists :: (Ord i, Integral i, Enum i, HasZero b, Show i) => Matrix i b -> [[b]]
 toLists m = blowUpSparseVec emptyRow (rows sz) $
     map (\ (i,r) -> (i, blowUpSparseVec zeroElement (cols sz) r)) $ toSparseRows m
 --            [ [ maybe zeroElement id $ lookup (MIx { row = r, col = c }) (unM m)
@@ -390,7 +390,7 @@ prop_mul sz =
 --
 -- Precondition: @'square' m@.
 
-diagonal :: (Enum i, Num i, Ix i, HasZero b) => Matrix i b -> [b]
+diagonal :: (Enum i, Num i, Ix i, Show i, HasZero b) => Matrix i b -> [b]
 diagonal m = blowUpSparseVec zeroElement (rows sz) $
   map (\ ((MIx i j),b) -> (i,b)) $ filter (\ ((MIx i j),b) -> i==j) (unM m)
   where sz = size m

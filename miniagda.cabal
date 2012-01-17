@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.20111216
+version:         0.20120115
 build-type:      Simple
 cabal-version:   >= 1.8 && < 2
 license:         AllRightsReserved
@@ -12,19 +12,27 @@ homepage:        http://www2.tcs.ifi.lmu.de/~abel/miniagda/
 category:        Dependent types
 synopsis:        ...
 description:
-  MiniAgda ...
+  MiniAgda is a tiny dependently-typed programming language in the style
+  of Agda. It serves as a laboratory to test potential additions to the
+  language and type system of Agda. MiniAgda's termination checker is a
+  fusion of sized types and size-change termination and supports
+  coinduction. Equality incorporates eta-expansion at record and
+  singleton types. Function arguments can be declared as static; such
+  arguments are discarded during equality checking and compilation.
+
+  Recent features include bounded size quantification and destructor
+  patterns for a more general handling of coinduction. 
 
 executable miniagda
   hs-source-dirs:   .
-  build-depends:    array == 0.3.*,
-                    base >= 4.2 && < 4.4,
-                    containers == 0.3.*,
-                    haskell-src-exts >= 1.9.5 && < 1.10,
-                    haskell98 >= 1.0 && < 1.2,
+  build-depends:    array >= 0.3 && < 0.5,
+                    base >= 4.2 && < 4.6,
+                    containers >= 0.3 && < 0.5,
+                    haskell-src-exts >= 1.9.5 && < 1.12,
                     mtl == 2.0.*,
-                    pretty == 1.0.*
+                    pretty >= 1.0 && < 1.2
   build-tools:      happy >= 1.15 && < 2,
-                    alex >= 2.0.1 && < 3
+                    alex >= 2.0.1 && < 4
   extensions:       MultiParamTypeClasses
                     TypeSynonymInstances
                     FlexibleInstances
@@ -44,6 +52,8 @@ executable miniagda
                     Polarity
                     PrettyTCM
                     ScopeChecker
+                    Semiring
+                    SparseMatrix
                     SPos
                     TCM
                     Termination
