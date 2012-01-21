@@ -47,6 +47,8 @@ fun f3 : [X : Nat -> Set] -> X zero -> Nat
 { f3 X x = zero
 }
 
+-- the following fails because we end up comparing a Nat to a Bool
+fail
 fun bad : 
  [F : [X : Nat -> Set] -> X zero -> Set] ->
  (g : F T zero)                          ->

@@ -134,9 +134,11 @@ minO o1 o2 = case (o1,o2) of
                (Mat m1,_) -> minO (collapse m1) o2
                (_,Mat m2) -> minO o1 (collapse m2)
 
+{-
 -- for non empty lists:
 minimumO :: (?cutoff :: Int) => [Order] -> Order
 minimumO = foldl1 minO 
+-}
 
 -- | pointwise minimum
 minM :: (?cutoff :: Int) => Matrix Order -> Matrix Order -> Matrix Order
@@ -288,7 +290,7 @@ compareExpr e p =
       (Succ e2,SuccP p2) -> compareExpr e2 p2     
       -- new cases for counting constructors
       (Succ e2,p) -> Decr (-1) `comp` compareExpr e2 p
-      (App (Con _ n1) args@(_:_), p) -> Decr (-1) `comp` minimumO (map (\e -> compareExpr e p) args)
+      (App (Con _ n1) args@(_:_), p) -> Decr (-1) `comp` minL (map (\e -> compareExpr e p) args)
       _ -> Un
 -}
 
@@ -314,7 +316,9 @@ compareExpr' tso e p =
 --      (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Decr 0
 --      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr' tso e1 p1 
       ((Def (DefId (ConK _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
-          minL $ Decr 0 : zipWith (compareExpr' tso) args pl 
+          let os = zipWith (compareExpr' tso) args pl 
+          in  trace ("compareExpr (con/con case): os = " ++ show os) $
+              if null os then Decr 0 else minL os
 {- 2011-12-16 deactivate structured (matrix) orders
           orderMat $ 
             M.fromLists (M.Size { M.rows = length args, M.cols = length pl }) $
@@ -324,7 +328,7 @@ compareExpr' tso e p =
       ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2     
       -- new cases for counting constructors
       ((Succ e2,_),p) ->  Decr (-1) `comp` compareExpr' tso e2 p
-      ((Def (DefId (ConK _) n1),args@(_:_)), p) ->  Decr (-1) `comp` minimumO (map (\e -> compareExpr' tso e p) args)
+      ((Def (DefId (ConK _) n1),args@(_:_)), p) ->  Decr (-1) `comp` minL (map (\e -> compareExpr' tso e p) args)
       ((Proj n1,[]), ProjP n2) | n1 == n2 -> Decr 0
       _ -> Un
 
@@ -785,9 +789,9 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           (LLet tb e1 e2) ->  
              (loop tso e1) ++ -- type won't get evaluated 
              (loop tso e2) 
-          (Quant Pi (TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop tso e2)
-          (Quant Pi (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
-          (Quant Pi (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
+          (Quant _ (TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop tso e2)
+          (Quant _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
+          (Quant _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Pair e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Succ e) -> loop tso e

@@ -1259,7 +1259,8 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         when (checkCon && polarity dec /= Mixed) $
           fail $ "constructor arguments must be declared mixed-variant"
 -}
-        (s1, Kinded ki0 t1e) <- checkingDom $ checkingCon False $ inferType t1 -- switch off parametric Pi
+        (s1, Kinded ki0 t1e) <- (if pisig==Pi then checkingDom else id) $ 
+          checkingCon False $ inferType t1 -- switch off parametric Pi
         -- the kind of the bound variable is the precedessor of the kind of its type
         let ki1 = predKind ki0
         addBind (TBind n (Domain t1e ki1 $ defaultDec)) $ do -- ignore erasure flag AND polarity in Pi! (except for irrelevant, only becomes parametric)
@@ -1666,7 +1667,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
           PairP p1 p2 -> do
             case av of
-              VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
+             VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
               (flex, ins, cxt, pe1, pv1, absp1) <- 
                  checkPattern' flex ins (Domain av1 ki1 $ dec1 `compose` decEr) p1
               av2 <- whnf (update env1 y pv1) a2
@@ -1674,6 +1675,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  local (const cxt) $
                    checkPattern' flex ins (Domain av2 ki decEr) p2 
               return (flex, ins, cxt, PairP pe1 pe2, VPair pv1 pv2, absp1 || absp2)
+             _ -> failDoc (text "pair pattern" <+> prettyTCM p <+> text "could not be checked against type" <+> prettyTCM av)
 {- 
    (x : Sigma y:A. B) -> C  
      =iso= (y : A) -> (x' : B) -> C[(y,x')/x]

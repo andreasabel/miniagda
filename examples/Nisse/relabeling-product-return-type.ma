@@ -80,6 +80,16 @@ fun fib : Nat -> Tree Unit #
 ; fib (S (S n)) = node Unit # unit (fib n) (fib (S n))
 }
 
+{- case does not construct orderings (except between sizes)
+fun fib : Nat -> Tree Unit #
+{ fib Z     = leaf Unit #
+; fib (S m) = case m
+  { Z -> leaf Unit #
+  ; (S n) -> node Unit # unit (fib n) (fib m)
+  }
+}
+-}
+
 cofun fibTree : [i : Size] -> Nat -> Tree Unit i
 { fibTree ($ i) n = node Unit i unit (fib n) (fibTree i (S n))
 }
