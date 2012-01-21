@@ -12,16 +12,16 @@ fun snd' : (A, B : Set) -> A & B -> B
 let swap : (A, B : Set) -> A & B -> B & A
   = \ A B p -> (snd' A B p, fst' A B p)
 
-fun reassoc' : (A, B, C : Set) -> (A & B) & C -> A & (B & C)
+fun reassoc' : (A, B, C : Set) -> (A & B) & C -> A & B & C
 { reassoc' A B C ((a , b) , c) = let bc : B & C = b , c in a , bc 
 }
 
-fun reassoc'' : (A, B, C : Set) -> (A & B) & C -> A & (B & C)
-{ reassoc'' A B C ((a , b) , c) = a , (b , c)  -- a , (b , c) -- parse err
+fun reassoc'' : (A, B, C : Set) -> (A & B) & C -> A & B & C
+{ reassoc'' A B C ((a , b) , c) = a , b , c
 }
 
-fun reassoc3 : (A, B, C, D : Set) -> ((A & B) & C) & D -> A & (B & (C & D))
-{ reassoc3 A B C D (((a , b) , c) , d) = a , (b , c , d)
+fun reassoc3 : (A, B, C, D : Set) -> ((A & B) & C) & D -> A & B & C & D
+{ reassoc3 A B C D (((a , b) , c) , d) = a , b , c , d
 }
 
 -- dependent pairs

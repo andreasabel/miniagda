@@ -193,9 +193,9 @@ LBind :  Id ':' Expr         { C.TBind A.defaultDec [$1] $3 } -- ordinary bindin
       |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
 --      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
 Domain :: { C.TBind }
-Domain : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
+Domain : Expr0             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
-       | Pol Expr1         { C.TBind (Dec $1) [] $2 }
+       | Pol Expr0         { C.TBind (Dec $1) [] $2 }
 --       | Pol '[' Expr ']'  { C.TBind (Dec True  $1) [] $3 }
        | TBind             { $1 }
        | Measure           { C.TMeasure $1 }
@@ -249,9 +249,22 @@ Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
      | case ExprT '{' Cases '}'          { C.Case $2 $4 }  
-     | Expr1                            { $1 }
+     | Expr0                            { $1 }
      | Expr1 '+' Expr                   { C.Plus $1 $3 }
 --     | Expr1 ',' Expr                   { C.Pair $1 $3 }
+
+Expr0 :: { C.Expr }
+Expr0 : Expr1                            { $1 }
+      | SigDom '&' Expr0                 { C.Quant A.Sigma $1 $3 } 
+
+SigDom :: { C.TBind }
+SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
+       | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
+       | Pol Expr1         { C.TBind (Dec $1) [] $2 }
+--       | Pol '[' Expr ']'  { C.TBind (Dec True  $1) [] $3 }
+       | TBind             { $1 }
+       | Measure           { C.TMeasure $1 }
+       | Bound             { C.TBound $1 }
 
 -- perform applications
 Expr1 :: { C.Expr }
@@ -264,7 +277,6 @@ Expr1 : Expr2 { let (f : args) = reverse $1 in
        | number '*' Expr1                 { let n = read $1 in
                                             if n==0 then C.Zero else
                                             iterate (C.Plus $3) $3 !! (n-1) }
-       | Domain '&' Expr1                 { C.Quant A.Sigma $1 $3 } 
 
 -- gather applications
 Expr2 :: { [C.Expr] }
