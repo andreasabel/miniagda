@@ -828,6 +828,14 @@ checkDataType p e = do
 checkSize :: Expr -> TypeCheck Extr
 checkSize e = valueOf <$> checkExpr e vSize
 
+checkBelow :: Expr -> LtLe -> Val -> TypeCheck Extr
+checkBelow e ltle v = do
+  e' <- checkSize e
+  v' <- whnf' e
+  leSize ltle Pos v' v
+  return e'
+  
+
 -- checkLevel e = (value of e, ee)
 -- if e : Size and value of e != Infty
 checkLevel :: Expr -> TypeCheck (Val, Extr)
@@ -1113,6 +1121,9 @@ Following Awodey/Bauer 2001, the following rule is valid
              -- never prune a Pi
                return $ Pi dec n t1e t2e
 -}
+      (e, VBelow ltle v) -> Kinded kSize <$> checkBelow e ltle v
+
+      (Zero, VSort (SortC Size)) -> return $ Kinded kSize $ Zero
  
       (Plus es, VSort (SortC Size)) -> do
               ese <- mapM checkSize es
@@ -1529,6 +1540,27 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
             return $ Kinded ki (Clause tel ple (Just rhse))
 
 
+-- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
+--   with parameters instantiated
+conType :: Name -> TVal -> TypeCheck TVal
+conType c tv = do
+  dv <- dataView tv
+  case dv of
+    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv <+> text "to be a data type")
+    Data n vs -> do
+      -- DataSig { numPars } <- lookupSymb n
+      ConSig { numPars, symbTyp } <- lookupSymb c
+      let (pars, inds) = splitAt numPars vs
+      unless (length pars == numPars) $
+        failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv 
+                   <+> text ("to be a data type applied to all of its " ++ 
+                     show numPars ++ " parameters"))
+      piApps symbTyp pars
+ 
+-- * Pattern checking ------------------------------------------------
+
 type Substitution = [(Int,TVal)]
 
 type DotFlex = (Int,(Expr,Domain))
@@ -1666,6 +1698,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
           SuccP{} -> failDoc (text "successor pattern" <+> prettyTCM p <+> text "not allowed here")
 
           PairP p1 p2 -> do
+            av <- force av
             case av of
              VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
               (flex, ins, cxt, pe1, pv1, absp1) <- 
@@ -1699,11 +1732,28 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
               cxt' <- ask 
               return (flex, ins, cxt', maybeErase $ VarP y, xv, False)
 
+{- checking bounded size patterns
+
+    ex : [i : Size] -> [j : Below< i] -> ...
+    ex i (j < i) = ...
+
+  type of pattern : Below< i needs to cover type of parameter Below< i
+
+    zero : [j : Size] -> Nat $j   -- need to hold a "sized con type"
+    zero : [j < i]    -> Nat i
+
+    ex : [i : Size] -> (n : Nat i) -> ...
+    ex i (zero (j < i) = ...
+
+  type of size-pat : Below< i
+
+-}
           SizeP z y -> do -- pattern (z > y), y is the bound variable, z the bound of z
             resurrect $ checkSize (Var z)
             newWithGen y domEr $ \ j xv -> do
                VGen k <- whnf' (Var z)
-               addSizeRel j 1 k $ do
+               addSizeRel j 1 k $ do  -- j < k
+                 -- TODO: ENABLE  subtype av (VBelow Lt (VGen k))
                  cxt' <- ask 
                  return (flex, ins, cxt', maybeErase $ SizeP z y, xv, False)
 
@@ -2193,10 +2243,30 @@ compSubst subst1 subst2 = do
     return $ subst1' ++ subst2               
 -}
 
----- Size checking
---------------
+-- Size checking
+----------------------------------------------------------------------
 
--- check wether the data type is sized type
+{- TODO: From a sized data declaration
+
+  sized data D pars : Size -> t 
+  { c : [j : Size] -> args -> D pars $j ts
+  }
+
+  with constructor type
+
+   c : .pars -> [j : Size] -> args -> D pars $j ts
+
+  extract new-style constructor type
+
+   c : [i : Size] -> .pars -> [j < i : Size] -> args -> D pars i ts
+
+  Then replace in ConSig filed isSized :: Sized  by :: Maybe Expr
+  which stores the new-style constructor type
+ 
+-}
+
+
+-- *check wether the data type is sized type
 
 
 -- check data declaration type 

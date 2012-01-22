@@ -691,6 +691,18 @@ appDef n vl = --trace ("appDef " ++ n) $
               Just v2 -> return v2
         _ -> return $ VApp (VDef (DefId FunK n)) vl   
 
+-- value views -------------------------------------------------------
+
+data DataView 
+  = Data Name [Clos]
+  | NoData
+
+dataView :: TVal -> TypeCheck DataView
+dataView tv = do -- maybe force tv?
+  case tv of
+    VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
+    _                             -> return $ NoData 
+
 -- reflection and reification  ---------------------------------------
 
 -- TODO: eta for builtin sigma-types !?
@@ -1342,7 +1354,9 @@ leqVal' f p mt12 u1' u2' = do
                   leqVal' f p Nothing av1 av2
                   leqVal' N mixed (Just (Two av1 av2)) v1 v2  -- compare for eq.     
 
-              (VSing v1 av1, VBelow ltle v2) | av1 == vSize && p == Pos -> leSize ltle p v1 v2
+              (VSing v1 av1, VBelow ltle v2) | av1 == vSize && p == Pos -> do
+                 v1 <- whnfClos v1
+                 leSize ltle p v1 v2
 
               -- unresolved eta-expansions (e.g. at coinductive type)
               (VUp v1 av1, VUp v2 av2) -> do

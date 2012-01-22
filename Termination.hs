@@ -346,6 +346,8 @@ compareVar tso n p =
         case TSO.diff n n2 tso of -- if n2 is the k-th father of n, then it is a decrease by k
           Nothing -> ret Un
           Just k -> ret $ decr k
+      PairP p1 p2 -> maxL (map (compareVar tso n) [p1,p2])
+         -- no decrease in pair:  ALT: comp (Decr 1) (...)
       ConP pi c (p:pl) | coPat pi == Ind -> 
         comp (Decr 1) (maxL (map (compareVar tso n) (p:pl)))
       ConP{}   -> ret Un
@@ -760,6 +762,13 @@ tsoCase :: TSO Name -> Expr -> [Clause] -> TSO Name
 tsoCase tso (Var x) [Clause _ [SuccP (VarP y)] _] = TSO.insert y (1,x) tso
 tsoCase tso _ _ = tso
 
+-- | harvest i < j  from (i < j) -> ... or (i < j) & ...
+tsoBind :: TSO Name -> TBind -> TSO Name
+tsoBind tso (TBind x (Domain (Below ltle (Var y)) _ _)) = TSO.insert x (n ltle,y) tso
+  where n Lt = 1
+        n Le = 0
+tsoBind tso _ = tso
+
 collectCallsExpr :: (?cutoff :: Int) => [(Name,Arity)] -> Name -> [Pattern] -> Expr -> [Call]
 collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
   loop tso e where
@@ -789,9 +798,10 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           (LLet tb e1 e2) ->  
              (loop tso e1) ++ -- type won't get evaluated 
              (loop tso e2) 
-          (Quant _ (TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop tso e2)
+          (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)
           (Quant _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
           (Quant _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
+          (Below ltle e) -> loop tso e
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Pair e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Succ e) -> loop tso e

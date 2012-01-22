@@ -328,12 +328,25 @@ extractPattern' av p cont =
           cont [VarP y]
         PairP p1 p2 -> do
           view <- prodView av
+          -- hack to avoid IMPOSSIBLE
+          let (av1, av2) = case view of
+                             Prod av1 av2 -> (av1, av2)
+                             _ -> (av, av) -- HACK
+          extractPattern' av1 p1 $ \ ps1 -> do
+            extractPattern' av2 p2 $ \ ps2 -> 
+               let ps [] ps2    = ps2
+                   ps ps1 []    = ps1
+                   ps [p1] [p2] = [PairP p1 p2]
+               in  cont $ ps ps1 ps2
+            
+{-
           case view of
             Prod av1 av2 ->
               extractPattern' av1 p1 $ \ [p1] -> do
                 extractPattern' av2 p2 $ \ [p2] -> cont [PairP p1 p2]
             _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++ 
                           show p ++ " : " ++ show av
+-}
         ConP pi n ps -> do
           tv <- whnf' =<< extrTyp <$> lookupSymb n
           extractPatterns tv ps $ \ ps _ ->
@@ -402,9 +415,15 @@ extractCheck e tv = do
 
     Pair e1 e2 -> do
       view <- prodView tv
+      let (av1,av2) = case view of
+                        Prod av1 av2 -> (av1, av2)
+                        _ -> (tv,tv) -- HACK!!
+      Pair <$> extractCheck e1 av1 <*> extractCheck e2 av2
+{-
       case view of
         Prod av1 av2 -> Pair <$> extractCheck e1 av1 <*> extractCheck e2 av2
         _ -> fail $ "extractCheck: tuple type expected " ++ show e ++ " : " ++ show tv
+-}
 
     -- TODO: case
 

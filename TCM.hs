@@ -910,7 +910,8 @@ matchPatType (p,v) dom cont =
           (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont 
 
           (PairP p1 p2, VPair v1 v2) -> do
-             case typ dom of
+             av <- force (typ dom)
+             case av of
                VQuant Sigma x dom1@(Domain av1 ki dec) env b -> do
                  matchPatType (p1,v1) dom1 $ do
                    bv <- whnf (update env x v1) b

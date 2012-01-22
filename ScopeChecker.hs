@@ -147,9 +147,12 @@ addBind e n k = do -- checkInSig e n $ do -- NO PROBLEM TO SHADOW SIG!
 addBind' :: Show e => e -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck (A.Name, a)
 addBind' e n k = do
   ctx <- ask
+  do
+{-
   case (lookupCtx n (context ctx)) of              -- TODO: remove no shadowing 
     Just _  -> errorAlreadyInContext e n
     Nothing -> do
+-}
       let (x, ctx') = addCtx' n ctx
       a <- local (const ctx') $ k x 
       return (x, a)                

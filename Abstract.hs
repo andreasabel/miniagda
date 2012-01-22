@@ -304,13 +304,32 @@ minSort :: Sort Expr -> Sort Expr -> Sort Expr
 minSort (SortC Tm) (Set e) = SortC Tm
 minSort (Set e) (SortC Tm) = SortC Tm
 minSort (Set e) (Set e') = Set (minSizeE e e')
-minSort (SortC c) (SortC c') | c == c' = SortC c
+-- minSort (SortC c) (SortC c') | c == c' = SortC c
+minSort (SortC c) (SortC c') = SortC $ minClass c c'
+minSort s s' = error $ "minSort (" ++ show s ++ ") (" ++ show s' ++ ") not implemented"
+
+-- 2012-01-21: that should not be necessary, but to move on...
+minClass :: Class -> Class -> Class
+minClass Tm c = Tm
+minClass c Tm = Tm
+minClass Size c = Size
+minClass c Size = Size
+minClass TSize TSize = TSize
+maxClass :: Class -> Class -> Class
+
+maxClass Tm c = c
+maxClass c Tm = c
+maxClass Size c = c
+maxClass c Size = c
+maxClass TSize TSize = TSize
 
 maxSort :: Sort Expr -> Sort Expr -> Sort Expr
 maxSort (SortC Tm) (Set e) = Set e
 maxSort (Set e) (SortC Tm) = Set e
 maxSort (Set e) (Set e') = Set (maxSizeE e e')
-maxSort (SortC c) (SortC c') | c == c' = SortC c
+-- maxSort (SortC c) (SortC c') | c == c' = SortC c
+maxSort (SortC c) (SortC c') = SortC $ maxClass c c'
+maxSort s s' = error $ "maxSort (" ++ show s ++ ") (" ++ show s' ++ ") not implemented"
 
 {-
 leSort :: Sort -> Sort -> Bool
@@ -477,10 +496,10 @@ type MVar = Int -- metavariables are numbered
 
 data TBinding a = TBind 
   { boundName :: Name -- "" if no name is given 
-  , boundDom  :: Dom a
+  , boundDom  :: Dom a       -- ^ @x : T@ or @i < j@
   } 
-  | TMeasure (Measure Expr)
-  | TBound   (Bound Expr)
+  | TMeasure (Measure Expr)  -- ^ measure @|m|@
+  | TBound   (Bound Expr)    -- ^ constraint @|m| <(=) |m'|@ 
     deriving (Eq,Ord,Show,Functor,Foldable,Traversable)
 
 type TBind = TBinding Type

@@ -3,12 +3,14 @@
 files=Main Lexer Parser Polarity Abstract ScopeChecker TypeChecker Value TCM Eval Termination SPos Concrete Warshall Util TreeShapedOrder TraceError Extract HsSyntax ToHaskell PrettyTCM Semiring SparseMatrix
 # RETIRED: Completness
 hsfiles=$(foreach file,$(files),$(file).hs)
-ghcflags=-fglasgow-exts -ignore-package monads-fd
+ghcflags=-fglasgow-exts -ignore-package monads-fd -rtsopts
 optflags=
 # -O
 profflags=-prof -auto-all
 distfiles=*.hs *.hs-boot Lexer.x Parser.y Makefile 
 distdirs=test/succeed test/fail examples
+
+cabalp=cabal install -p --enable-executable-profiling
 
 .PHONY : test examples current default clean veryclean
 
@@ -17,7 +19,11 @@ default : Main test
 #current : miniagda-prof
 #	miniagda-prof privateExamples/NisseContNorm/negative-2010-11-23.ma +RTS -prof
 current : Main
-	Main test/fail/InvalidField.ma
+	Main test/fail/BoundedFake.ma
+#	Main test/features/Existential/list.ma
+#	Main test/features/Existential/nat.ma
+#	Main examples/RBTree/RBTreeConor.ma
+#	Main test/fail/InvalidField.ma
 #	Main test/succeed/BuiltinSigma.ma
 #	Main test/features/records.ma
 #	Main test/succeed/MeasuredHerSubst2.ma
@@ -43,6 +49,15 @@ miniagda-prof : Main.hs $(hsfiles)
 
 Main : Main.hs $(hsfiles)
 	ghc $(ghcflags) $(optflags) $< --make -o $@
+
+install-prof-libs :
+	$(cabalp) transformers
+	$(cabalp) mtl
+	$(cabalp) syb
+	$(cabalp) parsec
+	$(cabalp) preprocessor-tools
+	$(cabalp) cpphs
+	$(cabalp) haskell-src-exts
 
 SCT : SCT.hs Lexer.hs SCTParser.hs SCTSyntax.hs
 	ghc $(ghcflags) $< --make -o $@
