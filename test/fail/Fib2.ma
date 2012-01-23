@@ -25,8 +25,8 @@ cofun zipWith : [A : Set] -> [B : Set] -> [C : Set] ->
                 (A -> B -> C) -> [i : Size] ->
 		Stream A i -> Stream B i -> Stream C i 
 {
-  zipWith A B C f ($ i) (cons .A .i a as) (cons .B .i b bs) = 
-	cons C i (f a b)  (zipWith A B C f i as bs) 
+  zipWith A B C f ($ i) (cons .i a as) (cons .i b bs) = 
+	cons i (f a b)  (zipWith A B C f i as bs) 
 }
 
 
@@ -37,16 +37,16 @@ let n1 : Nat = succ # n0
 
 cofun fib : [i : Size] -> Stream Nat i
 {
-  fib ($ i) = cons Nat i n0 (zipWith Nat Nat Nat add i 
-    (cons Nat i n1 (fib i)) (fib i))
+  fib ($ i) = cons i n0 (zipWith Nat Nat Nat add i 
+    (cons i n1 (fib i)) (fib i))
 }
 
 cofun fib2 : [i : Size] -> Stream Nat (i + i)
 {
   fib2 ($ i) = -- RHS illtyped, produces only Stream Nat $(i + i)
-    cons Nat (i + i) n0 
+    cons (i + i) n0 
       (zipWith Nat Nat Nat add (i + i) 
-        (cons Nat (i + i) n1 (fib2 i)) 
+        (cons (i + i) n1 (fib2 i)) 
         (fib2 i))
 }
 

@@ -62,23 +62,30 @@ data Exists (X : Set) (Y : X -> Set) : Set
 fun map2 : (X, X' : Set) -> (Y : X -> Set) -> (Y' : X' -> Set) ->
   (f : X -> X') -> (g : (x : X) -> Y x -> Y' (f x)) -> 
   Exists X Y -> Exists X' Y'
-{ map2 X X' Y Y' f g (pair .X .Y x y) = pair X' Y' (f x) (g x y)
+{ map2 X X' Y Y' f g (pair x y) = pair (f x) (g x y)
 } 
 
 {-
 Goal  forall s, repet s -> exists t, repet1 s t.
 -}
 
+let tcons_ : [i : Size] -> A -> CoList i -> CoList $i
+  = \ i a as -> tcons i a as
+
+let tstep_ : (a : A) -> [i : Size] -> (a' : A) -> (t : CoList i) -> 
+    R a a' -> Traced a' i t -> Traced a $i (tcons i a' t)
+  = \ a i a' t r tr -> tstep i a' t r tr
+
 cofun trace : [i : Size] -> (a : A) -> Reach a i -> Exists (CoList i) (Traced a i)
-{ trace ($i) a (start .a .i s) = 
-    pair (CoList $i) (Traced a $i) 
+{ trace ($i) a (start .i s) = 
+    pair -- (CoList $i) (Traced a $i) 
       (tnil i) 
-      (tstart a i s)
-; trace ($i) a (step .a .i a' r x) =
+      (tstart i s)
+; trace ($i) a (step .i a' r x) =
     map2 (CoList i) (CoList $i)
          (Traced a' i) (Traced a $i)    
-         (tcons i a')
-         (\ t -> tstep a i a' t r)
+         (tcons_ i a')
+         (\ t -> tstep_ a i a' t r)
          (trace i a' x)
 }      
 

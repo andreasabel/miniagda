@@ -6,8 +6,8 @@ data List (+ A : Set) : Set
 }
 
 fun mapList : [A : Set] -> [B : Set] -> (A -> B) -> List A -> List B
-{ mapList A B f (nil .A) = nil B
-; mapList A B f (cons .A a as) = cons B (f a) (mapList A B f as)
+{ mapList A B f (nil) = nil
+; mapList A B f (cons a as) = cons (f a) (mapList A B f as)
 }
 
 -- sized Roses
@@ -18,6 +18,6 @@ sized data Rose (+ A : Set) : Size -> Set
 
 fun mapRose : [A : Set] -> [B : Set] -> (A -> B) -> 
               [i : Size] -> Rose A i -> |i| -> Rose B i
-{ mapRose A B f i (rose .A (i > j) a rs) = 
-    rose B j (f a) (mapList (Rose A j) (Rose B j) (mapRose A B f j) rs)
+{ mapRose A B f i (rose (i > j) a rs) = 
+    rose j (f a) (mapList (Rose A j) (Rose B j) (mapRose A B f j) rs)
 }

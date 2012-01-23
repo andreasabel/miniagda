@@ -12,7 +12,7 @@ data Eq (A : Set) (a : A) : A -> Set
 fun subst : (A : Set) -> (P : A -> Set) -> (i : A) -> (j : A) ->
             Eq A i j -> P i -> P j
 {
-  subst A P i .i (refl .A .i) p = p
+  subst A P i .i (refl) p = p
 }
 
 -- h is not a problem since the right hand side of the first clause
@@ -29,4 +29,4 @@ let loop : (ass : (i : Size) -> Eq Size ($ i) i) -> SNat #
 
 let  yy : (ass : (i : Size) -> Eq Size ($ i) i) -> 
 	     Eq (SNat #) (zero #) (h ass # (zero #)) 
-        = \ ass -> refl (SNat #) (zero #)
+        = \ ass -> refl

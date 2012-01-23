@@ -20,7 +20,7 @@ fun invertible : (A : Set) -> InvI A {}  -- postulate
 
 let cantor : Set -> Set
 = \ A -> case (invertible A) 
-  { (inv .A X p) -> X A 
+  { (inv X p) -> X A 
   }
 
 -- self-application on the type level
@@ -31,7 +31,7 @@ let cIc : Set
 fail
 let loopTC : cIc
 = case (invertible (I cantor))
-  { (inv .(I cantor) .cantor (refl .Set .(I cantor)))  -> 
+  { (inv .cantor refl)  -> 
    -- in the branch, cIc --> cIc --> cIc
    -- put anything here:
         Set

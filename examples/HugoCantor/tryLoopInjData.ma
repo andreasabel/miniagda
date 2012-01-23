@@ -59,8 +59,8 @@ fun em : EM {}  -- postulate excluded middle
 
 fun cantor : Set -> Set
 { cantor A = case (em (InvI A)) 
-  { (inl .(InvI A) .(InvI A -> Empty) (inv .A X p)) -> X A -> Empty
-  ; (inr .(InvI A) .(InvI A -> Empty) bla) -> Unit
+  { (inl (inv X p)) -> X A -> Empty
+  ; (inr bla) -> Unit
   }
 } 
 
@@ -68,21 +68,15 @@ fun cantor : Set -> Set
 
 let yes : cantor (I cantor)
 = case (em (InvI (I cantor)))
-  { (inl .(InvI (I cantor)) .(InvI (I cantor) -> Empty) 
-      (inv .(I cantor) .cantor (refl .Set .(I cantor)))) -> 
-        \ f -> f f
-  ; (inr .(InvI (I cantor)) .(InvI (I cantor) -> Empty) g) -> unit
+  { (inl (inv .cantor refl) -> \ f -> f f
+  ; (inr g) -> unit
   }
 
 let no : cantor (I cantor) -> Empty
 = \ f -> case (em (InvI (I cantor)))
-  { (inl .(InvI (I cantor)) .(InvI (I cantor) -> Empty) 
-      (inv .(I cantor) .cantor (refl .Set .(I cantor)))) -> 
-        f f            
-  ; (inr .(InvI (I cantor)) .(InvI (I cantor) -> Empty) g) ->
-      g (inv (I cantor) cantor (refl Set (I cantor)))   
+  { (inl (inv .cantor refl) -> f f            
+  ; (inr g) -> g (inv cantor refl)
   }
-
 
 eval let omega : Empty
           = no yes

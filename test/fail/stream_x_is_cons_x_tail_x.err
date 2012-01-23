@@ -20,7 +20,7 @@ type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
 term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] x xs) = xs
+{ tail [A] [i] (cons [.i] x xs) = xs
 }
 term  bad : .[i : Size] -> Stream Nat i
 error during typechecking:

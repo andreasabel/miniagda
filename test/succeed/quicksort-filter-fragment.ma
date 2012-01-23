@@ -33,4 +33,4 @@ data Id (A : Set)(a : A) : A -> Set
 }
 
 let p1 : (i : Size) -> Id (List #) (nil i) (nil #)
-       = \ i -> refl (List #) (nil i)
+       = \ i -> refl -- (List #) (nil i)

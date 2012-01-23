@@ -17,7 +17,7 @@ sized codata Stack (A : Set) : Size -> Set
 cofun pushFunc : [A : Set] -> [i : Size] -> |i| ->
                  ([j : Size] -> |j| < |i| -> Stack A j -> A -> Stack A j) ->
                  Stack A i -> A -> Stack A i
-{ pushFunc A ($ i) f s a = stack A i (just A a) s (f i (pushFunc A i f s a))
+{ pushFunc A ($ i) f s a = stack i (just a) s (f i (pushFunc A i f s a))
 } 
 
 -- tying the knot
@@ -27,7 +27,7 @@ cofun pushFix  : [A : Set] -> [i : Size] -> |i| -> Stack A i -> A -> Stack A i
 
 -- constructing the empty stack
 cofun empty : [A : Set] -> [i : Size] -> |i| -> Stack A i
-{ empty A ($ i) = stack A i (nothing A) (empty A i) (pushFix A i (empty A i))
+{ empty A ($ i) = stack i (nothing) (empty A i) (pushFix A i (empty A i))
 }
  
 {- original circular program

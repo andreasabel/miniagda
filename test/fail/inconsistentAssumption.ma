@@ -12,7 +12,7 @@ data Eq (A : Set) (a : A) : A -> Set
 fun subst : (A : Set) -> (P : A -> Set) -> (i : A) -> (j : A) ->
             Eq A i j -> P i -> P j
 {
-  subst A P i .i (refl .A .i) p = p
+  subst A P i .i (refl) p = p
 }
 
 fun h : (ass : (i : Size) -> Eq Size ($ i) i) -> (i : Size) -> SNat i -> SNat #

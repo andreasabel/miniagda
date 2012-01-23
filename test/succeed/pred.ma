@@ -9,8 +9,8 @@ data MaybeNat (i : Size) : Set
 }
 
 fun pred' : [i : Size] -> SNat ($ i) -> MaybeNat i
-{ pred' i (succ .i n) = just i n
-; pred' i (zero .i)   = nothing i
+{ pred' i (succ .i n) = just n
+; pred' i (zero .i)   = nothing
 }
 
 fun pred : (i : Size) -> SNat ($$ i) -> SNat ($ i)

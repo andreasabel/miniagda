@@ -16,12 +16,12 @@ data Eq (i : Size)(A : Set i)(a : A) : A -> Set i
 -- without trustme there is no error !?
 fun D : [A : Set] -> (p1, p2 : Prod A A) -> 
         Eq 0 A (fst A A p1) (fst A A p2) -> Set 1
-{ D A (pair .A .A x y) (pair .A .A .x y') (refl .0 .A .x) = Set 
+{ D A (pair x y) (pair .x y') (refl) = Set 
 }  -- miniagda has problem typechecking this !?
 
 fun prf : [A : Set] -> (p : Prod A A) -> 
-          Eq 2 (Set 1) (D A p p (refl 0 A (fst A A p))) Set
-{ prf A p = refl 2 (Set 1) Set
+          Eq 2 (Set 1) (D A p p (refl {- 0 A (fst A A p) -})) Set
+{ prf A p = refl -- 2 (Set 1) Set
 }
 
 {- 

@@ -1,5 +1,6 @@
 -- 2010-06-20
 -- sized inductive types
+-- 2012-01-22 parameters gone from constructors
 
 data Empty : Set {}
 data Unit  : Set { unit : Unit }
@@ -16,7 +17,7 @@ sized data Mu ++(F : ++Set -> Set) : +Size -> Set
 }
 
 fun myout : [F : ++Set -> Set] -> [i : Size] -> Mu F ($ i) -> F (Mu F i)
-{ myout F i (inn .F .i t) = t
+{ myout F i (inn .i t) = t
 }
 
 -- iteration (universal property of Mu)
@@ -27,7 +28,7 @@ fun iter : [F : ++Set -> Set] ->
 {- iter F mapF G step .($ j) (inn .F j t) =
    step (mapF (Mu F j) G (iter F mapF G step j) t)
 -}
-{ iter F mapF G step i (inn .F (i > j) t) =
+{ iter F mapF G step i (inn (i > j) t) =
    step (mapF (Mu F j) G (iter F mapF G step j) t)
 }
 
@@ -35,10 +36,10 @@ let NatF : ++Set -> Set         = \ X -> Sum Unit X
 let Nat  : +Size -> Set         = Mu NatF
 
 let zero : [i : Size] -> Nat ($ i)
-         = \ i -> inn NatF i (inl Unit (Nat i) unit) 
+         = \ i -> inn i (inl unit) 
 
 let succ : [i : Size] -> Nat i -> Nat ($ i)
-         = \ i -> \ n -> inn NatF i (inr Unit (Nat i) n) 
+         = \ i -> \ n -> inn i (inr n) 
 
 
 let ListF : ++Set -> ++Set -> Set = \ A -> \ X -> Sum Unit (Prod A X)

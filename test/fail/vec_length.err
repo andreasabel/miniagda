@@ -19,8 +19,8 @@ error during typechecking:
 length
 /// clause 2
 /// right hand side
-/// checkExpr 6 |- succ n : Nat
-/// inferExpr' succ n
+/// checkExpr 5 |- succ n : Nat
+/// checkForced fromList [(.(succ n),1),(A,0),(x,2),(n,3),(xs,4)] |- succ n : Nat
 /// inferExpr' n
 /// inferExpr: variable n : Nat may not occur
 /// , because it is marked as erased

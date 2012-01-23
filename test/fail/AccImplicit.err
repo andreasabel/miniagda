@@ -6,10 +6,10 @@ type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> (b : A) -> Set
 term  acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(accOut : (a : A) -> Lt a b -> Acc A Lt a) -> Acc A Lt b
 type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> (b : A) -> Set
 G> fun accOut : .[A : Set] -> .[Lt : A -> A -> Set] -> (b : A) -> (acc : Acc A Lt b) -> (a : A) -> Lt a b -> Acc A Lt a
-G> { accOut A Lt b (acc .A .Lt .b destructor_argument_accOut) = destructor_argument_accOut
+G> { accOut A Lt b (acc destructor_argument_accOut) = destructor_argument_accOut
 }
 term  accOut : .[A : Set] -> .[Lt : A -> A -> Set] -> (b : A) -> (acc : Acc A Lt b) -> (a : A) -> Lt a b -> Acc A Lt a
-{ accOut [A] [Lt] b (acc [.A] [.Lt] [.b] destructor_argument_accOut) = destructor_argument_accOut
+{ accOut [A] [Lt] b (acc destructor_argument_accOut) = destructor_argument_accOut
 }
 type  Nat : Set
 term  zero : Nat
@@ -20,36 +20,36 @@ term  r1 : .[x : Nat] -> R (succ (succ x)) (succ zero)
 term  r2 : R (succ zero) zero
 type  R : ^ Nat -> ^ Nat -> Set
 term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
-term  acc2 = \ n -> acc [Nat] [R] [succ (succ n)] (\ a -> \ p -> case p
-                                                    {})
+term  acc2 = \ n -> acc (\ a -> \ p -> case p
+                          {})
 term  aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 { aux1 (succ (succ x)) (r1 [.x]) = acc2 x
 }
 term  acc1 : Acc Nat R (succ zero)
-term  acc1 = acc [Nat] [R] [succ zero] aux1
+term  acc1 = acc aux1
 term  aux0 : (a : Nat) -> (p : R a zero) -> Acc Nat R a
 { aux0 .(succ zero) (r2) = acc1
 }
 term  acc0 : Acc Nat R zero
-term  acc0 = acc [Nat] [R] [zero] aux0
+term  acc0 = acc aux0
 term  accR : (n : Nat) -> Acc Nat R n
 { accR (zero) = acc0
 ; accR (succ (zero)) = acc1
 ; accR (succ (succ n)) = acc2 n
 }
 term  acc_dest : .[n : Nat] -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Nat R m
-{ acc_dest [n] (acc [.Nat] [.R] [.n] p) = p
+{ acc_dest [n] (acc p) = p
 }
 term  f : (x : Nat) -> Acc Nat R x -> Nat
-{ f x (acc [.Nat] [.R] [.x] p) = case x
-                                 { zero -> f (succ x) (p (succ x) r2)
-                                 ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
-                                 ; succ (succ y) -> zero
-                                 }
+{ f x (acc p) = case x
+                { zero -> f (succ x) (p (succ x) r2)
+                ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
+                ; succ (succ y) -> zero
+                }
 }
 term  h : (x : Nat) -> .[Acc Nat R x] -> Nat
-{ h (zero) [acc [.Nat] [.R] [.zero] [p]] = h (succ zero) [p (succ zero) r2]
-; h (succ (zero)) [acc [.Nat] [.R] [.succ zero] [p]] = h (succ (succ zero)) [p (succ (succ zero)) (r1 [zero])]
+{ h (zero) [acc [p]] = h (succ zero) [p (succ zero) r2]
+; h (succ (zero)) [acc [p]] = h (succ (succ zero)) [p (succ (succ zero)) (r1 [zero])]
 ; h (succ (succ y)) [p] = zero
 }
 term  bla : Nat
@@ -59,11 +59,12 @@ term  refl : .[A : Set] -> .[a : A] -> Id A a a
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 p1
-/// checkExpr 0 |- \ p -> refl Nat (h zero acc0) : (p : Acc Nat R zero) -> Id Nat (h zero [p]) (h zero [acc0])
-/// checkForced fromList [] |- \ p -> refl Nat (h zero acc0) : (p : Acc Nat R zero) -> Id Nat (h zero [p]) (h zero [acc0])
+/// checkExpr 0 |- \ p -> refl : (p : Acc Nat R zero) -> Id Nat (h zero [p]) (h zero [acc0])
+/// checkForced fromList [] |- \ p -> refl : (p : Acc Nat R zero) -> Id Nat (h zero [p]) (h zero [acc0])
 /// new p : (Acc Nat R zero)
-/// checkExpr 1 |- refl Nat (h zero acc0) : Id Nat (h zero [p]) (h zero [acc0])
-/// leqVal' (subtyping) [(p,0)] |- < refl Nat zero : Id Nat zero zero >  <=+  Id Nat (h zero [p]) (h zero [acc0])
-/// leqVal' (subtyping) [(p,0)] |- Id Nat zero zero  <=+  Id Nat (h zero [p]) (h zero [acc0])
-/// leqVal' [(p,0)] |- zero  <=^  h zero [p] : Nat
-/// leqApp: head mismatch zero != h
+/// checkExpr 1 |- refl : Id Nat (h zero [p]) (h zero [acc0])
+/// checkForced fromList [(p,0)] |- refl : Id Nat (h zero [p]) (h zero [acc0])
+/// leqVal' (subtyping) [(p,0)] |- < refl : Id Nat (h zero [p]) (h zero [p]) >  <=+  Id Nat (h zero [p]) (h zero [acc0])
+/// leqVal' (subtyping) [(p,0)] |- Id Nat (h zero [p]) (h zero [p])  <=+  Id Nat (h zero [p]) (h zero [acc0])
+/// leqVal' [(p,0)] |- h zero [p]  <=^  zero : Nat
+/// leqApp: head mismatch h != zero

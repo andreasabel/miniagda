@@ -15,8 +15,8 @@ data Twice (+ A : Set) : Set
 }
 
 fun fmap : [A : Set] -> [B : Set] -> (A -> B) -> Twice A -> Twice B
-{ fmap A B f (inl .A a) = inl B (f a)
-; fmap A B f (inr .A a) = inr B (f a)
+{ fmap A B f (inl a) = inl (f a)
+; fmap A B f (inr a) = inr (f a)
 }
 
 sized codata BStr : Size -> Set

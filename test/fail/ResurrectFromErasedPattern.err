@@ -16,8 +16,9 @@ f
 /// clause 2
 /// right hand side
 /// checkExpr 2 |- succ false (succ b n) : Nat false
-/// inferExpr' succ false (succ b n)
-/// inferExpr' succ b n
+/// checkForced fromList [(n,1),(b,0)] |- succ false (succ b n) : Nat false
+/// checkExpr 2 |- succ b n : Nat false
+/// checkForced fromList [(n,1),(b,0)] |- succ b n : Nat false
 /// inferExpr' n
 /// inferExpr: variable n : Nat b may not occur
 /// , because it is marked as erased

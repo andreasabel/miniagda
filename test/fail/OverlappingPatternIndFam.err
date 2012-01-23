@@ -10,7 +10,7 @@ type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> Id A a a
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
-{ subst [A] a .a (refl [.A] [.a]) [P] x = x
+{ subst [A] a .a (refl) [P] x = x
 }
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  eq : .[A : Set] -> .[a : A] -> DecEq A a a
@@ -18,20 +18,18 @@ term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> DecEq A a b
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 offDiag
-/// checkExpr 0 |- \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : .[A : Set] -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [] |- \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : .[A : Set] -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// not a type: (A : Set) -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
+/// inferExpr' (A : Set) -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
 /// new A : Set
-/// checkExpr 1 |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [(A,0)] |- \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// inferExpr' (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
 /// new f : ((a : v0::Tm) -> (b : A) -> DecEq A a b{A = v0})
-/// checkExpr 2 |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [(f,1),(A,0)] |- \ a -> \ b -> refl (DecEq A a b) (notEq A a b) : (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// inferExpr' (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
 /// new a : v0
-/// checkExpr 3 |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// checkForced fromList [(f,1),(A,0),(a,2)] |- \ b -> refl (DecEq A a b) (notEq A a b) : (b : A) -> Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
+/// inferExpr' (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
 /// new b : v0
-/// checkExpr 4 |- refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' (subtyping) [(f,1),(A,0),(a,2),(b,3)] |- < refl (DecEq A a b) (notEq A a b) : Id (DecEq A a b) (notEq A a b) (notEq A a b) >  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' (subtyping) [(f,1),(A,0),(a,2),(b,3)] |- Id (DecEq A a b) (notEq A a b) (notEq A a b)  <=+  Id (DecEq A a b) (f a b) (notEq [A] [a] [b])
-/// leqVal' [(f,1),(A,0),(a,2),(b,3)] |- notEq A a b  <=^  f a b : DecEq A a b
-/// leqApp: notEq[v0,v2,v3] !<= v1[v2,v3]
+/// inferExpr' Id (DecEq A a b) (f a b) (notEq A a b)
+/// checkExpr 4 |- notEq A a b : DecEq A a b
+/// checkForced fromList [(A,0),(f,1),(a,2),(b,3)] |- notEq A a b : DecEq A a b
+/// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- < A : Set >  <=+  A
+/// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- Set  <=+  A
+/// leqApp: Set[] !<= v0[]

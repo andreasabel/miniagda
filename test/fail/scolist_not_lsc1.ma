@@ -16,8 +16,8 @@ codata Colist (A : Set) : Size -> Set
 -- not allowed because no inductive argument with i 
 fun length : (i : Size ) -> (A : Set) -> Colist A i -> Nat i
 {
-length .($ i) A (nil .A i) = zero i ;
-length .($ i) A (cons .A i a as) = succ i (length i A as)
+length .($ i) A (nil i) = zero i ;
+length .($ i) A (cons i a as) = succ i (length i A as)
 }
 
 codata CoNat : Size -> Set
@@ -31,8 +31,8 @@ let z : CoNat # = cozero #
 -- allowed because i used in coinductive result
 cofun length2 : (i : Size ) -> ( A : Set ) -> Colist A i -> CoNat i
 {
-length2 .($ i) .A (nil A i) = cozero i;
-length2 .($ i) .A (cons A i a as) = cosucc i (length2 i A as) 
+length2 .($ i) A (nil i) = cozero i;
+length2 .($ i) A (cons i a as) = cosucc i (length2 i A as) 
 }
 
 cofun omega' : ( i : Size ) -> CoNat i
@@ -44,7 +44,7 @@ let omega : CoNat # = omega' #
 
 cofun olist' : ( i : Size ) -> Colist (Nat #) i
 {
-olist' ($ i) = cons (Nat #) i (zero #) (olist' i)
+olist' ($ i) = cons i (zero #) (olist' i)
 }
 
 eval let diverge : Nat # = length # (Nat #) (olist' #)

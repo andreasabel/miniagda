@@ -12,7 +12,7 @@ fields head, tail
 
 fun guard : [j : Size] -> (Stream Nat ($ j) -> Stream Nat #)
                        -> (Stream Nat j     -> Stream Nat #)
-{ guard j g xs = g (cons Nat j zero xs)
+{ guard j g xs = g (cons j zero xs)
 }
  
 -- the type of f is not admissible
@@ -27,10 +27,10 @@ eval let loop : Nat = head Nat # (f # (tail Nat #))
 -- the type of f is not admissible
 cofun f : (Stream Nat # -> Stream Nat #) ->
   [i : Size] -> (Stream Nat i -> Stream Nat #) -> Stream Nat i
-{ f h ($ j) g = h (g (cons Nat j zero 
+{ f h ($ j) g = h (g (cons j zero 
     (f (\ x -> h (h x)) 
        j 
-       (\ x -> g (cons Nat j zero x))))) 
+       (\ x -> g (cons j zero x))))) 
 }
 
 -}

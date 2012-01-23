@@ -6,16 +6,16 @@ type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
 term  pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> Sigma A B
 type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
 G> fun fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
-G> { fst A B (pair .A .B destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
+G> { fst A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
 }
 term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
-{ fst [A] [B] (pair [.A] [.B] destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
+{ fst [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
 }
 G> fun snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst A B pair)
-G> { snd A B (pair .A .B destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
+G> { snd A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
 term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
-{ snd [A] [B] (pair [.A] [.B] destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
+{ snd [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
 type  Nat : Set
 term  zero : Nat

@@ -19,7 +19,8 @@ default : Main test
 #current : miniagda-prof
 #	miniagda-prof privateExamples/NisseContNorm/negative-2010-11-23.ma +RTS -prof
 current : Main
-	Main test/fail/BoundedFake.ma
+	Main test/succeed/HVec.ma
+#	Main test/fail/BoundedFake.ma
 #	Main test/features/Existential/list.ma
 #	Main test/features/Existential/nat.ma
 #	Main examples/RBTree/RBTreeConor.ma

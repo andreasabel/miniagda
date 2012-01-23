@@ -13,11 +13,11 @@ sized data List (A : Set) : Size -> Set
 ; cons : (i : Size) -> A -> List A i -> List A ($ i)
 }
  
-let alist : List Nat # = (cons Nat # one (cons Nat # zero (nil Nat #)))
+let alist : List Nat # = (cons # one (cons # zero (nil #)))
 
 fun map : (A : Set) -> (B : Set) -> (i : Size) -> (A -> B) -> List A i -> List B i
-{ map A B .($ i) f (cons .A i a l) = cons B i (f a) (map A B i f l)
-; map A B .($ i) f (nil .A i)      = nil B i
+{ map A B .($ i) f (cons i a l) = cons i (f a) (map A B i f l)
+; map A B .($ i) f (nil i)      = nil i
 }
 
 let alist' : List Nat # = map Nat Nat # (\ x -> x) alist

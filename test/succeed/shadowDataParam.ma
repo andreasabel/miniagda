@@ -7,7 +7,7 @@ data D (name : Set) : Set
 
 -- usage fine
 fun id : [A : Set] -> D A -> D A
-{ id A (name .A) = name A
+{ id A (name) = name
 }
 
 -- but complaint here, because constructor name in scope

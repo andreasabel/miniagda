@@ -14,7 +14,7 @@ let zero'
 
 let succ'
     : (x : Nat) -> <succ x : Nat>
-    = succ
+    = \ x -> succ x
 
 fun pred : [x : Nat] -> <succ x : Nat> -> <x : Nat>
 { pred .x (succ x) = x

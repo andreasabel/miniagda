@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 -- Nat ---------------------------------------------------------------
 
 data Nat : Set 
@@ -31,15 +33,15 @@ sized codata Stream (+ A : Set) : Size -> Set
 cofun map : [A : Set] -> [B : Set] -> [i : Size] -> 
             (A -> B) -> Stream A i -> Stream B i 
 {
-  map A B ($ i) f (cons .A .i x xl) = cons B _ (f x) (map A B _ f xl)
+  map A B ($ i) f (cons .i x xl) = cons _ (f x) (map A B _ f xl)
 }
 
 cofun merge : [i : Size] -> Stream Nat i -> Stream Nat i -> Stream Nat i
 {
-  merge ($ i) (cons .Nat .i x xs) (cons .Nat .i y ys) = 
+  merge ($ i) (cons .i x xs) (cons .i y ys) = 
       leq x y (Stream Nat _)
-         (cons Nat _ x (merge _ xs (cons Nat _ y ys)))
-	 (cons Nat _ y (merge _ (cons Nat _ x xs) ys))     
+         (cons _ x (merge _ xs (cons _ y ys)))
+	 (cons _ y (merge _ (cons _ x xs) ys))     
 }
 
 
@@ -47,7 +49,7 @@ cofun merge : [i : Size] -> Stream Nat i -> Stream Nat i -> Stream Nat i
 
 cofun ham : [i : Size] -> Stream Nat i
 {
-  ham ($ i) = cons Nat _ (succ zero) 
+  ham ($ i) = cons _ (succ zero) 
                 (merge i (map Nat Nat i double (ham i)) 
                          (map Nat Nat i triple (ham i)))
 }

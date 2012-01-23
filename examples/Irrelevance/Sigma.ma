@@ -8,9 +8,9 @@ data Sigma (A : Set) (B : A -> Set) : Set
 
 fun split : [A : Set] -> [B : A -> Set] -> (x : Sigma A B) ->
             [C : Sigma A B -> Set] -> 
-            ((fst : A) -> (snd : B fst) -> C (pair A B fst snd)) ->
+            ((fst : A) -> (snd : B fst) -> C (pair fst snd)) ->
             C x
-{ split A B (pair .A .B a b) C k = k a b
+{ split A B (pair a b) C k = k a b
 }
 
 -- define projections in terms of split
@@ -31,9 +31,9 @@ data Exists (A : Set) (B : A -> Set) : Set
 
 fun exsplit : [A : Set] -> [B : A -> Set] -> (x : Exists A B) ->
               [C : Exists A B -> Set] -> 
-              ([fst : A] -> (snd : B fst) -> C (expair A B fst snd)) ->
+              ([fst : A] -> (snd : B fst) -> C (expair fst snd)) ->
               C x
-{ exsplit A B (expair .A .B a b) C k = k a b
+{ exsplit A B (expair a b) C k = k a b
 }
 
 -- first projection not definable

@@ -16,35 +16,36 @@ type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
+G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
+{ head [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+G> { tail A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+{ tail [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
-{ zipWith [A] [B] [C] f $[i] (cons [.A] [.i] a as) (cons [.B] [.i] b bs) = cons [C] [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+{ zipWith [A] [B] [C] f $[i] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
 }
 term  n0 : Nat
 term  n0 = zero [#]
 term  n1 : Nat
 term  n1 = succ [#] n0
 term  fib : .[i : Size] -> Stream Nat i
-{ fib $[i] = cons [Nat] [i] n0 (zipWith [Nat] [Nat] [Nat] add [i] (cons [Nat] [i] n1 (fib [i])) (fib [i]))
+{ fib $[i] = cons [i] n0 (zipWith [Nat] [Nat] [Nat] add [i] (cons [i] n1 (fib [i])) (fib [i]))
 }
 term  fib2 : .[i : Size] -> Stream Nat (i + i)
 error during typechecking:
 fib2
 /// clause 1
 /// right hand side
-/// checkExpr 1 |- cons Nat (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons Nat (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
-/// leqVal' (subtyping) [(i,0)] |- < cons (SNat #) (i + i) (zero #) (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [Nat] [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream (SNat #) $(i + i) >  <=+  Stream Nat ($i + $i)
-/// leqVal' (subtyping) [(i,0)] |- Stream (SNat #) $(i + i)  <=+  Stream Nat ($i + $i)
+/// checkExpr 1 |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
+/// checkForced fromList [(i,0)] |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
+/// leqVal' (subtyping) [(i,0)] |- < cons [i + i] n0 (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
+/// leqVal' (subtyping) [(i,0)] |- Stream Nat $(i + i)  <=+  Stream Nat ($i + $i)
 /// leqVal' [(i,0)] |- $(i + i)  <=-  $$(i + i) : Size
 /// leSize ($ (v0 + v0)) <=- ($ ($ (v0 + v0)))
 /// leSize (v0 + v0) <=- ($ (v0 + v0))

@@ -691,18 +691,6 @@ appDef n vl = --trace ("appDef " ++ n) $
               Just v2 -> return v2
         _ -> return $ VApp (VDef (DefId FunK n)) vl   
 
--- value views -------------------------------------------------------
-
-data DataView 
-  = Data Name [Clos]
-  | NoData
-
-dataView :: TVal -> TypeCheck DataView
-dataView tv = do -- maybe force tv?
-  case tv of
-    VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
-    _                             -> return $ NoData 
-
 -- reflection and reification  ---------------------------------------
 
 -- TODO: eta for builtin sigma-types !?
@@ -897,7 +885,7 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
 --                up False (VDef (DefId LetK d) `VApp` piv) t' -- now: LAZY
 --                up False (VDef (DefId FunK d) `VApp` piv) t' -- now: LAZY
           vs <- mapM arg fis 
-          v' <- foldM app (vCon co (cName ci)) (pars ++ vs) 
+          v' <- foldM app (vCon co (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs) 
           ret v'
     -- more constructors or unknown situation: do not eta expand
     _ -> return v
@@ -1059,7 +1047,7 @@ matchList env (p:pl) (v:vl) = do m <- match env p v
                                  case m of 
                                    Just env' -> matchList env' pl vl
                                    Nothing -> return Nothing
-matchList env pl vl = fail $ "matchList internal error: inequal length while to match patterns " ++ show pl ++ " against values " ++ show vl
+matchList env pl vl = fail $ "matchList internal error: inequal length while trying to match patterns " ++ show pl ++ " against values " ++ show vl
 
 -- typed non-linear matching -----------------------------------------
 
@@ -1194,7 +1182,8 @@ data TypeShape
   | ShNe    (OneOrTwo TVal)      -- both neutral
   | ShSing  Val TVal             -- 1 and singleton
   | ShSingL Val TVal TVal        -- 2 and the left is a singleton
-  | ShSingR TVal Val TVal        -- 2 and the right is a singleton
+  | ShSingR TVal Val TVal        -- 2 and the right is a singleton 
+  | ShNone
     deriving (Eq, Ord)
   
 data SortShape 
@@ -1215,7 +1204,7 @@ typeView tv =
     VApp (VGen i) vs             -> ShNe (One tv)  -- type variable
     VGen i                       -> ShNe (One tv)  -- type variable
     VCase{}                      -> ShNe (One tv)  -- stuck case
-    _                            -> error $ "typeView " ++ show tv 
+    _                            -> ShNone -- error $ "typeView " ++ show tv 
 
 sortView :: Sort Val -> SortShape
 sortView s = 
@@ -1365,6 +1354,18 @@ leqVal' f p mt12 u1' u2' = do
               (VUp v1 av1, u2) -> leqVal' f p mt12 v1 u2 
               (u1, VUp v2 av2) -> leqVal' f p mt12 u1 v2
 
+              (VApp v1@(VDef (DefId (ConK _) n1)) vl1, 
+               VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> do
+                 unless (n1 == n2) $ 
+                  recoverFail $ 
+                    "leqVal': head mismatch "  ++ show u1 ++ " != " ++ show u2  
+                 case mt12 of
+                   Nothing -> recoverFail $ "leqVal': cannot compare constructor terms without type"
+                   Just tv12 -> do
+                     ct12 <- Traversable.mapM (conType n1) tv12
+                     leqVals' f p ct12 vl1 vl2
+                     return ()
+                 
               (VApp v1 vl1,VApp v2 vl2) -> do
                            leqApp f p v1 vl1 v2 vl2
               -- smart equality is not transitive

@@ -6,27 +6,27 @@ type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
+G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
+{ head [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+G> { tail A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+{ tail [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  evens : .[A : Set] -> .[i : Size] -> .[j : Size] -> Stream A (i + j) -> Stream A i
 error during typechecking:
 evens
 /// clause 1
-/// pattern cons .A .(i + j + $0) a (cons .A .(i + j) b as)
-/// unifyIndices [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v3 v7)::(),Dec {polarity = ++})] |- Stream .A $$.(i + j) ?<=+ Stream A ($i + j)
-/// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v3 v7)::(),Dec {polarity = ++})] |- $$.(i + j) ?<=- $(i + j) : Size
-/// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v3::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v3 v7)::(),Dec {polarity = ++})] |- $.(i + j) ?<=- i + j : Size
-/// inst: leqVal ($ v7) ?<=- (v2 + v1) : Size failed
-/// leqVal' [(A,0),(i,1),(j,2),(.A,3),(.(i + j + $0),4),(a,5),(.A,6),(.(i + j),7),(b,8),(as,9)] |- $.(i + j)  <=-  i + j : Size
-/// leSize ($ v7) <=- (v2 + v1)
-/// leSize' (v2 + v1) <= ($ v7)
+/// pattern cons .(i + j + $0) a (cons .(i + j) b as)
+/// unifyIndices [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- Stream A $$.(i + j) ?<=+ Stream A ($i + j)
+/// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $$.(i + j) ?<=- $(i + j) : Size
+/// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $.(i + j) ?<=- i + j : Size
+/// inst: leqVal ($ v5) ?<=- (v2 + v1) : Size failed
+/// leqVal' [(A,0),(i,1),(j,2),(.(i + j + $0),3),(a,4),(.(i + j),5),(b,6),(as,7)] |- $.(i + j)  <=-  i + j : Size
+/// leSize ($ v5) <=- (v2 + v1)
+/// leSize' (v2 + v1) <= ($ v5)
 /// leSize: i + j <= .(i + j) + 1 failed

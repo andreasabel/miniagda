@@ -16,9 +16,9 @@ term  nothing : .[A : Set] -> Maybe A
 term  just : .[A : Set] -> ^ A -> Maybe A
 type  Maybe : ++(A : Set) -> Set
 term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
-{ shift_case [i] (nothing [.SNat $i]) = nothing [SNat i]
-; shift_case [.i] (just [.SNat $i] (zero [i])) = nothing [SNat i]
-; shift_case [.i] (just [.SNat $i] (succ [i] x)) = just [SNat i] x
+{ shift_case [i] (nothing) = nothing
+; shift_case [.i] (just (zero [i])) = nothing
+; shift_case [.i] (just (succ [i] x)) = just x
 }
 term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
 term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (succ [#] n))

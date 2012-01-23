@@ -13,7 +13,7 @@ fields head, tail
 cofun f : (Stream Unit # -> Stream Unit #) ->
   (i : Size) -> (Stream Unit i -> Stream Unit #) -> Stream Unit i
 { f h ($ j) g = 
-    h (g (cons Unit j unit (f (\ x -> h (h x)) j (\ x -> g (cons Unit j unit x))))) 
+    h (g (cons j unit (f (\ x -> h (h x)) j (\ x -> g (cons j unit x))))) 
 }
 
 let bla : Stream Unit # = f (tail Unit #) # (\ x -> x)

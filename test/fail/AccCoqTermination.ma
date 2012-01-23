@@ -32,7 +32,7 @@ fun succR : (n : Nat) -> R (succ n) n
 -}
 
 let acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
-  = \ n -> acc Nat R (succ (succ n)) (\ a -> \ p -> case p {})
+  = \ n -> acc (succ (succ n)) (\ a -> \ p -> case p {})
 
 fun aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 { aux1 (succ (succ x)) (r1 .x) = acc2 x
@@ -42,14 +42,14 @@ fun aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 -- aux1 (.succ (.succ x)) (r1 .x) = acc2 x
 
 let acc1 : Acc Nat R (succ zero)
-  = acc Nat R (succ zero) aux1
+  = acc (succ zero) aux1
 
 fun aux0 : (a : Nat) -> (p : R a zero) -> Acc Nat R a
 { aux0 .(succ zero) r2 = acc1
 }
 
 let acc0 : Acc Nat R zero
-  = acc Nat R zero aux0
+  = acc zero aux0
  
 fun accR : (n : Nat) -> Acc Nat R n
 { accR zero = acc0
@@ -59,11 +59,11 @@ fun accR : (n : Nat) -> Acc Nat R n
 
 fun acc_dest : (n : Nat) -> (p : Acc Nat R n) -> 
                (m : Nat) -> R m n -> Acc Nat R m
-{ acc_dest .n (acc .Nat .R n p) = p
+{ acc_dest .n (acc n p) = p
 }
 
 fun f : (x : Nat) -> Acc Nat R x -> Nat 
-{ f x (acc .Nat .R .x p) = case x
+{ f x (acc .x p) = case x
   { zero -> f (succ x) (p (succ x) r2)
   ; (succ zero) -> f (succ x) (p (succ x) (r1 zero))
   ; (succ (succ y)) -> zero

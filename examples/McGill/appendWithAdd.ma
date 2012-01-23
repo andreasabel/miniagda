@@ -17,9 +17,9 @@ data Add : Nat -> Nat -> Nat -> Set
 
 fun append : [A : Set] -> [n,m,l : Nat] -> List A n -> List A m ->
   [Add n m l] -> List A l
-{ append A .zero    m .m       (nil .A)         ys (addZ .m) = ys
-; append A .(suc n) m .(suc l) (cons .A n x xs) ys (addS .n .m l p) =
-   cons A l x (append A n m l xs ys p)
+{ append A .zero    m .m       (nil)         ys (addZ .m) = ys
+; append A .(suc n) m .(suc l) (cons n x xs) ys (addS .n .m l p) =
+   cons l x (append A n m l xs ys p)
 }  
 
 fun bla : [Nat] -> ([Nat] -> Nat) -> Nat

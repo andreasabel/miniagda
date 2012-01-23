@@ -14,8 +14,8 @@ term  inl : .[A : Set] -> ^ A -> Twice A
 term  inr : .[A : Set] -> ^ A -> Twice A
 type  Twice : ++(A : Set) -> Set
 term  fmap : .[A : Set] -> .[B : Set] -> (A -> B) -> Twice A -> Twice B
-{ fmap [A] [B] f (inl [.A] a) = inl [B] (f a)
-; fmap [A] [B] f (inr [.A] a) = inr [B] (f a)
+{ fmap [A] [B] f (inl a) = inl (f a)
+; fmap [A] [B] f (inr a) = inr (f a)
 }
 type  BStr : - Size -> Set
 term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> BStr $i

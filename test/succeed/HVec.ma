@@ -1,4 +1,5 @@
 -- 2010-06-30 heterogeneous vectors
+-- 2012-01-22 parameters gone from constructors
 
 data Unit : Set { unit : Unit }
 
@@ -8,7 +9,7 @@ data Prod [i : Size] (A : Set i) (B : Set i) : Set i
 }
 
 fun fst' : [i : Size] -> [A : Set i] -> [B : Set i] -> Prod i A B -> A
-{ fst' i A B (pair .i .A .B a b) = a
+{ fst' i A B (pair a b) = a
 }
 
 data List [i : Size] (A : Set i) : Set i 
@@ -18,13 +19,13 @@ data List [i : Size] (A : Set i) : Set i
 
 -- recursive heterogeneous vectors
 fun HVecR : List 1 Set -> Set
-{ HVecR (nil .1 .Set) = Unit
-; HVecR (cons .1 .Set A As) = Prod 0 A (HVecR As)
+{ HVecR (nil) = Unit
+; HVecR (cons A As) = Prod 0 A (HVecR As)
 }
 
 -- inductive heterogeneous vectors
 data HVec : List 1 Set -> Set 1
-{ vnil  : HVec (nil 1 Set)
+{ vnil  : HVec (nil)
 ; vcons : [A : Set] -> [As : List 1 Set] -> 
-          A -> HVec As -> HVec (cons 1 Set A As)
+          A -> HVec As -> HVec (cons A As)
 } 

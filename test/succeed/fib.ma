@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 data Nat : Set {
   zero : Nat;
   succ : Nat -> Nat 
@@ -69,12 +71,11 @@ inc : (i : Size ) -> (x : Nat ) -> (y : Nat ) -> Leq x y -> (tl : Stream # ) ->
 }
 
 
-data Eq (+ A : Set ) : A -> A -> Set
-{
-refl : (a : A ) -> Eq A a a
+data Eq (+ A : Set)(a : A) : A -> Set
+{ refl : Eq A a a
 }
 
-let proof : Eq (Stream #) (tail fib) (tail fib) = refl (Stream _) (tail fib)
+let proof : Eq (Stream #) (tail fib) (tail fib) = refl
 
 
 
@@ -119,9 +120,12 @@ cofun map : (i : Size ) -> (Nat -> Nat) -> Stream i -> Stream i
 map ($ i) f (cons .i x xl) = cons _ (f x) (map _ f xl)
 }
 
+-- 2012-01-22 constructor are no longer inferable!
+let suc : Nat -> Nat = \ x -> succ x
+
 cofun evil : (i : Size ) -> Stream i
 {
-evil ($ i) = map _ succ (cons _ zero (evil _))
+evil ($ i) = map _ suc (cons _ zero (evil _))
 }
 
 -- eval const zzz : Nat = head # (z #) 

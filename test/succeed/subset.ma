@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 data Subset (A : Set) (P : A -> Set) : Set
 {
   put : (get : A) -> [P get] -> Subset A P 
@@ -32,10 +34,10 @@ let three : Nat
           = succ (succ one) 
 
 let o3   : OddN
-         = put Nat Odd three odd3
+         = put three odd3
 
 let o3'  : OddN
-         = put Nat Odd three (oddSS one odd1)
+         = put three (oddSS one odd1)
 
 let p    : Eq OddN o3 o3'
-         = refl OddN o3
+         = refl 

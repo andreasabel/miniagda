@@ -6,16 +6,16 @@ type  Exists : ^(A : Set) -> ++(B : A -> Set) -> Set
 term  exI : .[A : Set] -> .[B : A -> Set] -> ^(witness : A) -> ^(proof : B witness) -> Exists A B
 type  Exists : ^(A : Set) -> ++(B : A -> Set) -> Set
 G> fun witness : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> A
-G> { witness A B (exI .A .B destructor_argument_witness destructor_argument_proof) = destructor_argument_witness
+G> { witness A B (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_witness
 }
 term  witness : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> A
-{ witness [A] [B] (exI [.A] [.B] destructor_argument_witness destructor_argument_proof) = destructor_argument_witness
+{ witness [A] [B] (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_witness
 }
 G> fun proof : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> B (witness A B exI)
-G> { proof A B (exI .A .B destructor_argument_witness destructor_argument_proof) = destructor_argument_proof
+G> { proof A B (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_proof
 }
 term  proof : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> B (witness [A] [B] exI)
-{ proof [A] [B] (exI [.A] [.B] destructor_argument_witness destructor_argument_proof) = destructor_argument_proof
+{ proof [A] [B] (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_proof
 }
 type  Foo : Set
 term  foo : ^ Exists Foo (\ x -> Foo) -> Foo

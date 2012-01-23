@@ -13,16 +13,16 @@ ty-u  InvI : ^(A : Set) -> Set $0
 term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [$0] Set (I Inverse) A) -> InvI A
 ty-u  InvI : ^(A : Set) -> Set $0
 G> fun Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
-G> { Inverse A (inv .A destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
+G> { Inverse A (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
 }
 type  Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
-{ Inverse [A] (inv [.A] destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
+{ Inverse [A] (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
 }
 G> fun isInverse : .[A : Set] -> (inv : InvI A) -> Eq $0 Set (I (Inverse A inv)) A
-G> { isInverse A (inv .A destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
+G> { isInverse A (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
 }
 term  isInverse : .[A : Set] -> (inv : InvI A) -> Eq [$0] Set (I (Inverse [A] inv)) A
-{ isInverse [A] (inv [.A] destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
+{ isInverse [A] (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
 }
 tmty  invertible : (A : Set) -> InvI A
 {}
@@ -33,13 +33,8 @@ type  cIc = cantor (I cantor)
 error during typechecking:
 delta
 /// checkExpr 0 |- case invertible (I cantor)
-               { inv .(I cantor) .cantor (refl .$0 .Set .(I cantor)) -> \ f -> f f
+               { inv .cantor (refl) -> \ f -> f f
                } : Inverse (I cantor) (invertible (I cantor)) (I cantor) -> Empty
 /// case 1
-/// dot pattern I cantor
-/// inferred value I .(cantor) does not match given dot pattern value I cantor
-/// leqVal' [(.(cantor),1),(.(I cantor),0),(.($0),2),(.(Set),3),(.(I cantor),4)] |- I .(cantor)  <=+  I cantor : Set
-/// leqVal' [(.(cantor),1),(.(I cantor),0),(.($0),2),(.(Set),3),(.(I cantor),4)] |- .(cantor)  <=^  \ A -> Inverse [A] (invertible A) A -> Empty : Set -> Set
-/// new  : Set
-/// leqVal' [(,5),(.(cantor),1),(.(I cantor),0),(.($0),2),(.(Set),3),(.(I cantor),4)] |- .(cantor)   <=^  Inverse  (invertible )  -> Empty : Set
-/// leqApp: (v1 v5)[] !<= ((Inverse v5 (invertible v5) v5)::Tm -> Empty{A = v5})[]
+/// dot pattern cantor
+/// not instantiated

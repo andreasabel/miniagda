@@ -18,6 +18,6 @@ data Vec (+A : Set) : Nat -> Set
 
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> Nat
 {
-  length A .zero (vnil .A) = zero;
-  length A .(succ n) (vcons .A x n xs) = succ n  -- error: erased n may not occ.
+  length A .zero (vnil) = zero;
+  length A .(succ n) (vcons x n xs) = succ n  -- error: erased n may not occ.
 }

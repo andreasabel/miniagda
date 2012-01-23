@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 -- Booleans ----------------------------------------------------------
 
 data Bool : Set 
@@ -35,11 +37,11 @@ sized codata Stream (+ A : Set) : Size -> Set
 }
  
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
-{ tail A i (cons .A .i x xs) = xs
+{ tail A i (cons .i x xs) = xs
 }
 
 fun head : (A : Set) -> (i : Size) -> Stream A ($ i) -> A 
-{ head A i (cons .A .i x xs) = x
+{ head A i (cons .i x xs) = x
 }
 
 fun nth : Nat -> Stream Nat # -> Nat 
@@ -52,34 +54,34 @@ fun nth : Nat -> Stream Nat # -> Nat
 cofun map : (A : Set) -> (B : Set) -> (i : Size) -> 
             (A -> B) -> Stream A i -> Stream B i 
 {
-map A B ($ i) f (cons .A .i x xl) = cons B _ (f x) (map A B _ f xl)
+map A B ($ i) f (cons .i x xl) = cons _ (f x) (map A B _ f xl)
 }
 
 cofun zipWith : (A : Set) -> (B : Set) -> (C : Set) ->
                 (A -> B -> C) -> (i : Size) ->
 		Stream A i -> Stream B i -> Stream C i 
 {
-  zipWith A B C f ($ i) (cons .A .i a as) (cons .B .i b bs) = 
-	cons C i (f a b)  (zipWith A B C f i as bs) 
+  zipWith A B C f ($ i) (cons .i a as) (cons .i b bs) = 
+	cons i (f a b)  (zipWith A B C f i as bs) 
 }
 
 cofun merge : (i : Size) -> (Nat -> Nat -> Bool) -> 
               Stream Nat i -> Stream Nat i -> Stream Nat i
 {
-merge ($ i) le (cons .Nat .i x xs) (cons .Nat .i y ys) = 
+merge ($ i) le (cons .i x xs) (cons .i y ys) = 
       ifthenelse (le x y) (Stream Nat _)
-         (cons Nat _ x (merge _ le xs (cons Nat _ y ys)))
-	 (cons Nat _ y (merge _ le (cons Nat _ x xs) ys))     
+         (cons _ x (merge _ le xs (cons _ y ys)))
+	 (cons _ y (merge _ le (cons _ x xs) ys))     
 }
 
 {-
 cofun merge : (i : Size) -> (Nat -> Nat -> Bool) -> 
               Stream Nat i -> Stream Nat i -> Stream Nat i
 {
-merge .($ i) le (cons Nat .i x xs) (cons Nat i y ys) = 
+merge .($ i) le (cons .i x xs) (cons i y ys) = 
       ifthenelse (le x y) (Stream Nat _)
-         (cons Nat _ x (merge _ le xs (cons Nat _ y ys)))
-	 (cons Nat _ y (merge _ le (cons Nat _ x xs) ys))     
+         (cons _ x (merge _ le xs (cons _ y ys)))
+	 (cons _ y (merge _ le (cons _ x xs) ys))     
 }
 -}
 
@@ -98,7 +100,7 @@ let triple : Nat -> Nat
 
 cofun ham : (i : Size) -> Stream Nat i
 {
-  ham ($ i) = cons Nat _ one (merge i leq (map Nat Nat i double (ham i)) 
+  ham ($ i) = cons _ one (merge i leq (map Nat Nat i double (ham i)) 
                                     (map Nat Nat i triple (ham i)))
 }
 
@@ -108,12 +110,12 @@ cofun ham : (i : Size) -> Stream Nat i
 cofun map2 : (i : Size) -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i 
 {
 map2 .($ ($ i)) f (cons .Nat .($ i) u (cons .Nat i x xl)) = 
-  cons Nat _ (f u) (cons Nat _ (f x) (map2 _ f xl))
+  cons _ (f u) (cons _ (f x) (map2 _ f xl))
 }
 
 cofun ham2 : (i : Size) -> Stream Nat i
 {
-  ham2 ($ i) = cons Nat _ one (merge i leq (map2 i double (ham2 i)) 
+  ham2 ($ i) = cons _ one (merge i leq (map2 i double (ham2 i)) 
                                      (map2 i triple (ham2 i)))
 }
 
@@ -128,7 +130,7 @@ eval let bla : Nat = nth one (ham2 #)
 
 cofun fib : (i : Size) -> Stream Nat (i + i)
 {
-  fib (i + 1) = cons Nat _ zero (cons Nat _ one (zipWith Nat Nat Nat add
+  fib (i + 1) = cons _ zero (cons _ one (zipWith Nat Nat Nat add
     i (fib i) (tail Nat i (fib (i + 1/2)))))
 }
 
@@ -138,22 +140,22 @@ cofun fib : (i : Size) -> Stream Nat (i + i)
 
 cofun bad : [i : Size] -> Stream Nat i
 {
-  bad ($ ($ i)) = cons Nat _ zero (tail Nat _ (bad ($ i)))
+  bad ($ ($ i)) = cons _ zero (tail Nat _ (bad ($ i)))
 }
 
 -}
 
 cofun fib : (i : Size) -> Stream Nat i
 {
-  fib ($ i) = cons Nat _ zero (zipWith Nat Nat Nat add i 
-    (cons Nat _ one (fib i)) (fib i))
+  fib ($ i) = cons _ zero (zipWith Nat Nat Nat add i 
+    (cons _ one (fib i)) (fib i))
 }
 
 
 
 cofun fibIter' : (x : Nat ) -> (y : Nat ) -> (i : Size) -> Stream Nat i 
 {
-  fibIter' x y ($ i) = cons Nat _ x (fibIter' y (add x y) _)
+  fibIter' x y ($ i) = cons _ x (fibIter' y (add x y) _)
 } 
 let fibIter : Stream Nat # = (fibIter' one one _)
 
@@ -180,25 +182,25 @@ lqs : (x : Nat ) -> (y : Nat ) -> Leq x y -> Leq (succ x) (succ y)
 
 sized codata Increasing : Size -> Stream Nat # -> Set
 {
-inc : (i : Size ) -> (x : Nat ) -> (y : Nat ) -> Leq x y -> (tl : Stream Nat # ) -> 
-      Increasing i (cons Nat # y tl) ->
-      Increasing ($ i) (cons Nat # x (cons Nat # y tl)) 
+inc : (i : Size) -> (x : Nat) -> (y : Nat) -> Leq x y -> (tl : Stream Nat #) -> 
+      Increasing i (cons # y tl) ->
+      Increasing ($ i) (cons # x (cons # y tl)) 
 }
 
 
 data Eq (+ A : Set ) : A -> A -> Set
 {
-refl : (a : A ) -> Eq A a a
+refl : (a : A) -> Eq A a a
 }
 
-let proof : Eq (Stream Nat #) (tail Nat # fibIter) (tail Nat # fibIter) = refl (Stream Nat _) (tail Nat # fibIter)
+let proof : Eq (Stream Nat #) (tail Nat # fibIter) (tail Nat # fibIter) = refl (tail Nat # fibIter)
 
 
-
+let succ_ : Nat -> Nat = \ x -> succ x
 
 cofun evil : (i : Size ) -> Stream Nat i
 {
-evil ($ i) = map Nat Nat _ succ (cons Nat _ zero (evil _))
+evil ($ i) = map Nat Nat _ succ_ (cons _ zero (evil _))
 }
 
 -- eval const zzz : Nat = head # (z #) 
@@ -206,12 +208,15 @@ evil ($ i) = map Nat Nat _ succ (cons Nat _ zero (evil _))
 
 
 -- convolution (Shin-Cheng Mu)
+
+let cons_ : [A : Set] -> [i : Size] -> A -> Stream A i -> Stream A $i
+   = \ A i a as -> cons i a as
  
 cofun dmerge : (A : Set) -> (i : Size) -> Stream (Stream A i) i -> Stream A i
 {
-dmerge A ($ i) (cons .(Stream A ($ i)) .i ys yss) = 
-  cons A i (head A _ ys) (dmerge A i
-    (zipWith A (Stream A _) (Stream A _) (cons A _) i 
+dmerge A ($ i) (cons .i ys yss) = 
+  cons i (head A _ ys) (dmerge A i
+    (zipWith A (Stream A _) (Stream A _) (cons_ A _) i 
             (tail A _ ys) yss))
 }
 

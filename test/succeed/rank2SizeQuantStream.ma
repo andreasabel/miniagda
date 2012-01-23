@@ -9,5 +9,5 @@ data Unit : Set {
  
 cofun bla : (i : Size) -> ((j : Size) -> Stream Unit j -> Stream Unit j) -> Stream Unit i
 {
- bla ($ i) f = f ($ i) (cons Unit i triv (bla i f)) 
+ bla ($ i) f = f ($ i) (cons i triv (bla i f)) 
 }

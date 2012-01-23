@@ -34,14 +34,14 @@ let cIc : Set
 -- type checker loops!
 let delta : cIc
 = case (invertible (I cantor))
-  { (inv .(I cantor) .cantor (refl .1 .Set .(I cantor)))  -> 
+  { (inv .cantor refl) ->
    -- in the branch, cIc --> cIc -> Empty --> (cIc -> Empty) -> Empty -->...
         \ f -> f f
   }
 
 let delta' : cIc -> Empty
 = case (invertible (I cantor))
-  { (inv .(I cantor) .cantor (refl .Set .(I cantor))) -> 
+  { (inv .cantor refl) ->
         \ f ->  f f            
   }
 

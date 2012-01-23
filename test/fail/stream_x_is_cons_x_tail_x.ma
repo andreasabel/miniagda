@@ -17,10 +17,10 @@ sized codata Stream (+ A : Set) : Size -> Set {
  
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
-  tail A i (cons .A .i x xs) = xs
+  tail A i (cons .i x xs) = xs
 }
 
 cofun bad : (i : Size) -> Stream Nat i
 {
-  bad ($ ($ i)) = cons Nat _ n0 (tail Nat _ (bad ($ i)))
+  bad ($ ($ i)) = cons _ n0 (tail Nat _ (bad ($ i)))
 }

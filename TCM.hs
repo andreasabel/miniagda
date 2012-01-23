@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, PatternGuards, FlexibleContexts #-}
+{-# LANGUAGE TypeSynonymInstances, PatternGuards, FlexibleContexts, NamedFieldPuns #-}
  
 module TCM where
 
@@ -903,8 +903,11 @@ matchPatType (p,v) dom cont =
           (ConP co n [], _) -> cont
 
           (ConP co n pl, VApp (VDef (DefId ConK{} _)) vl) -> do
+{-
              sige <- lookupSymb n
              let vc = symbTyp sige
+-}
+             vc <- conType n (typ dom)
              introPatTypes (zip pl vl) vc $ \ _ -> cont
  
           (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont 
@@ -1007,6 +1010,35 @@ class MonadCxt m => MonadSig m where
 
 -- Signature implementation ------------------------------------------
 
+data DataView 
+  = Data Name [Clos]
+  | NoData
+
+dataView :: TVal -> TypeCheck DataView
+dataView tv = do -- maybe force tv?
+  case tv of
+    VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
+    VSing v dv                    -> dataView =<< whnfClos dv
+    _                             -> return $ NoData 
+
+-- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
+--   with parameters instantiated
+conType :: Name -> TVal -> TypeCheck TVal
+conType c tv = do
+  dv <- dataView tv
+  case dv of
+    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv <+> text "to be a data type")
+    Data n vs -> do
+      -- DataSig { numPars } <- lookupSymb n
+      ConSig { numPars, symbTyp } <- lookupSymb c
+      let (pars, inds) = splitAt numPars vs
+      unless (length pars == numPars) $
+        failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv 
+                   <+> text ("to be a data type applied to all of its " ++ 
+                     show numPars ++ " parameters"))
+      piApps symbTyp pars
 
 instance MonadSig TypeCheck where
 

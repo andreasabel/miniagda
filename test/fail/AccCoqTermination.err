@@ -14,32 +14,32 @@ term  r1 : .[x : Nat] -> R (succ (succ x)) (succ zero)
 term  r2 : R (succ zero) zero
 type  R : ^ Nat -> ^ Nat -> Set
 term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
-term  acc2 = \ n -> acc [Nat] [R] [succ (succ n)] (\ a -> \ p -> case p
-                                                    {})
+term  acc2 = \ n -> acc [succ (succ n)] (\ a -> \ p -> case p
+                                          {})
 term  aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 { aux1 (succ (succ x)) (r1 [.x]) = acc2 x
 }
 term  acc1 : Acc Nat R (succ zero)
-term  acc1 = acc [Nat] [R] [succ zero] aux1
+term  acc1 = acc [succ zero] aux1
 term  aux0 : (a : Nat) -> (p : R a zero) -> Acc Nat R a
 { aux0 .(succ zero) (r2) = acc1
 }
 term  acc0 : Acc Nat R zero
-term  acc0 = acc [Nat] [R] [zero] aux0
+term  acc0 = acc [zero] aux0
 term  accR : (n : Nat) -> Acc Nat R n
 { accR (zero) = acc0
 ; accR (succ (zero)) = acc1
 ; accR (succ (succ n)) = acc2 n
 }
 term  acc_dest : (n : Nat) -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Nat R m
-{ acc_dest .n (acc [.Nat] [.R] [n] p) = p
+{ acc_dest .n (acc [n] p) = p
 }
 term  f : (x : Nat) -> Acc Nat R x -> Nat
-{ f x (acc [.Nat] [.R] [.x] p) = case x
-                                 { zero -> f (succ x) (p (succ x) r2)
-                                 ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
-                                 ; succ (succ y) -> zero
-                                 }
+{ f x (acc [.x] p) = case x
+                     { zero -> f (succ x) (p (succ x) r2)
+                     ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
+                     ; succ (succ y) -> zero
+                     }
 }
 term  g : (x : Nat) -> .[Acc Nat R x] -> Nat
 { g x [p] = case x

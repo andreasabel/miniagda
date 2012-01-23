@@ -11,8 +11,8 @@ data Nat : Set {
 -- THIS SHOULD NOT TYPECHECK!!
 cofun map2 : (i : Size) -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i 
 {
-map2 .($ ($ i)) f (cons .Nat .($ i) u (cons .Nat i x xl)) = 
-  cons Nat _ (f u) (cons Nat _ (f x) (map2 _ f xl))
+map2 .($ ($ i)) f (cons .($ i) u (cons i x xl)) = 
+  cons _ (f u) (cons _ (f x) (map2 _ f xl))
 }
 
 {- a better explanation why this does not work:

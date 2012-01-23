@@ -1,0 +1,5 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "InvalidField.ma" ---
+--- scope checking ---
+scope check error: D
+/// record field f unknown

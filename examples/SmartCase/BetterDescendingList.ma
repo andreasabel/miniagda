@@ -26,16 +26,16 @@ fun True : Bool -> Set
 { True b = Id Bool b true
 }
 let triv : True true
-         = refl Bool true
+         = refl -- Bool true
 
 fun False : Bool -> Set
 { False b = Id Bool b false
 }
 let triv' : False false
-          = refl Bool false
+          = refl -- Bool false
 
 fun contradiction : (b : Bool) -> True b -> False b -> (A : Set) -> A
-{ contradiction .true (refl .Bool .true) () A
+{ contradiction true refl () A
 }
 
 -- properties of leq
@@ -120,11 +120,11 @@ fun maxAbove : (k, m, n : Nat) -> Leq k n -> Leq k (maxN n m)
 --   m = new element
 --   n = bound of list l
 fun insert : (m : Nat) -> [n : Nat] -> SList n -> SList (maxN n m)
-{ insert m n (snil .n) = scons (maxN n m) m (rLeqMax n m) (snil m)
-; insert m n (scons .n k p l) = case leq k m 
-  { true  -> scons (maxN n m) m (rLeqMax n m) (scons m k triv l)
+{ insert m n snil = scons {- (maxN n m) -} m (rLeqMax n m) snil
+; insert m n (scons k p l) = case leq k m 
+  { true  -> scons {- (maxN n m) -} m (rLeqMax n m) (scons k triv l)
   ; false -> -- leq k m == false, p : leq k n == true, need k <= maxN n m
-             scons (maxN n m) k (maxAbove k m n p)
+             scons {- (maxN n m) -} k (maxAbove k m n p)
                    (insert m k l)
   }
 }
@@ -135,11 +135,11 @@ fail fun insert' : (m : Nat) -> [n : Nat] -> SList n -> SList (maxN n m)
   let [nm     : Nat     ] = maxN    n m in
   let [mLeqnm : Leq m nm] = rLeqMax n m in
   case l 
-  { (snil .n) -> scons nm m mLeqnm (snil m)
-  ; (scons .n k p l) -> case leq k m 
-    { true    -> scons nm m mLeqnm (scons m k triv l)
+  { (snil) -> scons m mLeqnm snil
+  ; (scons k p l) -> case leq k m 
+    { true    -> scons m mLeqnm (scons m k triv l)
     ; false   -> -- leq k m == false, p : leq k n == true, need k <= maxN n m
-                 scons nm k (maxAbove k m n p) (insert' m k l)
+                 scons k (maxAbove k m n p) (insert' m k l)
     }
   }
 }

@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 data Nat : Set 
 { zero : Nat
 ; suc  : Nat -> Nat
@@ -22,13 +24,13 @@ fun True : ^Bool -> Set
 { True b = Id Bool b true
 }
 let triv : True true
-         = refl Bool true
+         = refl
 
 fun False : Bool -> Set
 { False b = Id Bool b false
 }
 let triv' : False false
-          = refl Bool false
+          = refl
 
 fun leFalse : (n : Nat) -> (m : Nat) -> False (leq n m) -> True (leq m n)
 { leFalse  n       zero   p = triv

@@ -38,9 +38,10 @@ deep
 /// checkExpr 9 |- deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n))) (succ (succ (succ n))) : Nat
 /// inferExpr' deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n))) (succ (succ (succ n)))
 /// inferExpr' deep $$$i (M $$i (L $i (pre i f)) (S j2 (f n)))
-/// inferExpr' M $$i (L $i (pre i f)) (S j2 (f n))
-/// inferExpr' M $$i (L $i (pre i f))
-/// inferExpr' L $i (pre i f)
+/// checkExpr 9 |- M $$i (L $i (pre i f)) (S j2 (f n)) : O $$$i
+/// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- M $$i (L $i (pre i f)) (S j2 (f n)) : O $$$i
+/// checkExpr 9 |- L $i (pre i f) : O $$i
+/// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- L $i (pre i f) : O $$i
 /// inferExpr' pre i f
 /// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- (xSing# : Nat) -> < f xSing# : O j2 >  <=+  Nat -> O $$i
 /// new xSing# : Nat||Nat

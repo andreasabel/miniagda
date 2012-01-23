@@ -15,6 +15,7 @@ whnf' :: Expr -> TypeCheck Val
 app   :: Val -> Val -> TypeCheck Val
 whnfClos :: Val -> TypeCheck Val
 force :: Val -> TypeCheck Val
+piApps :: TVal -> [Clos] -> TypeCheck TVal
 
 projectType :: TVal -> Name -> TypeCheck TVal
 

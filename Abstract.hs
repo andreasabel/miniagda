@@ -484,6 +484,9 @@ instance Show IdKind where
     show FunK   = "fun"
     show LetK   = "let"
 
+conKind (ConK _) = True
+conKind _        = False
+
 data DefId = DefId { idKind :: IdKind, name :: Name } 
            deriving (Eq, Ord)
 
@@ -621,7 +624,7 @@ data Expr = Sort (Sort Expr)   -- Size Set CoSet
           | Var Name     -- variables are named
           | Def DefId    -- identifiers in the signature
 {-
-          | Con Co Name  -- constructors
+          | Con Co Name [Expr] -- constructors applied to arguments
           | Def Name     -- fun/cofun ?
           | Let Name     -- definition (non-recursive)
 -}
@@ -723,6 +726,7 @@ type Case = (Pattern,Expr)
 type Subst = Map MVar Expr
 
 con co n = Def $ DefId (ConK co) n
+-- con co n = Con co n []
 fun n    = Def $ DefId FunK n
 dat n    = Def $ DefId DatK n
 letdef n = Def $ DefId LetK n
@@ -836,9 +840,10 @@ inferable Sort{}  = True
 inferable Zero{}  = True
 inferable Infty{} = True
 --inferable Con{}   = True
-inferable Def{}   = True
---inferable Let{}   = True
-inferable App{}   = True
+-- 2012-01-22 constructors are no longer inferable, since parameters are missing
+inferable (Def (DefId { idKind = ConK{} }))  = False
+inferable Def{} = True 
+inferable (App f e) = inferable f
 -- inferable Sing{}  = True  -- not with universes
 inferable _       = False
 
@@ -1360,8 +1365,8 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
       pattern = ConP (PatternInfo co False) -- to bootstrap destructor, not irrefutable 
-       constrName (List.map (DotP . Var) parNames 
-         ++ List.map (\ fi -> (case fClass fi of 
+          constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++ 
+            List.map (\ fi -> (case fClass fi of 
                             Index   -> DotP . Var
                             Field{} -> VarP . prefix) 
                          (fName fi)) 

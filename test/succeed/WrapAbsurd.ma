@@ -8,14 +8,14 @@ data Empty : Set {}
 
 -- should succeed
 fun wrap0Elim : Wrap Empty -> Empty
-{ wrap0Elim (wrap .Empty ()) 
+{ wrap0Elim (wrap ()) 
 }
 
 data Unit : Set { unit : Unit }
 
 -- should fail
 fail fun wrap1Elim : Wrap Unit -> Empty
-{ wrap1Elim (wrap .Unit ())
+{ wrap1Elim (wrap ())
 }
 
 {- BEFORE BUG FIX:

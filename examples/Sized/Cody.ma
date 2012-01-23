@@ -51,6 +51,7 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
    for subtyping.
 
 -}
+trustme -- termination check fails (rightly so)
 fun deep : [i : Size] -> O i -> Nat -> Nat
 { deep .($ ($ ($ ($ i)))) (M .($ ($ ($ i))) 
                              (L .($ ($ i)) f) 
@@ -63,7 +64,7 @@ fun deep : [i : Size] -> O i -> Nat -> Nat
 let four : Nat 
   = succ (succ (succ (succ zero)))
 
---eval 
+--eval
 let loop : Nat = deep # (M # (L # emb) (emb four)) four
 
 {- 2010-03-08  Limits and deep matching

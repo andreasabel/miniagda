@@ -25,15 +25,17 @@ fail fun length1 : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
 
 -- cannot use irrelevant constructor argument
 fail fun length2 : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
-{ length2 A .zero (vnil .A) = zero
-; length2 A .(succ n) (vcons .A n a v) = succ n
+{ length2 A .zero vnil = zero
+; length2 A .(succ n) (vcons n a v) = succ n
 }
 
+{- 2012-01-23 BROKEN
 -- recursive solution, extracts to  length : List A -> Nat
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
-{ length A .zero (vnil .A) = zero
-; length A .(succ n) (vcons .A n a v) = succ (length A n v)
+{ length A .zero vnil = zero
+; length A .(succ n) (vcons n a v) = succ (length A n v)
 }
+-}
 
 -- Proof irrelevance in data types -----------------------------------
 
@@ -52,8 +54,8 @@ data Id [A : Set](a : A) : A -> Set
 }
 
 fun prfIrrCons : [n, m : Nat] -> [p1, p2 : Leq m n] -> [l : SList m] ->
-                 Id (SList n) (scons n m p1 l) (scons n m p2 l) 
-{ prfIrrCons n m p1 p2 l = refl (SList n) (scons n m p1 l)
+                 Id (SList n) (scons m p1 l) (scons m p2 l) 
+{ prfIrrCons n m p1 p2 l = refl -- (SList n) (scons n m p1 l)
 }
 
 -- Existentials ------------------------------------------------------
@@ -70,13 +72,13 @@ impredicative data EXISTS [i : Size](A : Set i)(P : A -> Set) : Set
 -- projections not definable (weak Sigma)
 fail fun proj1 : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
                  EXISTS i A P -> A
-{ proj1 i A P (eXIntro .i .A .P a p) = a -- a cannot appear here!
+{ proj1 i A P (eXIntro a p) = a -- a cannot appear here!
 }
 
 -- Exists elimination
 fun eXElim : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
              EXISTS i A P -> [C : Set] -> ([a : A] -> P a -> C) -> C
-{ eXElim i A P (eXIntro .i .A .P a p) C k = k a p
+{ eXElim i A P (eXIntro a p) C k = k a p
 }
 
 -- Subsets -----------------------------------------------------------
@@ -87,7 +89,7 @@ data Subset (A : Set) (P : A -> Set) : Set
 fields outSub
 
 fun outSub' : [A : Set] -> [P : A -> Set] -> Subset A P -> A
-{ outSub' A P (inSub .A .P a p) = a
+{ outSub' A P (inSub a p) = a
 }
 
 -- Proof-irrelevant propositions (Proof types / bracket types) -------
@@ -97,26 +99,26 @@ data Prf ++(A : Set) : Set
 }
 
 fun proofIrr : [A : Set] -> [a, b : Prf A] -> Id (Prf A) a b
-{ proofIrr A (prf .A a) (prf .A b) = refl (Prf A) (prf A a)
+{ proofIrr A (prf a) (prf b) = refl
 }
 
 fail fun proofIrr' : [A : Set] -> [a, b : Prf A] -> Id (Prf A) a b
-{ proofIrr' A a b = refl (Prf A) a
+{ proofIrr' A a b = refl
 }
 
 -- Monad Laws for Prf
 
 fun mapPrf : [A, B : Set] -> (A -> B) -> Prf A -> Prf B
-{ mapPrf A B f (prf .A a) = prf B (f a)
+{ mapPrf A B f (prf a) = prf (f a)
 }
 
 -- trustme -- because of deep matching bug in MiniAgda
 fun joinPrf : [A : Set] -> Prf (Prf A) -> Prf A
-{ joinPrf A (prf .(Prf A) (prf .A a)) = prf A a
+{ joinPrf A (prf (prf a)) = prf a
 }
 
 fail fun bindPrf : [A, B : Set] -> Prf A -> (A -> Prf B) -> Prf B
-{ bindPrf A B (prf .A a) f = f a  -- a cannot be used here
+{ bindPrf A B (prf a) f = f a  -- a cannot be used here
 }
 
 let bindPrf : [A, B : Set] -> Prf A -> (A -> Prf B) -> Prf B
@@ -127,12 +129,12 @@ let bindPrf : [A, B : Set] -> Prf A -> (A -> Prf B) -> Prf B
 -- does not go this way
 fail fun isoForall1 : [A : Set] -> [B : A -> Set] ->
                  ((x : A) -> Prf (B x)) -> Prf ((x : A) -> B x)
-{ isoForall1 A B f = prf ((x : A) -> B x) (\ x -> f x)
+{ isoForall1 A B f = prf (\ x -> f x)
 }
 
 fun isoForall2 : [A : Set] -> [B : A -> Set] ->
                  Prf ((x : A) -> B x) -> (x : A) -> Prf (B x)
-{ isoForall2 A B (prf .((x' : A) -> B x') f) x = prf (B x) (f x)
+{ isoForall2 A B (prf f) x = prf (f x)
 }
 
 
@@ -142,14 +144,10 @@ data Prod ++(A, B : Set) : Set
 fields fst, snd
 
 fun isoAnd1 : [A, B : Set] -> Prod (Prf A) (Prf B) -> Prf (Prod A B)
-{ isoAnd1 A B (pair .(Prf A) .(Prf B) (prf .A a) (prf .B b)) =
-    prf (Prod A B) (pair A B a b)
+{ isoAnd1 A B (pair (prf a) (prf b)) = prf (pair a b)
 }
 
--- trustme -- BUG in MiniAgda
 fun isoAnd2 : [A, B : Set] -> Prf (Prod A B) -> Prod (Prf A) (Prf B)
-{ isoAnd2 A B (prf .(Prod A B) (pair .A .B a b)) = 
-    pair (Prf A) (Prf B) (prf A a) (prf B b)
+{ isoAnd2 A B (prf (pair a b)) = pair (prf a) (prf b)
 }
-
 

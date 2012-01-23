@@ -6,19 +6,19 @@ type  Stream : ++(A : Set) -> - Size -> Set
 term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-G> { head A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
+G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-{ head [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
+{ head [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
 }
 G> fun tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-G> { tail A i (cons .A .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+G> { tail A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.A] [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+{ tail [A] [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
 }
 term  iterate : .[A : Set] -> (step : A -> A) -> (start : A) -> .[i : Size] -> Stream A i
-{ iterate [A] step start $[i] = cons [A] [i] start (iterate [A] step (step start) [i])
+{ iterate [A] step start $[i] = cons [i] start (iterate [A] step (step start) [i])
 }
 type  Tm : Set
 term  abs : ^ (^ Tm -> Tm) -> Tm
@@ -39,7 +39,7 @@ step
 /// clause 3
 /// right hand side
 /// checkExpr 1 |- abs (\ x -> step (f x)) : Tm
-/// inferExpr' abs (\ x -> step (f x))
+/// checkForced fromList [(f,0)] |- abs (\ x -> step (f x)) : Tm
 /// checkExpr 1 |- \ x -> step (f x) : ^ Tm -> Tm
 /// checkForced fromList [(f,0)] |- \ x -> step (f x) : ^ Tm -> Tm
 /// new x : Tm

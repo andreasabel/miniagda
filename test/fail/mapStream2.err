@@ -13,6 +13,6 @@ term  map2 : .[i : Size] -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i
 error during typechecking:
 map2
 /// clause 1
-/// pattern cons .Nat .$i u (cons .Nat i x xl)
-/// pattern cons .Nat i x xl
-/// in pattern cons .Nat i x xl, coinductive size sub pattern i must be dotted
+/// pattern cons .$i u (cons i x xl)
+/// pattern cons i x xl
+/// in pattern cons i x xl, coinductive size sub pattern i must be dotted

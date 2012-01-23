@@ -37,7 +37,7 @@ let not : Bool -> Bool
 -- equations that should hold with weaker equality rule
 
 let ifx : (x : Bool) -> Id Bool (if Bool x x x) (eta x)
-  = \ x -> refl Bool (eta x)
+  = \ x -> refl -- Bool (eta x)
 
 {- All these FAIL now
 

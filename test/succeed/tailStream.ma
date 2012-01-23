@@ -7,5 +7,5 @@ sized codata Stream (+ A : Set) : Size -> Set {
 -- admissible 
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
-  tail A i (cons .A .i x xs) = xs
+  tail A i (cons .i x xs) = xs
 }

@@ -23,7 +23,7 @@ fun invertible : (A : Set) -> InvI A {}  -- postulate
 -- self-application on the type level
 let cantor : Set -> Set
 = \ A -> case (invertible A) 
-  { (inv .A X p) -> X A -> Empty
+  { (inv X p) -> X A -> Empty
   }
 
 let cIc : Set
@@ -32,14 +32,14 @@ let cIc : Set
 -- type checker loops!
 let delta : cIc
 = case (invertible (I cantor))
-  { (inv .(I cantor) .cantor (refl .1 .Set .(I cantor)))  -> 
+  { (inv {-.(I cantor)-} .cantor (refl {-.1 .Set .(I cantor)-}))  -> 
    -- in the branch, cIc --> cIc -> Empty --> (cIc -> Empty) -> Empty -->...
         \ f -> f f
   }
 
 let delta' : cIc -> Empty
 = case (invertible (I cantor))
-  { (inv .(I cantor) .cantor (refl .Set .(I cantor))) -> 
+  { (inv {-.(I cantor)-} .cantor (refl {-.Set .(I cantor)-})) -> 
         \ f ->  f f            
   }
 

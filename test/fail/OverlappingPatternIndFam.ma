@@ -12,7 +12,7 @@ data Id (A : Set) (a : A) : A -> Set
 
 fun subst : (A : Set) -> (a : A) -> (b : A) -> Id A a b -> 
   (P : A -> Set) -> P a -> P b
-{ subst A a .a (refl .A .a) P x = x
+{ subst A a .a (refl) P x = x
 }
 
 -- an overlapping ind. fam.
@@ -26,7 +26,7 @@ data DecEq (A : Set)(a : A) : A -> Set
 let offDiag : (A : Set) -> (f : (a : A) -> (b : A) -> DecEq A a b) ->
               (a : A) -> (b : A) -> 
               Id (DecEq A a b) (f a b) (notEq A a b)
-  = \ A -> \ f -> \ a -> \ b -> refl (DecEq A a b) (notEq A a b)
+  = \ A -> \ f -> \ a -> \ b -> refl -- (DecEq A a b) (notEq A a b)
 
 -- let incons : (A : Set) -> (a : A) -> Id (DecEq A a a) (eq A a) (notEq A a a)
 --   = \ A -> \ a -> offDiag (\ A' -> \ a' -> \ b -> eq A' a') A a a 

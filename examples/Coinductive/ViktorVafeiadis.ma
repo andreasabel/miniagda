@@ -44,9 +44,9 @@ CoInductive repet1 (s : A) : trace -> Prop :=
 -- "repet1"
 sized codata Traced (A : Set) (S : A -> Set) (R : A -> A -> Set) *(a : A) : 
   (i : Size) -> CoList A i -> Set
-{ tstart : [i : Size] -> S a -> Traced A S R a $i (tnil A i)
+{ tstart : [i : Size] -> S a -> Traced A S R a $i (tnil i)
 ; tstep  : [i : Size] -> (a' : A) -> (t : CoList A i) ->  R a a' -> Traced A S R a' i t ->
-    Traced A S R a $i (tcons A i a' t)
+    Traced A S R a $i (tcons i a' t)
 }
 
 {-
@@ -60,21 +60,29 @@ data Exists (A : Set) (B : A -> Set) : Set
 fun map2 : (A, A' : Set) -> (B : A -> Set) -> (B' : A' -> Set) ->
   (f : A -> A') -> (g : (a : A) -> B a -> B' (f a)) -> 
   Exists A B -> Exists A' B'
-{ map2 A A' B B' f g (pair .A .B a b) = pair A' B' (f a) (g a b)
+{ map2 A A' B B' f g (pair a b) = pair (f a) (g a b)
 } 
+
+let tcons_ : [A : Set] -> [i : Size] -> A -> CoList A i -> CoList A $i
+  = \ A i a as -> tcons i a as
+
+let tstep_ : [A : Set] -> [S : A -> Set] -> [R : A -> A -> Set] -> (a : A) ->
+  [i : Size] -> (a' : A) -> (t : CoList A i) -> R a a' -> Traced A S R a' i t ->
+    Traced A S R a $i (tcons i a' t)
+  = \ A S R a i a' t r tr -> tstep i a' t r tr
 
 cofun trace : (A : Set) -> (S : A -> Set) -> (R : A -> A -> Set) ->
    [i : Size] -> (a : A) -> Reach A S R a i ->
    Exists (CoList A i) (Traced A S R a i)
-{ trace A S R ($i) a (start .A .S .R .a .i s) = 
-    pair (CoList A $i) (Traced A S R a $i) 
-      (tnil A i) 
-      (tstart A S R a i s)
-; trace A S R ($i) a (step .A .S .R .a .i a' r x) =
+{ trace A S R ($i) a (start {-.A .S .R .a-} .i s) = 
+    pair -- (CoList A $i) (Traced A S R a $i) 
+      (tnil i) 
+      (tstart {-A S R a-} i s)
+; trace A S R ($i) a (step {-.A .S .R .a-} .i a' r x) =
     map2 (CoList A i) (CoList A $i)
          (Traced A S R a' i) (Traced A S R a $i)    
-         (tcons A i a')
-         (\ t -> tstep A S R a i a' t r)
+         (tcons_ A i a')
+         (\ t -> tstep_ A S R a i a' t r)
          (trace A S R i a' x)
 }      
 

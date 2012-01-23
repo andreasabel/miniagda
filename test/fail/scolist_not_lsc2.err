@@ -17,8 +17,8 @@ type  CoNat : ^ Size -> Set
 term  z : CoNat #
 term  z = cozero [#]
 term  length2 : .[i : Size] -> .[A : Set] -> Colist A i -> CoNat i
-{ length2 [.$i] [A] (nil [.A] [i]) = cozero [i]
-; length2 [.$i] [A] (cons [.A] [i] a as) = cosucc [i] (length2 [i] [A] as)
+{ length2 [.$i] [A] (nil [i]) = cozero [i]
+; length2 [.$i] [A] (cons [i] a as) = cosucc [i] (length2 [i] [A] as)
 }
 term  omega' : .[i : Size] -> CoNat i
 error during typechecking:

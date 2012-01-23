@@ -19,7 +19,7 @@ let if : (A : Set) -> Bool -> A -> A -> A
 
 trustme -- only works with strong smart if
 let ifx : (x : Bool) -> Id Bool (if Bool x x x) x
-  = \ x -> refl Bool x
+  = \ x -> refl
 
 let eta : (x : Bool) -> Bool
   = \ x -> if Bool x true false
@@ -32,17 +32,17 @@ let not : Bool -> Bool
 
 trustme
 let notnot1 : (x : Bool) -> Id Bool (not (not x)) (eta x)
-  = \ x -> refl Bool (eta x)
+  = \ x -> refl -- Bool (eta x)
 
 fail let notnot1' : (x : Bool) -> Id Bool (not (not x)) (eta x)
-  = \ x -> refl Bool x
+  = \ x -> refl -- Bool x
 
 trustme
 let notnot : (x : Bool) -> Id Bool (not (not x)) x
-  = \ x -> refl Bool (eta x)
+  = \ x -> refl -- Bool (eta x)
 
 fail let notnot' : (x : Bool) -> Id Bool (not (not x)) x
-  = \ x -> refl Bool x
+  = \ x -> refl -- Bool x
 
 {- CANNOT INFER
 

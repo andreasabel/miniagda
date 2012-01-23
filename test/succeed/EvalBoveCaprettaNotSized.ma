@@ -1,4 +1,5 @@
 -- 2009-11-29  A partial normalizer for untyped lambda calculus in MiniAgda
+-- 2012-01-22 parameters gone from constructors
 
 data Nat : Set 
 { zero : Nat
@@ -30,18 +31,18 @@ let Env : Set
       = List D
 
 let empty : Env
-      = nil D
+      = nil
 
 let update : Env -> D -> Env
-      = \ rho -> \ d -> cons D d rho       
+      = \ rho -> \ d -> cons d rho       
 
 let dummy : D
           = clos (var zero) empty
 
 fun lookup : Env -> Nat -> D
-{ lookup (nil .D) n = dummy
-; lookup (cons .D d rho) zero = d
-; lookup (cons .D d rho) (succ n) = lookup rho n
+{ lookup (nil) n = dummy
+; lookup (cons d rho) zero = d
+; lookup (cons d rho) (succ n) = lookup rho n
 }
 
 -- inductive graph of the evaluation function

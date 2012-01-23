@@ -12,18 +12,18 @@ term  nil : .[A : Set] -> List A
 term  cons : .[A : Set] -> ^ A -> ^ List A -> List A
 type  List : ^(A : Set) -> Set
 term  list : List Enum
-term  list = cons [Enum] aa (cons [Enum] bb (cons [Enum] cc (nil [Enum])))
+term  list = cons aa (cons bb (cons cc nil))
 term  rev : .[A : Set] -> List A -> List A
 term  rev1 : .[A : Set] -> A -> List A -> A
 term  rev2 : .[A : Set] -> A -> List A -> List A
-{ rev [A] (nil [.A]) = nil [A]
-; rev [A] (cons [.A] x xs) = cons [A] (rev1 [A] x xs) (rev2 [A] x xs)
+{ rev [A] (nil) = nil
+; rev [A] (cons x xs) = cons (rev1 [A] x xs) (rev2 [A] x xs)
 }
-{ rev1 [A] a (nil [.A]) = a
-; rev1 [A] a (cons [.A] x xs) = rev1 [A] x xs
+{ rev1 [A] a (nil) = a
+; rev1 [A] a (cons x xs) = rev1 [A] x xs
 }
-{ rev2 [A] a (nil [.A]) = nil [A]
-; rev2 [A] a (cons [.A] x xs) = rev [A] (cons [A] a (rev [A] (rev2 [A] x xs)))
+{ rev2 [A] a (nil) = nil
+; rev2 [A] a (cons x xs) = rev [A] (cons a (rev [A] (rev2 [A] x xs)))
 }
 error during typechecking:
 Termination check for mutual block [rev,rev1,rev2] fails for [rev,rev2]

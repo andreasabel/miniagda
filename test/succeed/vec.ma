@@ -24,23 +24,23 @@ data Vec (+A : Set) : Nat -> Set
 
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> Nat
 {
-  length .A .zero (vnil A) = zero;
-  length .A .(succ n) (vcons A x n xs) = succ (length A n xs);
+  length A .zero vnil = zero;
+  length A .(succ n) (vcons x n xs) = succ (length A n xs);
 }
 
 fun append : [A : Set] -> [n : Nat] -> Vec A n -> 
                           [m : Nat] -> Vec A m -> Vec A (add n m)
 {
-  append .A .zero     (vnil A)         m ys = ys;
-  append .A .(succ n) (vcons A x n xs) m ys = 
-    vcons A x (add n m) (append A n xs m ys)
+  append A .zero     vnil         m ys = ys;
+  append A .(succ n) (vcons x n xs) m ys = 
+    vcons x (add n m) (append A n xs m ys)
 }
 
 data Id (A : Set)(a : A) : A -> Set
 { refl : Id A a a
 }
 
-let vec0vnil : (A : Set) -> (v : Vec A zero) -> Id (Vec A zero) v (vnil A)
-             = \ A -> \ v -> refl (Vec A zero) v
+let vec0vnil : (A : Set) -> (v : Vec A zero) -> Id (Vec A zero) v vnil
+             = \ A -> \ v -> refl
 
  

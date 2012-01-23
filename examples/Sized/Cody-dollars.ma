@@ -40,6 +40,7 @@ let pre : [i : Size] -> (Nat -> O ($$ i)) -> Nat -> O ($ i)
    for subtyping.
 
 -}
+trustme -- termination check fails (rightly so)
 fun deep : [i : Size] -> O i -> Nat -> Nat
 { deep .($$$$ i) (M .($$$ i) 
                     (L .($$ i) f) 

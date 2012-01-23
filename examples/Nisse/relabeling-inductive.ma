@@ -22,15 +22,15 @@ sized data Tree (+ A : Set) : Size -> Set
 fun lab : [i : Size] -> [A : Set] -> [B : Set] ->
    Tree A i -> Stream (Stream B #) i -> 
    Prod (Tree B i) (Stream (Stream B #) i)
-{ lab j A B (leaf .A (j > i)) bss = 
-    pair (Tree B ($ i)) (Stream (Stream B #) ($ i)) (leaf B i) bss
-; lab j A B (node .A (j > i) x l r) 
-    (cons .(Stream B #) .i (cons .B .# b bs) bss) =
-    pair (Tree B ($ i)) (Stream (Stream B #) ($ i))
-     (node B i b (fst (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))  
-                 (fst (Tree B i) (Stream (Stream B #) i) (lab i A B r 
-                 (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss)))))
-     (cons (Stream B #) i bs 
+{ lab j A B (leaf (j > i)) bss = 
+    pair {- (Tree B ($ i)) (Stream (Stream B #) ($ i)) -} (leaf i) bss
+; lab j A B (node (j > i) x l r) 
+    (cons  .i (cons .# b bs) bss) =
+    pair {- (Tree B ($ i)) (Stream (Stream B #) ($ i)) -}
+     (node i b (fst (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))  
+               (fst (Tree B i) (Stream (Stream B #) i) (lab i A B r 
+               (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss)))))
+     (cons i bs 
                (snd (Tree B i) (Stream (Stream B #) i) (lab i A B r 
                (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))))) 
 }
@@ -40,14 +40,14 @@ fun lab : [i : Size] -> [A : Set] -> [B : Set] ->
 cofun label2 : [i : Size] -> [A : Set] -> [B : Set] -> 
   Tree A i -> Stream B # -> Stream (Stream B #) i 
 { label2 ($ i) A B t bs = snd (Tree B ($ i)) (Stream (Stream B #) ($ i))
-    (lab ($ i) A B t (cons (Stream B #) i bs (label2 i A B t bs)))
+    (lab ($ i) A B t (cons i bs (label2 i A B t bs)))
 }
 
 -- main program
 fun label : [i : Size] -> [A : Set] -> [B : Set] -> 
   Tree A i -> Stream B # -> Tree B i
 { label i A B t bs = fst (Tree B i) (Stream (Stream B #) i)
-   (lab i A B t (cons (Stream B #) i bs (label2 i A B t bs)))
+   (lab i A B t (cons i bs (label2 i A B t bs)))
 }
 
 -- testing...
@@ -62,32 +62,32 @@ data Nat : Set
 }
 
 cofun nats : [i : Size] -> Nat -> Stream Nat i
-{ nats ($ i) n = cons Nat i n (nats i (S n))
+{ nats ($ i) n = cons i n (nats i (S n))
 }
 
 fun fib : Nat -> Tree Unit #
-{ fib Z         = leaf Unit #
-; fib (S Z)     = leaf Unit #
-; fib (S (S n)) = node Unit # unit (fib n) (fib (S n))
+{ fib Z         = leaf #
+; fib (S Z)     = leaf #
+; fib (S (S n)) = node # unit (fib n) (fib (S n))
 }
 
 cofun fibTree : [i : Size] -> Nat -> Tree Unit i
-{ fibTree ($ i) n = node Unit i unit (fib n) (fibTree i (S n))
+{ fibTree ($ i) n = node i unit (fib n) (fibTree i (S n))
 }
 
 -- UNREADABLE OUTPUT
 -- eval let t : Tree Nat # = label # Unit Nat (fibTree # Z) (nats # Z)
 
 cofun infTree : [i : Size] -> Tree Unit i
-{ infTree ($ i) = node Unit i unit (infTree i) (infTree i)
+{ infTree ($ i) = node i unit (infTree i) (infTree i)
 }
 
 -- HARDLY READABLE
 -- eval let t' : Tree Nat # = label # Unit Nat (infTree #) (nats # Z)
 
 fun finTree : Nat -> Tree Unit #
-{ finTree Z = leaf Unit #
-; finTree (S n) = node Unit # unit (finTree n) (finTree n)
+{ finTree Z = leaf #
+; finTree (S n) = node # unit (finTree n) (finTree n)
 }
 
 eval let t0 : Tree Nat # = label # Unit Nat (finTree Z) (nats # Z)

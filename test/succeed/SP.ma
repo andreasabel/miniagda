@@ -22,12 +22,12 @@ sized codata SP : Size -> Set
 
 fun run' : [i : Size] -> (SP i -> Str A # -> Str B i) ->
            [j : Size] -> SP' (SP i) j -> Str A # -> Str B i
-{ run' i r j (get .(SP i) (j > k) f) (cons .A .# a as) = run' i r k (f a) as
-; run' i r j (out .(SP i) (j > k) sp) as            = r sp as
+{ run' i r j (get {- .(SP i)-} (j > k) f) (cons .# a as) = run' i r k (f a) as
+; run' i r j (out {- .(SP i)-} (j > k) sp) as            = r sp as
 }
 
 cofun run : [i : Size] -> SP i -> Str A # -> Str B i
-{ run ($ i) (put .i b sp) as  = cons B i b (run' i (run i) # sp as)
+{ run ($ i) (put .i b sp) as  = cons i b (run' i (run i) # sp as)
 }
 
 

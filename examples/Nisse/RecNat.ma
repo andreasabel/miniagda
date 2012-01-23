@@ -9,10 +9,10 @@ cofun Nat : (i : Size) -> CoSet i
 
 
 let zero : Nat #
-         = nothing # (Nat #)
+         = nothing -- # (Nat #)
 
 let succ : Nat # -> Nat #
-         = \ n -> just # (Nat #) n
+         = \ n -> just n -- just # (Nat #) n
 
 {-
 fun iter' : [A : Set] -> (A -> A) -> A -> Nat # -> A
@@ -22,8 +22,8 @@ fun iter' : [A : Set] -> (A -> A) -> A -> Nat # -> A
 -}
 
 fun iter : [A : Set] -> (A -> A) -> A -> Nat # -> A
-{ iter A f a (nothing .# .(Nat #)) = a
-; iter A f a (just .# .(Nat #) n)  = f (iter A f a n)
+{ iter A f a  nothing = a
+; iter A f a (just n)  = f (iter A f a n)
 } 
 
 {-

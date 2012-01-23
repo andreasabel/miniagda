@@ -4,25 +4,25 @@ sized codata Stream (A : Set) : Size -> Set
 
 cofun interleave : [A : Set] -> [i : Size] -> Stream A i -> Stream A i
 -> Stream A (i + i)
-{ interleave A ($ i) (cons .A .i x xs) (cons .A .i y ys) =
-    cons A $(i + i) x (cons A (i + i) y (interleave A i xs ys))
+{ interleave A ($ i) (cons .i x xs) (cons .i y ys) =
+    cons $(i + i) x (cons (i + i) y (interleave A i xs ys))
 }
 
 cofun evens : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A i
-{ evens A ($i) (cons .A .(i + i + 1) a (cons .A .(i + i) b as)) =
-   cons A i a (evens A i as)
+{ evens A ($i) (cons .(i + i + 1) a (cons .(i + i) b as)) =
+   cons i a (evens A i as)
 }
 
 cofun odds : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A i
-{ odds A ($i) (cons .A .(i + i + 1) a (cons .A .(i + i) b as)) =
-   cons A i b (odds A i as)
+{ odds A ($i) (cons .(i + i + 1) a (cons .(i + i) b as)) =
+   cons i b (odds A i as)
 }
 
 let weave : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A (i + i)
   = \ A i xs -> interleave A i (evens A i xs) (odds A i xs) 
 
 cofun map : [A, B : Set] -> (A -> B) -> [i : Size] -> Stream A i -> Stream B i
-{ map A B f ($ i) (cons .A .i a as) = cons B i (f a) (map A B f i as)
+{ map A B f ($ i) (cons .i a as) = cons i (f a) (map A B f i as)
 }
 
 data Nat : Set
@@ -50,8 +50,8 @@ to add support for size addition.
 You have the following definition on your blog:
 
 cofun evens : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A i
-{ evens A ($i) (cons .A .(i + i + 1) a (cons .A .(i + i) b as)) =
-   cons A i a (evens A i as)
+{ evens A ($i) (cons .(i + i + 1) a (cons .(i + i) b as)) =
+   cons i a (evens A i as)
 }
 
 Would it also be possible have something like,

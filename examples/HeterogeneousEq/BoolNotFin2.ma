@@ -30,7 +30,7 @@ fun hsubst : (A, B : Set 1) -> (P : (S : Set 1) -> S -> Set) ->
 
 fun subst : (A : Set 1) -> (P : A -> Set) ->
             (a, b : A) -> HetEq A a A b -> P a -> P b
-{ subst A P a .a (hrefl .A .a) p = p
+{ subst A P a .a (hrefl) p = p
 }
 
 data Sigma (A : Set)(B : A -> Set) : Set
@@ -44,12 +44,12 @@ let P : Set -> Set
    = \ S -> Sigma S (T S)
 
 let pBool : P Bool
-  = pair Bool (T Bool) true (hrefl Bool true)
+  = pair true (hrefl)
 
 -- here, we check whether  HetEq Bool2 true2 Bool true  is empty
 fun notPBool2 : P Bool2 -> Empty 
-{ notPBool2 (pair .Bool2 .(T Bool2) true2  ())
-; notPBool2 (pair .Bool2 .(T Bool2) false2 ())
+{ notPBool2 (pair true2  ())
+; notPBool2 (pair false2 ())
 }
 
 let tada : HetEq Set Bool Set Bool2 -> Empty

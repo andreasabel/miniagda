@@ -75,5 +75,5 @@ fun absurd : [m : Nat] -> [Id Nat zero (succ m)] -> [A : Set] -> A
 } 
 
 cofun empty : [A : Set] -> [i : Size] -> Stack' A zero i
-{ empty A ($i) = mkStack A zero i (\ m p -> absurd m p (Prod A (Stack' A m i))) 
+{ empty A ($i) = mkStack {-A zero-} i (\ m p -> absurd m p (Prod A (Stack' A m i))) 
 }

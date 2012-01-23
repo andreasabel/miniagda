@@ -1,7 +1,7 @@
 -- 2011-06-15
 -- the unit type as top type
 
-data Top : Set { top : Top }
+record Top : Set { top : Top }
 
 data Bool : Set { true : Bool; false : Bool }
 
@@ -9,6 +9,7 @@ data Bool : Set { true : Bool; false : Bool }
 -- record subtyping is hard at the moment since we have a nominal type
 -- system
 
+fail
 fun f : Bool -> Top
 { f x = x
 }

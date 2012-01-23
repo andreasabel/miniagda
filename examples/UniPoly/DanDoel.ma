@@ -5,5 +5,5 @@ data T (i : Size) : Set $i
 }
 
 fun U : (i : Size) -> T $i
-{ U i = inn $i (T i)
+{ U i = inn (T i)
 }

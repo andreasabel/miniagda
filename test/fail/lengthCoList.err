@@ -11,11 +11,11 @@ term  nil : .[A : Set] -> .[i : Size] -> Colist A $i
 term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Colist A i -> Colist A $i
 type  Colist : ^(A : Set) -> - Size -> Set
 term  olist' : .[i : Size] -> Colist (Nat #) i
-{ olist' $[i] = cons [Nat #] [i] (zero [#]) (olist' [i])
+{ olist' $[i] = cons [i] (zero [#]) (olist' [i])
 }
 term  length : .[i : Size] -> .[A : Set] -> Colist A i -> Nat i
 error during typechecking:
 length
 /// clause 1
-/// pattern nil A i
-/// in pattern nil A i, coinductive size sub pattern i must be dotted
+/// pattern nil i
+/// in pattern nil i, coinductive size sub pattern i must be dotted

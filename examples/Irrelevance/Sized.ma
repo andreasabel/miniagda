@@ -10,7 +10,7 @@ sized data Nat : Size -> Set
 }
 
 let sizeIrr : (i : Size) -> Id (Nat #) (zero i) (zero #)
-    = \ i -> refl (Nat #) (zero #)
+    = \ i -> refl
 
 -- sized rose trees 
 -- with polymorphic quantification (2010-01-02)
@@ -21,8 +21,8 @@ data List (+ A : Set) : Set
 }
 
 fun mapList : [A : Set] -> [B : Set] -> (A -> B) -> List A -> List B
-{ mapList A B f (nil .A) = nil B
-; mapList A B f (cons .A a as) = cons B (f a) (mapList A B f as)
+{ mapList A B f (nil) = nil
+; mapList A B f (cons a as) = cons (f a) (mapList A B f as)
 }
 
 sized data Rose (+ A : Set) : Size -> Set
@@ -31,6 +31,6 @@ sized data Rose (+ A : Set) : Size -> Set
 
 fun mapRose : [A : Set] -> [B : Set] -> (A -> B) -> 
               [i : Size] -> Rose A i -> Rose B i
-{ mapRose A B f .($ i) (rose .A i a rs) = 
-  rose B i (f a) (mapList (Rose A i) (Rose B i) (mapRose A B f i) rs)
+{ mapRose A B f .($ i) (rose i a rs) = 
+  rose i (f a) (mapList (Rose A i) (Rose B i) (mapRose A B f i) rs)
 }

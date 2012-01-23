@@ -15,6 +15,6 @@ sized data Tree (A : Set) : Size -> Set
 
 fun map : [A : Set] -> [B : Set] -> (A -> B) -> 
           [i : Size] -> Tree A i -> Tree B i
-{ map A B f i (leaf .A (i > j) a)   = leaf B j (f a)
-; map A B f i (node .A (i > j) n s) = node B j n (\ k -> map A B f j (s k)) 
+{ map A B f i (leaf (i > j) a)   = leaf j (f a)
+; map A B f i (node (i > j) n s) = node j n (\ k -> map A B f j (s k)) 
 }

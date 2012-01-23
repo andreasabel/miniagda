@@ -27,21 +27,21 @@ data Eq (A : Set 1)(a : A) : A -> Set
 
 fun cong : (F : Set -> Set) -> (G : Set -> Set) -> (A : Set) ->
   Eq (Set -> Set) F G -> Eq Set (F A) (G A)
-{ cong F .F A (refl .(Set -> Set) .F) = refl Set (F A)
+{ cong F .F A refl = refl
 } 
 
 fun castLR : (A : Set) -> (B : Set) -> Eq Set A B -> A -> B
-{ castLR A .A (refl .Set .A) a = a
+{ castLR A .A refl a = a
 }
 
 fun castRL : (A : Set) -> (B : Set) -> Eq Set A B -> B -> A
-{ castRL A .A (refl .Set .A) a = a
+{ castRL A .A refl a = a
 }
 
 data I (F : Set -> Set) : Set {}
 
 fun injI : (F : Set -> Set) -> (G : Set -> Set) -> Eq Set (I F) (I G) -> Eq (Set -> Set) F G
-{ injI F .F (refl .Set .(I F)) = refl (Set -> Set) F
+{ injI F .F refl = refl
 }
  
 data InvI (A : Set) : Set 1
@@ -55,8 +55,8 @@ fun em : EM {}  -- postulate excluded middle
 
 fun cantor : Set -> Set
 { cantor A = case (em (InvI A)) 
-  { (inl .(InvI A) .(InvI A -> Empty) (inv .A X p)) -> X A -> Empty
-  ; (inr .(InvI A) .(InvI A -> Empty) bla) -> Unit
+  { (inl (inv X p)) -> X A -> Empty
+  ; (inr bla) -> Unit
   }
 } 
 
@@ -68,26 +68,24 @@ fun cantor : Set -> Set
 
 let no : cantor (I cantor) -> Empty
 = \ f -> case (em (InvI (I cantor)))
-  { (inl .(InvI (I cantor)) .(InvI (I cantor) -> Empty) 
-      (inv .(I cantor) X p)) -> 
+  { (inl 
+      (inv X p)) -> 
         f (castRL (X (I cantor)) 
                   (cantor (I cantor)) 
                   (cong X cantor (I cantor) (injI X cantor p)) 
                   f)
-  ; (inr .(InvI (I cantor)) .(InvI (I cantor) -> Empty) g) ->
-      g (inv (I cantor) cantor (refl Set (I cantor)))   
+  ; (inr g) -> g (inv cantor refl)
   }
 
 
 let yes : cantor (I cantor)
 = case (em (InvI (I cantor)))
-  { (inl .(InvI (I cantor)) .(InvI (I cantor) -> Empty) 
-      (inv .(I cantor) X p)) -> 
+  { (inl (inv X p)) -> 
         \ f -> (castLR (X (I cantor)) 
                   (cantor (I cantor)) 
                   (cong X cantor (I cantor) (injI X cantor p)) 
                   f) f
-  ; (inr .(InvI (I cantor)) .(InvI (I cantor) -> Empty) g) -> unit
+  ; (inr g) -> unit
   }
 
 

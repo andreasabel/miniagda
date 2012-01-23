@@ -14,20 +14,20 @@ data Vec (A : Set) : Nat -> Set
 }
 
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> < n : Nat >
-{ length A .zero     (nil .A)        = zero
-; length A .(succ n) (cons .A n a v) = succ (length A n v)
+{ length A .zero     nil          = zero
+; length A .(succ n) (cons n a v) = succ (length A n v)
 }
 
 fun head : [A : Set] -> [n : Nat] -> Vec A (succ n) -> A 
-{ head A .n (cons .A n a v) = a
+{ head A .n (cons n a v) = a
 }
 fun tail : [A : Set] -> [n : Nat] -> Vec A (succ n) -> Vec A n
-{ tail A .n (cons .A n a v) = v
+{ tail A .n (cons n a v) = v
 }
 
 fun zeroes : (n : Nat) -> Vec Nat n
-{ zeroes zero     = nil Nat 
-; zeroes (succ x) = cons Nat x zero (zeroes x)
+{ zeroes zero     = nil 
+; zeroes (succ x) = cons x zero (zeroes x)
 }
 
 data Fin : Nat -> Set
@@ -36,12 +36,12 @@ data Fin : Nat -> Set
 }
 
 fun lookup : [A : Set] -> [n : Nat] -> Vec A n -> Fin n -> A
-{ lookup A .(succ n) (cons .A n a v) (fzero .n)   = a
-; lookup A .(succ n) (cons .A n a v) (fsucc .n i) = lookup A n v i
-; lookup A .zero     (nil .A)        ()  -- IMPOSSIBLE
+{ lookup A .(succ n) (cons n a v) (fzero .n)   = a
+; lookup A .(succ n) (cons n a v) (fsucc .n i) = lookup A n v i
+; lookup A .zero     nil        ()  -- IMPOSSIBLE
 }
 
 fun downFrom : [n : Nat] -> Vec Nat n
-{ downFrom zero     = nil Nat
-; downFrom (succ n) = cons Nat n n (downFrom n)
+{ downFrom zero     = nil
+; downFrom (succ n) = cons n n (downFrom n)
 }

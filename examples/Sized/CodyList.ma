@@ -45,14 +45,15 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
    for subtyping.
 
 -}
+trustme -- termination check fails (rightly so)
 fun deep : [i : Size] -> O i -> Nat -> Nat
 { deep .($ ($ ($ ($ i)))) 
     (N .($$$ i)
-       (cons .(O ($$$ i)) (L .($ ($ i)) f) 
-         (cons .(O ($$$ i)) (S .($ ($ i)) (S .($ i) (S i x)))
-           (nil .(O ($$$ i)))))) 
+       (cons {- .(O ($$$ i)) -} (L .($ ($ i)) f) 
+         (cons {- .(O ($$$ i)) -} (S .($ ($ i)) (S .($ i) (S i x)))
+           (nil {-.(O ($$$ i)) -})))) 
     n
-  = deep _ (N _ (cons (O _) (L _ (pre _ f)) (cons (O _)  (S _ (f n)) (nil (O _))))) 
+  = deep _ (N _ (cons {-(O _)-} (L _ (pre _ f)) (cons {- (O _)-}  (S _ (f n)) (nil {-(O _)-})))) 
            (succ (succ (succ n)))
 ; deep i x n = n   
 }
@@ -61,4 +62,4 @@ let four : Nat
   = succ (succ (succ (succ zero)))
 
 -- eval 
-let loop : Nat = deep # (N # (cons (O #) (L # emb) (cons (O #) (emb four) (nil (O #))))) four
+let loop : Nat = deep # (N # (cons (L # emb) (cons (emb four) nil))) four

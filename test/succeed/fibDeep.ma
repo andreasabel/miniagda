@@ -1,3 +1,4 @@
+-- 2012-01-22 parameters gone from constructors
 
 data Nat : Set 
 { zero : Nat
@@ -14,22 +15,22 @@ sized codata Stream (+ A : Set) : Size -> Set {
 }
 
 fun head : [A : Set] -> [i : Size] -> Stream A ($ i) -> A 
-{ head A i (cons .A .i a as) = a
+{ head A i (cons .i a as) = a
 }
 
 fun tail : [A : Set] -> [i : Size] -> Stream A ($ i) -> Stream A i
-{ tail A i (cons .A .i a as) = as
+{ tail A i (cons .i a as) = as
 }
 
 cofun zipWith : [A : Set] -> [B : Set] -> [C : Set] -> (A -> B -> C) -> 
                 [i : Size] -> Stream A i -> Stream B i -> Stream C i 
-{ zipWith A B C f ($ i) (cons .A .i a as) (cons .B .i b bs) = 
-    cons C i (f a b)  (zipWith A B C f i as bs) 
+{ zipWith A B C f ($ i) (cons .i a as) (cons .i b bs) = 
+    cons i (f a b)  (zipWith A B C f i as bs) 
 }
 
 cofun adds : [i : Size] -> Stream Nat i -> Stream Nat i -> Stream Nat i 
-{ adds ($ i) (cons .Nat .i a as) (cons .Nat .i b bs) = 
-    cons Nat i (add a b) (adds i as bs)
+{ adds ($ i) (cons .i a as) (cons .i b bs) = 
+    cons i (add a b) (adds i as bs)
 }
 
 let one : Nat = succ zero
@@ -53,8 +54,8 @@ basically, there is an analysis whether the type of the case is
 cofun fib' : [i : Size] -> Stream Nat i
 {
   fib' i = case i
-   { ($ j) -> cons Nat j zero (case j 
-   { ($ k) -> cons Nat k one (zipWith Nat Nat Nat add k 
+   { ($ j) -> cons j zero (case j 
+   { ($ k) -> cons k one (zipWith Nat Nat Nat add k 
                               (fib' k) 
                               (tail Nat k (fib' ($ k))))})}
 }
@@ -62,19 +63,19 @@ cofun fib' : [i : Size] -> Stream Nat i
 {- we can pull one case into the pattern match, but not both -}
 
 cofun fib : [i : Size] -> Stream Nat i
-{ fib ($ i) = cons Nat i zero (case i 
-    { ($ j) -> cons Nat j one (adds j (fib j) (tail Nat j (fib i)))})
+{ fib ($ i) = cons i zero (case i 
+    { ($ j) -> cons j one (adds j (fib j) (tail Nat j (fib i)))})
 } 
 
 {- blueprint
 cofun fib : [i : Size] -> Stream Nat i
-{ fib ? = cons Nat ? zero 
-    (cons Nat ? one (adds ? (fib ?) (tail Nat ? (fib ?))))
+{ fib ? = cons ? zero 
+    (cons ? one (adds ? (fib ?) (tail Nat ? (fib ?))))
 } 
 -- UNSOUND
 cofun fib : [i : Size] -> Stream Nat i
-{ fib ($$ i) = cons Nat ($ i) zero 
-    (cons Nat i one (adds i (fib i) (tail Nat ($ i) (fib ($ i)))))
+{ fib ($$ i) = cons ($ i) zero 
+    (cons i one (adds i (fib i) (tail Nat ($ i) (fib ($ i)))))
 } 
 -}
 

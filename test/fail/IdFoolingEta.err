@@ -6,24 +6,25 @@ type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> Id A a a
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
-{ subst [A] a .a (refl [.A] [.a]) [P] x = x
+{ subst [A] a .a (refl) [P] x = x
 }
 error during typechecking:
 offDia
-/// checkExpr 0 |- \ f -> \ A -> \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// checkForced fromList [] |- \ f -> \ A -> \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
+/// checkExpr 0 |- \ f -> \ A -> \ a -> \ b -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// checkForced fromList [] |- \ f -> \ A -> \ a -> \ b -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// new f : (.[A : Set] -> (a : A) -> (b : A) -> Id A a b)
-/// checkExpr 1 |- \ A -> \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// checkForced fromList [(f,0)] |- \ A -> \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
+/// checkExpr 1 |- \ A -> \ a -> \ b -> refl : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// checkForced fromList [(f,0)] |- \ A -> \ a -> \ b -> refl : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// new A : Set
-/// checkExpr 2 |- \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// checkForced fromList [(A,1),(f,0)] |- \ a -> \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
+/// checkExpr 2 |- \ a -> \ b -> refl : (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// checkForced fromList [(A,1),(f,0)] |- \ a -> \ b -> refl : (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// new a : v1
-/// checkExpr 3 |- \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// checkForced fromList [(A,1),(f,0),(a,2)] |- \ b -> refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
+/// checkExpr 3 |- \ b -> refl : (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// checkForced fromList [(A,1),(f,0),(a,2)] |- \ b -> refl : (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// new b : v1
-/// checkExpr 4 |- refl (Id A a b) (subst A a b (f A a b) (Id A a) (refl A a)) : Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- < refl (Id A a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a])) : Id (Id A a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a])) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a])) >  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- Id (Id A a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a])) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] (refl [A] [a]))
-/// leqVal' [(A,1),(f,0),(a,2),(b,3)] |- subst [A] a b (f [A] a b) [Id A a] (refl [A] [a])  <=^  f [A] a b : Id A a b
-/// leqApp: subst[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3,{f [A] a b {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{[Id A a] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{refl [A] [a] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}}] !<= v0[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3]
+/// checkExpr 4 |- refl : Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// checkForced fromList [(A,1),(f,0),(a,2),(b,3)] |- refl : Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- < refl : Id (Id A a b) (f [A] a b) (f [A] a b) >  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- Id (Id A a b) (f [A] a b) (f [A] a b)  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
+/// leqVal' [(A,1),(f,0),(a,2),(b,3)] |- f [A] a b  <=^  subst [A] a b (f [A] a b) [Id A a] refl : Id A a b
+/// leqApp: v0[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3] !<= subst[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3,{f [A] a b {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{[Id A a] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{refl {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}}]

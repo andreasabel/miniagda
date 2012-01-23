@@ -8,7 +8,7 @@ fields fst, snd
 
 fun swap : (A : Set) -> Pair A A -> Pair A A
 {
-  swap A p = pair A A (snd A A p) (fst A A p)
+  swap A p = pair (snd A A p) (fst A A p)
 }
 
 -- eta law

@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, NamedFieldPuns #-}
 
 module Extract where
 
@@ -172,6 +172,7 @@ import TCM
 import TraceError
 import Util
 
+traceExtrM s = return ()
 
 runExtract sig k = runErrorT (runReaderT (runStateT k (initWithSig sig)) emptyContext)
 
@@ -267,7 +268,12 @@ extractDataDecl n co tel ty cs = do
   return [DataDecl n NotSized co [] tel' core cs []]
   
 extractConstructor :: Telescope -> Constructor -> TypeCheck FConstructor
-extractConstructor tel (TypeSig n t) = do
+extractConstructor tel0 (TypeSig n t) = do
+{- fails for HEq
+  -- 2012-01-22: remove irrelevant parameters
+  let tel = filter (\ (TBind _ dom) -> not $ erased $ decor dom)  tel0
+-}
+  let tel = tel0
   -- compute full extracted constructor type and add to the signature
   t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t) 
   setExtrTyp n t'
@@ -304,6 +310,7 @@ extractPatterns tv (p:ps) cont =
 extractPattern :: FTVal -> Pattern -> 
                   ([FPattern] -> FTVal -> TypeCheck a) -> TypeCheck a
 extractPattern tv p cont = do
+  traceM ("extracting pattern " ++ render (pretty p) ++ " at type " ++ showVal tv)
   fv <- funView tv
   case fv of
     EraseArg tv -> cont [] tv  -- skip erased patterns
@@ -348,11 +355,31 @@ extractPattern' av p cont =
                           show p ++ " : " ++ show av
 -}
         ConP pi n ps -> do
-          tv <- whnf' =<< extrTyp <$> lookupSymb n
+--          tv <- whnf' =<< extrTyp <$> lookupSymb n
+          tv <- extrConType n av
           extractPatterns tv ps $ \ ps _ ->
             cont [ConP pi n ps]
         _ -> cont []
 
+extrConType :: Name -> FTVal -> TypeCheck FTVal
+extrConType c av = do
+    ConSig { numPars, extrTyp } <- lookupSymb c
+    traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
+    tv <- whnf' extrTyp
+    case av of
+      VApp (VDef (DefId DatK d)) vs -> do
+        DataSig { positivity } <- lookupSymb d
+        traceExtrM ("extrConType " ++ show c ++ "; data type has positivity = " ++ show positivity)
+        let pars 0 pols vs = []
+            pars n (pol:pols) vs | erased pol = VIrr : pars (n-1) pols vs
+            pars n (pol:pols) (v:vs) = v : pars (n-1) pols vs
+            pars n pols vs = error $ "pars " ++ show n ++ show pols ++ show vs
+        piApps tv $ pars numPars positivity $ vs ++ repeat VIrr
+{-
+        let (pars, inds) = splitAt numPars vs
+        piApps tv pars
+-}
+      _ -> fail $ "extrConType " ++ show c ++ ": expected datatype, found " ++ show av
 
 -- extracting a term from a term -------------------------------------
 

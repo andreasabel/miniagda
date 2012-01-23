@@ -22,6 +22,6 @@ data Id (A : Set)(a : A) : A -> Set
 
 let vec0vnil : (A : Set) -> (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) ->
                Id (Vec A n) v v'
-             = \ A -> \ n -> \ v -> \ v' -> refl (Vec A n) v
+             = \ A -> \ n -> \ v -> \ v' -> refl -- (Vec A n) v
 
  

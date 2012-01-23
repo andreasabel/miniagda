@@ -1043,6 +1043,7 @@ checkForced e v = do
         return $ Kinded kSize $ Meta i 
 {-  problem: what to return here
 -}
+
       (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) -> do
          Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
          v1 <- whnf' e1
@@ -1140,9 +1141,54 @@ Following Awodey/Bauer 2001, the following rule is valid
               -- prune sizes
               return $ if e2e==Irr then Irr else Succ e2e
 -}
-      _ -> do (v2,kee) <- inferExpr e
-              checkSubtype (valueOf kee) v2 v 
-              return kee
+      (e,v) -> do
+        case spineView e of
+          (h@(Def (DefId (ConK co) c)), es) -> do
+             tv <- conType c v
+             (kes, dv) <- checkSpine es tv
+             let e = foldl App h $ map valueOf kes
+             checkSubtype e dv v
+             return $ Kinded kTerm $ e 
+          _ -> do 
+            (v2,kee) <- inferExpr e 
+            checkSubtype (valueOf kee) v2 v 
+            return kee
+
+checkSpine :: [Expr] -> TVal -> TypeCheck ([Kinded Extr], TVal)
+checkSpine [] tv = return ([], tv)
+checkSpine (e : es) tv = do
+  (ke, tv) <- checkApp e tv
+  (kes, tv) <- checkSpine es tv
+  return (ke : kes, tv)
+
+checkApp :: Expr -> TVal -> TypeCheck (Kinded Extr, TVal)
+checkApp e2 v = do
+  v <- force v -- if v is a corecursively defined type in Set, unfold!
+  case v of
+    VQuant Pi x (Domain av _ dec) env b -> do
+       (ki, v2,e2e) <- 
+         if inferable e2 then do
+       -- if e2 has a singleton type, we should not take v2 = whnf e2
+       -- but use the single value of e2
+       -- this is against the spirit of bidir. checking
+              -- if checking a type we need to resurrect
+              (av', Kinded ki e2e) <- applyDec dec $ inferExpr e2
+              case av' of
+                 VSing v2 av'' -> do subtype av' av
+                                     return (ki, v2, e2e)
+                 _ -> do checkSubtype e2e av' av
+                         v2 <- whnf' e2e 
+                         return (ki, v2, e2e)
+            else do
+              Kinded ki e2e <- applyDec dec $ checkExpr e2 av
+              v2 <- whnf' e2
+              return (ki, v2, e2e)
+       bv <- whnf (update env x v2) b
+       -- the kind of the application is the kind of its head
+       return (Kinded ki $ if erased dec then erasedExpr e2e else e2e, bv)
+       -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
+    _ -> throwErrorMsg $ "checking application to " ++ show e2 ++ ": expected function type, found " ++ show v
+
 
 -- checkSubtype  expr : infered_type <= ascribed_type
 checkSubtype :: Expr -> TVal -> TVal -> TypeCheck ()
@@ -1337,9 +1383,12 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
               _ -> fail1 
 -}
               
-      App e1 e2 -> checkingCon False $ 
-          do
-            (v, Kinded ki1 e1e) <- inferExpr e1
+      App e1 e2 -> checkingCon False $ do
+        (v, Kinded ki1 e1e) <- inferExpr e1
+        (Kinded ki2 e2e, bv) <- checkApp e2 v
+        -- the kind of the application is the kind of its head
+        return (bv, Kinded ki1 $ App e1e e2e)
+{-
             v <- force v -- if v is a corecursively defined type in Set, unfold!
             case v of
                VQuant Pi x (Domain av _ dec) env b -> do
@@ -1365,10 +1414,12 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                   return (bv, Kinded ki1 $ App e1e (if erased dec then erasedExpr e2e else e2e))
 -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
                _ -> throwErrorMsg $ "inferExpr : expected Pi with expression : " ++ show e1 ++ "," ++ show v
+-}
  
---      App e1 (e2:el) -> inferExpr $ (e1 `App` [e2]) `App` el  
-      (Def id) -> do -- traceCheckM ("infer defined head " ++ show n) 
-         mitem <- errorToMaybe $ lookupName1 (name id)
+--      App e1 (e2:el) -> inferExpr $ (e1 `App` [e2]) `App` el
+      -- 2012-01-22 no longer infer constructors  
+      (Def id@(DefId {idKind, name})) | not (conKind idKind) -> do -- traceCheckM ("infer defined head " ++ show n) 
+         mitem <- errorToMaybe $ lookupName1 name
          case mitem of -- first check if it is also a var name
            Just item -> do -- we are inside a mutual declaration (not erased!)
              let pol  = (polarity $ decor $ domain item)
@@ -1380,11 +1431,11 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                  addPosEdge srcId id upol
                Nothing ->
                  -- we are checking signatures
-                 enter ("recursive occurrence of " ++ show (name id) ++ " not strictly positive") $
+                 enter ("recursive occurrence of " ++ show name ++ " not strictly positive") $
                    leqPolM pol upol
              return (typ $ domain item, Kinded (kind $ domain item) $ e) 
            Nothing -> -- otherwise, it is not the data type name just being defined
-                 do sige <- lookupSymb (name id)
+                 do sige <- lookupSymb name
                     case sige of
                       -- data types have always kind Set 0!
                       (DataSig { symbTyp = tv }) -> return (tv, Kinded (symbolKind sige) e)
@@ -1539,25 +1590,6 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
             [rhse] <- solveAndModify [rhse] env
             return $ Kinded ki (Clause tel ple (Just rhse))
 
-
--- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
---   with parameters instantiated
-conType :: Name -> TVal -> TypeCheck TVal
-conType c tv = do
-  dv <- dataView tv
-  case dv of
-    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv <+> text "to be a data type")
-    Data n vs -> do
-      -- DataSig { numPars } <- lookupSymb n
-      ConSig { numPars, symbTyp } <- lookupSymb c
-      let (pars, inds) = splitAt numPars vs
-      unless (length pars == numPars) $
-        failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv 
-                   <+> text ("to be a data type applied to all of its " ++ 
-                     show numPars ++ " parameters"))
-      piApps symbTyp pars
  
 -- * Pattern checking ------------------------------------------------
 
@@ -1784,10 +1816,13 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  let flex1 = flex
 
                  (ConSig nPars sz recOccs vc dataName _) <- lookupSymb n
+                 vc <- conType n =<< force av
  
                  -- check that size argument of coconstr is dotted
-                 when (co == CoInd && sz == Sized && not (isDotPattern (pl !! nPars))) $
-                   fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show (pl !! nPars) ++ " must be dotted"
+                 when (co == CoInd && sz == Sized) $ do
+                   let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
+                   unless (isDotPattern sizep) $
+                     fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
 
                  when (not $ decEr `elem` map Dec [Const,Rec]) $
                    recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"  

@@ -1,3 +1,5 @@
+-- 2012-01-22 parameters gone from constructors
+
 sized data Nat : Size -> Set
 {
   zero : [i : Size] -> Nat ($ i);
@@ -13,7 +15,7 @@ sized codata Colist (A : Set) : Size -> Set
 
 cofun olist' : [i : Size] -> Colist (Nat #) i
 {
-olist' ($ i) = cons (Nat #) i (zero #) (olist' i)
+olist' ($ i) = cons i (zero #) (olist' i)
 }
 
 {-
@@ -38,8 +40,8 @@ let z : CoNat # = cozero #
 -- allowed because i used in coinductive result
 cofun length2 : [i : Size] -> [A : Set] -> Colist A i -> CoNat i
 {
-length2 ($ i) .A (nil A .i) = cozero i;
-length2 ($ i) .A (cons A .i a as) = cosucc i (length2 i A as) 
+length2 ($ i) A (nil .i) = cozero i;
+length2 ($ i) A (cons .i a as) = cosucc i (length2 i A as) 
 }
 
 cofun omega' : [i : Size] -> CoNat i

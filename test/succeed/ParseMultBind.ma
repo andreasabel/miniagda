@@ -6,5 +6,5 @@ data Prod ++(A, B : Set) : Set
 }
 
 fun fst : [A, B : Set] -> Prod A B -> A
-{ fst A B (pair .A .B a b) = a
+{ fst A B (pair a b) = a
 }

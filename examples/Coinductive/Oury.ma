@@ -55,7 +55,7 @@ reflexivity.
 Defined. -}
 
 fun ext : (xs : Stream #) -> Eq (Stream #) xs (eta xs)
-{ ext (cons .# xs') = refl (Stream #) (cons # xs')
+{ ext (cons .# xs') = refl -- (Stream #) (cons # xs')
 }
 -- 2010-09-26
 -- ext xs = refl (Stream #) (cons # (tail # xs))
@@ -75,7 +75,7 @@ Eval compute in p. (* returns refl_equal (cons (cofix ones : Stream := cons ones
 (* but if we feed back the normal form *) -}
 
 let p2 : Eq (Stream #) (ticks #) (cons # (ticks #))
-       = refl (Stream #) (ticks #)
+       = refl -- (Stream #) (ticks #)
 
 
 {- Definition p2 : ones = cons ones :=

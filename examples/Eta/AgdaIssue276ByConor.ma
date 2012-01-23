@@ -32,7 +32,7 @@ data Pack (S : Set) : Set
 fields unpack
 
 fun unpack' : [S : Set] -> Pack S -> S
-{ unpack' S (pack .S s) = s
+{ unpack' S (pack s) = s
 }
 
 {-
@@ -44,11 +44,11 @@ goo = \ x -> boo unpack' (pack (unpack x)) x (foo x)
 -}
 
 let foo : [S : Set] -> (x : Pack S) -> (P : Pack S -> Set) -> 
-          P (pack S (unpack S x)) -> P x
+          P (pack (unpack S x)) -> P x
         = \ S x P p -> p
 
 let goo : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> P (unpack S x) -> P (unpack' S x)
-        = \ S x -> boo (Pack S) S (unpack' S) (pack S (unpack S x)) x (foo S x)
+        = \ S x -> boo (Pack S) S (unpack' S) (pack (unpack S x)) x (foo S x)
 
 {- normal form of goo is \ x P p -> p 
 

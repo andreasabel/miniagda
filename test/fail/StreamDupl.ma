@@ -5,6 +5,6 @@ sized codata Stream ++(A : Set) : -Size -> Set
 }
  
 cofun evens : [A : Set] -> [i, j : Size] -> Stream A (i + j) -> Stream A i
-{ evens A ($i) j (cons .A .(i + j + 1) a (cons .A .(i + j) b as)) =
-   cons A i a (evens A i as)
+{ evens A ($i) j (cons .(i + j + 1) a (cons .(i + j) b as)) =
+   cons i a (evens A i as)
 }

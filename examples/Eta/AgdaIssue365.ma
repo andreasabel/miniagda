@@ -23,9 +23,8 @@ data Eq (A : Set)(a : A) : A -> Set
 fun eqCons : [A : Set] -> [n : Nat] -> [x : A] ->
   [xs, xs' : Vec A n] ->
   Eq (Vec A n) xs xs' -> 
-  Eq (Vec A (succ n)) (cons A n x xs) (cons A n x xs')
-{ eqCons A n x xs .xs (refl .(Vec A n) .xs) = 
-    refl (Vec A (succ n)) (cons A n x xs)
+  Eq (Vec A (succ n)) (cons n x xs) (cons n x xs')
+{ eqCons A n x xs .xs refl = refl
 }
 
 
@@ -40,24 +39,27 @@ fun comp : [A : Set] -> [B : A -> Set] -> [C : (x : A) -> B x -> Set] ->
 -- comp A B C f g = \ x -> f x (g x)
 
 fun lookup : [n : Nat] -> [A : Set] -> Vec A n -> Fin n -> A
-{ lookup .zero    A (nil .A) ()
-; lookup .(succ n) A (cons .A n x xs) (fzero .n) = x
-; lookup .(succ n) A (cons .A n x xs) (fsucc .n i) = lookup n A xs i
+{ lookup .zero    A (nil) ()
+; lookup .(succ n) A (cons n x xs) (fzero .n) = x
+; lookup .(succ n) A (cons n x xs) (fsucc .n i) = lookup n A xs i
 }
 
+let fsucc_ : [n : Nat] -> Fin n -> Fin (succ n)
+  = \ n i -> fsucc n i
+
 fun tabulate : (n : Nat) -> [A : Set] -> (Fin n -> A) -> Vec A n
-{ tabulate zero     A f = nil A
-; tabulate (succ n) A f = cons A n (f (fzero n)) 
+{ tabulate zero     A f = nil
+; tabulate (succ n) A f = cons n (f (fzero n)) 
    (tabulate n A (comp (Fin n) 
                        (\ i -> Fin (succ n)) 
                        (\ i j -> A) 
                        (\ i -> f) 
-                       (fsucc n)))
+                       (fsucc_ n)))
 }
 
 fun lemma : [A : Set] -> (n : Nat) -> (xs : Vec A n) -> 
    Eq (Vec A n) (tabulate n A (lookup n A xs)) xs 
-{ lemma A zero (nil .A) = refl (Vec A zero) (nil A)
-; lemma A (succ n) (cons .A .n x xs) =
+{ lemma A zero (nil) = refl
+; lemma A (succ n) (cons .n x xs) =
     eqCons A n x (tabulate n A (lookup n A xs)) xs (lemma A n xs)
 }

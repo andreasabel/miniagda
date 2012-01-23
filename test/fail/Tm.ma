@@ -7,7 +7,7 @@ sized codata Stream ++ (A : Set) : -Size -> Set
 cofun iterate 
   : [A : Set ] -> (step : A -> A) -> (start : A) ->
     [i : Size] -> Stream A i
-{ iterate A step start ($ i) = cons A i start (iterate A step (step start) i)
+{ iterate A step start ($ i) = cons i start (iterate A step (step start) i)
 }
                
 -- this might be accepted without trustme in future versions?!

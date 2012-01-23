@@ -6,7 +6,7 @@ let prop : Set 1 = Set 0
 data PER : Set 1 
 { per : (S : Set 0) ->
         (R : S -> S -> prop) ->
-        (sym : (x : S) -> R x y -> R y x) ->
+        (sym : (x, y : S) -> R x y -> R y x) ->
         (trans : (x, y, z : S) -> R x y -> R y z -> R x z) ->
         PER
 } fields S, R, sym, trans
