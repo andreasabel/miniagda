@@ -11,7 +11,9 @@ term  zz : N
 term  ss : ^ N -> N
 type  N : Set
 type  Nat : + Size -> Set
+term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
 term  zero : .[i : Size] -> Nat $i
+term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
 term  succ : .[i : Size] -> ^ Nat i -> Nat $i
 type  Nat : + Size -> Set
 term  even : .[i : Size] -> Nat i -> Bool

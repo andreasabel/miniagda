@@ -13,6 +13,7 @@ import Control.Monad.Reader
 import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Traversable as Traversable
 
 import Debug.Trace
@@ -480,9 +481,14 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   let isRec = foldl (||) False recOccs
   -- fType <- extractType vt -- moved to Extract
   let fType = undefinedFType n
-  addSig n (ConSig params sz recOccs vt d fType)
-  when (sz == Sized) $ 
+  isSz <- if sz /= Sized then return Nothing else do
     szConstructor d co params vt -- check correct use of sizes
+    if co == CoInd then return $ Just $ error "impossible lhs type of coconstructor" else do
+    let lte = teleToType telE $ mkConLType params te
+    echoKindedTySig kTerm n lte
+    ltv <- whnf' lte
+    return $ Just ltv
+  addSig n (ConSig params isSz recOccs vt d fType)
 --  let (tele, te) = typeToTele (length tel) tte -- NOT NECESSARY
   echoKindedTySig kTerm n tte
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki) 
@@ -1813,7 +1819,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -}
                ve <- whnf' e
                addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $ do
-                 -- TODO: ENABLE  subtype av (VBelow Lt (VGen k))
+                 subtype av (VBelow Lt ve)
                  cxt' <- ask 
                  return (flex, ins, cxt', maybeErase $ SizeP e y, xv, False)
 
@@ -1850,10 +1856,26 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  let flex1 = flex
 
                  (ConSig nPars sz recOccs vc dataName _) <- lookupSymb n
-                 vc <- conType n =<< force av
- 
+
+                 -- the following is a hack to still support old-style
+                 --   add .($ i) (zero i) ...
+                 -- fun defs:  if (zero i) is matched against (Nat flexvar$i)
+                 -- we use the old constructor type [i : Size] -> Nat $i
+                 -- else, the new one [j < i] -> Nat i
+                 let flexK k (DotFlex k' _ _) = k == k'
+                     flexK k _ = False
+                     -- use lhs con type only if sizeindex is not a rigid var
+                     isFlex (VGen k) = List.any (flexK k) flex
+                     isFlex _ = True
+                     isSz = if co == Cons then sz else Nothing
+                 vc <- instConLType n nPars vc isSz isFlex =<< force av
+{-
+                 vc <- case sz of
+                         Nothing -> instConType n nPars vc =<< force av
+                         Just vc -> instConType n (nPars+1) vc =<< force av
+-}
                  -- check that size argument of coconstr is dotted
-                 when (co == CoCons && sz == Sized) $ do
+                 when (co == CoCons && isJust sz) $ do
                    let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
                    unless (isDotPattern sizep) $
                      fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
@@ -2100,6 +2122,7 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
 --  case tv of
 --    (VPi dec x av env b) -> 
   case (v1,v2) of
+    (VGen k, VGen j) | k == j -> return []
     (VGen k,_) | elem k flex -> do
                        l <- getLen
                        noc <- nocc l v1 v2 
@@ -2327,15 +2350,31 @@ compSubst subst1 subst2 = do
 
   extract new-style constructor type
 
-   c : [i : Size] -> .pars -> [j < i : Size] -> args -> D pars i ts
+   c :  .pars -> [i : Size] -> [j < i : Size] -> args -> D pars i ts
 
   Then replace in ConSig filed isSized :: Sized  by :: Maybe Expr
   which stores the new-style constructor type
  
 -}
 
+mkConLType :: Int -> Expr -> Expr
+mkConLType npars t = 
+  let (sizetb:tel, t0) = typeToTele t
+  in case spineView t0 of
+    (d@(Def (DefId DatK _)), args) -> 
+      let (pars, sizeindex : inds) = splitAt npars args
+          i     = fresh "s!ze"
+          args' = pars ++ Var i : inds
+          core  = foldl App d args'
+          tbi   = TBind i $ sizeDomain irrelevantDec
+          tbj   = sizetb { boundDom = belowDomain irrelevantDec Lt (Var i) } 
+          tel'  = tbi : tbj : tel
+      in teleToType tel' core
+    _ -> error $ "conLType " ++ show npars ++ " (" ++ show t ++ "): illformed constructor type"
 
--- *check wether the data type is sized type
+
+
+-- * check wether the data type is sized type
 
 
 -- check data declaration type 
@@ -2348,6 +2387,8 @@ szType co p tv = doVParams p tv $ \ tv' -> do
       VQuant Pi x (Domain (VSort (SortC Size)) ki dec) env b | not (erased dec) && polarity dec == polsz -> return ()
       _ -> throwErrorMsg $ "not a sized type, target " ++ show tv' ++ " must have non-erased domain " ++ show Size ++ " with polarity " ++ show polsz
                  
+-- * constructors of sized type
+
 -- check data constructors
 -- called from typeCheckConstructor
 szConstructor :: Name -> Co -> Int -> TVal -> TypeCheck ()

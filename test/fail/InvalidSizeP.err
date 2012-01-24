@@ -1,5 +1,5 @@
 MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "fail1.ma" ---
+--- opening "InvalidSizeP.ma" ---
 --- scope checking ---
 --- type checking ---
 type  SNat : + Size -> Set
@@ -8,8 +8,14 @@ term  zero : .[i : Size] -> SNat $i
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
 term  succ : .[i : Size] -> ^ SNat i -> SNat $i
 type  SNat : + Size -> Set
-term  inc : .[i : Size] -> .[j : Size] -> SNat i -> SNat j
+term  test : .[i : Size] -> SNat i -> SNat i -> SNat i
 error during typechecking:
-inc
+test
 /// clause 1
-/// size constraints [?0+1<=v1,v0<=?0,SizeMeta(?0)] unsolvable
+/// pattern succ (l < k) y
+/// pattern l < k
+/// new l < v0
+/// adding size rel. v3 + 1 <= v0
+/// adding size rel. v3 + 1 <= v1
+/// leqVal' (subtyping) [(i,0),(k,1),(x,2),(l,3)] |- < i  <=+  < k
+/// leqApp: < v0[] !<= < v1[]

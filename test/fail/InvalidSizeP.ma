@@ -1,4 +1,5 @@
 -- bug reported by David Thibodeau, Nov 2011
+-- fixed 2012-01-24
 
 sized data SNat : Size -> Set
 { zero : (i : Size) -> SNat ($ i)

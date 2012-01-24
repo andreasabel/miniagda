@@ -7,9 +7,13 @@ term  zero : Nat
 term  succ : ^ Nat -> Nat
 type  Nat : Set
 type  O : + Size -> Set
+term  Z : .[s!ze : Size] -> .[i < s!ze] -> O s!ze
 term  Z : .[i : Size] -> O $i
+term  S : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> O s!ze
 term  S : .[i : Size] -> ^ O i -> O $i
+term  L : .[s!ze : Size] -> .[i < s!ze] -> ^ (Nat -> O i) -> O s!ze
 term  L : .[i : Size] -> ^ (Nat -> O i) -> O $i
+term  M : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> ^ O i -> O s!ze
 term  M : .[i : Size] -> ^ O i -> ^ O i -> O $i
 type  O : + Size -> Set
 term  f01 : .[i : Size] -> Nat -> O $$$i

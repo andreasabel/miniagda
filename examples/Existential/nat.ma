@@ -9,6 +9,8 @@ cofun Nat : +Size -> Set
 { Nat i = [j < i] & Maybe (Nat j)
 }
 
+-- pattern let pzero [i : Size] : Nat $i = i , nothing
+
 pattern pzero i   = i , nothing
 pattern psucc i n = i , just n
 

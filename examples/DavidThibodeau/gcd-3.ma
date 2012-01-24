@@ -17,7 +17,7 @@ data Bool : Set
 fun isSmaller : [i : Size] -> SNat i -> SNat i -> Bool
 { isSmaller i (zero (i > j)) y = true
 ; isSmaller i (succ (i > j) x) (zero (i > k)) = false
-; isSmaller i (succ (i > j) x) (succ (j > k) y) = isSmaller j x y
+; isSmaller i (succ (i > j) x) (succ (i > k) y) = isSmaller (max j k) x y
 }
 
 fun branch : [i : Size] -> Bool -> SNat i -> SNat i -> SNat i

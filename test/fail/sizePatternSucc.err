@@ -3,7 +3,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  SNat : + Size -> Set
+term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
 term  zero : .[i : Size] -> SNat $i
+term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
 term  succ : .[i : Size] -> ^ SNat i -> SNat $i
 type  SNat : + Size -> Set
 type  Empty : Set

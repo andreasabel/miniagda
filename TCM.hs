@@ -989,9 +989,11 @@ data SigDef
             , definingVal   :: Val
             }
   | ConSig  { numPars       :: Int
-            , isSized       :: Sized
+            , lhsTyp        :: Maybe TVal -- lhs type of construcor for pattern matching, e.g. 
+   -- cons : [A : Set] -> [i : Size] -> [j < i] -> A -> List A j -> List A i
             , recOccs       :: [Bool] -- which of the arguments contain rec.occs.of the (co)data type?
-            , symbTyp       :: TVal   -- type
+            , symbTyp       :: TVal   -- type, e.g
+   -- cons : [A : Set] -> [i : Size] -> A -> List A i -> List A $i
             , dataName      :: Name
             , extrTyp       :: Expr   -- Fomega type
             }   
@@ -1059,6 +1061,10 @@ dataView tv = do -- maybe force tv?
 --   with parameters instantiated
 conType :: Name -> TVal -> TypeCheck TVal
 conType c tv = do
+  ConSig { numPars, symbTyp } <- lookupSymb c
+  instConType c numPars symbTyp tv
+{-
+conType c tv = do
   dv <- dataView tv
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1073,6 +1079,53 @@ conType c tv = do
                    <+> text ("to be a data type applied to all of its " ++ 
                      show numPars ++ " parameters"))
       piApps symbTyp pars
+-}
+
+{- UNUSED
+-- | Get LHS type of constructor.
+conLType :: Name -> TVal -> TypeCheck TVal
+conLType c tv = do
+  ConSig { numPars, lhsTyp, symbTyp } <- lookupSymb c
+  case lhsTyp of
+    Nothing   -> instConType c numPars symbTyp tv
+    Just lTyp -> instConType c (numPars+1) lTyp tv
+-}
+
+instConType :: Name -> Int -> TVal -> TVal -> TypeCheck TVal
+instConType c numPars symbTyp tv = do
+  dv <- dataView tv
+  case dv of
+    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv <+> text "to be a data type")
+    Data n vs -> do
+      let (pars, inds) = splitAt numPars vs
+      unless (length pars == numPars) $
+        failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv 
+                   <+> text ("to be a data type applied to all of its " ++ 
+                     show numPars ++ " parameters"))
+      piApps symbTyp pars
+
+-- | Get correct lhs type for constructor pattern.
+instConLType :: Name -> Int -> TVal -> Maybe TVal -> (Val -> Bool) -> TVal -> TypeCheck TVal
+instConLType c numPars symbTyp isSized isFlex tv = do
+  let failure = failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv 
+                   <+> text ("to be a data type applied to all of its " ++ 
+                     show numPars ++ " parameters"))
+  dv <- dataView tv
+  case dv of
+    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
+                   <+> prettyTCM tv <+> text "to be a data type")
+    Data n vs -> do
+      let (pars, inds) = splitAt numPars vs
+      when (length pars < numPars) $ failure
+      case isSized of
+        Nothing  -> piApps symbTyp pars
+        Just ltv -> do
+          when (null inds) failure
+          let sizeInd = head inds
+          if isFlex sizeInd then piApps symbTyp pars else piApps ltv (pars ++ [sizeInd])
 
 instance MonadSig TypeCheck where
 

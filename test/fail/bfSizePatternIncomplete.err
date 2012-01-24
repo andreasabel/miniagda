@@ -9,7 +9,9 @@ term  split : .[A : Set] -> .[B : Set] -> Prod A B -> .[C : Set] -> (A -> B -> C
 { split [A] [B] (pair a b) [C] f = f a b
 }
 type  List : ++(A : Set) -> + Size -> Set
+term  nil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> List A s!ze
 term  nil : .[A : Set] -> .[i : Size] -> List A $i
+term  cons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List A i -> List A s!ze
 term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ List A i -> List A $i
 type  List : ++(A : Set) -> + Size -> Set
 term  append : .[A : Set] -> List A # -> List A # -> List A #
@@ -17,6 +19,7 @@ term  append : .[A : Set] -> List A # -> List A # -> List A #
 ; append [A] (cons [.#] a as) l = cons [#] a (append [A] as l)
 }
 type  Rose : ++(A : Set) -> + Size -> Set
+term  rose : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List (Rose A i) # -> Rose A s!ze
 term  rose : .[A : Set] -> .[i : Size] -> ^ A -> ^ List (Rose A i) # -> Rose A $i
 type  Rose : ++(A : Set) -> + Size -> Set
 term  step : .[j : Size] -> .[A : Set] -> .[i : Size] -> List (Rose A $i) j -> Prod (List A j) (List (Rose A i) #)

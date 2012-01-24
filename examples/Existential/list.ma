@@ -33,11 +33,18 @@ fun If : Bool -> ++(A, B : Set) -> Set
 
 -- * disjoint sum
 
-let Either : ++(A, B : Set) -> Set
-  = \ A B -> (b : Bool) & If b A B
+let Either ++(A, B : Set) : Set
+  = (b : Bool) & If b A B
 
 pattern left  a = (true  , a)
 pattern right b = (false , b)
+
+{-
+constructors [A, B : Set] 
+{ left  (a : A) : Either A B = true  , a
+; right (b : B) : Either A B = false , b 
+}
+-}
 
 -- * Maybe
 

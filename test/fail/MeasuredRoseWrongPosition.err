@@ -11,6 +11,7 @@ term  mapList : .[A : Set] -> .[B : Set] -> (A -> B) -> List A -> List B
 ; mapList [A] [B] f (cons a as) = cons (f a) (mapList [A] [B] f as)
 }
 type  Rose : ++(A : Set) -> + Size -> Set
+term  rose : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List (Rose A i) -> Rose A s!ze
 term  rose : .[A : Set] -> .[i : Size] -> ^ A -> ^ List (Rose A i) -> Rose A $i
 type  Rose : ++(A : Set) -> + Size -> Set
 term  mapRose : .[A : Set] -> .[B : Set] -> (A -> B) -> .[i : Size] -> Rose A i -> Rose B i
