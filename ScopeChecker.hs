@@ -7,7 +7,7 @@ module ScopeChecker (scopeCheck) where
 
 import Polarity(Pol(..)) 
 import qualified Polarity as A
-import Abstract (Sized,mkExtRef,Co,MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
+import Abstract (Sized,mkExtRef,Co,ConK(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
 import qualified Abstract as A
 import qualified Concrete as C
 
@@ -82,11 +82,12 @@ addContext delta sc = sc { context = delta ++ context sc }
 -- * Global identifiers.
 
 -- | Kind of identifier.
-data IKind = DataK 
-           | ConK Co 
-           | FunK Bool  -- ^ @False@ = inside body, @True@ = outside body
-           | ProjK      -- ^ a record projection 
-           | LetK
+data IKind 
+  = DataK 
+  | ConK ConK 
+  | FunK Bool  -- ^ @False@ = inside body, @True@ = outside body
+  | ProjK      -- ^ a record projection 
+  | LetK
 
 -- | Global identifier.
 data DefI = DefI { ikind :: IKind, aname :: A.Name }
@@ -310,12 +311,47 @@ scopeCheckDeclaration d@(C.DataDecl{}) =
 scopeCheckDeclaration d@(C.FunDecl co _ _) = 
   scopeCheckFunDecls co [d] -- >>= return . (:[])
                                                
+scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ do 
+  tel <- generalizeTel tel0
+  let ts = (C.TypeSig n $ C.teleToType tel t)
+      ns = C.teleNames tel
+      e  = foldr C.Lam e0 ns
+  ts' <- scopeCheckTypeSig ts
+  e'  <- scopeCheckExpr e
+  addTypeSig LetK ts ts'
+  return $ A.LetDecl eval ts' e'
+
+{-                                               
 scopeCheckDeclaration (C.LetDecl eval ts e) = do 
   ts' <- scopeCheckTypeSig ts
   e'  <- setDefaultPolarity A.Rec $ scopeCheckExpr e
   addTypeSig LetK ts ts'
   return $ A.LetDecl eval ts' e'
+-}
 
+scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
+  let errorHead = "invalid pattern declaration\n" ++ C.prettyDecl d ++ "\n" 
+  -- check pattern
+  (p, delta) <- runStateT (scopeCheckPattern p) emptyCtx
+  p <- local (addContext delta) $ scopeCheckDotPattern p
+  -- ensure that pattern variables are the declared variables
+  unless (sort ns == sort (map fst delta)) $ do
+    let usedNames = map fst delta
+        unusedNames = ns \\ usedNames
+        undeclaredNames = usedNames \\ ns
+    when (not (null unusedNames)) $ throwErrorMsg $ 
+      errorHead ++ "unsed variables in pattern: " 
+        ++ Util.showList " " id unusedNames
+    when (not (null undeclaredNames)) $ throwErrorMsg $ 
+      errorHead ++ "undeclared variables in pattern: " 
+        ++ Util.showList " " id undeclaredNames
+  --  when (n `elem` ns) $ throwErrorMsg $ errorHead ++ "pattern"
+  x <- addName (ConK DefPat) n
+  let xs = map (fromJust . flip lookup delta) ns
+  return (A.PatternDecl x xs p)
+    
+--  (xs, e) <- addBinds ns $ scopeCheckExpression e
+  
 -- we support
 -- - mutual (co)funs
 -- - mutual (co)data
@@ -392,8 +428,10 @@ mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) =
   (DataK, C.TypeSig n (C.teleToType tel t))
 mutualGetTypeSig (C.FunDecl co tsig cls) = 
   (FunK False, tsig) -- fun id for use inside defining body
-mutualGetTypeSig (C.LetDecl ev tsig e) = 
-  (LetK, tsig)
+mutualGetTypeSig (C.LetDecl ev n tel t e) = 
+  (LetK, C.TypeSig n (C.teleToType tel t))
+{- mutualGetTypeSig (C.LetDecl ev tsig e) = 
+  (LetK, tsig) -}
 mutualGetTypeSig (C.OverrideDecl _ [d]) = 
   mutualGetTypeSig d
 
@@ -419,9 +457,9 @@ mutualGetTypeSigs ds = do
 scopeCheckRecordDecl :: C.Name -> C.Telescope -> C.Type -> C.Constructor -> [C.Name] ->
   ScopeCheck A.Declaration
 scopeCheckRecordDecl n tel t c cfields = enter n $ do
-  tel <- generalizeTel tel
   setDefaultPolarity A.Param $ do
-    -- do not infer polarities in index arguments
+    tel <- generalizeTel tel
+    -- STALE COMMENT: we do not infer at all: -- do not infer polarities in index arguments
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
     addAName DataK n x
     let names = collectTelescopeNames tel
@@ -456,9 +494,9 @@ addFields kind delta cfields = do
 
 scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
 scopeCheckDataDecl decl@(C.DataDecl n sz co tel0 t cs fields) = enter n $ do
-  tel <- generalizeTel tel0
   setDefaultPolarity A.Param $ do
-    -- do not infer polarities in index arguments
+    tel <- generalizeTel tel0
+    -- STALE: -- do not infer polarities in index arguments
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
     addAName DataK n x
     checkDataBody tt' x sz co tel cs fields
@@ -638,7 +676,7 @@ scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
 scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
     t <- setDefaultPolarity A.Param $ scopeCheckExpr t 
     t <- adjustTopDecsM defaultToParam t 
-    addAName (ConK co) n x
+    addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
 {-
     do sig <- getSig
@@ -948,7 +986,8 @@ scopeCheckDotPattern p =
       A.PairP p1 p2 -> A.PairP <$> scopeCheckDotPattern p1 <*>  scopeCheckDotPattern p2
       A.SuccP p -> A.SuccP <$> scopeCheckDotPattern p
       A.ConP co n pl -> A.ConP co n <$> mapM scopeCheckDotPattern pl
-      A.SizeP m n -> flip A.SizeP n <$> scopeCheckLocalVar m -- return $ A.SizeP m n
+--      A.SizeP m n -> flip A.SizeP n <$> scopeCheckLocalVar m -- return $ A.SizeP m n
+      A.SizeP e n -> flip A.SizeP n <$> scopeCheckExpr e
       A.VarP n    -> return $ A.VarP n
       A.ProjP n   -> return $ A.ProjP n
       A.AbsurdP   -> return $ A.AbsurdP

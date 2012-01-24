@@ -27,6 +27,7 @@ fields  { T.Fields _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
 cofun   { T.CoFun _ } 
+pattern { T.Pattern _ } 
 case    { T.Case _ }
 def     { T.Def _ }
 let     { T.Let _ }
@@ -89,6 +90,7 @@ Declaration : Data                      { $1 }
            | CoFun                      { $1 }
            | Mutual                     { $1 }
            | Let                        { $1 }
+           | PatternDecl                { $1 }
            | impredicative Declaration          { C.OverrideDecl Impredicative [$2] }
            | impredicative '{' Declarations '}' { C.OverrideDecl Impredicative $3 }
            | fail Declaration             { C.OverrideDecl Fail [$2] }
@@ -124,16 +126,22 @@ Fun : fun TypeSig '{' Clauses '}' { C.FunDecl A.Ind $2 $4 }
 CoFun :: { C.Declaration }
 CoFun : cofun TypeSig '{' Clauses '}' { C.FunDecl A.CoInd $2 $4  }
 
-
-
 Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
-     
+      
+Let :: { C.Declaration }
+Let :    let Id DataTelescope ':' Expr '=' ExprT { C.LetDecl False $2 $3 $5 $7 }
+  | eval let Id DataTelescope ':' Expr '=' ExprT { C.LetDecl False $3 $4 $6 $8 }
 
- 
+{-
 Let :: { C.Declaration }
 Let : let TypeSig '=' ExprT { C.LetDecl False $2 $4 } 
       | eval let TypeSig '=' ExprT { C.LetDecl True $3 $5 } 
+-}
+
+PatternDecl :: { C.Declaration }
+PatternDecl : pattern SpcIds '=' PairP { C.PatternDecl (head $2) (tail $2) $4 }
+
 
 OptFields :: { [Name] }
 OptFields : {- empty -}  { [] }
@@ -395,8 +403,8 @@ PairP : ElemP ',' PairP     { C.PairP $1 $3 }
 
 ElemP :: { C.Pattern }
 ElemP : ConP                { let (c, ps) = $1 in C.ConP c (reverse ps) }
-      | Id '>' Id           { C.SizeP $1 $3 } 
-      | Id '<' Id           { C.SizeP $3 $1 } 
+      | Expr3 '>' Id        { C.SizeP $1 $3 } 
+      | Id '<' Expr3        { C.SizeP $3 $1 } 
       | Pattern             { $1 }
 
 ConP :: { (Name, [C.Pattern]) }
@@ -437,7 +445,7 @@ RClauses :
 
 -- for backwards compatibility
 TBindSP :: { C.TBind }
-TBindSP : '(' Ids ':' Expr ')' { C.TBind A.paramDec $2 $4 } -- ordinary binding
+TBindSP : '(' Ids ':' Expr ')' { C.TBind (Dec Default) $2 $4 } -- ordinary binding
         | '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
         | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 } 
 --        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  
@@ -446,9 +454,8 @@ TBindSP : '(' Ids ':' Expr ')' { C.TBind A.paramDec $2 $4 } -- ordinary binding
         | '(' sized Id ')'     { C.TSized $3 }
 
 DataTelescope :: { C.Telescope }
-DataTelescope :  {- empty -} { [] }
---                | TBind   DataTelescope { $1 : $2 } 
-                | TBindSP DataTelescope { $1 : $2 } 
+DataTelescope :  {- empty -}          { [] }
+              | TBindSP DataTelescope { $1 : $2 } 
 
 {
 

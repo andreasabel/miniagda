@@ -472,11 +472,19 @@ instance Traversable Dom where
 
 -- identifiers -------------------------------------------------------
 
-data IdKind = DatK     -- data/codata 
-            | ConK Co  -- constructor ind/coind
-            | FunK     -- fun/cofun 
-            | LetK     -- let definition
-              deriving (Eq, Ord)
+-- |
+data ConK
+  = Cons    -- ^ a constructor
+  | CoCons  -- ^ a coconstructor
+  | DefPat  -- ^ a defined pattern
+    deriving (Eq, Ord, Show)
+
+data IdKind 
+  = DatK       -- ^ data/codata 
+  | ConK ConK  -- ^ constructor (ind/coind/defined) 
+  | FunK       -- ^ fun/cofun 
+  | LetK       -- ^ let definition
+    deriving (Eq, Ord)
 
 instance Show IdKind where
     show DatK   = "data"
@@ -486,6 +494,9 @@ instance Show IdKind where
 
 conKind (ConK _) = True
 conKind _        = False
+
+coToConK Ind = Cons
+coToConK CoInd = CoCons
 
 data DefId = DefId { idKind :: IdKind, name :: Name } 
            deriving (Eq, Ord)
@@ -672,8 +683,8 @@ data Clause = Clause
 clause = Clause [] -- empty clTele
 
 data PatternInfo = PatternInfo
-  { coPat          :: Co    -- (co)constructor
-  , irrefutablePat :: Bool  -- constructor of a record
+  { coPat          :: ConK    -- (co)constructor
+  , irrefutablePat :: Bool    -- constructor of a record
   } deriving (Eq,Ord,Show)
 
 type Pattern = Pat Name Expr
@@ -681,15 +692,15 @@ type Pattern = Pat Name Expr
 -- | Patterns parametrized by type of dot patterns.
 data Pat n e
   = VarP Name                         -- ^ x
-    | ConP PatternInfo Name [Pat n e] -- ^ (c ps)
-    | SuccP (Pat n e)                 -- ^ ($ p)
-    | SizeP n Name                    -- ^ (x > y)
-    | PairP (Pat n e) (Pat n e)       -- ^ (p, p')
-    | ProjP Name                      -- ^ .proj
-    | DotP e                          -- ^ .e
-    | AbsurdP                         -- ^ ()
-    | ErasedP (Pat n e)               -- ^ pattern which got erased
-    | UnusableP (Pat n e)  
+  | ConP PatternInfo Name [Pat n e] -- ^ (c ps)
+  | SuccP (Pat n e)                 -- ^ ($ p)
+  | SizeP e Name                    -- ^ (x > y) (# > y) ($x > y)
+  | PairP (Pat n e) (Pat n e)       -- ^ (p, p')
+  | ProjP Name                      -- ^ .proj
+  | DotP e                          -- ^ .e
+  | AbsurdP                         -- ^ ()
+  | ErasedP (Pat n e)               -- ^ pattern which got erased
+  | UnusableP (Pat n e)  
 {- ^ a pattern which results from matching a coinductive type and
 the corresponding size index is not in the coinductive result type of
 the function.  Such a pattern is not usable for termination
@@ -771,6 +782,7 @@ data Declaration
   | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured 
   | FunDecl Co Fun  -- fun, possibly inside MutualDecl   
   | LetDecl Bool TypeSig Expr -- bool for eval 
+  | PatternDecl Name [Name] Pattern
   | MutualDecl Bool [Declaration]  -- mutual data/fun block, bool for measured
   | OverrideDecl Override [Declaration]    -- expect/ignore some type error
     deriving (Eq,Ord,Show)
@@ -1051,7 +1063,6 @@ instance Pretty Pattern where
   prettyPrec k (SuccP p)      = text "$" <> prettyPrec k p
   prettyPrec k (SizeP x y)    = parensIf (precAppR <= k) $ pretty y <+> text "<" <+> pretty x
   prettyPrec k (PairP p p')   = parens $ pretty p <> comma <+> pretty p'
---  prettyPrec k (SizeP x y)    = parens $ text x <+> text ">" <+> text y
   prettyPrec k (UnusableP p)  = prettyPrec k p
   prettyPrec k (ProjP x)      = text "." <> pretty x
   prettyPrec k (DotP p)       = text "." <> prettyPrec k p
@@ -1113,6 +1124,31 @@ showCases = showList "; " showCase
 
 
 -- substitution ------------------------------------------------------
+
+{-
+class PatSubst p where
+  patSubst :: [(Name, Expr)] -> p -> p
+
+instance PatSubst Name where
+  patSubst phi n = maybe p id $ lookup n phi
+-}
+
+-- | substitute into pattern
+patSubst :: [(Name, Pattern)] -> Pattern -> Pattern
+patSubst phi p =
+  let phi' x = maybe (Var x) patternToExpr $ lookup x phi
+  in
+  case p of
+    VarP n -> maybe p id $ lookup n phi
+    ConP pi n ps -> ConP pi n $ List.map (patSubst phi) ps
+    SuccP p      -> SuccP $ patSubst phi p
+    SizeP e y    -> SizeP (parSubst phi' e) y 
+    PairP p1 p2  -> PairP (patSubst phi p1) (patSubst phi p2)
+    ProjP x      -> p
+    DotP e       -> DotP $ parSubst phi' e                    
+    AbsurdP      -> p
+    ErasedP p    -> ErasedP $ patSubst phi p
+    UnusableP p   -> UnusableP $ patSubst phi p
 
 -- parallel substitution (CAUTION! NOT CAPTURE AVOIDING!) 
 -- only needed to generate destructors
@@ -1364,7 +1400,7 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
       prefix d = d { suggestion = "destructor_argument_" ++ suggestion d }
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
-      pattern = ConP (PatternInfo co False) -- to bootstrap destructor, not irrefutable 
+      pattern = ConP (PatternInfo (coToConK co) False) -- to bootstrap destructor, not irrefutable 
           constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++ 
             List.map (\ fi -> (case fClass fi of 
                             Index   -> DotP . Var
@@ -1477,7 +1513,9 @@ isPatIndFamC _ = tell (All False) >> return []
 -- TreeShapedOrder
 tsoFromPatterns :: [Pattern] -> TSO Name
 tsoFromPatterns ps = TSO.fromList $ List.concat $ List.map loop ps where
-  loop (SizeP father son) = [(son,(1,father))]
+  loop (SizeP (Var father) son) = [(son,(1,father))]
+  loop (SizeP (Succ (Var father)) son) = [(son,(0,father))]
+  loop (SizeP e      son) = []
   loop (ConP _ _ ps)      = List.concat $ List.map loop ps
   loop (PairP p p')       = loop p ++ loop p'
   loop (SuccP   p)        = loop p
@@ -1595,7 +1633,7 @@ patternToExpr (AbsurdP)      = Irr
 completeP :: Pattern -> Bool
 completeP (DotP _) = True
 completeP (VarP _) = True
-completeP SizeP{}  = True
+completeP SizeP{}  = False -- True
 completeP (UnusableP p) = completeP p
 completeP (ErasedP p)   = completeP p
 completeP _ = False

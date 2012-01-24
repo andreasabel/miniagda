@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 -- concrete syntax
 module Concrete where
 
@@ -40,15 +41,17 @@ instance HasPred Expr where
   predecessor (Succ e) = Just e
   predecessor _ = Nothing
 
-data Declaration = DataDecl Name Sized Co Telescope Type [Constructor] 
-                     [Name] -- list of field names
-                 | RecordDecl Name Telescope Type Constructor 
-                     [Name] -- list of field names
-                 | FunDecl Co TypeSig [Clause] 
-                 | LetDecl Bool TypeSig Expr -- bool = if eval 
-                 | MutualDecl [Declaration]
-                 | OverrideDecl Override [Declaration] -- fail etc.
-                   deriving (Eq,Show)
+data Declaration 
+  = DataDecl Name Sized Co Telescope Type [Constructor] 
+      [Name] -- list of field names
+  | RecordDecl Name Telescope Type Constructor 
+      [Name] -- list of field names
+  | FunDecl Co TypeSig [Clause] 
+  | LetDecl Bool Name Telescope Type Expr -- True = if eval 
+  | PatternDecl Name [Name] Pattern
+  | MutualDecl [Declaration]
+  | OverrideDecl Override [Declaration] -- fail etc.
+    deriving (Eq,Show)
 
 data TypeSig = TypeSig Name Type
              deriving (Eq)
@@ -73,7 +76,7 @@ data TBind = TBind
   } 
   | TMeasure (Measure Expr)
   | TBound (Bound Expr) 
-  | TSized Name -- the size parameter of a sized record
+  | TSized { boundName :: Name } -- the size parameter of a sized record
     deriving (Eq,Show)
 
 type Telescope = [TBind]
@@ -99,9 +102,9 @@ data Pattern
   = ConP Name [Pattern]   -- (c ps)
   | PairP Pattern Pattern -- (p, p')
   | SuccP Pattern         -- ($ p)
-  | DotP Expr             -- .p
+  | DotP Expr             -- .e
   | IdentP Name           -- x
-  | SizeP Name Name       -- (x > y) 
+  | SizeP Expr Name       -- (x > y) or y < # or ... 
   | AbsurdP               -- ()
     deriving (Eq,Show)
 
@@ -186,11 +189,13 @@ prettyPattern (PairP p1 p2) = parens $ prettyPattern p1 ++ ", " ++
 prettyPattern (SuccP p) = parens $ "$ " ++ prettyPattern p
 prettyPattern (DotP e)  = "." ++ prettyExpr e
 prettyPattern (IdentP x) = x
-prettyPattern (SizeP x y) = parens $ x ++ " > " ++ y
+prettyPattern (SizeP e y) = parens $ prettyExpr e ++ " > " ++ y
 prettyPattern (AbsurdP) = parens ""
 
 prettyExprs :: [Expr] -> String
 prettyExprs = Util.showList " " prettyExpr
+
+prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " id (n:ns)) ++ " = " ++ prettyPattern p
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
@@ -200,3 +205,12 @@ teleToType (tb:tel) t2 = Quant A.Pi tb (teleToType tel t2)
 typeToTele :: Type -> (Telescope, Type)
 typeToTele (Quant A.Pi tb c) = let (tel, a) = typeToTele c in (tb:tel, a)
 typeToTele a = ([],a)
+
+teleNames :: Telescope -> [Name]
+teleNames tel = concat $ map tbindNames tel
+
+tbindNames :: TBind -> [Name]
+tbindNames TBind{ boundNames }   = boundNames
+tbindNames TBounded{ boundName } = [boundName]
+tbindNames TSized{ boundName }   = [boundName]
+tbindNames tb = error $ "tbindNames (" ++ show tb ++ ")"

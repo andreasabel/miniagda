@@ -43,11 +43,13 @@ mainFile fileName = do
   (edecls, sig) <- doTypeCheck adecls
   putStrLn "--- evaluating ---" 
   showAll sig adecls
+{-
   putStrLn "--- extracting ---"
   edecls <- doExtract sig edecls 
   hsmodule <- doTranslate edecls
   putStrLn $ H.prettyPrint hsmodule
   -- printHsDecls hsdecls
+-}
   putStrLn $ "--- closing " ++ show fileName ++ " ---"
   
 -- print extracted program

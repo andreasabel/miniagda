@@ -200,6 +200,7 @@ extractDecl d =
     MutualFunDecl _ co funs -> extractFuns co funs
     FunDecl co fun -> extractFun co fun 
     LetDecl evl ts e -> extractLet evl ts e
+    PatternDecl{}    -> return []
     DataDecl n _ co _ tel ty cs fields -> extractDataDecl n co tel ty cs
 
 extractFuns :: Co -> [Fun] -> TypeCheck [FDeclaration]
@@ -363,9 +364,12 @@ extractPattern' av p cont =
 
 extrConType :: Name -> FTVal -> TypeCheck FTVal
 extrConType c av = do
-    ConSig { numPars, extrTyp } <- lookupSymb c
-    traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
-    tv <- whnf' extrTyp
+  ConSig { numPars, extrTyp } <- lookupSymb c
+  traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
+  tv <- whnf' extrTyp
+  case numPars of
+   0 -> return tv
+   _ -> do
     case av of
       VApp (VDef (DefId DatK d)) vs -> do
         DataSig { positivity } <- lookupSymb d
@@ -379,7 +383,8 @@ extrConType c av = do
         let (pars, inds) = splitAt numPars vs
         piApps tv pars
 -}
-      _ -> fail $ "extrConType " ++ show c ++ ": expected datatype, found " ++ show av
+      _ -> piApps tv $ replicate numPars VIrr
+--      _ -> fail $ "extrConType " ++ show c ++ ": expected datatype, found " ++ show av
 
 -- extracting a term from a term -------------------------------------
 

@@ -586,7 +586,7 @@ app' expandDefs u v = do
                 whnfClos (lookup n rho) 
             VDef (DefId FunK n) -> appDef_ n [v]
             VApp (VDef (DefId FunK n)) vl -> appDef_ n (vl ++ [v])
-            VApp h@(VDef (DefId (ConK Ind) n)) vl -> do
+            VApp h@(VDef (DefId (ConK Cons) n)) vl -> do
               v <- whnfClos v      -- inductive constructors are strict!
               return $ VApp h (vl ++ [v])
 --            VDef n -> appDef n [v]
@@ -885,7 +885,7 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
 --                up False (VDef (DefId LetK d) `VApp` piv) t' -- now: LAZY
 --                up False (VDef (DefId FunK d) `VApp` piv) t' -- now: LAZY
           vs <- mapM arg fis 
-          v' <- foldM app (vCon co (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs) 
+          v' <- foldM app (vCon (coToConK co) (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs) 
           ret v'
     -- more constructors or unknown situation: do not eta expand
     _ -> return v
@@ -1652,6 +1652,7 @@ leSize' ltle v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ 
          (_,VMax vs)  -> foldr1 orM $ map (leSize' ltle v1) vs -- this produces a disjunction 
 --         (_,VMax _)  -> addLe ltle v1 v2 -- this produces a disjunction 
          (_,VInfty) | ltle == Le -> return ()
+         (VZero, VInfty) -> return ()
          (VMeta{},VZero) -> addLe ltle v1 v2
 {-
          (0,VMeta i n', VMeta j m') -> 
@@ -1676,6 +1677,10 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
     do let ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
        case (v1,v2) of
          _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
+         (VGen i, VInfty) | ltle == Lt -> do
+            b <- isBelowInfty i
+            if b then return () else
+              recoverFailDoc (text "leSize'':" <+> prettyTCM v1 <+> text (show ltle) <+> prettyTCM v2 <+> text "failed") 
          (VZero,_) | bal <= ltlez -> return ()
          (VZero,VGen _) | bal > ltlez -> fail $ "0 not < " ++ show v2
          (VSucc v1, v2) -> leSize'' ltle (bal + 1) v1 v2

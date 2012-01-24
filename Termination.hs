@@ -348,7 +348,7 @@ compareVar tso n p =
           Just k -> ret $ decr k
       PairP p1 p2 -> maxL (map (compareVar tso n) [p1,p2])
          -- no decrease in pair:  ALT: comp (Decr 1) (...)
-      ConP pi c (p:pl) | coPat pi == Ind -> 
+      ConP pi c (p:pl) | coPat pi == Cons -> 
         comp (Decr 1) (maxL (map (compareVar tso n) (p:pl)))
       ConP{}   -> ret Un
       ProjP{}   -> ret Un

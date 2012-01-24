@@ -92,6 +92,7 @@ filterEnv ns ((x,v) : rho) =
 
 vDef id   = VDef id `VApp` []
 vCon co n = vDef $ DefId (ConK co) n
+-- vCon co n = vDef $ DefId (ConK (coToConK co)) n
 vFun n    = vDef $ DefId FunK n
 vDat n    = vDef $ DefId DatK n
 

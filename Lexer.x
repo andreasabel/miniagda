@@ -25,6 +25,7 @@ record				{ tok (\p s -> Record p) }
 fields                          { tok (\p s -> Fields p) }
 fun				{ tok (\p s -> Fun p) }
 cofun				{ tok (\p s -> CoFun p) }
+pattern                         { tok (\p s -> Pattern p) }
 case                            { tok (\p s -> Case p) }
 def				{ tok (\p s -> Def p) }
 let				{ tok (\p s -> Let p) }
@@ -85,6 +86,7 @@ data Token = Id String AlexPosn
 	   | Mutual AlexPosn
            | Fun AlexPosn
            | CoFun AlexPosn
+           | Pattern AlexPosn
 	   | Case AlexPosn
 	   | Def AlexPosn
 	   | Let AlexPosn
@@ -144,6 +146,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Mutual p -> ("mutual",p)
     Fun p -> ("fun",p)
     CoFun p -> ("cofun",p)
+    Pattern p -> ("pattern",p)
     Case p -> ("case",p)
     Def p -> ("def",p)
     Let p -> ("let",p)

@@ -168,6 +168,16 @@ typeCheckDeclaration (LetDecl bla (TypeSig n t) e ) =
        return [LetDecl bla (TypeSig n te) ee]
    ) `throwTrace` show n
 
+typeCheckDeclaration d@(PatternDecl x xs p) = do
+{- WHY DOES THIS NOT TYPECHECK?
+  let doc = (PP.text "pattern") <+> (PP.hsep (List.map Util.pretty (x:xs))) <+> PP.equals <+> Util.pretty p
+  echo $ PP.render $ doc
+-}
+  echo $ "pattern " ++ Util.showList " " show (x:xs) ++ " = " ++ show p    
+  v <- whnf' $ foldr (Lam defaultDec) (patternToExpr p) xs
+  addSig x (PatSig xs p v)
+  return [d]
+
 typeCheckDeclaration (MutualFunDecl False co funs) = 
   -- traceCheck ("type checking a function block") $
   do
@@ -1143,12 +1153,25 @@ Following Awodey/Bauer 2001, the following rule is valid
 -}
       (e,v) -> do
         case spineView e of
+
+          -- unfold defined patterns
+          (h@(Def (DefId (ConK DefPat) c)), es) -> do
+             PatSig xs pat _ <- lookupSymb c
+             let (xs1, xs2) = splitAt (length es) xs
+                 phi x      = maybe (Var x) id $ lookup x (zip xs1 es)
+                 body       = parSubst phi (patternToExpr pat)
+                 e          = foldr (Lam defaultDec) body xs2
+             checkForced e v
+
+          -- check constructor term 
           (h@(Def (DefId (ConK co) c)), es) -> do
              tv <- conType c v
              (kes, dv) <- checkSpine es tv
              let e = foldl App h $ map valueOf kes
              checkSubtype e dv v
              return $ Kinded kTerm $ e 
+
+          -- else infer
           _ -> do 
             (v2,kee) <- inferExpr e 
             checkSubtype (valueOf kee) v2 v 
@@ -1644,6 +1667,7 @@ Output
 checkPattern :: Dec -> [Goal] -> Substitution -> TVal -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,TVal,EPattern,Val,Bool)
 checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, environ = rho } -> trace ("checkPattern" ++ ("\n  dot pats: " +?+ show flex) ++ ("\n  substion: " +?+ show ins) ++ ("\n  environ : " +?+ show rho) ++ ("\n  context : " +?+ show delta) ++ "\n  pattern : " ++ show p ++ "\n  at type : " ++ show tv ++ "\t<>") $ 
  enter ("pattern " ++ show p) $ do 
+  tv <- force tv
   case tv of
     -- record type can be eliminated
     VApp (VDef (DefId DatK d)) vl ->
@@ -1780,14 +1804,18 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
   type of size-pat : Below< i
 
 -}
-          SizeP z y -> do -- pattern (z > y), y is the bound variable, z the bound of z
-            resurrect $ checkSize (Var z)
+          SizeP e y -> do -- pattern (z > y), y is the bound variable, z the bound of z
+            e <- resurrect $ checkSize e -- (Var z)
             newWithGen y domEr $ \ j xv -> do
+{-
                VGen k <- whnf' (Var z)
                addSizeRel j 1 k $ do  -- j < k
+-}
+               ve <- whnf' e
+               addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $ do
                  -- TODO: ENABLE  subtype av (VBelow Lt (VGen k))
                  cxt' <- ask 
-                 return (flex, ins, cxt', maybeErase $ SizeP z y, xv, False)
+                 return (flex, ins, cxt', maybeErase $ SizeP e y, xv, False)
 
           AbsurdP -> do
                  when (isFunType av) $ fail ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)     
@@ -1802,6 +1830,12 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                              return (flex, ins, cxt', bv, maybeErase $ AbsurdP, True)
                     _ -> throwErrorMsg $ "type " ++ show av ++ " of absurd pattern not empty"
 -}
+          -- always expand defined patterns!
+          ConP pi n ps | coPat pi == DefPat -> do
+            PatSig ns pat v <- lookupSymb n
+            unless (length ns == length ps) $ fail ("underapplied defined pattern in " ++ show p)
+            let p = patSubst (zip ns ps) pat
+            checkPattern' flex ins domEr p
 
           ConP pi n pl -> do
                  let co = coPat pi
@@ -1819,7 +1853,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  vc <- conType n =<< force av
  
                  -- check that size argument of coconstr is dotted
-                 when (co == CoInd && sz == Sized) $ do
+                 when (co == CoCons && sz == Sized) $ do
                    let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
                    unless (isDotPattern sizep) $
                      fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"

@@ -153,6 +153,7 @@ data TCContext = TCContext
   , rewrites  :: Rewrites
   , sizeRels  :: TSO Int   -- relations of universal (rigid) size variables
                            -- collected from size patterns (x > y)
+  , belowInfty:: [Int]     -- list of size variables < #
   , bounds    :: [Bound Val]  -- bound hyps that do not fit in sizeRels
   , checkingConType :: Bool  -- different PTS rules for constructor types (parametric function space!)
   , assertionHandling :: AssertionHandling -- recover from errors?
@@ -174,6 +175,7 @@ emptyContext = TCContext
   , environ  = emptyEnv 
   , rewrites = emptyRewrites
   , sizeRels = TSO.empty
+  , belowInfty = []
   , bounds   = []
   , checkingConType = False
   , assertionHandling = Failure  -- default is not to ignore any errors
@@ -502,7 +504,9 @@ class Monad m => MonadCxt m where
   addPattern :: TVal -> Pattern -> Env -> (TVal -> Val -> Env -> m a) -> m a -- step under pat
   addPatterns:: TVal -> [Pattern] -> Env -> (TVal -> [Val] -> Env -> m a) -> m a
   addSizeRel  :: Int -> Int -> Int -> m a -> m a  
+  addBelowInfty :: Int -> m a -> m a
   addBoundHyp :: Bound Val -> m a -> m a
+  isBelowInfty :: Int -> m Bool
   sizeVarBelow :: Int -> Int -> m (Maybe Int)
 --  getSizeDiff :: Int -> Int -> m (Maybe Int)
   getMinSize  :: Int -> m (Maybe Int)
@@ -673,17 +677,23 @@ instance MonadCxt TypeCheck where
               bv <- whnf (update env x xv) b
               cont bv xv (update rho y xv)
 
+          SizeP e y -> newWithGen y dom $ \ j xv -> do
+              bv <- whnf (update env x xv) b
+              ve <- whnf' e
+              addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $ 
+                cont bv xv (update rho y xv)
+{-
           SizeP z y -> newWithGen y dom $ \ j xv -> do
               bv <- whnf (update env x xv) b
               VGen k <- whnf' (Var z) 
               addSizeRel j 1 k $
                 cont bv xv (update rho y xv)
-
-          ConP co n pl -> do
+-}
+          ConP pi n pl -> do
               sige <- lookupSymb n
               let vc = symbTyp sige
               addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
-                pv0 <- foldM app (vCon (coPat co) n) vpl
+                pv0 <- foldM app (vCon (coPat pi) n) vpl
                 pv  <- up False pv0 (typ dom)
                 vb  <- whnf (update env x pv) b
                 cont vb pv rho
@@ -717,12 +727,18 @@ instance MonadCxt TypeCheck where
   addSizeRel son dist father k = 
     enter -- enterTrace 
       ("adding size rel. v" ++ show son ++ " + " ++ show dist ++ " <= v" ++ show father) $ do
-    local (\ cxt -> cxt { sizeRels = TSO.insert son (dist, father) (sizeRels cxt) }) k
+    let modBI belowInfty = if father `elem` belowInfty then son : belowInfty else belowInfty
+    local (\ cxt -> cxt 
+      { sizeRels = TSO.insert son (dist, father) (sizeRels cxt) 
+      , belowInfty = modBI (belowInfty cxt)
+      }) k
+
+  addBelowInfty i = local $ \ cxt -> cxt { belowInfty = i : belowInfty cxt }
 
   addBoundHyp beta@(Bound ltle (Measure mu) (Measure mu')) cont = 
     case (ltle, mu, mu') of
       (Le, _, [VInfty]) -> cont
-      (Lt, _, [VInfty]) -> failure
+--      (Lt, _, [VInfty]) -> failure  -- handle j < #
       (ltle, [v], [v']) -> loop (if ltle==Lt then 1 else 0) v v'
       _ -> failure
     where failure = do
@@ -730,6 +746,7 @@ instance MonadCxt TypeCheck where
             assertDoc' Warning False (text "hypothetical constraint" <+> prettyTCM beta <+> text "ignored")
             cont
 
+          loop n (VGen i) VInfty = addBelowInfty i cont
           loop n (VGen i) (VGen j) | n >= 0 = addSizeRel i n j cont
                                    | otherwise = addIrregularBound i j (-n) cont
           loop n (VSucc v) v' = loop (n + 1) v v'
@@ -740,6 +757,19 @@ instance MonadCxt TypeCheck where
               v' = iterate VSucc (VGen j) !! n
               beta = Bound Le (Measure [VGen i]) (Measure [v'])
   
+  isBelowInfty i = (i `elem`) <$> asks belowInfty
+
+{-
+  isBelowInfty i = do
+    belowInfty <- asks belowInfty
+    if (i `elem` belowInfty) then return True else do
+      tso <- asks sizeRels
+      loop $ parents i tso where
+        loop [] = return False
+        loop [(_,j)] = return $ j `elem` belowInfty
+        loop (x:xs)  = loop xs
+-}
+
   sizeVarBelow son ancestor = do
     cxt <- ask
     return $ TSO.isAncestor son ancestor (sizeRels cxt)
@@ -954,6 +984,10 @@ data SigDef
 --            , definingExpr  :: Expr 
             , extrTyp       :: Expr   -- Fomega type
             }-- type , expr 
+  | PatSig  { patVars       :: [Name]
+            , definingPat   :: Pattern
+            , definingVal   :: Val
+            }
   | ConSig  { numPars       :: Int
             , isSized       :: Sized
             , recOccs       :: [Bool] -- which of the arguments contain rec.occs.of the (co)data type?
