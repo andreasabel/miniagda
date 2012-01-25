@@ -29,13 +29,21 @@ fail fun length2 : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
 ; length2 A .(succ n) (vcons n a v) = succ n
 }
 
-{- 2012-01-23 BROKEN
+{-  -- 2012-01-25 fix for broken singleton constructor types no longer neede
+let succ_ [n : Nat] : <n : Nat> -> <succ n : Nat> = \ m -> succ m
+
+-- recursive solution, extracts to  length : List A -> Nat
+fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
+{ length A .zero vnil = zero
+; length A .(succ n) (vcons n a v) = succ_ n (length A n v)
+}
+-}
+
 -- recursive solution, extracts to  length : List A -> Nat
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
 { length A .zero vnil = zero
 ; length A .(succ n) (vcons n a v) = succ (length A n v)
 }
--}
 
 -- Proof irrelevance in data types -----------------------------------
 

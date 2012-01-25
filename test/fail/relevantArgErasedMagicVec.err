@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
-term  pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> Sigma A B
+term  pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < pair fst snd : Sigma A B >
 type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
 G> fun fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
 G> { fst A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
@@ -18,15 +18,15 @@ term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B
 { snd [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 type  Empty : Set
 type  Empty : Set
 term  magic : .[A : Set] -> .[p : Empty] -> A
 {}
 type  Unit : Set
-term  unit : Unit
+term  unit : < unit : Unit >
 type  Unit : Set
 type  Vec : .[A : Set] -> (n : Nat) -> Set
 error during typechecking:

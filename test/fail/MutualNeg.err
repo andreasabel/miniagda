@@ -3,10 +3,10 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  D : Set
-term  absD : ^ (E -> D) -> D
+term  absD : ^(y0 : E -> D) -> < absD y0 : D >
 type  D : Set
 type  E : Set
-term  absE : ^ (D -> E) -> E
+term  absE : ^(y0 : D -> E) -> < absE y0 : E >
 type  E : Set
 error during typechecking:
 checking positivity

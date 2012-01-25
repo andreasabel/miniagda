@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
-term  inn : .[A : Set] -> ^(out : A) -> EmptyOr A true
+term  inn : .[A : Set] -> ^(out : A) -> < inn out : EmptyOr A true >
 type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
 G> fun out : .[A : Set] -> (inn : EmptyOr A true) -> A
 G> { out A (inn destructor_argument_out) = destructor_argument_out
@@ -19,7 +19,7 @@ term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A false -> B
 { exFalso [A] [B] ()
 }
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
 G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head

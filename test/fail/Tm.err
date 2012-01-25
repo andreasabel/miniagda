@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
 G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
@@ -21,8 +21,8 @@ term  iterate : .[A : Set] -> (step : A -> A) -> (start : A) -> .[i : Size] -> S
 { iterate [A] step start $[i] = cons [i] start (iterate [A] step (step start) [i])
 }
 type  Tm : Set
-term  abs : ^ (^ Tm -> Tm) -> Tm
-term  app : ^ Tm -> ^ Tm -> Tm
+term  abs : ^(y0 : ^ Tm -> Tm) -> < abs y0 : Tm >
+term  app : ^(y0 : Tm) -> ^(y1 : Tm) -> < app y0 y1 : Tm >
 type  Tm : Set
 warning: ignoring error: polarity check ++ <= - failed
 warning: ignoring error: polarity check ++ <= + failed

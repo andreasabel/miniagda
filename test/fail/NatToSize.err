@@ -3,8 +3,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  suc : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
 type  Nat : Set
 size  toSize : Nat -> Size
 { toSize (zero) = 0

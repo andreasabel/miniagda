@@ -4,13 +4,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  SNat : + Size -> Set
 term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> SNat $i
+term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
 type  SNat : + Size -> Set
 type  Maybe : ++(A : Set) -> Set
-term  nothing : .[A : Set] -> Maybe A
-term  just : .[A : Set] -> ^ A -> Maybe A
+term  nothing : .[A : Set] -> < nothing : Maybe A >
+term  just : .[A : Set] -> ^(y0 : A) -> < just y0 : Maybe A >
 type  Maybe : ++(A : Set) -> Set
 type  Nat : Set
 type  Nat = SNat #
@@ -24,7 +24,7 @@ term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (succ [#] n))
 term  inc : Nat -> Maybe Nat
 term  inc = \ n -> just (succ [#] n)
 type  Unit : Set
-term  unit : Unit
+term  unit : < unit : Unit >
 type  Unit : Set
 type  loopType : Unit -> Set
 { loopType (unit) = .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit

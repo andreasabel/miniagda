@@ -3,18 +3,18 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  refl : .[A : Set] -> .[a : A] -> Id A a a
+term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
 { subst [A] a .a (refl) [P] x = x
 }
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  eq : .[A : Set] -> .[a : A] -> DecEq A a a
-term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> DecEq A a b
+term  eq : .[A : Set] -> .[a : A] -> < eq : DecEq A a a >
+term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> < notEq b : DecEq A a b >
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 offDiag

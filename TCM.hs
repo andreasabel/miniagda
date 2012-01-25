@@ -1050,9 +1050,12 @@ data DataView
   = Data Name [Clos]
   | NoData
 
+-- | Find datatype @D vs@ in type @Tel -> D vs@.
 dataView :: TVal -> TypeCheck DataView
 dataView tv = do -- maybe force tv?
   case tv of
+    VQuant Pi x dom env b         -> do
+      new x dom $ \ xv -> dataView =<< whnf (update env x xv) b
     VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
     VSing v dv                    -> dataView =<< whnfClos dv
     _                             -> return $ NoData 

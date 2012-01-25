@@ -41,6 +41,7 @@ fun lookup : [A : Set] -> [n : Nat] -> Vec A n -> Fin n -> A
 ; lookup A .zero     nil        ()  -- IMPOSSIBLE
 }
 
+-- the following should give an error, since we cannot match on [n : Nat]
 fun downFrom : [n : Nat] -> Vec Nat n
 { downFrom zero     = nil
 ; downFrom (succ n) = cons n n (downFrom n)

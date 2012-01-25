@@ -3,8 +3,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  BT : Set
-term  lf : BT
-term  node : ^ BT -> ^ BT -> BT
+term  lf : < lf : BT >
+term  node : ^(y0 : BT) -> ^(y1 : BT) -> < node y0 y1 : BT >
 type  BT : Set
 term  f : BT -> BT
 term  g : BT -> BT -> BT

@@ -3,10 +3,10 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < cons i y1 y2 : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 type  Unit : Set
-term  triv : Unit
+term  triv : < triv : Unit >
 type  Unit : Set
 term  bla : .[i : Size] -> (Stream Unit i -> Stream Unit i) -> Stream Unit i
 error during typechecking:

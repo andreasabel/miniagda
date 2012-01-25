@@ -4,13 +4,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Nat : + Size -> Set
 term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
-term  zero : .[i : Size] -> Nat $i
+term  zero : .[i : Size] -> < zero i : Nat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
-term  succ : .[i : Size] -> ^ Nat i -> Nat $i
+term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
 type  Nat : + Size -> Set
 type  Colist : ^(A : Set) -> - Size -> Set
-term  nil : .[A : Set] -> .[i : Size] -> Colist A $i
-term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Colist A i -> Colist A $i
+term  nil : .[A : Set] -> .[i : Size] -> < nil i : Colist A $i >
+term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < cons i y1 y2 : Colist A $i >
 type  Colist : ^(A : Set) -> - Size -> Set
 term  olist' : .[i : Size] -> Colist (Nat #) i
 { olist' $[i] = cons [i] (zero [#]) (olist' [i])

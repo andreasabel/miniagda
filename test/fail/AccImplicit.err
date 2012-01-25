@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> (b : A) -> Set
-term  acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(accOut : (a : A) -> Lt a b -> Acc A Lt a) -> Acc A Lt b
+term  acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(accOut : (a : A) -> Lt a b -> Acc A Lt a) -> < acc accOut : Acc A Lt b >
 type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> (b : A) -> Set
 G> fun accOut : .[A : Set] -> .[Lt : A -> A -> Set] -> (b : A) -> (acc : Acc A Lt b) -> (a : A) -> Lt a b -> Acc A Lt a
 G> { accOut A Lt b (acc destructor_argument_accOut) = destructor_argument_accOut
@@ -12,12 +12,12 @@ term  accOut : .[A : Set] -> .[Lt : A -> A -> Set] -> (b : A) -> (acc : Acc A Lt
 { accOut [A] [Lt] b (acc destructor_argument_accOut) = destructor_argument_accOut
 }
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 type  R : ^ Nat -> ^ Nat -> Set
-term  r1 : .[x : Nat] -> R (succ (succ x)) (succ zero)
-term  r2 : R (succ zero) zero
+term  r1 : .[x : Nat] -> < r1 x : R (succ (succ x)) (succ zero) >
+term  r2 : < r2 : R (succ zero) zero >
 type  R : ^ Nat -> ^ Nat -> Set
 term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
 term  acc2 = \ n -> acc (\ a -> \ p -> case p
@@ -55,7 +55,7 @@ term  h : (x : Nat) -> .[Acc Nat R x] -> Nat
 term  bla : Nat
 term  bla = f zero acc0
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  refl : .[A : Set] -> .[a : A] -> Id A a a
+term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 p1

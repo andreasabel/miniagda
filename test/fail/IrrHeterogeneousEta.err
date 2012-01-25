@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Unit : Set
-term  unit : Unit
+term  unit : < unit : Unit >
 type  Unit : Set
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 type  T : Bool -> Set
 { T (true) = Bool -> Bool

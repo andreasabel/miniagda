@@ -115,17 +115,20 @@ first A B a b = a
 
 --------------------
 
-cofun map : (i : Size ) -> (Nat -> Nat) -> Stream i -> Stream i 
+cofun map : (i : Size) -> (Nat -> Nat) -> Stream i -> Stream i 
 {
 map ($ i) f (cons .i x xl) = cons _ (f x) (map _ f xl)
 }
 
+{-
 -- 2012-01-22 constructor are no longer inferable!
 let suc : Nat -> Nat = \ x -> succ x
+-- 2012-01-25 constructor recognition also for function types
+-}
 
-cofun evil : (i : Size ) -> Stream i
+cofun evil : (i : Size) -> Stream i
 {
-evil ($ i) = map _ suc (cons _ zero (evil _))
+evil ($ i) = map _ succ (cons _ zero (evil _))
 }
 
 -- eval const zzz : Nat = head # (z #) 

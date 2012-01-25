@@ -3,8 +3,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 term  n0 : Nat
 term  n0 = zero
@@ -17,7 +17,7 @@ term  n3 = succ n2
 term  n4 : Nat
 term  n4 = succ n3
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < cons i y1 y2 : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
 { tail [A] [i] (cons [.i] x xs) = xs

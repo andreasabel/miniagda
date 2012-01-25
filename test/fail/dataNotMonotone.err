@@ -3,16 +3,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Stream : ^(A : Set) -> - Size -> Set
-term  consStream : .[A : Set] -> .[i : Size] -> ^ A -> ^ Stream A i -> Stream A $i
+term  consStream : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < consStream i y1 y2 : Stream A $i >
 type  Stream : ^(A : Set) -> - Size -> Set
 type  NotMon : ^(A : Set) -> + Size -> Set
 error during typechecking:
 NotMon
 /// constructor consBla
-/// szConstructor NotMon : .[A : Set] -> .[i : Size] -> ^ Stream A i -> ^ NotMon A i -> NotMon A $i
+/// szConstructor NotMon : .[A : Set] -> .[i : Size] -> ^(y1 : Stream A i) -> ^(y2 : NotMon A i) -> < consBla i y1 y2 : NotMon A $i >
 /// new A : Set
 /// new i : Size
-/// szSizeVarUsage of i in ^ Stream A i -> ^ NotMon A i -> NotMon A $i
+/// szSizeVarUsage of i in ^(y1 : Stream A i) -> ^(y2 : NotMon A i) -> < consBla i y1 y2 : NotMon A $i >
 /// checking Stream A i  to be isotone in variable i
 /// leqVal' [(A,0),(i,1)] |- Stream A i  <=+  Stream A $i : Set #
 /// leqVal' [(A,0),(i,1)] |- i  <=-  $i : Size

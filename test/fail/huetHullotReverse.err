@@ -3,13 +3,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Enum : Set
-term  aa : Enum
-term  bb : Enum
-term  cc : Enum
+term  aa : < aa : Enum >
+term  bb : < bb : Enum >
+term  cc : < cc : Enum >
 type  Enum : Set
 type  List : ^(A : Set) -> Set
-term  nil : .[A : Set] -> List A
-term  cons : .[A : Set] -> ^ A -> ^ List A -> List A
+term  nil : .[A : Set] -> < nil : List A >
+term  cons : .[A : Set] -> ^(y0 : A) -> ^(y1 : List A) -> < cons y0 y1 : List A >
 type  List : ^(A : Set) -> Set
 term  list : List Enum
 term  list = cons aa (cons bb (cons cc nil))

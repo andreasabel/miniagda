@@ -471,7 +471,17 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   let (argts,target) = typeToTele te
   addBinds telWithD $ addBinds argts $ checkTarget d dv tel target
 
-  let tte = teleToType telE te -- DO resurrect here!
+  -- make type of a constructor a singleton type
+--  let mkName i n | null (suggestion n) = n { suggestion = "y" ++ show i }
+  let mkName i n | emptyName n = fresh $ "y" ++ show i 
+                 | otherwise   = n
+  let argns = zipWith mkName [0..] $ map boundName argts
+  let argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
+  let tsing = teleToType argtbs $ 
+       Sing (foldl App (con (coToConK co) n) $ map Var argns) 
+            target
+
+  let tte = teleToType telE tsing -- te -- DO resurrect here!
   vt <- whnf' tte
   {- old code was more accurate, since it evaluated before checking
      for recursive occurrence. 
@@ -2101,6 +2111,8 @@ unifyIndices :: [Int] -> Val -> Val -> TypeCheck Substitution
 unifyIndices flex v1 v2 = ask >>= \ cxt -> enterDoc (text ("unifyIndices " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show Pos) <+> prettyTCM v2) $ do 
 -- {-
   case (v1,v2) of
+    (VSing _ v1, VApp (VDef (DefId DatK d2)) vl2) -> 
+      flip (unifyIndices flex) v2 =<< whnfClos v1 
     (VApp (VDef (DefId DatK d1)) vl1, VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 -> do
       (DataSig { numPars = np, symbTyp = tv, positivity = posl}) <- lookupSymb d1
       instList posl flex tv vl1 vl2 -- unify also parameters to solve dot patterns
@@ -2422,7 +2434,8 @@ szSizeVarTarget :: Int -> Int -> TVal -> TypeCheck ()
 szSizeVarTarget p i tv = enterDoc (text "szSizeVarTarget, variable" <+> prettyTCM (VGen i) <+> text ("argument no. " ++ show p ++ " in") <+> prettyTCM tv) $ do
     let err = text "expected target" <+> prettyTCM tv <+> text "of size" <+> prettyTCM (VSucc (VGen i))
     case tv of
-       (VApp d vl) -> do
+       VSing _ tv -> szSizeVarTarget p i =<< whnfClos tv
+       VApp d vl -> do
                v0 <- whnfClos (vl !! p)
                case v0 of
                  (VSucc (VGen i')) | i == i' -> return ()
@@ -2626,6 +2639,7 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
 
          bv <- whnf (update env x gen) b
          endsInSizedCo i bv
+      VSing _ tv -> endsInSizedCo i =<< whnfClos tv
       VApp (VDef (DefId DatK n)) vl -> do 
          sige <- lookupSymb n 
          case sige of

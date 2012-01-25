@@ -3,10 +3,10 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Box : ^(A : Set) -> Set
-term  box : .[A : Set] -> ^ A -> Box A
+term  box : .[A : Set] -> ^(y0 : A) -> < box y0 : Box A >
 type  Box : ^(A : Set) -> Set
 type  Neg : Set
-term  neg : ^ (Box Neg -> Neg) -> Neg
+term  neg : ^(y0 : Box Neg -> Neg) -> < neg y0 : Neg >
 type  Neg : Set
 error during typechecking:
 checking positivity

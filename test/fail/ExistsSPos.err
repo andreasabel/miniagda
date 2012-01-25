@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Exists : ^(A : Set) -> ++(B : A -> Set) -> Set
-term  exI : .[A : Set] -> .[B : A -> Set] -> ^(witness : A) -> ^(proof : B witness) -> Exists A B
+term  exI : .[A : Set] -> .[B : A -> Set] -> ^(witness : A) -> ^(proof : B witness) -> < exI witness proof : Exists A B >
 type  Exists : ^(A : Set) -> ++(B : A -> Set) -> Set
 G> fun witness : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> A
 G> { witness A B (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_witness
@@ -18,7 +18,7 @@ term  proof : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> B (witness 
 { proof [A] [B] (exI destructor_argument_witness destructor_argument_proof) = destructor_argument_proof
 }
 type  Foo : Set
-term  foo : ^ Exists Foo (\ x -> Foo) -> Foo
+term  foo : ^(y0 : Exists Foo (\ x -> Foo)) -> < foo y0 : Foo >
 type  Foo : Set
 error during typechecking:
 checking positivity

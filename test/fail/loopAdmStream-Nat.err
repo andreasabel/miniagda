@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
 G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head

@@ -3,25 +3,43 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 term  add : Nat -> Nat -> Nat
 { add (zero) y = y
 ; add (succ x) y = succ (add x y)
 }
 type  Vec : ^(A : Set) -> ^ Nat -> Set
-term  nil : .[A : Set] -> Vec A zero
-term  cons : .[A : Set] -> .[n : Nat] -> ^ A -> ^ Vec A n -> Vec A (succ n)
+term  nil : .[A : Set] -> < nil : Vec A zero >
+term  cons : .[A : Set] -> .[n : Nat] -> ^(y1 : A) -> ^(y2 : Vec A n) -> < cons n y1 y2 : Vec A (succ n) >
 type  Vec : ^(A : Set) -> ^ Nat -> Set
 term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> < n : Nat >
+{ length [A] [.zero] (nil) = zero
+; length [A] [.succ n] (cons [n] a v) = succ (length [A] [n] v)
+}
+term  head : .[A : Set] -> .[n : Nat] -> Vec A (succ n) -> A
+{ head [A] [.n] (cons [n] a v) = a
+}
+term  tail : .[A : Set] -> .[n : Nat] -> Vec A (succ n) -> Vec A n
+{ tail [A] [.n] (cons [n] a v) = v
+}
+term  zeroes : (n : Nat) -> Vec Nat n
+{ zeroes (zero) = nil
+; zeroes (succ x) = cons [x] zero (zeroes x)
+}
+type  Fin : ^ Nat -> Set
+term  fzero : .[n : Nat] -> < fzero n : Fin (succ n) >
+term  fsucc : .[n : Nat] -> ^(y1 : Fin n) -> < fsucc n y1 : Fin (succ n) >
+type  Fin : ^ Nat -> Set
+term  lookup : .[A : Set] -> .[n : Nat] -> Vec A n -> Fin n -> A
+{ lookup [A] [.succ n] (cons [n] a v) (fzero [.n]) = a
+; lookup [A] [.succ n] (cons [n] a v) (fsucc [.n] i) = lookup [A] [n] v i
+; lookup [A] [.zero] (nil) ()
+}
+term  downFrom : .[n : Nat] -> Vec Nat n
 error during typechecking:
-length
-/// clause 2
-/// right hand side
-/// checkExpr 5 |- succ (length A n v) : < succ n : Nat >
-/// checkForced fromList [(.(succ n),1),(A,0),(n,2),(a,3),(v,4)] |- succ (length A n v) : < succ n : Nat >
-/// leqVal' (subtyping) [(.(succ n),1),(A,0),(n,2),(a,3),(v,4)] |- < succ (length [A] [n] v) : Nat >  <=+  < succ n : Nat >
-/// leqVal' [(.(succ n),1),(A,0),(n,2),(a,3),(v,4)] |- succ (length [A] [n] v) : Nat  <=*  succ n : Nat
-/// leqVal' [(.(succ n),1),(A,0),(n,2),(a,3),(v,4)] |- length [A] [n] v : Nat  <=*  n : Nat
-/// leqApp: (length {[A] {v = v4, a = v3, n = v2, .(succ n) = v1, A = v0}} {[n] {v = v4, a = v3, n = v2, .(succ n) = v1, A = v0}} v4)[] !<= v2[]
+downFrom
+/// clause 1
+/// pattern zero
+/// checkPattern: constructor zero of non-computational argument zero : Nat not forced

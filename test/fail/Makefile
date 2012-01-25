@@ -62,7 +62,7 @@ $(allstems) : % : %.err
 				 echo `tail -1 $*.err` > $*.tmp.2; \
 				 echo `tail -1 $*.tmp` > $*.tmp.3; \
 				 true; \
-		fi
+		fi;
 	@if cmp $*.tmp.2 $*.tmp.3; \
 	   then if cmp $*.tmp $*.err; \
                    then rm -f $*.tmp $*.tmp.2 $*.tmp.3; true; \

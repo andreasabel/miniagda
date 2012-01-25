@@ -3,29 +3,33 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  refl : .[A : Set] -> .[a : A] -> Id A a a
+term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
 { subst [A] a .a (refl) [P] x = x
 }
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  eq : .[A : Set] -> .[a : A] -> DecEq A a a
-term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> DecEq A a b
+term  eq : .[A : Set] -> .[a : A] -> < eq : DecEq A a a >
+term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> < notEq b : DecEq A a b >
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 fDiag
-/// not a type: (f : (A : Set) -> (a : A) -> (b : A) -> DecEq A a b) -> (A : Set) -> (a : A) -> Id (DecEq A a a) (f A a a) (eq A a)
-/// inferExpr' (f : (A : Set) -> (a : A) -> (b : A) -> DecEq A a b) -> (A : Set) -> (a : A) -> Id (DecEq A a a) (f A a a) (eq A a)
+/// checkExpr 0 |- \ f -> \ A -> \ a -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) eq
+/// checkForced fromList [] |- \ f -> \ A -> \ a -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) eq
 /// new f : (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b)
-/// inferExpr' (A : Set) -> (a : A) -> Id (DecEq A a a) (f A a a) (eq A a)
+/// checkExpr 1 |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) eq
+/// checkForced fromList [(f,0)] |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) eq
 /// new A : Set
-/// inferExpr' (a : A) -> Id (DecEq A a a) (f A a a) (eq A a)
+/// checkExpr 2 |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f [A] a a) eq
+/// checkForced fromList [(A,1),(f,0)] |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f [A] a a) eq
 /// new a : v1
-/// inferExpr' Id (DecEq A a a) (f A a a) (eq A a)
-/// checkExpr 3 |- eq A a : DecEq A a a
-/// checkForced fromList [(A,1),(f,0),(a,2)] |- eq A a : DecEq A a a
-/// checking application to A: expected function type, found (DecEq v1 v2 v2)
+/// checkExpr 3 |- refl : Id (DecEq A a a) (f [A] a a) eq
+/// checkForced fromList [(A,1),(f,0),(a,2)] |- refl : Id (DecEq A a a) (f [A] a a) eq
+/// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- < refl : Id (DecEq A a a) (f [A] a a) (f [A] a a) >  <=+  Id (DecEq A a a) (f [A] a a) eq
+/// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- Id (DecEq A a a) (f [A] a a) (f [A] a a)  <=+  Id (DecEq A a a) (f [A] a a) eq
+/// leqVal' [(A,1),(f,0),(a,2)] |- f [A] a a  <=^  eq : DecEq A a a
+/// leqApp: v0[{[A] {a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b))}},v2,v2] !<= eq[]

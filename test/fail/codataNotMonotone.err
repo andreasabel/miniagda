@@ -4,18 +4,18 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  SNat : + Size -> Set
 term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> SNat $i
+term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
 type  SNat : + Size -> Set
 type  NatEq : -(i : Size) -> ^ SNat i -> ^ SNat i -> Set
-term  eqz : .[i : Size] -> NatEq $i (zero [i]) (zero [i])
+term  eqz : .[i : Size] -> < eqz i : NatEq $i (zero [i]) (zero [i]) >
 error during typechecking:
 NatEq
 /// constructor eqs
-/// szConstructor NatEq : .[i : Size] -> .[n : SNat i] -> .[m : SNat i] -> ^ NatEq i n m -> NatEq $i (succ [i] n) (succ [i] m)
+/// szConstructor NatEq : .[i : Size] -> .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < eqs i n m y3 : NatEq $i (succ [i] n) (succ [i] m) >
 /// new i : Size
-/// szSizeVarUsage of i in .[n : SNat i] -> .[m : SNat i] -> ^ NatEq i n m -> NatEq $i (succ [i] n) (succ [i] m)
+/// szSizeVarUsage of i in .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < eqs i n m y3 : NatEq $i (succ [i] n) (succ [i] m) >
 /// checking SNat i  to be antitone in variable i
 /// leqVal' [(i,0)] |- SNat i  <=-  SNat $i : Set #
 /// leqVal' [(i,0)] |- i  <=-  $i : Size

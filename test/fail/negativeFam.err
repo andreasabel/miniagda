@@ -3,12 +3,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  suc : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
 type  Nat : Set
 type  D : ^ Nat -> Set
-term  abs : ^ (D zero -> D zero) -> D zero
-term  app : .[n : Nat] -> ^ D n -> ^ D n -> D n
+term  abs : ^(y0 : D zero -> D zero) -> < abs y0 : D zero >
+term  app : .[n : Nat] -> ^(y1 : D n) -> ^(y2 : D n) -> < app n y1 y2 : D n >
 type  D : ^ Nat -> Set
 error during typechecking:
 checking positivity

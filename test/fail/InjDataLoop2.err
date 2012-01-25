@@ -5,12 +5,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Empty : Set
 type  Empty : Set
 type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
-term  refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> Eq [i] A a a
+term  refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> < refl : Eq [i] A a a >
 type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
 type  I : ^(F : Set -> Set) -> Set
 type  I : ^(F : Set -> Set) -> Set
 ty-u  InvI : ^(A : Set) -> Set $0
-term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [$0] Set (I Inverse) A) -> InvI A
+term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [$0] Set (I Inverse) A) -> < inv Inverse isInverse : InvI A >
 ty-u  InvI : ^(A : Set) -> Set $0
 G> fun Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
 G> { Inverse A (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse

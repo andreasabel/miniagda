@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
-term  pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> Prod A B
+term  pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < pair fst snd : Prod A B >
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
 G> fun fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
 G> { fst A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
@@ -22,7 +22,7 @@ term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
 { snd [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
 }
 type  BStr : - Size -> Set
-term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> BStr $i
+term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < cons i head tail : BStr $i >
 type  BStr : - Size -> Set
 G> fun head : .[i : Size] -> (cons : BStr $i) -> Bool
 G> { head i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head

@@ -3,16 +3,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : Nat
-term  succ : ^ Nat -> Nat
+term  zero : < zero : Nat >
+term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  Nat : Set
 term  add : Nat -> Nat -> Nat
 { add (zero) y = y
 ; add (succ x) y = succ (add x y)
 }
 type  Vec : ++(A : Set) -> ^ Nat -> Set
-term  vnil : .[A : Set] -> Vec A zero
-term  vcons : .[A : Set] -> ^ A -> .[n : Nat] -> ^ Vec A n -> Vec A (succ n)
+term  vnil : .[A : Set] -> < vnil : Vec A zero >
+term  vcons : .[A : Set] -> ^(y0 : A) -> .[n : Nat] -> ^(y2 : Vec A n) -> < vcons y0 n y2 : Vec A (succ n) >
 type  Vec : ++(A : Set) -> ^ Nat -> Set
 term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> Nat
 error during typechecking:

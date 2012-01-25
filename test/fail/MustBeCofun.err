@@ -3,8 +3,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  CoList : ^(A : Set) -> - Size -> Set
-term  conil : .[A : Set] -> .[i : Size] -> CoList A $i
-term  cocons : .[A : Set] -> .[i : Size] -> ^ A -> ^ CoList A i -> CoList A $i
+term  conil : .[A : Set] -> .[i : Size] -> < conil i : CoList A $i >
+term  cocons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : CoList A i) -> < cocons i y1 y2 : CoList A $i >
 type  CoList : ^(A : Set) -> - Size -> Set
 term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> CoList A i
 error during typechecking:

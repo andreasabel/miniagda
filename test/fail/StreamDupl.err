@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
 G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
@@ -22,6 +22,7 @@ error during typechecking:
 evens
 /// clause 1
 /// pattern cons .(i + j + $0) a (cons .(i + j) b as)
+/// unifyIndices [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- < cons $.(i + j) a (cons .(i + j) b as) : Stream A $$.(i + j) > ?<=+ Stream A ($i + j)
 /// unifyIndices [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- Stream A $$.(i + j) ?<=+ Stream A ($i + j)
 /// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $$.(i + j) ?<=- $(i + j) : Size
 /// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::?,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $.(i + j) ?<=- i + j : Size

@@ -4,9 +4,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  SNat : + Size -> Set
 term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> SNat $i
+term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^ SNat i -> SNat $i
+term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
 type  SNat : + Size -> Set
 type  Nat : Set
 type  Nat = SNat #
@@ -15,7 +15,7 @@ term  add : Nat -> Nat -> Nat
 ; add (succ [.#] x) = \ y -> succ [#] (add x y)
 }
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> Stream A $i
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
 type  Stream : ++(A : Set) -> - Size -> Set
 G> fun head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
 G> { head A i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
@@ -46,7 +46,7 @@ fib2
 /// right hand side
 /// checkExpr 1 |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
 /// checkForced fromList [(i,0)] |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
-/// leqVal' (subtyping) [(i,0)] |- < cons [i + i] n0 (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
+/// leqVal' (subtyping) [(i,0)] |- < cons (i + i) (zero #) (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
 /// leqVal' (subtyping) [(i,0)] |- Stream Nat $(i + i)  <=+  Stream Nat ($i + $i)
 /// leqVal' [(i,0)] |- $(i + i)  <=-  $$(i + i) : Size
 /// leSize ($ (v0 + v0)) <=- ($ ($ (v0 + v0)))

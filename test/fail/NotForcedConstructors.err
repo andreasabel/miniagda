@@ -3,16 +3,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : Bool
-term  false : Bool
+term  true : < true : Bool >
+term  false : < false : Bool >
 type  Bool : Set
 term  not : Bool -> Bool
 { not (true) = false
 ; not (false) = true
 }
 type  Nat : ^ Bool -> Set
-term  zero : Nat true
-term  succ : ^(b : Bool) -> ^ Nat b -> Nat (not b)
+term  zero : < zero : Nat true >
+term  succ : ^(b : Bool) -> ^(y1 : Nat b) -> < succ b y1 : Nat (not b) >
 type  Nat : ^ Bool -> Set
 term  f : (b : Bool) -> .[Nat b] -> Bool
 error during typechecking:

@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 ty-u  WrapSize : Set $0
-term  inn : .[out : Size] -> WrapSize
+term  inn : .[out : Size] -> < inn out : WrapSize >
 type  WrapSize : Set $0
 G> fun out : (inn : WrapSize) -> Size
 G> { out (inn destructor_argument_out) = destructor_argument_out
