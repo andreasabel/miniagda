@@ -778,7 +778,7 @@ checkConType Sized t =
              addBind (mapDec (const paramDec) tb) $ do  -- size is parametric in constructor type
                Kinded ki t2e <- checkConType' t2
                return $ Kinded ki $ Quant Pi (mapDec (const irrelevantDec) tb) t2e -- size is irrelevant in constructor
-      _ -> fail $ "checkConType: internal error, t=" ++ show t
+      _ -> fail $ "checkConType: expecting size quantification, found " ++ show t
 
 checkConType' :: Expr -> TypeCheck (Kinded Extr)
 checkConType' t = do

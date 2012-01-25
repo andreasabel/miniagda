@@ -475,10 +475,18 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     return $ A.RecordDecl x tel' t' c' afields
 
 contextFromConstructors :: C.Constructor -> A.Constructor -> Context
+contextFromConstructors (C.Constructor _ ctel0 ct) (A.TypeSig _ at) = delta
+  where (ctel, _) = C.typeToTele ct
+        (atel, _) = A.typeToTele at
+        delta = matchTels (ctel0 ++ ctel) atel
+
+{- OLD
+contextFromConstructors :: C.Constructor -> A.Constructor -> Context
 contextFromConstructors (C.TypeSig _ ct) (A.TypeSig _ at) = delta
   where (ctel, _) = C.typeToTele ct
         (atel, _) = A.typeToTele at
         delta = matchTels ctel atel
+-}
 
 scopeCheckField :: Context -> C.Name -> ScopeCheck A.Name
 scopeCheckField delta n =
@@ -673,11 +681,20 @@ collectTelescopeNames :: C.Telescope -> [C.Name]
 collectTelescopeNames = concat . map C.boundNames
 
 scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor co a@(C.Constructor n tel t) = checkInSig a n $ \ x -> do
+    t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t 
+    t <- adjustTopDecsM defaultToParam t 
+    addAName (ConK $ A.coToConK co) n x
+    return $ A.TypeSig x t
+
+{- OLD CODE
+scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
 scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
     t <- setDefaultPolarity A.Param $ scopeCheckExpr t 
     t <- adjustTopDecsM defaultToParam t 
     addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
+-}
 {-
     do sig <- getSig
        case (lookupSig n sig) of

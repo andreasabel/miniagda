@@ -60,7 +60,15 @@ instance Show TypeSig where
 
 type Type = Expr
 
-type Constructor = TypeSig
+data Constructor = Constructor
+  { conName :: Name
+  , conTel  :: Telescope
+  , conType :: Type
+  } deriving (Eq)
+
+instance Show Constructor where
+  show (Constructor n tel t) = n ++ " " ++ show tel ++ " : " ++ show t
+
 
 data TBind = TBind 
   { boundDec   :: Dec 

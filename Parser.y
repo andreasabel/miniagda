@@ -130,8 +130,8 @@ Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
       
 Let :: { C.Declaration }
-Let :    let Id DataTelescope ':' Expr '=' ExprT { C.LetDecl False $2 $3 $5 $7 }
-  | eval let Id DataTelescope ':' Expr '=' ExprT { C.LetDecl False $3 $4 $6 $8 }
+Let :    let Id Telescope ':' Expr '=' ExprT { C.LetDecl False $2 $3 $5 $7 }
+  | eval let Id Telescope ':' Expr '=' ExprT { C.LetDecl False $3 $4 $6 $8 }
 
 {-
 Let :: { C.Declaration }
@@ -182,6 +182,10 @@ Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
 
 EIds :: { [Name] } -- non-empty list
 EIds : ExprList       { map (\ (C.Ident x) -> x) $1 }
+
+Telescope :: { C.Telescope }
+Telescope :  {- empty -}          { [] }
+              | TBind Telescope { $1 : $2 } 
 
 TBind :: { C.TBind }
 TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
@@ -359,7 +363,8 @@ TypeSig :: { C.TypeSig }
 TypeSig : Id ':' Expr { C.TypeSig $1 $3 }
 
 Constructor :: { C.Constructor }
-Constructor : TypeSig { $1 }
+Constructor : Id Telescope ':' Expr { C.Constructor $1 $2 $4 }
+--Constructor : TypeSig { $1 }
 
 Constructors :: { [C.Constructor ] }
 Constructors :
