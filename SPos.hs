@@ -49,6 +49,9 @@ nocc k a tv = -- trace ("noccRecArg " ++ show tv)
          VApp v1 vl -> do n <- nocc k a (VApp v1 [])
                           nl <- mapM (nocc k a) vl
                           return $ n && and nl
+         VRecord AnonRec rs -> and <$> mapM (nocc k a . snd) rs
+         VRecord (NamedRec co c _) rs -> (&&) <$> nocc k a (vCon co c) <*> do
+           and <$> mapM (nocc k a . snd) rs
          VGen{} -> return $ True
          VZero  -> return $ True
          VInfty -> return $ True
@@ -60,7 +63,7 @@ nocc k a tv = -- trace ("noccRecArg " ++ show tv)
          VSing v tv -> nocc k a tv 
          VUp v tv   -> nocc k a v
          VIrr    -> return $ True
-         VCase v env cls -> do
+         VCase v _ env cls -> do
            n  <- nocc k a v
            nl <- mapM (nocc k a . snd) (envMap env)
            return $ and $ n : nl

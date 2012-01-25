@@ -20,7 +20,7 @@ term  r1 : .[x : Nat] -> < r1 x : R (succ (succ x)) (succ zero) >
 term  r2 : < r2 : R (succ zero) zero >
 type  R : ^ Nat -> ^ Nat -> Set
 term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
-term  acc2 = \ n -> acc (\ a -> \ p -> case p
+term  acc2 = \ n -> acc (\ a -> \ p -> case p : R a (succ (succ n))
                           {})
 term  aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 { aux1 (succ (succ x)) (r1 [.x]) = acc2 x
@@ -41,7 +41,7 @@ term  acc_dest : .[n : Nat] -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Na
 { acc_dest [n] (acc p) = p
 }
 term  f : (x : Nat) -> Acc Nat R x -> Nat
-{ f x (acc p) = case x
+{ f x (acc p) = case x : Nat
                 { zero -> f (succ x) (p (succ x) r2)
                 ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
                 ; succ (succ y) -> zero
@@ -67,4 +67,4 @@ p1
 /// leqVal' (subtyping) [(p,0)] |- < refl : Id Nat (h zero [p]) (h zero [p]) >  <=+  Id Nat (h zero [p]) (h zero [acc0])
 /// leqVal' (subtyping) [(p,0)] |- Id Nat (h zero [p]) (h zero [p])  <=+  Id Nat (h zero [p]) (h zero [acc0])
 /// leqVal' [(p,0)] |- h zero [p]  <=^  zero : Nat
-/// leqApp: head mismatch h != zero
+/// leqApp: (h {zero {p = v0}} {[p] {p = v0}})[] !<=^ zero{}[]

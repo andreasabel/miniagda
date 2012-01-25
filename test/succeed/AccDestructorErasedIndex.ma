@@ -20,22 +20,18 @@ data Acc (A : Set) (Lt : A -> A -> Set) *(b : A) : Set
 } 
 
 {- 2011-04-23 does not work due to new polarities
-
 data AccOk (A : Set)(Lt : A -> A -> Set) : A -> Set
 { accOk :  [b : A] -> (accOkOut : (a : A) -> Lt a b -> AccOk A Lt a) -> AccOk A Lt b
 } 
-
 -- WAS: BUG
 -- destructor generation does not work if indices are not erased
 data Acc (A : Set) (Lt : A -> A -> Set) : A -> Set
 { acc :  (b : A) -> (accOut : (a : A) -> Lt a b -> Acc A Lt a) -> Acc A Lt b
 } 
-
 -}
 
 fun acc_dest : (n : Nat) -> (p : Acc Nat R n) -> 
                (m : Nat) -> R m n -> Acc Nat R m
--- { acc_dest n (acc .Nat .R .n p) = p
 { acc_dest n (acc p) = p
 }
 

@@ -304,7 +304,7 @@ compareExpr tso e p =
 compareExpr' :: (?cutoff :: Int) => TSO Name -> Expr -> Pattern -> Order
 compareExpr' tso (Ann e) p = compareExpr' tso (unTag e) p  
 compareExpr' tso e p =  
-   case (spineView e, p) of 
+   case (conView $ spineView e, p) of 
       (_,UnusableP _) -> Un
 --      (Erased e,_)    -> compareExpr' tso e p  
       (_,ErasedP p)   -> compareExpr' tso e p  
@@ -328,9 +328,12 @@ compareExpr' tso e p =
       ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2     
       -- new cases for counting constructors
       ((Succ e2,_),p) ->  Decr (-1) `comp` compareExpr' tso e2 p
-      ((Def (DefId (ConK _) n1),args@(_:_)), p) ->  Decr (-1) `comp` minL (map (\e -> compareExpr' tso e p) args)
-      ((Proj n1,[]), ProjP n2) | n1 == n2 -> Decr 0
+      ((Def (DefId (ConK Cons) n1),args@(_:_)), p) ->  Decr (-1) `comp` minL (map (\e -> compareExpr' tso e p) args)
+      ((Proj Post n1,[]), ProjP n2) | n1 == n2 -> Decr 0
       _ -> Un
+
+conView (Record (NamedRec co n _) rs, es) = (Def (DefId (ConK co) n), map snd rs ++ es)
+conView p = p
 
 compareVar :: (?cutoff :: Int) => TSO Name -> Name -> Pattern -> Order
 compareVar tso n p = 
@@ -793,7 +796,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
                              in 
                                traceTerm ("found call " ++ show cg) $ 
                                  [cg]
-          (Case e cls) -> loop tso e ++ concatMap (loop (tsoCase tso e cls)) (map (maybe Irr id . clExpr) cls)
+          (Case e _ cls) -> loop tso e ++ concatMap (loop (tsoCase tso e cls)) (map (maybe Irr id . clExpr) cls)
           (Lam _ _ e1) -> loop tso e1
           (LLet tb e1 e2) ->  
              (loop tso e1) ++ -- type won't get evaluated 
@@ -816,7 +819,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           Def{}   -> []
           Irr{}   -> []
           Proj{}   -> []
-          Record rs -> Foldable.foldMap (loop tso . snd) rs
+          Record ri rs -> Foldable.foldMap (loop tso . snd) rs
           Ann e1 -> loop tso (unTag e1)
 --          Con{}   -> []
 --          Let{}   -> []

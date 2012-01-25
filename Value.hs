@@ -37,10 +37,10 @@ data Val
   | VGen Int                     -- free variable (de Bruijn level)
   | VDef DefId                   -- co(data/constructor/fun)
                                  -- VDef occurs only inside a VApp!
-  | VCase Val Env [Clause]       
+  | VCase Val TVal Env [Clause]       
   | VApp Val [Clos]
-  | VRecord EnvMap               -- a record value             
-  | VProj Name                   -- a projection as an argument to a neutral 
+  | VRecord RecInfo EnvMap       -- a record value             
+  | VProj PrePost Name           -- a projection as an argument to a neutral 
   | VPair Val Val                -- eager pair
   | VClos Env Expr               -- closure for cbn evaluation
   -- don't care                  
@@ -90,7 +90,7 @@ vTopSort :: Val
 vTopSort = VSort $ Set VInfty
 
 mkClos :: Env -> Expr -> Val
-mkClos rho (Proj n) = VProj n
+mkClos rho (Proj fx n) = VProj fx n
 mkClos rho (Var x) = lookupPure rho x 
 mkClos rho e = VClos rho e
   -- Problem with MetaVars: freeVars of a meta var is unknown in this repr.!
@@ -255,14 +255,15 @@ showVal (VApp v []) = showVal v
 showVal (VApp v vl) = "(" ++ showVal v ++ " " ++ showVals vl ++ ")"
 -- showVal (VCon _ n) = n
 showVal (VDef id) = show id -- show $ name id
-showVal (VProj id) = "." ++ show id
+showVal (VProj Pre id) = show id
+showVal (VProj Post id) = "." ++ show id
 showVal (VPair v1 v2) = "(" ++ show v1 ++ ", " ++ show v2 ++ ")" 
 showVal (VGen k) = "v" ++ show k
 showVal (VMeta k rho 0) = "?" ++ show k ++ showEnv rho
 showVal (VMeta k rho 1) = "$?" ++ show k ++ showEnv rho
 showVal (VMeta k rho n) = "(?" ++ show k ++ showEnv rho ++ " + " ++ show n ++")"
-showVal (VRecord env) = "{" ++ Util.showList "; " (\ (n, v) -> show n ++ " = " ++ showVal v) env ++ "}"
-showVal (VCase v env cs) = "case " ++ showVal v ++ "{ " ++ showCases cs ++ " } " ++ showEnv env 
+showVal (VRecord ri env) = show ri ++ "{" ++ Util.showList "; " (\ (n, v) -> show n ++ " = " ++ showVal v) env ++ "}"
+showVal (VCase v vt env cs) = "case " ++ showVal v ++ " : " ++ showVal vt ++ " { " ++ showCases cs ++ " } " ++ showEnv env 
 showVal (VLam x env e) = "(\\" ++ show x ++ " -> " ++ show e ++ showEnv env ++ ")" 
 showVal (VClos (Environ [] Nothing) e) = showsPrec precAppR e ""
 showVal (VClos env e) = "{" ++ show e ++ " " ++ showEnv env ++ "}" 

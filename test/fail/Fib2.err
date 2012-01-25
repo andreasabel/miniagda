@@ -46,7 +46,7 @@ fib2
 /// right hand side
 /// checkExpr 1 |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
 /// checkForced fromList [(i,0)] |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
-/// leqVal' (subtyping) [(i,0)] |- < cons (i + i) (zero #) (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
+/// leqVal' (subtyping) [(i,0)] |- < cons (i + i) (zero [#]) (zipWith [Nat] [Nat] [Nat] add [i + i] (cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
 /// leqVal' (subtyping) [(i,0)] |- Stream Nat $(i + i)  <=+  Stream Nat ($i + $i)
 /// leqVal' [(i,0)] |- $(i + i)  <=-  $$(i + i) : Size
 /// leSize ($ (v0 + v0)) <=- ($ ($ (v0 + v0)))

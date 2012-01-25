@@ -691,13 +691,22 @@ instance MonadCxt TypeCheck where
 -}
           ConP pi n pl -> do
               sige <- lookupSymb n
+              vc <- conLType n (typ dom)
+              addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
+                pv0 <- mkConVal (coPat pi) n vpl vc
+                pv  <- up False pv0 (typ dom)
+                vb  <- whnf (update env x pv) b
+                cont vb pv rho
+{-
+          ConP pi n pl -> do
+              sige <- lookupSymb n
               let vc = symbTyp sige
               addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
                 pv0 <- foldM app (vCon (coPat pi) n) vpl
                 pv  <- up False pv0 (typ dom)
                 vb  <- whnf (update env x pv) b
                 cont vb pv rho
-
+-}
           SuccP p2 -> do  
               addPattern (vSize `arrow` vSize) p2 rho $ \ _ vp2 rho -> do
                 let pv = succSize vp2 
@@ -1084,7 +1093,7 @@ conType c tv = do
       piApps symbTyp pars
 -}
 
-{- UNUSED
+
 -- | Get LHS type of constructor.
 conLType :: Name -> TVal -> TypeCheck TVal
 conLType c tv = do
@@ -1092,7 +1101,6 @@ conLType c tv = do
   case lhsTyp of
     Nothing   -> instConType c numPars symbTyp tv
     Just lTyp -> instConType c (numPars+1) lTyp tv
--}
 
 instConType :: Name -> Int -> TVal -> TVal -> TypeCheck TVal
 instConType c numPars symbTyp tv = do

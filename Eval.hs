@@ -101,7 +101,7 @@ reval u = -- trace ("reval " ++ show u) $
   VPlus{}  -> return u
   VProj{}  -> return u -- cannot rewrite projection
   VPair v1 v2 -> VPair <$> reval v1 <*> reval v2
-  VRecord rho -> VRecord <$> mapAssocM reval rho
+  VRecord ri rho -> VRecord ri <$> mapAssocM reval rho
 {-
   VSucc v -> do v' <- reval v
                 return $ succSize v'
@@ -117,9 +117,11 @@ reval u = -- trace ("reval " ++ show u) $
                                -- CAN'T rewrite defined fun/data
   VGen{} -> reduce u  -- CAN rewrite variable
 
-  VCase v env cl     -> do v' <- reval v
-                           env' <- reEnv env
-                           evalCase v' env' cl
+  VCase v tv env cl -> do 
+    v' <- reval v
+    tv' <- reval tv
+    env' <- reEnv env
+    evalCase v' tv' env' cl
 
   VBelow ltle v      -> VBelow ltle <$> reval v
 
@@ -212,10 +214,14 @@ equal u1 u2 = -- trace ("equal " ++ show u1 ++ " =?= " ++ show u2) $
                do v1 <- whnf (update env1 x1 vx) b1
                   v2 <- whnf (update env2 x2 vx) b2
                   equal v1 v2
-    (VRecord rho1, VRecord rho2) -> and <$> 
+    (VRecord ri1 rho1, VRecord ri2 rho2) | notDifferentNames ri1 ri2 -> and <$> 
       zipWithM (\ (n1,v1) (n2,v2) -> ((n1 == n2) &&) <$> equal' v1 v2) rho1 rho2
     _ -> return False
     
+notDifferentNames :: RecInfo -> RecInfo -> Bool
+notDifferentNames (NamedRec _ n _) (NamedRec _ n' _) = n == n'
+notDifferentNames _ _ = True
+
 equals' :: [Val] -> [Val] -> TypeCheck Bool
 equals' [] []             = return True
 equals' (w1:vs1) (w2:vs2) = liftM2 (&&) (equal' w1 w2) 
@@ -269,16 +275,17 @@ reify' m v0 = do
     (VUp v tv)           -> reify v -- TODO: type directed reification
     (VGen k)             -> return $ Var $ unsafeName $ "~" ++ show k
     (VDef d)             -> return $ Def d
-    (VProj n)            -> return $ Proj n
+    (VProj fx n)         -> return $ Proj fx n
     (VPair v1 v2)        -> Pair <$> reify v1 <*> reify v2
-    (VRecord rho)        -> Record <$> mapAssocM reify rho
+    (VRecord ri rho)     -> Record ri <$> mapAssocM reify rho
     (VApp v vl)          -> if fst m > 0 && snd m 
                              then force v0 >>= reify' (fst m - 1, True) -- forgotten the meaning of the boolean, WAS: False) 
                              else let m' = (fst m, True) in
                                liftM2 (foldl App) (reify' m' v) (mapM (reify' m') vl)
-    (VCase v rho cls)    -> do
+    (VCase v tv rho cls)    -> do
           e <- reify v
-          return $ Case e cls -- TODO: properly evaluate clauses!!
+          t <- reify tv
+          return $ Case e (Just t) cls -- TODO: properly evaluate clauses!!
     (VIrr)               -> return $ Irr
     v -> failDoc (text "Eval.reify" <+> prettyTCM v <+> text "not implemented")
   
@@ -312,11 +319,11 @@ toExpr v =
     VUp v tv        -> toExpr v
     VGen k          -> Var <$> nameOfGen k
     VDef d          -> return $ Def d
-    VProj n         -> return $ Proj n
+    VProj fx n      -> return $ Proj fx n
     VPair v1 v2     -> Pair <$> toExpr v1 <*> toExpr v2
-    VRecord rho     -> Record <$> mapAssocM toExpr rho
+    VRecord ri rho  -> Record ri <$> mapAssocM toExpr rho
     VApp v vl       -> liftM2 (foldl App) (toExpr v) (mapM toExpr vl)
-    VCase v rho cls -> Case <$> toExpr v <*> mapM (clauseToExpr rho) cls 
+    VCase v tv rho cls -> Case <$> toExpr v <*> (Just <$> toExpr tv) <*> mapM (clauseToExpr rho) cls 
     VIrr            -> return $ Irr
 
 {-
@@ -369,7 +376,7 @@ closToExpr rho e =
     Meta x         -> return e
     Var x          -> toExpr =<< whnf rho e 
     Def d          -> return e
-    Case e cls     -> Case <$> closToExpr rho e <*> mapM (clauseToExpr rho) cls
+    Case e mt cls  -> Case <$> closToExpr rho e <*> mapM (closToExpr rho) mt <*> mapM (clauseToExpr rho) cls
     LLet (TBind x dom) e1 e2 -> addNameEnv x rho $ \ x rho' -> 
       LLet <$> (TBind x <$> mapM (closToExpr rho) dom) 
            <*> closToExpr rho e1 
@@ -381,8 +388,8 @@ closToExpr rho e =
            <*> do addNameEnv (boundName tb) rho $ \ rho -> closToExpr rho e2
 --           <*> do addBindEnv tb rho $ \ rho -> closToExpr rho e2
 -}
-    Proj n         -> return e
-    Record rs      -> Record <$> mapAssocM (closToExpr rho) rs
+    Proj fx n      -> return e
+    Record ri rs   -> Record ri <$> mapAssocM (closToExpr rho) rs
     Pair e1 e2     -> Pair <$> closToExpr rho e1 <*> closToExpr rho e2
     App e1 e2      -> App <$> closToExpr rho e1 <*> closToExpr rho e2
     Lam dec x e    -> addNameEnv x rho $ \ x rho -> 
@@ -452,8 +459,8 @@ whnf env e = enter ("whnf " ++ show e) $
                     sing env e tv
 
     Pair e1 e2 -> VPair <$> whnf env e1 <*> whnf env e2
-    Proj n    -> return $ VProj n
-    Record rs -> return $ VRecord $ mapAssoc (mkClos env) rs
+    Proj fx n  -> return $ VProj fx n
+    Record ri rs -> return $ VRecord ri $ mapAssoc (mkClos env) rs
 {-
 -- ALT: filter out all erased arguments from application
     App e1 el -> do v1 <- whnf env e1
@@ -469,8 +476,10 @@ whnf env e = enter ("whnf " ++ show e) $
                     app v1 vl
 -}
 
-    Case e cs -> do v  <- whnf env e
-                    evalCase v env cs
+    Case e (Just t) cs -> do 
+      v  <- whnf env e
+      vt <- whnf env t
+      evalCase v vt env cs
                   -- trace ("case head evaluates to " ++ showVal v) $ return ()
 
     Sort s -> whnfSort env s >>= return . vSort
@@ -503,6 +512,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Var y -> lookupEnv env y >>= whnfClos
     Ann e -> whnf env (unTag e) -- return VIrr -- NEED TO KEEP because of eta-exp!
     Irr -> return VIrr
+    e   -> fail $ "NYI whnf " ++ show e
 
 whnfMeasure :: Env -> Measure Expr -> TypeCheck (Measure Val)
 whnfMeasure rho (Measure mu) = mapM (whnf rho) mu >>= return . Measure
@@ -516,6 +526,7 @@ whnfClos :: Clos -> TypeCheck Val
 whnfClos v = -- trace ("whnfClos " ++ show v) $
   case v of
     (VClos e rho) -> whnf e rho
+    -- (VApp (VProj Pre n) [u]) -> app u (VProj Post n) -- NO EFFECT
     (VApp (VDef (DefId FunK n)) vl) -> appDef n vl -- THIS IS TO SOLVE A PROBLEM
     v -> return v
 {- THE PROBLEM IS that
@@ -551,17 +562,17 @@ sing' e tv = do
   env <- getEnv
   sing env e tv
 
-evalCase :: Val -> Env -> [Clause] -> TypeCheck Val
-evalCase v env cs = do
+evalCase :: Val -> TVal -> Env -> [Clause] -> TypeCheck Val
+evalCase v tv env cs = do
   m  <- matchClauses env cs [v]
   case m of
-    Nothing -> return $ VCase v env cs
+    Nothing -> return $ VCase v tv env cs
     Just v' -> return $ v'
 
 piApp :: TVal -> Clos -> TypeCheck TVal
 piApp (VGuard beta bv) w = piApp bv w
 piApp (VQuant Pi x dom env b) w = whnf (update env x w) b
-piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj p) = projectType tv p
+piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj Post p) = projectType tv p
 piApp tv w = failDoc (text "piApp: IMPOSSIBLE to instantiate" <+> prettyTCM tv <+> text "to argument" <+> prettyTCM w)
 
 piApps :: TVal -> [Clos] -> TypeCheck TVal
@@ -580,8 +591,9 @@ app' expandDefs u v = do
              appDef' False f vs = return $ VDef (DefId FunK f) `VApp` vs
              appDef_ = appDef' expandDefs
          case u of
-            VRecord rho -> do 
-              let VProj n = v
+            VProj Pre n -> flip (app' expandDefs) (VProj Post n) =<< whnfClos v
+            VRecord ri rho -> do 
+              let VProj Post n = v
               maybe (fail $ "app: projection " ++ show n ++ " not found in " ++ show u) 
                 whnfClos (lookup n rho) 
             VDef (DefId FunK n) -> appDef_ n [v]
@@ -834,7 +846,7 @@ getFieldsAtType n vl = do
 -- similar to piApp, but for record types and projections
 projectType :: TVal -> Name -> TypeCheck TVal
 projectType tv p = do
-  let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj p) <> comma <+> text "but found type" <+> prettyTCM tv)
+  let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj Post p) <> comma <+> text "but found type" <+> prettyTCM tv)
   let fail2 = failDoc (text "record type" <+> prettyTCM tv <+> text "does not have field" <+> prettyTCM p)
   case tv of
     VApp (VDef (DefId DatK d)) vl -> do
@@ -885,7 +897,9 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
 --                up False (VDef (DefId LetK d) `VApp` piv) t' -- now: LAZY
 --                up False (VDef (DefId FunK d) `VApp` piv) t' -- now: LAZY
           vs <- mapM arg fis 
-          v' <- foldM app (vCon (coToConK co) (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs) 
+          let fs = map fName fis
+              v' = VRecord (NamedRec (coToConK co) (cName ci) False) $ zip fs vs
+--          v' <- foldM app (vCon (coToConK co) (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs) 
           ret v'
     -- more constructors or unknown situation: do not eta expand
     _ -> return v
@@ -1028,10 +1042,11 @@ match env p v0 = --trace (show env ++ show v0) $
       (DotP _,   _) -> return $ Just env
       (VarP x,   _) -> return $ Just (update env x v)
       (SizeP _ x,_) -> return $ Just (update env x v)
-      (ProjP x, VProj y) | x == y -> return $ Just env
+      (ProjP x, VProj Post y) | x == y -> return $ Just env
       (PairP p1 p2, VPair v1 v2) -> matchList env [p1,p2] [v1,v2]
       (ConP _ x [],VDef (DefId (ConK _) y)) -> failValInv v -- | x == y -> return $ Just env
       (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
+      (ConP _ x pl,VRecord (NamedRec _ y _) rs) | x == y -> matchList env pl $ map snd rs
       (SuccP p',v) -> do
          v <- whnfClos v
          case predSize v of
@@ -1075,11 +1090,16 @@ nonLinMatch symm env p v0 tv = do
                         Just (y,v') -> do 
                           b <- eqValBool tv v v' 
                           if b then return $ Just env else return Nothing
-        (ProjP x, VProj y) | x == y -> return $ Just env
+        (ProjP x, VProj Post y) | x == y -> return $ Just env
+        (ConP _ c pl,VRecord (NamedRec _ c' _) rs) | c == c' -> do
+           vc <- conLType c tv
+           nonLinMatchList symm env pl (map snd rs) vc
+{- 2012-01-25 RETIRED
         (ConP _ c [],VDef (DefId (ConK _) c')) -> failValInv v -- | c == c' -> return $ Just env
         (ConP _ c pl,VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
            sy <- lookupSymb c
            nonLinMatchList symm env pl vl (symbTyp sy)
+-}
         (PairP p1 p2, VPair v1 v2) -> fail $ "nonLinMatch of pairs: NYI"
         (SuccP p',v) -> do
            v <- whnfClos v
@@ -1314,6 +1334,17 @@ leqVal' f p mt12 u1' u2' = do
  
          _ -> leqStructural u1 u2 where
 
+          leqCons n1 vl1 n2 vl2 = do
+                 unless (n1 == n2) $ 
+                  recoverFail $ 
+                    "leqVal': head mismatch "  ++ show u1 ++ " != " ++ show u2  
+                 case mt12 of
+                   Nothing -> recoverFail $ "leqVal': cannot compare constructor terms without type"
+                   Just tv12 -> do
+                     ct12 <- Traversable.mapM (conType n1) tv12
+                     leqVals' f p ct12 vl1 vl2
+                     return ()
+
           leqStructural u1 u2 = 
            case (u1,u2) of
 
@@ -1375,24 +1406,28 @@ leqVal' f p mt12 u1' u2' = do
               (VUp v1 av1, u2) -> leqVal' f p mt12 v1 u2 
               (u1, VUp v2 av2) -> leqVal' f p mt12 u1 v2
 
+              (VRecord (NamedRec _ n1 _) rs1, VRecord (NamedRec _ n2 _) rs2) ->
+                 leqCons n1 (map snd rs1) n2 (map snd rs2)
+
+{-
+              -- the following three cases should be impossible
+              -- but aren't.  I gave up on this bug -- 2012-01-25 
+              -- FOUND IT
+              (VRecord (NamedRec _ n1 _) rs1,
+               VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> leqCons n1 (map snd rs1) n2 vl2
+
               (VApp v1@(VDef (DefId (ConK _) n1)) vl1, 
-               VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> do
-                 unless (n1 == n2) $ 
-                  recoverFail $ 
-                    "leqVal': head mismatch "  ++ show u1 ++ " != " ++ show u2  
-                 case mt12 of
-                   Nothing -> recoverFail $ "leqVal': cannot compare constructor terms without type"
-                   Just tv12 -> do
-                     ct12 <- Traversable.mapM (conType n1) tv12
-                     leqVals' f p ct12 vl1 vl2
-                     return ()
+               VRecord (NamedRec _ n2 _) rs2) -> leqCons n1 vl1 n2 (map snd rs2)
                  
-              (VApp v1 vl1,VApp v2 vl2) -> do
-                           leqApp f p v1 vl1 v2 vl2
+              (VApp v1@(VDef (DefId (ConK _) n1)) vl1, 
+               VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> leqCons n1 vl1 n2 vl2
+-}
+              (VApp v1 vl1, VApp v2 vl2) -> leqApp f p v1 vl1 v2 vl2
+
               -- smart equality is not transitive
-              (VCase v1 env1 cl1, VCase v2 env2 cl2) -> do
-                 leqVal' f p Nothing v1 v2 -- do not have type here, but v1,v2 are neutral
-                 leqClauses f p mt12 v1 env1 cl1 env2 cl2 
+              (VCase v1 tv1 env1 cl1, VCase v2 tv2 env2 cl2) -> do
+                 leqVal' f p (Just (Two tv1 tv2)) v1 v2 -- FIXED: do not have type here, but v1,v2 are neutral
+                 leqClauses f p mt12 v1 tv1 env1 cl1 env2 cl2 
 
 {- REMOVED, NOT TRANSITIVE                 
               (VCase v env cl, v2) -> leqCases (switch f) (switch p) (switch mt12) v2 v env cl
@@ -1404,8 +1439,8 @@ leqVal' f p mt12 u1' u2' = do
               _ -> leqApp f p u1 [] u2 []
           
 -- naive implementation for now         
-leqClauses :: Force -> Pol -> MT12 -> Val -> Env -> [Clause] -> Env -> [Clause] -> TypeCheck ()
-leqClauses f pol mt12 v env1 cls1 env2 cls2 = loop cls1 cls2 where
+leqClauses :: Force -> Pol -> MT12 -> Val -> TVal -> Env -> [Clause] -> Env -> [Clause] -> TypeCheck ()
+leqClauses f pol mt12 v tvp env1 cls1 env2 cls2 = loop cls1 cls2 where
   loop cls1 cls2 = case (cls1,cls2) of
     ([],[]) -> return ()
     (Clause _ [p1] mrhs1 : cls1', Clause _ [p2] mrhs2 : cls2') -> do
@@ -1415,7 +1450,7 @@ leqClauses f pol mt12 v env1 cls1 env2 cls2 = loop cls1 cls2 where
         (Just e1, Just e2) -> do
             let tv = maybe vTopSort first12 mt12
             let tv012 = maybe [] toList12 mt12
-            addPattern (VIrr `arrow` tv) p1 env1 $ \ _ pv env' ->
+            addPattern (tvp `arrow` tv) p1 env1 $ \ _ pv env' ->
               addRewrite (Rewrite v pv) tv012 $ \ tv012 -> do
                 v1  <- whnf (appendEnv env' env1) e1
                 v2  <- whnf (appendEnv env' env2) e2
@@ -1434,24 +1469,24 @@ eqPattern p1 p2 = case (p1,p2) of
 -} 
 
 
--- leqCases f p tv v1 v env cl 
--- checks whether  v1 <=p (VCase v env cl) : tv
-leqCases :: Force -> Pol -> MT12 -> Val -> Val -> Env -> [Clause] -> TypeCheck ()
-leqCases f pol mt12 v1 v env cl = do
-  vcase <- evalCase v env cl
+-- leqCases f p tv1 v1 v tv env cl 
+-- checks whether  v1 <=p (VCase v tv env cl) : tv1
+leqCases :: Force -> Pol -> MT12 -> Val -> Val -> TVal -> Env -> [Clause] -> TypeCheck ()
+leqCases f pol mt12 v1 v tvp env cl = do
+  vcase <- evalCase v tvp env cl
   case vcase of 
-    (VCase v env cl) -> mapM_ (leqCase f pol mt12 v1 v env) cl
+    (VCase v tvp env cl) -> mapM_ (leqCase f pol mt12 v1 v tvp env) cl
     v2 -> leqVal' f pol mt12 v1 v2
 
 -- absurd cases need not be checked
-leqCase :: Force -> Pol -> MT12 -> Val -> Val -> Env -> Clause -> TypeCheck ()
-leqCase f pol mt12 v1 v env (Clause _ [p] Nothing) = return ()
-leqCase f pol mt12 v1 v env (Clause _ [p] (Just e)) = enterDoc (text "leqCase" <+> prettyTCM v <+> text " --> " <+> text (show p ++ "  |- ") <+> prettyTCM v1 <+> text (" <=" ++ show pol ++ " ") <+> prettyTCM (VClos env e)) $ do    -- ++ "  :  " ++ show mt12) $
+leqCase :: Force -> Pol -> MT12 -> Val -> Val -> TVal -> Env -> Clause -> TypeCheck ()
+leqCase f pol mt12 v1 v tvp env (Clause _ [p] Nothing) = return ()
+leqCase f pol mt12 v1 v tvp env (Clause _ [p] (Just e)) = enterDoc (text "leqCase" <+> prettyTCM v <+> text " --> " <+> text (show p ++ "  |- ") <+> prettyTCM v1 <+> text (" <=" ++ show pol ++ " ") <+> prettyTCM (VClos env e)) $ do    -- ++ "  :  " ++ show mt12) $
 -- the dot patterns inside p are only valid in environment env
   let tv = case mt12 of 
              Nothing -> vTopSort
              Just tv12 -> second12 tv12
-  addPattern (VIrr `arrow` tv) p env $ \ _ pv env' ->
+  addPattern (tvp `arrow` tv) p env $ \ _ pv env' ->
     addRewrite (Rewrite v pv) [tv,v1] $ \ [tv',v1'] -> do
       v2  <- whnf (appendEnv env' env) e
       v2' <- reval v2 -- 2010-09-10, WHY?
@@ -1906,3 +1941,20 @@ checkPositivityGraph = enter ("checking positivity") $ do
 -}
   -- TODO: solve constraints
   put $ st { positivityGraph = [] }
+
+-- telescopes --------------------------------------------------------
+
+telView :: TVal -> TypeCheck ([(Val, TBinding TVal)], TVal)
+telView tv = do
+  case tv of
+    VQuant Pi x dom env b -> new x dom $ \ xv -> do
+      (vTel, core) <- telView =<< whnf (update env x xv) b
+      return ((xv, TBind x dom) : vTel, core)
+    _ -> return ([], tv)
+
+-- | Turn a fully applied constructor value into a named record value.
+mkConVal :: ConK -> Name -> [Val] -> TVal -> TypeCheck Val
+mkConVal co n vs vc = do
+  (vTel, _) <- telView vc
+  let fieldNames = map (boundName . snd) vTel
+  return $ VRecord (NamedRec co n False) $ zip fieldNames vs

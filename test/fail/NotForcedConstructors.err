@@ -19,4 +19,4 @@ error during typechecking:
 f
 /// clause 1
 /// pattern zero
-/// checkPattern: constructor zero of non-computational argument zero : (Nat true) not forced
+/// checkPattern: constructor zero of non-computational argument zero : (Nat true{}) not forced

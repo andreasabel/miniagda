@@ -41,13 +41,15 @@ import Termination
 -- import Completness
 
 
-
 traceCheck msg a = a -- trace msg a 
 traceCheckM msg = return () -- traceM msg
 {-
 traceCheck msg a = trace msg a 
 traceCheckM msg = traceM msg
 -}
+
+traceSing msg a = a -- trace msg a 
+traceSingM msg = return () -- traceM msg
 
 
 traceAdm msg a = a -- trace msg a 
@@ -475,11 +477,12 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
 --  let mkName i n | null (suggestion n) = n { suggestion = "y" ++ show i }
   let mkName i n | emptyName n = fresh $ "y" ++ show i 
                  | otherwise   = n
-  let argns = zipWith mkName [0..] $ map boundName argts
-  let argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
-  let tsing = teleToType argtbs $ 
-       Sing (foldl App (con (coToConK co) n) $ map Var argns) 
-            target
+      fields = map boundName argts
+      argns  = zipWith mkName [0..] $ fields 
+      argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
+--      core   = (foldl App (con (coToConK co) n) $ map Var argns) 
+      core   = Record (NamedRec (coToConK co) n False) $ zip fields $ map Var argns 
+      tsing  = teleToType argtbs $ Sing core target
 
   let tte = teleToType telE tsing -- te -- DO resurrect here!
   vt <- whnf' tte
@@ -1016,7 +1019,7 @@ checkExpr e v = do
 --            v_e1 <- whnf rho e1
 --            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v  
 
-      (Case (Var x) [Clause _ [SuccP (VarP y)] (Just rhs)], v) -> do
+      (Case (Var x) Nothing [Clause _ [SuccP (VarP y)] (Just rhs)], v) -> do
           (tv, _) <- resurrect $ inferExpr (Var x)
           subtype tv vSize
           vx@(VGen i) <- whnf' (Var x)
@@ -1027,14 +1030,15 @@ checkExpr e v = do
             addSizeRel j 1 i $
               addRewrite (Rewrite vx vp) [v] $ \ [v'] -> do
                 Kinded ki2 rhse <- checkRHS [] rhs v'
-                return $ Kinded ki2 $ Case (Var x) [Clause [TBind y dom] [SuccP (VarP y)] (Just rhse)]
+                return $ Kinded ki2 $ Case (Var x) (Just tSize) [Clause [TBind y dom] [SuccP (VarP y)] (Just rhse)]
 
-      (Case e cs, _) -> do
+      (Case e Nothing cs, _) -> do
           (tv, Kinded ki1 ee) <- inferExpr e
           ve <- whnf' ee
           -- tv' <- sing' ee tv -- DOES NOT WORK
           Kinded ki2 cle <- checkCases ve (arrow tv v) cs
-          return $ Kinded ki2 $ Case ee cle
+          t <- toExpr tv
+          return $ Kinded ki2 $ Case ee (Just t) cle
 
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkExpr e bv
@@ -1077,7 +1081,7 @@ checkForced e v = do
          Kinded k2 e2 <- checkExpr e2 bv
          return $ Kinded (unionKind k1 k2) $ Pair e1 e2
 
-      (Record rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
+      (Record ri rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
          let fail1 = failDoc (text "expected" <+> prettyTCM t <+> text "to be a record type")
 --         DataSig { numPars, isTuple } <- lookupSymb d
 --         unless isTuple $ fail1
@@ -1095,7 +1099,7 @@ checkForced e v = do
                       Kinded k' es <- cont 
                       return $ Kinded (unionKind k k') ((p,e) : es)
              Kinded k rs <- foldr checkField (return $ Kinded NoKind []) rs 
-             return $ Kinded k $ Record rs
+             return $ Kinded k $ Record ri rs
 
            
 {- OLD:
@@ -1180,20 +1184,40 @@ Following Awodey/Bauer 2001, the following rule is valid
              checkForced e v
 
           -- check constructor term 
+          (h@(Def (DefId (ConK co) c)), es) -> checkConTerm co c es v
+{-
           (h@(Def (DefId (ConK co) c)), es) -> do
              tv <- conType c v
-             (kes, dv) <- checkSpine es tv
-             let e = foldl App h $ map valueOf kes
+             (knes, dv) <- checkSpine es tv
+             let e = foldl App h $ map (snd . valueOf) knes
              checkSubtype e dv v
              e <- etaExpandPis e dv -- a bit similiar to checkSubtype, which computes a singleton
              return $ Kinded kTerm $ e 
-
+-}
           -- else infer
           _ -> do 
             (v2,kee) <- inferExpr e 
             checkSubtype (valueOf kee) v2 v 
             return kee
 
+-- | Check (partially applied) constructor term, eta-expand it and turn it
+--   into a named record.
+checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
+checkConTerm co c es v = do
+  tv <- conType c v
+  (knes, dv) <- checkSpine es tv
+  let e0 = foldl App (Def (DefId (ConK co) c)) $ map (snd . valueOf) knes
+  checkSubtype e0 dv v
+  (vTel, _) <- telView dv
+  let xs   = map (boundName . snd) vTel
+      decs = map (decor . boundDom . snd) vTel 
+      ys   = map freshen xs
+      rs   = map valueOf knes ++ (zip xs $ map Var ys)
+      e1   = Record (NamedRec co c False) rs
+      e    = foldr (uncurry Lam) e1 (zip decs ys)
+  return $ Kinded kTerm e
+
+{- UNUSED
 -- | Only eta-expand at function types, do not force.
 etaExpandPis :: Expr -> TVal -> TypeCheck Expr
 etaExpandPis e tv = do
@@ -1203,20 +1227,22 @@ etaExpandPis e tv = do
       Lam (decor dom) y <$> do
         etaExpandPis (App e (Var y)) =<< whnf (update env x xv) b
     _ -> return e
+-}
 
-checkSpine :: [Expr] -> TVal -> TypeCheck ([Kinded Extr], TVal)
+checkSpine :: [Expr] -> TVal -> TypeCheck ([Kinded (Name, Extr)], TVal)
 checkSpine [] tv = return ([], tv)
 checkSpine (e : es) tv = do
-  (ke, tv) <- checkApp e tv
-  (kes, tv) <- checkSpine es tv
-  return (ke : kes, tv)
+  (kne, tv) <- checkApp e tv
+  (knes, tv) <- checkSpine es tv
+  return (kne : knes, tv)
 
-checkApp :: Expr -> TVal -> TypeCheck (Kinded Extr, TVal)
+-- | checking e against (x : A) -> B returns (x,e) and B[e/x]
+checkApp :: Expr -> TVal -> TypeCheck (Kinded (Name, Extr), TVal)
 checkApp e2 v = do
   v <- force v -- if v is a corecursively defined type in Set, unfold!
   case v of
     VQuant Pi x (Domain av _ dec) env b -> do
-       (ki, v2,e2e) <- 
+       (ki, v2, e2e) <- do
          if inferable e2 then do
        -- if e2 has a singleton type, we should not take v2 = whnf e2
        -- but use the single value of e2
@@ -1231,11 +1257,11 @@ checkApp e2 v = do
                          return (ki, v2, e2e)
             else do
               Kinded ki e2e <- applyDec dec $ checkExpr e2 av
-              v2 <- whnf' e2
+              v2 <- whnf' e2e
               return (ki, v2, e2e)
        bv <- whnf (update env x v2) b
        -- the kind of the application is the kind of its head
-       return (Kinded ki $ if erased dec then erasedExpr e2e else e2e, bv)
+       return (Kinded ki $ (x,) $ if erased dec then erasedExpr e2e else e2e, bv)
        -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
     _ -> throwErrorMsg $ "checking application to " ++ show e2 ++ ": expected function type, found " ++ show v
 
@@ -1244,9 +1270,9 @@ checkApp e2 v = do
 checkSubtype :: Expr -> TVal -> TVal -> TypeCheck ()
 checkSubtype e v2 v = do
     rho <- getEnv
-    traceCheckM $ "computing singleton <" ++ show e ++ " : " ++ show v2 ++ "> in environment " ++ show rho
+    traceSingM $ "computing singleton <" ++ show e ++ " : " ++ show v2 ++ "> in environment " ++ show rho
     v2principal <- sing rho e v2
-    traceCheckM $ "subtype checking " ++ show v2principal ++ " ?<= " ++ show v ++ " in environment " ++ show rho
+    traceSingM $ "subtype checking " ++ show v2principal ++ " ?<= " ++ show v ++ " in environment " ++ show rho
     subtype v2principal v
 
 
@@ -1303,6 +1329,32 @@ inferExpr e = do
 checkGuard :: Bound Val -> TypeCheck ()
 checkGuard beta@(Bound ltle mu mu') = enterDoc (text "checkGuard" <+> prettyTCM beta) $
   lexSizes ltle (measure mu) (measure mu')
+
+inferProj :: Expr -> PrePost -> Name -> TypeCheck (TVal, Kinded Extr)
+inferProj e1 fx p = checkingCon False $ do
+            (v, Kinded ki1 e1e) <- inferExpr e1
+{-
+            let fail1 = failDoc (text "expected" <+> prettyTCM e1 <+> text "to be of record type when taking the projection" <+> text p <> comma <+> text "but found type" <+> prettyTCM v)
+            let fail2 = failDoc (text "record" <+> prettyTCM e1 <+> text "of type" <+> prettyTCM v <+> text "does not have field" <+> text p)
+-}
+            v <- force v -- if v is a corecursively defined type in Set, unfold!
+            tv <- projectType v p
+            return (tv, Kinded ki1 (proj e1e fx p))
+{-
+            case v of
+              VApp (VDef (DefId Dat d)) vl -> do
+                mfs <- getFieldsAtType d vl
+                case mfs of
+                  Nothing -> fail1
+                  Just ptvs -> 
+                    case lookup p ptvs of
+                      Nothing -> fail2 
+                      Just tv -> do
+                        tv <- piApp tv VIrr -- cut of record arg
+                        return (tv, Kinded ki1 (App e1e (Proj p)))
+              _ -> fail1 
+-}
+
 
 -- inferExpr' might return a VGuard, this is removed in inferExpr
 -- the returned kind for constructor type is computed as the union
@@ -1409,33 +1461,12 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         return (VSort $ s, Kinded (intersectKind ki $ succKind ki1) -- not sure how useful the intersection is, maybe just ki is good enough 
                              $ Sing e1e te)
 
-      App e1 (Proj p) -> checkingCon False $ do
-            (v, Kinded ki1 e1e) <- inferExpr e1
-{-
-            let fail1 = failDoc (text "expected" <+> prettyTCM e1 <+> text "to be of record type when taking the projection" <+> text p <> comma <+> text "but found type" <+> prettyTCM v)
-            let fail2 = failDoc (text "record" <+> prettyTCM e1 <+> text "of type" <+> prettyTCM v <+> text "does not have field" <+> text p)
--}
-            v <- force v -- if v is a corecursively defined type in Set, unfold!
-            tv <- projectType v p
-            return (tv, Kinded ki1 (App e1e (Proj p)))
-{-
-            case v of
-              VApp (VDef (DefId Dat d)) vl -> do
-                mfs <- getFieldsAtType d vl
-                case mfs of
-                  Nothing -> fail1
-                  Just ptvs -> 
-                    case lookup p ptvs of
-                      Nothing -> fail2 
-                      Just tv -> do
-                        tv <- piApp tv VIrr -- cut of record arg
-                        return (tv, Kinded ki1 (App e1e (Proj p)))
-              _ -> fail1 
--}
+      App (Proj Pre p) e  -> inferProj e Pre p
+      App e (Proj Post p) -> inferProj e Post p
               
       App e1 e2 -> checkingCon False $ do
         (v, Kinded ki1 e1e) <- inferExpr e1
-        (Kinded ki2 e2e, bv) <- checkApp e2 v
+        (Kinded ki2 (_, e2e), bv) <- checkApp e2 v
         -- the kind of the application is the kind of its head
         return (bv, Kinded ki1 $ App e1e e2e)
 {-
@@ -1591,7 +1622,7 @@ checkCase i v tv cl@(Clause _ [p] mrhs) =
            (True,Just rhs) -> fail ("absurd pattern requires no right hand side in case " ++ showCase cl)
            (False,Just rhs) -> do
               -- pv <- whnf' (patternToExpr p) -- DIFFICULT FOR DOT PATTERNS!
-      --        vp <- patternToVal p -- BUG: INTRODUCES FRESH GENS, BUT THEY HAVE ALREADY BEEN INTRODUCED IN checkattern
+      --        vp <- patternToVal p -- BUG: INTRODUCES FRESH GENS, BUT THEY HAVE ALREADY BEEN INTRODUCED IN checkPattern
               addRewrite (Rewrite v pv) [vt] $ \ [vt'] -> do
                 Kinded ki rhse <- checkRHS ins rhs vt'
                 return $ Kinded ki (Clause tel [pe] (Just rhse))
@@ -1702,7 +1733,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
         ProjP proj -> do
           tv <- projectType tv proj
           cxt <- ask
-          return (flex, ins, cxt, tv, p, VProj proj, False)
+          return (flex, ins, cxt, tv, p, VProj Post proj, False)
 {-
           mfs <- getFieldsAtType d vl
           case mfs of
@@ -1928,7 +1959,8 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  
                  -- need to evaluate the erased pattern!
                  let pe = ConP pi n ple -- erased pattern
-                 let pv0 = VDef (DefId (ConK co) n) `VApp` pvs 
+                 pv0 <- mkConVal co n pvs vc
+                 -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs 
 {-
                  let epe = patternToExpr pe
                  pv0 <- local (\ _ -> cxt') $ whnf' epe
@@ -2064,6 +2096,7 @@ checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
 -}
 
 -- checkDot does not need to extract
+-- 2012-01-25 now we do since "extraction" turns also con.terms into records
 checkGoal :: Substitution -> Goal -> TypeCheck ()
 checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $ 
   case (lookup i subst) of
@@ -2073,7 +2106,7 @@ checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $
       ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv) 
 --      applyDec (decor it) $ do
       resurrect $ do -- consider a DotP e always as irrelevant!
-        checkExpr e tv
+        e <- valueOf <$> checkExpr e tv
         v' <-  whnf' e -- TODO: has subst erased terms?
         enterDoc (text "inferred value" <+> prettyTCM v <+> text "does not match given dot pattern value" <+> prettyTCM v') $
           leqVal Pos tv v v' -- WAS: eqVal 
@@ -2172,9 +2205,24 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
            -- we assume injectivity for indices
 
 
-    (VApp (VDef (DefId (ConK _) c1)) vl1,VApp (VDef (DefId (ConK _) c2)) vl2) | c1 == c2 -> do
+    (VRecord (NamedRec _ c1 _) rs1, VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
+         sige <- lookupSymb c1
+         instList [] flex (symbTyp sige) (map snd rs1) (map snd rs2)
+
+{- RETIRED
+    (VRecord (NamedRec _ c1 _) rs1, VApp (VDef (DefId (ConK _) c2)) vl2) | c1 == c2 -> do
+         sige <- lookupSymb c1
+         instList [] flex (symbTyp sige) (map snd rs1) vl2
+
+    (VApp (VDef (DefId (ConK _) c1)) vl1, VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
+         sige <- lookupSymb c1
+         instList [] flex (symbTyp sige) vl1 (map snd rs2)
+
+    (VApp (VDef (DefId (ConK _) c1)) vl1, VApp (VDef (DefId (ConK _) c2)) vl2) | c1 == c2 -> do
          sige <- lookupSymb c1
          instList [] flex (symbTyp sige) vl1 vl2
+-}
+
     (VSucc v1',VSucc v2') -> instWh pos flex tv v1' v2'
     (VSucc v, VInfty) -> instWh pos flex tv v VInfty
     (VSing v1' tv1, VSing v2' tv2) -> do 
@@ -2273,9 +2321,12 @@ instance Substitute Val where
       VMax  vs  -> maxSize   <$> mapM (substitute subst) vs
       VPlus vs  -> plusSizes <$> mapM (substitute subst) vs
 
-      VCase v1 env cl -> do v1' <- substitute subst v1
-                            env' <- substitute subst env
-                            return $ VCase v1' env' cl
+      VCase v1 tv1 env cl -> do 
+        v1' <- substitute subst v1
+        tv1' <- substitute subst tv1
+        env' <- substitute subst env
+        return $ VCase v1' tv1' env' cl
+
       VMeasured mu bv -> do
           mu' <- substitute subst mu
           bv'   <- substitute subst bv
@@ -2288,10 +2339,12 @@ instance Substitute Val where
       VBelow ltle v -> VBelow ltle <$> substitute subst v
 
       VQuant pisig x dom env b ->  
-          do dom'  <- Traversable.mapM (substitute subst) dom
+          do dom' <- Traversable.mapM (substitute subst) dom
              env' <- substitute subst env
              return $ VQuant pisig x dom' env' b
-      VPair v1 v2 -> VPair <$> substitute subst v1 <*> substitute subst v2
+      VRecord ri rs -> VRecord ri <$> mapM (\ (x,v) -> (x,) <$> substitute subst v) rs
+      VPair v1 v2  -> VPair <$> substitute subst v1 <*> substitute subst v2
+      VProj{}      -> return v
       VLam x env b -> do env' <- substitute subst env
                          return $ VLam x env' b
       VClos env e  -> do env' <- substitute subst env

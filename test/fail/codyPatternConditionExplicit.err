@@ -28,7 +28,7 @@ term  emb : Nat -> O #
 ; emb (succ n) = S [#] (emb n)
 }
 term  pre : .[i : Size] -> (Nat -> O $$i) -> Nat -> O $i
-term  pre = [\ i ->] \ f -> \ n -> case f (succ n)
+term  pre = [\ i ->] \ f -> \ n -> case f (succ n) : O $$i
                        { Z [.$i] -> Z [i]
                        ; S [.$i] x -> x
                        ; L [.$i] g -> g n

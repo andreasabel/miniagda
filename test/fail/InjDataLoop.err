@@ -15,7 +15,7 @@ ty-u  InvI : ^(A : Set) -> Set $0
 tmty  invertible : (A : Set) -> InvI A
 {}
 type  cantor : Set -> Set
-type  cantor = \ A -> case invertible A
+type  cantor = \ A -> case invertible A : InvI A
        { inv X p -> X A -> Empty
        }
 type  cIc : Set
@@ -24,7 +24,7 @@ error during typechecking:
 delta
 /// checkExpr 0 |- case invertible (I cantor)
                { inv .cantor (refl) -> \ f -> f f
-               } : case invertible (I cantor)
+               } : case invertible (I cantor) : InvI (I cantor)
                    { inv X p -> X (I cantor) -> Empty
                    }
 /// case 1

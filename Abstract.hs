@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving, TypeSynonymInstances,
-      DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+      DeriveFunctor, DeriveFoldable, DeriveTraversable, NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Abstract where
@@ -647,10 +647,10 @@ data Expr = Sort (Sort Expr)   -- Size Set CoSet
           | Let Name     -- definition (non-recursive)
 -}
           -- dependently typed lambda calculus
-          | Record [(Name,Expr)] -- record { p1 = e1; ...; pn = en }
-          | Proj Name            -- .p
+          | Record RecInfo [(Name,Expr)] -- record { p1 = e1; ...; pn = en }
+          | Proj PrePost Name    -- .p
           | Pair Expr Expr
-          | Case Expr [Clause]
+          | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
           | LLet TBind Expr Expr --local let [x : A] = t in u
           | App Expr Expr
           | Lam Dec Name Expr
@@ -664,15 +664,32 @@ data Expr = Sort (Sort Expr)   -- Size Set CoSet
           | Irr -- for instance the term correponding to the absurd pattern
             deriving (Eq,Ord)
 
+data PrePost = Pre | Post deriving (Eq, Ord, Show)
 data PiSigma = Pi | Sigma deriving (Eq, Ord)
 
 instance Show PiSigma where
   show Pi    = "->"
   show Sigma = "&"
 
+-- | Optional constructor name of a record value.
+data RecInfo
+  = AnonRec                           -- ^ anonymous record 
+  | NamedRec { recConK :: ConK      
+             , recConName :: Name     -- ^ record constructor
+             , recNamedFields :: Bool -- ^ print field names?
+             }
+  deriving (Eq, Ord)
+
+instance Show RecInfo where
+  show AnonRec              = ""
+  show NamedRec{recConName} = show recConName
+
 -- * smart constructors
 
 pi = Quant Pi
+proj :: Expr -> PrePost -> Name -> Expr
+proj e Pre n  = App (Proj Pre n) e
+proj e Post n = App e (Proj Post n)
 
 -- | Non-dependent function type.
 funType a b = Quant Pi (noBind a) b
@@ -879,7 +896,7 @@ freeVars (Var name)   = Set.singleton name
 --freeVars Con{}        = Set.empty
 freeVars Def{}        = Set.empty
 --freeVars Let{}        = Set.empty
-freeVars (Case e cls) = Set.unions (freeVars e : List.map freeVarsClause cls) 
+freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls) 
 freeVars (LLet (TBind x dom) t u) 
   = freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
 freeVars (Pair f e)   = freeVars f `Set.union` freeVars e
@@ -928,7 +945,7 @@ usedDefs (Quant Pi (TMeasure mu) b) = Foldable.foldMap usedDefs mu ++ usedDefs b
 usedDefs (Quant Pi (TBound beta) b) = Foldable.foldMap usedDefs beta ++ usedDefs b
 usedDefs (LLet (TBind x dom) e1 e2) = usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
 usedDefs (Succ e) = usedDefs e
-usedDefs (Case e cls) = List.foldl (++) (usedDefs e) (List.map ((maybe [] usedDefs) . clExpr) cls) 
+usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls) 
 usedDefs (Ann e) = usedDefs (unTag e)
 usedDefs (Sort (CoSet e)) = usedDefs e
 usedDefs Sort{} = []
@@ -937,7 +954,7 @@ usedDefs Infty  = []
 usedDefs Meta{} = []
 usedDefs Var{} = []
 usedDefs Proj{} = []
-usedDefs (Record rs) = Foldable.foldMap (usedDefs . snd) rs
+usedDefs (Record ri rs) = Foldable.foldMap (usedDefs . snd) rs
 -- usedDefs Con{} = []
 -- usedDefs Let{} = []
          
@@ -974,19 +991,22 @@ instance Pretty Expr where
     List.foldl (\ d e -> d <+> prettyPrec precAppR e) (text "max") es
   prettyPrec k (Plus (e:es))  = parensIf (1 < k) $
     List.foldl (\ d e -> d <+> text "+" <+> prettyPrec 1 e) (prettyPrec 1 e) es
-  prettyPrec k (Proj n)   = text "." <> pretty n
-  prettyPrec k (Record []) = text "record" <+> braces empty 
-  prettyPrec k (Record rs) = 
-    let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs 
-    in  vcat $ (lbrace <+> l) : List.map (semi <+>) ls ++ [rbrace]
+  prettyPrec k (Proj Pre n)   = pretty n
+  prettyPrec k (Proj Post n)  = text "." <> pretty n
+  prettyPrec k (Record AnonRec []) = text "record" <+> braces empty 
+  prettyPrec k (Record AnonRec rs) = text "record" <+> prettyRecFields rs
+  prettyPrec k (Record (NamedRec _ n _) []) = pretty n
+  prettyPrec k (Record (NamedRec _ n True) rs) = pretty n <+> prettyRecFields rs
+  prettyPrec k (Record (NamedRec _ n False) rs) = parensIf (precAppR <= k) $ 
+   pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
   prettyPrec k (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
   prettyPrec k (App f e)  = parensIf (precAppR <= k) $
     prettyPrec precAppL f <+> prettyPrec precAppR e 
 --   prettyPrec k (App e [])  = prettyPrec k e
 --   prettyPrec k (App e es)  = parensIf (precAppR <= k) $
 --     List.foldl (\ d e -> d <+> prettyPrec precAppR e) (prettyPrec precAppL e) es
-  prettyPrec k (Case e cs) = parensIf (0 < k) $
-    (text "case" <+> pretty e) $$ (vlist $ List.map prettyCase cs)
+  prettyPrec k (Case e mt cs) = parensIf (0 < k) $
+    (text "case" <+> pretty e) <+> (maybe empty (\ t -> colon <+> pretty t) mt) $$ (vlist $ List.map prettyCase cs)
   prettyPrec k (Lam dec x e) = parensIf (0 < k) $ 
     (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->") 
       <+> pretty e
@@ -1025,6 +1045,10 @@ instance Pretty Expr where
           ppol = if pol==defaultPol then PP.empty else text $ show pol 
 
   prettyPrec k (Ann e) = pretty e
+
+prettyRecFields rs =
+    let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs 
+    in  cat $ (lbrace <+> l) : List.map (semi <+>) ls ++ [empty <+> rbrace]
 
 prettyCase (Clause _ [p] Nothing)  = pretty p 
 prettyCase (Clause _ [p] (Just e)) = pretty p <+> text "->" <+> pretty e
@@ -1172,13 +1196,13 @@ parSubst phi (Var x)        = phi x
 -- parSubst phi e@Con{}        = e
 parSubst phi e@Def{}        = e
 -- parSubst phi e@Let{}        = e
-parSubst phi (Case e cls)   = Case (parSubst phi e) $ 
+parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $ 
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (parSubst phi) t)) cls
 parSubst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (parSubst phi) dom) (parSubst phi b) (parSubst phi c)
 parSubst phi (Pair f e)     = Pair (parSubst phi f) (parSubst phi e)
 parSubst phi (App f e)      = App (parSubst phi f) (parSubst phi e)
 -- parSubst phi (App e es)     = App (parSubst phi e) (List.map (parSubst phi) es)
-parSubst phi (Record rs)    = Record (mapAssoc (parSubst phi) rs)
+parSubst phi (Record ri rs) = Record ri (mapAssoc (parSubst phi) rs)
 parSubst phi (Max es)       = Max (List.map (parSubst phi) es)
 parSubst phi (Plus es)      = Plus (List.map (parSubst phi) es)
 parSubst phi (Lam dec x e)  = Lam dec x (parSubst phi e)
@@ -1212,13 +1236,13 @@ subst phi e@Var{}        = e
 subst phi e@Def{}        = e
 subst phi e@Proj{}        = e
 -- subst phi e@Let{}        = e
-subst phi (Case e cls)   = Case (subst phi e) $
+subst phi (Case e mt cls)   = Case (subst phi e) (fmap (subst phi) mt) $
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (subst phi) t)) cls
 subst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (subst phi) dom) (subst phi b) (subst phi c)
 subst phi (Pair f e)     = Pair (subst phi f) (subst phi e)
 subst phi (App f e)      = App (subst phi f) (subst phi e)
 -- subst phi (App e es)     = App (subst phi e) (List.map (subst phi) es)
-subst phi (Record rs)    = Record (mapAssoc (subst phi) rs)
+subst phi (Record ri rs)  = Record ri (mapAssoc (subst phi) rs)
 subst phi (Max es)       = Max (List.map (subst phi) es)
 subst phi (Plus es)      = Plus (List.map (subst phi) es)
 subst phi (Lam dec x e)  = Lam dec x (subst phi e)
@@ -1348,7 +1372,7 @@ injectiveVars e =
     (Var name           , []) -> Set.singleton name
     (Def (DefId DatK{} _), es) -> Set.unions $ List.map injectiveVars es
     (Def (DefId ConK{} _), es) -> Set.unions $ List.map injectiveVars es
-    (Record rs          , []) -> Set.unions $ List.map (injectiveVars . snd) rs
+    (Record ri rs        , []) -> Set.unions $ List.map (injectiveVars . snd) rs
     (Succ e             , []) -> injectiveVars e 
     (Lam _ x e          , []) -> Set.delete x (injectiveVars e)
     (Quant _ (TBind x dom) b , []) -> injectiveVars (typ dom) `Set.union` 
@@ -1570,9 +1594,9 @@ exprToPattern (Pair e e') = do
   p  <- exprToPattern e
   p' <- exprToPattern e'
   return $ PairP p p'
-exprToPattern (Succ e)   = exprToPattern e >>= return . SuccP
-exprToPattern (Proj n)  = return $ ProjP n
-exprToPattern (App f e) = do
+exprToPattern (Succ e)      = exprToPattern e >>= return . SuccP
+exprToPattern (Proj Post n) = return $ ProjP n
+exprToPattern (App f e)     = do
   (ConP co n ps) <- exprToPattern f
   pe <- exprToPattern e
   return $ (ConP co n (ps ++ [pe]))
@@ -1596,8 +1620,8 @@ exprToDotPat :: Expr -> (Bool, Pattern)
 exprToDotPat = fromAllWriter . exprToDotPat'
 
 exprToDotPat' :: Expr -> Writer All Pattern
-exprToDotPat' (Proj n)   = return $ ProjP n
-exprToDotPat' (Var n)    = return $ VarP n
+exprToDotPat' (Proj Post n) = return $ ProjP n
+exprToDotPat' (Var n)       = return $ VarP n
 exprToDotPat' (Def (DefId (ConK co) n)) = return $ ConP pi n [] where
   pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
 exprToDotPat' (Pair e e') = do
@@ -1629,7 +1653,7 @@ patternToExpr (ConP pi n ps) = List.foldl App (con (coPat pi) n) (List.map patte
 patternToExpr (PairP p p')   = Pair (patternToExpr p) (patternToExpr p')
 patternToExpr (SuccP p)      = Succ (patternToExpr p)
 patternToExpr (UnusableP p)  = patternToExpr p
-patternToExpr (ProjP n)      = Proj n
+patternToExpr (ProjP n)      = Proj Post n
 patternToExpr (DotP e)       = e -- cannot put Irr here because introPatType wants to compute the value of a dot pattern (after all bindings have been introduced)
 patternToExpr (ErasedP p)    = erasedExpr $ patternToExpr p
 patternToExpr (AbsurdP)      = Irr

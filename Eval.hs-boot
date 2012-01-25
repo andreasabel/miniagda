@@ -22,3 +22,5 @@ projectType :: TVal -> Name -> TypeCheck TVal
 up    :: Bool -> Val -> TVal -> TypeCheck Val
 
 leqSize' :: Val -> Val -> TypeCheck ()
+
+mkConVal :: ConK -> Name -> [Val] -> TVal -> TypeCheck Val

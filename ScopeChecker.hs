@@ -7,7 +7,7 @@ module ScopeChecker (scopeCheck) where
 
 import Polarity(Pol(..)) 
 import qualified Polarity as A
-import Abstract (Sized,mkExtRef,Co,ConK(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
+import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
 import qualified Abstract as A
 import qualified Concrete as C
 
@@ -748,7 +748,7 @@ scopeCheckExpr e =
       C.Case e cl -> do 
         e'  <- scopeCheckExpr e
         cl' <- mapM (scopeCheckClause Nothing) cl
-        return $ A.Case e' cl'
+        return $ A.Case e' Nothing cl'
 
       -- measure & bound
       -- measures can only appear in fun sigs!
@@ -809,9 +809,9 @@ scopeCheckExpr e =
         let fields = map fst rs
         if (hasDuplicate fields) then (errorDuplicateField e) else do
           rs <- mapM scopeCheckRecordLine rs
-          return $ A.Record rs
+          return $ A.Record A.AnonRec rs
 
-      C.Proj n -> A.Proj <$> scopeCheckProj n
+      C.Proj n -> A.Proj Post <$> scopeCheckProj n
 {-
       C.Proj n -> ifM (isProjIdent n) 
                     (return $ A.Proj n) 
@@ -831,7 +831,7 @@ scopeCheckExpr e =
                FunK True  -> return $ A.fun x -- A.letdef x -- A.mkExtRef x
                FunK False -> return $ A.fun x
                DataK      -> return $ A.dat x  
-               ProjK      -> errorProjectionUsedAsExpression n
+               ProjK      -> return $ A.Proj A.Pre x -- errorProjectionUsedAsExpression n
              Nothing -> errorIdentifierUndefined n 
       _ -> fail $ "NYI: scopeCheckExpr " ++ show e
 
@@ -1004,10 +1004,10 @@ scopeCheckDotPattern p =
       A.SuccP p -> A.SuccP <$> scopeCheckDotPattern p
       A.ConP co n pl -> A.ConP co n <$> mapM scopeCheckDotPattern pl
 --      A.SizeP m n -> flip A.SizeP n <$> scopeCheckLocalVar m -- return $ A.SizeP m n
-      A.SizeP e n -> flip A.SizeP n <$> scopeCheckExpr e
-      A.VarP n    -> return $ A.VarP n
-      A.ProjP n   -> return $ A.ProjP n
-      A.AbsurdP   -> return $ A.AbsurdP
+      A.SizeP e n    -> flip A.SizeP n <$> scopeCheckExpr e
+      A.VarP n       -> return $ A.VarP n  -- even though p = A.VarP n, it has wront type!!
+      A.ProjP n      -> return $ A.ProjP n
+      A.AbsurdP      -> return $ A.AbsurdP
       -- impossible cases: ErasedP, UnusableP
 
 
