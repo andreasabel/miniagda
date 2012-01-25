@@ -69,8 +69,20 @@ data MeasVal = MeasVal [Val]  -- lexicographic termination measure
 
 -- smart constructors ------------------------------------------------
 
+-- | The value representing type Size.
 vSize :: Val
+-- vSize = VBelow Le VInfty 
 vSize = VSort $ SortC Size
+
+-- | Ensure we construct the correct value representing Size.
+vSort :: Sort Val -> Val
+vSort (SortC Size) = vSize
+vSort s            = VSort s
+
+isVSize :: Val -> Bool
+isVSize (VSort (SortC Size)) = True
+isVSize (VBelow Le VInfty)   = True
+isVSize _                    = False
 
 vTSize = VSort $ SortC TSize
 
@@ -140,6 +152,7 @@ succSize v = case v of
             VMax vs -> VMax $ map succSize vs
             VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
             _ -> VSucc v 
+vSucc = succSize
 
 -- "multiplication" of sizes
 plusSize :: Val -> Val -> Val
@@ -230,6 +243,7 @@ instance Show Val where
     show = showVal
 
 showVal :: Val -> String
+showVal v | isVSize v = "Size"
 --showVal (VSort (SortC c)) = show c
 showVal (VSort s) = show s
 showVal VInfty = "#"

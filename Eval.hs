@@ -473,7 +473,7 @@ whnf env e = enter ("whnf " ++ show e) $
                     evalCase v env cs
                   -- trace ("case head evaluates to " ++ showVal v) $ return ()
 
-    Sort s -> whnfSort env s >>= return . VSort
+    Sort s -> whnfSort env s >>= return . vSort
     Infty -> return VInfty
     Zero -> return VZero
     Succ e1 -> do v <- whnf env e1           -- succ is strict
@@ -1192,11 +1192,14 @@ data SortShape
   | ShCoSet (OneOrTwo Val)     -- CoSet i and CoSet j
     deriving (Eq, Ord)
 
+shSize = ShSort (ShSortC Size)
+
 -- typeView does not normalize!
 typeView :: TVal -> TypeShape
 typeView tv = 
   case tv of
     VQuant pisig x dom env b     -> ShQuant pisig (One x) (One dom) (One env) (One b)
+    VBelow{}                     -> shSize
     VSort s                      -> ShSort (sortView s)
     VSing v tv                   -> ShSing v tv
     VApp (VDef (DefId DatK n)) vs -> ShData n (One tv)
@@ -1263,6 +1266,9 @@ leqVal' f p mt12 u1' u2' = do
                 Right sh -> return $ Just sh
                 Left err -> (recoverFail err) >> return Nothing
     case sh12 of
+ 
+      -- subtyping directed by common type shape
+
       Just (ShSing{}) -> return () -- two terms are equal at singleton type!
       Just (ShSingL v1 tv1' tv2) -> leqVal' f p (Just (Two tv1' tv2)) v1 u2'
       Just (ShSingR tv1 v2 tv2') -> leqVal' f p (Just (Two tv1 tv2')) u1' v2
@@ -1306,9 +1312,10 @@ leqVal' f p mt12 u1' u2' = do
             enter ("forcing RHS") $
                       leqVal' R p mt12 u1 u2f    
  
-         -- subtyping directed by type tv
- 
-         _ -> case (u1,u2) of
+         _ -> leqStructural u1 u2 where
+
+          leqStructural u1 u2 = 
+           case (u1,u2) of
 
 {-
   C = C'  (proper: C' entails C, but I do not want to implement entailment) 
@@ -1341,11 +1348,25 @@ leqVal' f p mt12 u1' u2' = do
 
               (VSing v1 av1, VSing v2 av2) -> do
                   leqVal' f p Nothing av1 av2
-                  leqVal' N mixed (Just (Two av1 av2)) v1 v2  -- compare for eq.     
+                  leqVal' N mixed (Just (Two av1 av2)) v1 v2  -- compare for eq.
 
               (VSing v1 av1, VBelow ltle v2) | av1 == vSize && p == Pos -> do
                  v1 <- whnfClos v1
                  leSize ltle p v1 v2
+
+              -- extra cases since vSize is not implemented as VBelow Le Infty
+              (u1,u2) | isVSize u1 && isVSize u2 -> return ()
+              (VSort (SortC Size), VBelow{}) -> leqStructural (VBelow Le VInfty) u2
+              (VBelow{}, VSort (SortC Size)) -> leqStructural u1 (VBelow Le VInfty)
+
+              -- care needed to not make <=# a subtype of <#
+              (VBelow ltle1 v1, VBelow ltle2 v2) -> 
+                case (p, ltle1, ltle2) of
+                  _ | ltle1 == ltle2 -> leSize Le p v1 v2
+                  (Neg, Le, Lt) -> leSize Le p (vSucc v1) v2
+                  (Neg, Lt, Le) -> leSize Lt p v1 v2  -- careful here
+                  (p  , Lt, Le) -> leSize Le p v1 (vSucc v2)
+                  (p  , Le, Lt) -> leSize Lt p v1 v2  -- careful here
 
               -- unresolved eta-expansions (e.g. at coinductive type)
               (VUp v1 av1, VUp v2 av2) -> do
@@ -1557,7 +1578,7 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
                leqVals' f tv (repeat mixed) w1 w2 >> return ()
 -}
                                                  
-      _ -> recoverFail $ "leqApp: " ++ show v1 ++ show w1 ++ " !<= " ++ show v2 ++ show w2
+      _ -> recoverFail $ "leqApp: " ++ show v1 ++ show w1 ++ " !<=" ++ show pol ++ " " ++ show v2 ++ show w2
 {-
              do leqVal delta v1 v2 
                 eqVals delta w1 w2

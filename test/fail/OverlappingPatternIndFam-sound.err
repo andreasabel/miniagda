@@ -32,4 +32,4 @@ fDiag
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- < refl : Id (DecEq A a a) (f [A] a a) (f [A] a a) >  <=+  Id (DecEq A a a) (f [A] a a) eq
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- Id (DecEq A a a) (f [A] a a) (f [A] a a)  <=+  Id (DecEq A a a) (f [A] a a) eq
 /// leqVal' [(A,1),(f,0),(a,2)] |- f [A] a a  <=^  eq : DecEq A a a
-/// leqApp: v0[{[A] {a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b))}},v2,v2] !<= eq[]
+/// leqApp: v0[{[A] {a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b))}},v2,v2] !<=^ eq[]

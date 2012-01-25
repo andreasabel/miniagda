@@ -28,4 +28,4 @@ mapRose
 /// comparing codomain < vSing# xSing# : |i| -> Rose B i > with B
 /// leqVal' (subtyping) [(B,1),(A,0),(f,2),(i,3),(j,4),(a,5),(rs,6),(xSing#,7)] |- < mapRose [A] [B] f [j] xSing# : |j| < |i| -> Rose B j >  <=+  Rose B j
 /// leqVal' (subtyping) [(B,1),(A,0),(f,2),(i,3),(j,4),(a,5),(rs,6),(xSing#,7)] |- |j| < |i| -> Rose B j  <=+  Rose B j
-/// leqApp: (|v4| < |v3| -> (Rose v1 v4))[] !<= (Rose v1 v4)[]
+/// leqApp: (|v4| < |v3| -> (Rose v1 v4))[] !<=+ (Rose v1 v4)[]

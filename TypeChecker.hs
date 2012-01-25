@@ -256,7 +256,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
          Sized    -> do
            let polsz = if co==Ind then Pos else Neg
            t <- case t0 of
-             Quant Pi (TBind x (Domain (Sort (SortC Size)) ki dec)) b ->
+             Quant Pi (TBind x (Domain domt ki dec)) b | isSize domt ->
                case (polarity dec) of
                  -- insert correct polarity annotation if none was there
                  pol | pol `elem` [Param,Rec] -> return $ Quant Pi (TBind x $ Domain tSize kSize $ dec { polarity = polsz }) b
@@ -774,7 +774,7 @@ checkConType :: Sized -> Expr -> TypeCheck (Kinded Extr)
 checkConType NotSized t = checkConType' t 
 checkConType Sized t =
     case t of
-      Quant Pi tb@(TBind _ (Domain (Sort (SortC Size)) _ _)) t2 -> do
+      Quant Pi tb@(TBind _ (Domain t1 _ _)) t2 | isSize t1 -> do
              addBind (mapDec (const paramDec) tb) $ do  -- size is parametric in constructor type
                Kinded ki t2e <- checkConType' t2
                return $ Kinded ki $ Quant Pi (mapDec (const irrelevantDec) tb) t2e -- size is irrelevant in constructor
@@ -1064,7 +1064,7 @@ checkForced e v = do
         addBoundHyp beta $ checkForced e bv
 
       -- metavariables must have type size
-      (Meta i, VSort (SortC Size)) -> do 
+      (Meta i, _) | isVSize v -> do 
         addMeta ren i
         return $ Kinded kSize $ Meta i 
 {-  problem: what to return here
@@ -1150,17 +1150,17 @@ Following Awodey/Bauer 2001, the following rule is valid
 -}
       (e, VBelow ltle v) -> Kinded kSize <$> checkBelow e ltle v
 
-      (Zero, VSort (SortC Size)) -> return $ Kinded kSize $ Zero
+      (Zero, v) | isVSize v -> return $ Kinded kSize $ Zero
  
-      (Plus es, VSort (SortC Size)) -> do
+      (Plus es, v) | isVSize v -> do
               ese <- mapM checkSize es
               return $ Kinded kSize $ Plus ese
  
-      (Max es, VSort (SortC Size)) -> do
+      (Max es, v) | isVSize v -> do
               ese <- mapM checkSize es
               return $ Kinded kSize $ Max ese
 
-      (Succ e2, VSort (SortC Size)) -> do
+      (Succ e2, v) | isVSize v -> do
               e2e <- checkSize e2 
               return $ Kinded kSize $ Succ e2e
 {-
@@ -2396,7 +2396,7 @@ szType :: Co -> Int -> TVal -> TypeCheck ()
 szType co p tv = doVParams p tv $ \ tv' -> do
     let polsz = if co==Ind then Pos else Neg
     case tv' of
-      VQuant Pi x (Domain (VSort (SortC Size)) ki dec) env b | not (erased dec) && polarity dec == polsz -> return ()
+      VQuant Pi x (Domain av ki dec) env b | isVSize av && not (erased dec) && polarity dec == polsz -> return ()
       _ -> throwErrorMsg $ "not a sized type, target " ++ show tv' ++ " must have non-erased domain " ++ show Size ++ " with polarity " ++ show polsz
                  
 -- * constructors of sized type
@@ -2407,7 +2407,7 @@ szConstructor :: Name -> Co -> Int -> TVal -> TypeCheck ()
 szConstructor n co p tv = enterDoc (text ("szConstructor " ++ show n ++ " :") <+> prettyTCM tv) $ do 
   doVParams p tv $ \ tv' -> 
     case tv' of
-       VQuant Pi x dom env b | typ dom == (VSort (SortC Size)) -> 
+       VQuant Pi x dom env b | isVSize (typ dom) -> 
           newWithGen x dom $ \ k xv -> do
             bv <- whnf (update env x xv) b 
             szSizeVarUsage n co p k bv
@@ -2836,12 +2836,11 @@ szCheckIndFun admpos tv = -- traceCheck ("szCheckIndFun: " ++ show delta ++ " |-
       case tv of 
        VQuant Pi x dom env b -> new x dom $ \ (VGen k) -> do
          bv <- whnf' b
-         case (typ dom) of
-           VSort (SortC Size) -> do 
+         if isVSize (typ dom) then do 
              when (k `elem` admpos) $ 
                szCheckIndFunSize k bv
              szCheckIndFun admpos bv -- this is for lexicographic induction on sizes, I suppose?  Probably should me more fine grained!  Andreas, 2008-12-01
-           _ -> szCheckIndFun admpos bv
+          else szCheckIndFun admpos bv
        _ -> return ()
 
 

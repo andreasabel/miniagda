@@ -787,7 +787,7 @@ instance MonadCxt TypeCheck where
     -- get all the size variables with positive or mixed polarity
     let fSize (i, tv12) = 
           case tv12 of
-            One dom -> typ dom == VSort (SortC Size) 
+            One dom -> isVSize $ typ dom
             _ -> False   
     -- create a list of key (gen) and Domain pairs for the size variables
     let idl = filter fSize $ Map.toAscList (cxt delta)

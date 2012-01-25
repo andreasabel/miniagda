@@ -194,8 +194,10 @@ TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 
 --      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
       | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
       | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
+      | Pol '(' Id '<'  Expr ')'  { C.TBounded (Dec $1)    $3 A.Lt $5 }
       | '(' Id '<=' Expr ')'  { C.TBounded A.defaultDec    $2 A.Le $4 }
       | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
+      | Pol '(' Id '<='  Expr ')' { C.TBounded (Dec $1)    $3 A.Le $5 }
 
 -- let binding
 LBind :: { C.TBind }

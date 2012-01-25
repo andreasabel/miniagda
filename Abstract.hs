@@ -281,8 +281,15 @@ instance Show (Sort Expr) where
 topSort :: Sort Expr
 topSort = Set Infty
 
+-- | The expression representing the type Size.
 tSize :: Expr
 tSize = Sort (SortC Size)
+
+-- | Checking whether an expression represents type Size.
+isSize :: Expr -> Bool
+isSize (Sort (SortC Size)) = True
+isSize (Below Le Infty)    = True
+isSize _                   = False
 
 predSort :: Sort Expr -> Sort Expr
 predSort (SortC  c)     = SortC (predClass c)
