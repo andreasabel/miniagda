@@ -1,7 +1,7 @@
 data Nat : Set  
 {
 	zero : Nat ;
-	succ : Nat -> Nat
+	succ : (x : Nat) -> Nat
 }
 
 fun add : Nat -> Nat -> Nat
@@ -56,7 +56,7 @@ head A (cons .# a as) = a
 eval let two : Nat = head Nat twos 
 eval let two' : Nat = head Nat twos'
 
-eval let twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
+eval let twos2 : Stream Nat # = map Nat Nat # succ ones'
 eval let twos2' : Stream Nat # = tail Nat twos2
 
 cofun zipWith : ( A : Set ) -> ( B : Set ) -> (C : Set) -> ( i : Size ) ->

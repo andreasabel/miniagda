@@ -1185,6 +1185,7 @@ Following Awodey/Bauer 2001, the following rule is valid
              (kes, dv) <- checkSpine es tv
              let e = foldl App h $ map valueOf kes
              checkSubtype e dv v
+             e <- etaExpandPis e dv -- a bit similiar to checkSubtype, which computes a singleton
              return $ Kinded kTerm $ e 
 
           -- else infer
@@ -1192,6 +1193,16 @@ Following Awodey/Bauer 2001, the following rule is valid
             (v2,kee) <- inferExpr e 
             checkSubtype (valueOf kee) v2 v 
             return kee
+
+-- | Only eta-expand at function types, do not force.
+etaExpandPis :: Expr -> TVal -> TypeCheck Expr
+etaExpandPis e tv = do
+  case tv of
+    VQuant Pi x dom env b -> new x dom $ \ xv -> do
+      let y = freshen x
+      Lam (decor dom) y <$> do
+        etaExpandPis (App e (Var y)) =<< whnf (update env x xv) b
+    _ -> return e
 
 checkSpine :: [Expr] -> TVal -> TypeCheck ([Kinded Extr], TVal)
 checkSpine [] tv = return ([], tv)
