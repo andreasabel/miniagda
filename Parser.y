@@ -44,6 +44,8 @@ size    { T.Size _ }
 infty   { T.Infty _ }
 succ    { T.Succ _ }
 max     { T.Max _ }
+'<|'    { T.LTri _ }
+'|>'    { T.RTri _ }
 '<'     { T.AngleOpen _ }
 '>'     { T.AngleClose _ }
 '{'     { T.BrOpen _ }
@@ -130,8 +132,16 @@ Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
       
 Let :: { C.Declaration }
-Let :    let Id Telescope ':' Expr '=' ExprT { C.LetDecl False $2 $3 $5 $7 }
-  | eval let Id Telescope ':' Expr '=' ExprT { C.LetDecl False $3 $4 $6 $8 }
+Let : Eval let Id Telescope TypeOpt '=' ExprT { C.LetDecl $1 $3 $4 $5 $7 }
+-- Let : Eval let Id Telescope ':' Expr '=' ExprT { C.LetDecl $1 $3 $4 $6 $8 }
+
+Eval :: { Bool }
+Eval : {- nothing -}  { False }
+     | eval           { True  }
+
+TypeOpt :: { Maybe C.Type }
+TypeOpt : {- nothing -} { Nothing }
+        | ':' Expr      { Just $2 }
 
 {-
 Let :: { C.Declaration }
@@ -199,13 +209,21 @@ TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 
       | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
       | Pol '(' Id '<='  Expr ')' { C.TBounded (Dec $1)    $3 A.Le $5 }
 
+UntypedBind :: { C.LBind }
+UntypedBind : Id              { C.TBind A.defaultDec [$1] Nothing }
+            | '[' Id ']'      { C.TBind A.irrelevantDec [$2] Nothing }
+            | Pol Id          { C.TBind (Dec $1) [$2] Nothing }
+            | Pol '(' Id ')'  { C.TBind (Dec $1) [$3] Nothing }
+
 -- let binding
-LBind :: { C.TBind }
-LBind :  Id ':' Expr         { C.TBind A.defaultDec [$1] $3 } -- ordinary binding
-      |  '(' Id ':' Expr ')' { C.TBind A.defaultDec [$2] $4 } -- ordinary binding
-      |  '[' Id ':' Expr ']' { C.TBind A.irrelevantDec [$2] $4 }  -- erased binding
-      |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
+LBind :: { C.LBind }
+LBind :  UntypedBind         { $1 }
+      |  Id ':' Expr         { C.TBind A.defaultDec [$1] (Just $3) } -- ordinary binding
+      |  '(' Id ':' Expr ')' { C.TBind A.defaultDec [$2] (Just $4) } -- ordinary binding
+      |  '[' Id ':' Expr ']' { C.TBind A.irrelevantDec [$2] (Just $4) }  -- erased binding
+      |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] (Just $5) } -- ordinary binding
 --      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
+
 Domain :: { C.TBind }
 Domain : Expr0             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
@@ -262,10 +280,12 @@ Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
 --     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
-     | case ExprT '{' Cases '}'          { C.Case $2 $4 }  
+     | case ExprT '{' Cases '}'         { C.Case $2 $4 }  
      | Expr0                            { $1 }
      | Expr1 '+' Expr                   { C.Plus $1 $3 }
---     | Expr1 ',' Expr                   { C.Pair $1 $3 }
+     | Expr1 '<|' Expr                  { C.App $1 [$3] }
+     | Expr1 '|>' Expr                  { C.App $3 [$1] }
+
 
 Expr0 :: { C.Expr }
 Expr0 : Expr1                            { $1 }
@@ -306,8 +326,8 @@ Expr3 : size                      { C.Size }
       | max                       { C.Max }
       | infty                     { C.Infty }
       | Id                        { C.Ident $1}
-      | '<' ExprT ':' Expr '>'     { C.Sing $2 $4 }
-      | '(' ExprT ')'              { $2 }
+      | '<' ExprT ':' Expr '>'    { C.Sing $2 $4 }
+      | '(' ExprT ')'             { $2 }
       | '_'                       { C.Unknown }
       | succ Expr3                { C.Succ $2 }  -- succ is a prefix op
       | number                    { iterate C.Succ C.Zero !! (read $1) }

@@ -148,28 +148,65 @@ typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) =
     checkPositivityGraph
     return result
 
-typeCheckDeclaration (LetDecl bla (TypeSig n t) e ) = 
-   (
-    do echoTySig n t -- debugging only
-       Kinded ki0 te <- checkType t 
-       vt <- whnf' te
-       -- getEnv >>= \ rho -> traceCheckM $ "checking let-body " ++ show e ++ " : " ++ show vt ++ " in environment " ++ show rho
-       Kinded ki1 ee <- checkExpr e vt
-       rho <- getEnv -- is emptyEnv
-       -- TODO: solve size constraints
-       -- does not work with emptyEnv
-       -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
-       let v = mkClos rho ee -- delay whnf computation
-       -- v  <- whnf' ee -- WAS: whnf' e'
-       let ki = (intersectKind ki1 $ predKind ki0)
-       addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
---       addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
-       echoKindedTySig ki n te
---       echoTySigE n te
---       echoDefE   n ee
-       echoKindedDef ki n ee
-       return [LetDecl bla (TypeSig n te) ee]
-   ) `throwTrace` show n
+typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
+  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer e mt
+  te <- return $ teleToType tel te
+  ee <- return $ teleLam tel ee
+  vt <- whnf' te
+  rho <- getEnv -- is emptyEnv
+  -- TODO: solve size constraints
+  -- does not work with emptyEnv
+  -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
+  let v = mkClos rho ee -- delay whnf computation
+  -- v  <- whnf' ee -- WAS: whnf' e'
+  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
+--  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
+  echoKindedTySig ki n te
+--  echoTySigE n te
+--  echoDefE   n ee
+  echoKindedDef ki n ee
+  return [LetDecl eval n [] (Just te) ee]
+
+{-  
+typeCheckDeclaration (LetDecl eval n tel Nothing e) = enter (show n) $ do
+  (tel, (te, (vt, Kinded ki ee))) <- checkTele tel $ do
+     (\ r -> (,r) <$> toExpr (fst r)) <$> inferExpr e
+  typeCheckLetDeclFinish eval n tel te vt ki ee
+
+typeCheckDeclaration (LetDecl eval n tel (Just t) e) = enter (show n) $ do
+  echoTySig n t -- debugging only
+  Kinded ki0 te <- checkType t 
+  vt <- whnf' te
+  -- getEnv >>= \ rho -> traceCheckM $ "checking let-body " ++ show e ++ " : " ++ show vt ++ " in environment " ++ show rho
+  Kinded ki1 ee <- checkExpr e vt
+  let ki = (intersectKind ki1 $ predKind ki0)
+  typeCheckLetDeclFinish eval n te vt ki ee
+-}
+{-
+typeCheckDeclaration (LetDecl eval n tel (Just t) e) = enter (show n) $ do
+  echoTySig n t -- debugging only
+  Kinded ki0 te <- checkType t 
+  vt <- whnf' te
+  -- getEnv >>= \ rho -> traceCheckM $ "checking let-body " ++ show e ++ " : " ++ show vt ++ " in environment " ++ show rho
+  Kinded ki1 ee <- checkExpr e vt
+  let ki = (intersectKind ki1 $ predKind ki0)
+  typeCheckLetDeclFinish eval n te vt ki ee
+-}
+{-
+  rho <- getEnv -- is emptyEnv
+  -- TODO: solve size constraints
+  -- does not work with emptyEnv
+  -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
+  let v = mkClos rho ee -- delay whnf computation
+  -- v  <- whnf' ee -- WAS: whnf' e'
+  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
+--  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
+  echoKindedTySig ki n te
+--  echoTySigE n te
+--  echoDefE   n ee
+  echoKindedDef ki n ee
+  return [LetDecl eval n (Just te) ee]
+-}
 
 typeCheckDeclaration d@(PatternDecl x xs p) = do
 {- WHY DOES THIS NOT TYPECHECK?
@@ -205,6 +242,24 @@ typeCheckDeclaration (MutualDecl measured ds) = do
   checkPositivityGraph
   return $ concat edss
 
+
+{-
+typeCheckLetDeclFinish eval n te vt ki ee = do
+  rho <- getEnv -- is emptyEnv
+  -- TODO: solve size constraints
+  -- does not work with emptyEnv
+  -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
+  let v = mkClos rho ee -- delay whnf computation
+  -- v  <- whnf' ee -- WAS: whnf' e'
+  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
+--  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
+  echoKindedTySig ki n te
+--  echoTySigE n te
+--  echoDefE   n ee
+  echoKindedDef ki n ee
+  return [LetDecl eval n (Just te) ee]
+-}
+
 -- check signatures of a flattened mutual block
 typeCheckMutualSigs :: [Declaration] -> TypeCheck [Kinded (TySig TVal)]
 typeCheckMutualSigs [] = return []
@@ -222,8 +277,8 @@ typeCheckSignature (TypeSig n t) = do
   return $ Kinded (predKind ki) $ TypeSig n tv
 
 typeCheckMutualSig :: Declaration -> TypeCheck (Kinded (TySig TVal))
-typeCheckMutualSig (LetDecl ev ts e) =  
-  typeCheckSignature ts
+typeCheckMutualSig (LetDecl ev n tel (Just t) e) =  
+  typeCheckSignature $ TypeSig n $ teleToType tel t
 typeCheckMutualSig (DataDecl n sz co pos tel t cs fields) = do
   Kinded ki ts <- typeCheckSignature (TypeSig n (teleToType tel t))
   return $ Kinded ki ts
@@ -1004,20 +1059,9 @@ checkExpr e v = do
 
  -}
 
-      (LLet (TBind x (Domain t1 _ dec)) e1 e2,_) ->
-          do 
-            Kinded kit t1e <- checkType t1
-            v_t1 <- whnf' t1
-            Kinded ki0 e1e <- applyDec dec $ checkExpr e1 v_t1
-            v_e1 <- whnf' e1
-            let ki1 = intersectKind ki0 (predKind kit)
-            new x (Domain v_t1 ki1 dec) $ \ vx -> do
-              addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
-                Kinded ki2 e2e <- checkExpr e2 v'
-                return $ Kinded ki2 $ LLet (TBind x (Domain t1e ki1 dec)) e1e e2e  -- if e2e==Irr then Irr else LLet n t1e e1e e2e  
--- Dependent let: not checkable in rho;Delta style
---            v_e1 <- whnf rho e1
---            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v  
+      (LLet (TBind x (Domain Nothing _ dec)) e1 e2, v) -> checkUntypedLet x dec e1 e2 v
+
+      (LLet (TBind x (Domain (Just t1) _ dec)) e1 e2, v) -> checkTypedLet x t1 dec e1 e2 v 
 
       (Case (Var x) Nothing [Clause _ [SuccP (VarP y)] (Just rhs)], v) -> do
           (tv, _) <- resurrect $ inferExpr (Var x)
@@ -1051,6 +1095,41 @@ checkExpr e v = do
       _ -> checkForced e v
 
       ) -- >> (trace ("checkExpr successful: " ++ show e ++ ":" ++ show v) $ return ())
+
+checkTypedLet :: Name -> Type -> Dec -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
+checkTypedLet x t1 dec e1 e2 v = do 
+  Kinded kit t1e <- checkType t1
+  v_t1 <- whnf' t1
+  Kinded ki0 e1e <- applyDec dec $ checkExpr e1 v_t1
+  let ki1 = intersectKind ki0 (predKind kit)
+  checkLetBody x t1e v_t1 ki1 dec e1e e2 v
+{-
+  v_e1 <- whnf' e1
+  new x (Domain v_t1 ki1 dec) $ \ vx -> do
+    addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
+      Kinded ki2 e2e <- checkExpr e2 v'
+      return $ Kinded ki2 $ LLet (TBind x (Domain t1e ki1 dec)) e1e e2e  -- if e2e==Irr then Irr else LLet n t1e e1e e2e  
+-}
+
+checkUntypedLet :: Name -> Dec -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
+checkUntypedLet x dec e1 e2 v = do
+  (v_t1, Kinded ki1 e1e) <- applyDec dec $ inferExpr e1
+  v_e1 <- whnf' e1
+  t1e <- toExpr v_t1
+  checkLetBody x t1e v_t1 ki1 dec e1e e2 v 
+
+checkLetBody :: Name -> EType -> TVal -> Kind -> Dec -> Extr -> Expr -> TVal -> TypeCheck (Kinded Extr)
+checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
+  v_e1 <- whnf' e1e
+  new x (Domain v_t1 ki1 dec) $ \ vx -> do
+    addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
+      Kinded ki2 e2e <- checkExpr e2 v'
+      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) e1e e2e 
+{-
+-- Dependent let: not checkable in rho;Delta style
+--            v_e1 <- whnf rho e1
+--            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v  
+-}
 
 -- check expression after forcing the type
 checkForced :: Expr -> TVal -> TypeCheck (Kinded Expr)
@@ -1304,6 +1383,17 @@ ptsRule s1 s2 = do
                                   else fail $ err ++ "domain cannot be sized"
     _ -> return s2
     
+checkOrInfer :: Expr -> Maybe Type -> TypeCheck (TVal, EType, Kinded Extr)
+checkOrInfer e Nothing = do
+  (tv, ke) <- inferExpr e
+  te <- toExpr tv
+  return (tv, te, ke)
+checkOrInfer e (Just t) = do
+  Kinded kt te <- checkType t
+  tv <- whnf' te
+  Kinded ke ee <- checkExpr e tv
+  let ki = intersectKind ke $ predKind kt
+  return $ (tv, te, Kinded ki ee)
 
 -- inferType t = (s, te)
 inferType :: Expr -> TypeCheck (Sort Val, Kinded Extr)
@@ -1586,6 +1676,16 @@ checkSmallType e  = (resurrect $ checkExpr' e $ VSort Set) `throwTrace` ("not a 
 -}
 
 -- check telescope and add bindings to contexts
+checkTele :: Telescope -> TypeCheck a -> TypeCheck (ETelescope, a)
+checkTele []                                    k = ([],) <$> k
+checkTele (tb@(TBind x (Domain t _ dec)) : tel) k = do
+  Kinded ki te <- checkType t
+  let tb = TBind x (Domain te (predKind ki) dec) 
+  (tel, a) <- addBind tb $ -- (TBind x (Domain t ki dec)) $
+    checkTele tel k
+  return (tb : tel, a)
+{- 
+-- check telescope and add bindings to contexts
 checkTele :: Telescope -> (ETelescope -> TypeCheck a) -> TypeCheck a
 checkTele = checkTele' []
 
@@ -1595,7 +1695,8 @@ checkTele' acc (tb@(TBind x (Domain t _ dec)) : tel) k = do
   Kinded ki te <- checkType t
   addBind (TBind x (Domain t ki dec)) $
     checkTele' (TBind x (Domain te ki dec) : acc) tel k
- 
+ -}
+
 -- the integer argument is the number of the clause, used just for user feedback
 checkCases :: Val -> TVal -> [Clause] -> TypeCheck (Kinded [EClause])
 checkCases = checkCases' 1

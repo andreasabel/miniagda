@@ -161,6 +161,7 @@ import Data.Traversable (Traversable)
 import qualified Data.Traversable as Traversable
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 
 import Text.PrettyPrint
 
@@ -199,7 +200,7 @@ extractDecl d =
     OverrideDecl{} -> fail $ "extractDecls internal error: overrides impossible"
     MutualFunDecl _ co funs -> extractFuns co funs
     FunDecl co fun -> extractFun co fun 
-    LetDecl evl ts e -> extractLet evl ts e
+    LetDecl evl x [] (Just t) e -> extractLet evl x t e
     PatternDecl{}    -> return []
     DataDecl n _ co _ tel ty cs fields -> extractDataDecl n co tel ty cs
 
@@ -242,11 +243,11 @@ extractFunTypeSig (Fun ts@(TypeSig n t) n' ar cls) = extractIfTerm n $ do
   setExtrTyp n' t
   return [Fun ts n' ar cls]
 
-extractLet :: Bool -> TypeSig -> Expr -> TypeCheck [FDeclaration]
-extractLet evl ts@(TypeSig n t) e = extractIfTerm n $ do
-  ts@(TypeSig n t) <- extractTypeSig ts
+extractLet :: Bool -> Name -> Type -> Expr -> TypeCheck [FDeclaration]
+extractLet evl n t e = extractIfTerm n $ do
+  TypeSig n t <- extractTypeSig (TypeSig n t)
   e <- extractCheck e =<< whnf' t
-  return [LetDecl evl ts e] 
+  return [LetDecl evl n [] (Just t) e] 
   
 extractTypeSig :: TypeSig -> TypeCheck FTypeSig
 extractTypeSig (TypeSig n t) = do
@@ -436,13 +437,14 @@ extractCheck e tv = do
              new' y (defaultDomain VIrr) $
                extractCheck e VIrr
 
-    LLet (TBind x dom) e1 e2 ->
+    LLet (TBind x dom0) e1 e2 -> do
+      let dom = fmap Maybe.fromJust dom0 
       if erased (decor dom) then extractCheck e2 tv else do -- discard let
        vdom <- Traversable.mapM whnf' dom         -- MiniAgda type val
        dom  <- Traversable.mapM extractType vdom  -- Fomega type
        vdom <- Traversable.mapM whnf' dom         -- Fomega type val
        e1  <- extractCheck e1 (typ vdom)
-       LLet (TBind x dom) e1 <$> do
+       LLet (TBind x (fmap Just dom)) e1 <$> do
          new' x vdom $ extractCheck e2 tv
 
     Pair e1 e2 -> do

@@ -117,7 +117,7 @@ mkParen e = Paren e
 mkApp :: Exp -> Exp -> Exp
 mkApp f e = App f e -- (mkParen e) 
 
-mkLLet :: Name -> Type -> Exp -> Exp -> Exp
+mkLLet :: Name -> Maybe Type -> Exp -> Exp -> Exp
 mkLLet x t e e' = Let (BDecls [mkLet x e]) e'
 
 mkPair :: Exp -> Exp -> Exp

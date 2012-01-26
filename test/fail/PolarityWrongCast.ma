@@ -17,6 +17,6 @@ fun Id : Nat # -> ++Set -> Set
 }
 
 -- SUBTYPING the wrong way round
-let kast : [i : Size] -> [n : Nat i] -> Id n (Nat #) -> Id n (Nat I)
+let kast : [i : Size] -> [n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
          = \ i -> \ n -> \ x -> x
 

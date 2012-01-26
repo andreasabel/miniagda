@@ -1,5 +1,37 @@
 MiniAgda by Andreas Abel and Karl Mehltretter
 --- opening "PolarityWrongCast.ma" ---
 --- scope checking ---
-scope check error: kast
-/// Identifier I undefined
+--- type checking ---
+type  DNeg : Set -> + Set -> Set
+type  DNeg = \ B -> \ A -> (A -> B) -> B
+type  Empty : Set
+type  Empty : Set
+type  Nat : + Size -> Set
+term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  zero : .[i : Size] -> < zero i : Nat $i >
+term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
+type  Nat : + Size -> Set
+type  Id : Nat # -> ++ Set -> Set
+{ Id (zero [.#]) A = A
+; Id (succ [.#] n) A = A
+}
+error during typechecking:
+kast
+/// checkExpr 0 |- \ i -> \ n -> \ x -> x : .[i : Size] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// checkForced fromList [] |- \ i -> \ n -> \ x -> x : .[i : Size] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// new i : Size
+/// checkExpr 1 |- \ n -> \ x -> x : .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// checkForced fromList [(i,0)] |- \ n -> \ x -> x : .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// new n : (Nat v0)
+/// checkExpr 2 |- \ x -> x : Id n (Nat #) -> Id n (Nat i)
+/// checkForced fromList [(n,1),(i,0)] |- \ x -> x : Id n (Nat #) -> Id n (Nat i)
+/// new x : (Id v1 {Nat # {n = v1, i = v0}})
+/// checkExpr 3 |- x : Id n (Nat i)
+/// leqVal' (subtyping) [(n,1),(i,0),(x,2)] |- < x : Id n (Nat #) >  <=+  Id n (Nat i)
+/// leqVal' (subtyping) [(n,1),(i,0),(x,2)] |- Id n (Nat #)  <=+  Id n (Nat i)
+/// leqVal' [(n,1),(i,0),(x,2)] |- Nat #  <=+  Nat i : Set
+/// leqVal' [(n,1),(i,0),(x,2)] |- #  <=+  i : Size
+/// leSize # <=+ v0
+/// leSize' # <= v0
+/// leSize: # + 0 <= i failed

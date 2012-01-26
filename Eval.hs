@@ -378,7 +378,7 @@ closToExpr rho e =
     Def d          -> return e
     Case e mt cls  -> Case <$> closToExpr rho e <*> mapM (closToExpr rho) mt <*> mapM (clauseToExpr rho) cls
     LLet (TBind x dom) e1 e2 -> addNameEnv x rho $ \ x rho' -> 
-      LLet <$> (TBind x <$> mapM (closToExpr rho) dom) 
+      LLet <$> (TBind x <$> mapM (mapM (closToExpr rho)) dom) 
            <*> closToExpr rho e1 
            <*> closToExpr rho' e2
 {-
@@ -460,7 +460,12 @@ whnf env e = enter ("whnf " ++ show e) $
 
     Pair e1 e2 -> VPair <$> whnf env e1 <*> whnf env e2
     Proj fx n  -> return $ VProj fx n
+
+    Record ri@(NamedRec Cons _ _) rs -> VRecord ri <$> mapAssocM (whnf env) rs
+
+    -- coinductive and anonymous records are treated lazily:
     Record ri rs -> return $ VRecord ri $ mapAssoc (mkClos env) rs
+
 {-
 -- ALT: filter out all erased arguments from application
     App e1 el -> do v1 <- whnf env e1

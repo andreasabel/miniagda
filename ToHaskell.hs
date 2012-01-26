@@ -50,6 +50,7 @@ import Control.Monad.State
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Traversable as Trav
 
 import qualified Language.Haskell.Exts.Syntax as H
 import Text.PrettyPrint
@@ -100,7 +101,7 @@ translateDecl d =
     OverrideDecl{} -> fail $ "translateDecls internal error: overrides impossible"
     MutualFunDecl _ _ funs -> translateFuns funs
     FunDecl _ fun -> translateFun fun 
-    LetDecl _ ts e -> translateLet ts e
+    LetDecl _ x [] (Just t) e -> translateLet x t e
     DataDecl n _ _ _ tel fkind cs _ -> translateDataDecl n tel fkind cs
 
 translateFuns :: [Fun] -> Translate [H.Decl]
@@ -112,11 +113,11 @@ translateFun (Fun ts@(TypeSig n t) n' ar cls) = do
   cls <- concat <$> mapM (translateClause n) cls
   return [ts, H.FunBind cls]
 
-translateLet :: TypeSig -> FExpr -> Translate [H.Decl]
-translateLet ts@(TypeSig n t) e 
+translateLet :: Name -> Type -> FExpr -> Translate [H.Decl]
+translateLet n t e 
   | isEtaAlias n = return []  -- skip internal decls
   | otherwise = do
-      ts <- translateTypeSig ts
+      ts <- translateTypeSig $ TypeSig n t
       e  <- translateExpr e
       n  <- hsName (DefId LetK n)
       return [ ts, H.mkLet n e ]
@@ -223,7 +224,7 @@ translateExpr e =
       x  <- hsVarName x
       e2 <- translateExpr e2 
       if erased (decor dom) then return e2 else do
-        t  <- translateType (typ dom)
+        t  <- Trav.mapM translateType (typ dom)
         e1 <- translateExpr e1
         return $ H.mkLLet x t e1 e2
 

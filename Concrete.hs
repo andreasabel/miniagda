@@ -3,7 +3,7 @@
 module Concrete where
 
 import Util
-import Abstract (Co,Sized,Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
+import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
 import qualified Abstract as A
 import Polarity 
 
@@ -20,11 +20,12 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | Max
           | Plus Expr Expr
           -- 
+          | RApp Expr Expr
           | App Expr [Expr]
           | Lam Name Expr
           | Case Expr [Clause]
-          | LLet TBind Expr Expr -- local let
-          | Quant A.PiSigma TBind Expr
+          | LLet LBind Expr Expr -- local let
+          | Quant PiSigma TBind Expr
           | Pair Expr Expr
           | Record [([Name],Expr)]
           | Proj Name 
@@ -47,7 +48,7 @@ data Declaration
   | RecordDecl Name Telescope Type Constructor 
       [Name] -- list of field names
   | FunDecl Co TypeSig [Clause] 
-  | LetDecl Bool Name Telescope Type Expr -- True = if eval 
+  | LetDecl Bool Name Telescope (Maybe Type) Expr -- True = if eval 
   | PatternDecl Name [Name] Pattern
   | MutualDecl [Declaration]
   | OverrideDecl Override [Declaration] -- fail etc.
@@ -69,11 +70,13 @@ data Constructor = Constructor
 instance Show Constructor where
   show (Constructor n tel t) = n ++ " " ++ show tel ++ " : " ++ show t
 
+type TBind = TBinding Type
+type LBind = TBinding (Maybe Type)  -- possibly domain-free
 
-data TBind = TBind 
+data TBinding a = TBind 
   { boundDec   :: Dec 
   , boundNames :: [Name] -- [] if no name is given, then its a single bind 
-  , boundType  :: Type 
+  , boundType  :: a 
   } 
   | TBounded  -- bounded quantification 
   { boundDec   :: Dec 
@@ -120,6 +123,22 @@ type Case = (Pattern,Expr)
 
 ----
 
+prettyLBind :: LBind -> String
+prettyLBind (TSized x)                   = prettyTBind False (TSized x)                  
+prettyLBind (TMeasure mu)                = prettyTBind False (TMeasure mu)               
+prettyLBind (TBound (Bound ltle mu mu')) = prettyTBind False (TBound (Bound ltle mu mu'))
+prettyLBind (TBounded dec x ltle e)      = prettyTBind False (TBounded dec x ltle e)     
+prettyLBind (TBind dec xs (Just t))      = prettyTBind False (TBind dec xs t)
+prettyLBind (TBind dec xs Nothing) = 
+  if erased dec then addPol False $ brackets binding
+   else addPol True binding
+  where binding = Util.showList " " id xs
+        pol = polarity dec
+        addPol b x = if pol==defaultPol
+                      then x 
+                      else show pol ++ (if b then " " else "") ++ x  
+
+
 prettyTBind :: Bool -> TBind -> String
 prettyTBind inPi (TSized x) = parens ("sized " ++ x)
 prettyTBind inPi (TMeasure mu) = "|" ++ 
@@ -159,6 +178,8 @@ prettyTBind inPi (TBind dec x t) =
                       else show pol ++ (if b then " " else "") ++ x  
 -}
 
+
+
 prettyExpr :: Expr -> String
 prettyExpr e = 
     case e of
@@ -176,7 +197,7 @@ prettyExpr e =
       App e1 el       -> "(" ++ prettyExprs (e1:el) ++ ")"
       Lam x e1        -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
       Case e cs       -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
-      LLet tb e1 e2 -> "(let " ++ prettyTBind False tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
+      LLet tb e1 e2 -> "(let " ++ prettyLBind tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
       Record rs       -> "record {" ++ Util.showList "; " prettyRecordLine rs ++ "}"
       Proj n          -> "." ++ n
       Ident n         -> n
@@ -207,12 +228,16 @@ prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " id (n:ns)) ++
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
-teleToType (tb:tel) t2 = Quant A.Pi tb (teleToType tel t2)
+teleToType (tb:tel) t2 = Quant Pi tb (teleToType tel t2)
 --teleToType (PosTB dec n t:tel) t2 = Pi dec n t (teleToType tel t2)
 
 typeToTele :: Type -> (Telescope, Type)
-typeToTele (Quant A.Pi tb c) = let (tel, a) = typeToTele c in (tb:tel, a)
-typeToTele a = ([],a)
+typeToTele = typeToTele' (-1)
+
+typeToTele' :: Int -> Type -> (Telescope, Type)
+typeToTele' k (Quant A.Pi tb c) | k /= 0 = 
+  let (tel, a) = typeToTele' (k-1) c in (tb:tel, a)
+typeToTele' _ a = ([],a)
 
 teleNames :: Telescope -> [Name]
 teleNames tel = concat $ map tbindNames tel

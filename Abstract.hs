@@ -523,6 +523,7 @@ data TBinding a = TBind
   | TBound   (Bound Expr)    -- ^ constraint @|m| <(=) |m'|@ 
     deriving (Eq,Ord,Show,Functor,Foldable,Traversable)
 
+type LBind = TBinding (Maybe Type)
 type TBind = TBinding Type
 
 noBind :: Dom a -> TBinding a
@@ -651,7 +652,7 @@ data Expr = Sort (Sort Expr)   -- Size Set CoSet
           | Proj PrePost Name    -- .p
           | Pair Expr Expr
           | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
-          | LLet TBind Expr Expr --local let [x : A] = t in u
+          | LLet LBind Expr Expr --local let [x : A] = t in u
           | App Expr Expr
           | Lam Dec Name Expr
           | Quant PiSigma TBind Expr
@@ -797,6 +798,7 @@ isErasedExpr (Ann (Tagged tags e)) =
 isErasedExpr e = (False, e)
 
 type Extr = Expr -- extracted expressions
+type EType = Type -- extracted types
 
 -- declarations --------------------------------------------------
 
@@ -805,7 +807,7 @@ data Declaration
   | RecordDecl Name Telescope Type Constructor [Name] -- record
   | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured 
   | FunDecl Co Fun  -- fun, possibly inside MutualDecl   
-  | LetDecl Bool TypeSig Expr -- bool for eval 
+  | LetDecl Bool Name Telescope (Maybe Type) Expr -- bool for eval 
   | PatternDecl Name [Name] Pattern
   | MutualDecl Bool [Declaration]  -- mutual data/fun block, bool for measured
   | OverrideDecl Override [Declaration]    -- expect/ignore some type error
@@ -898,7 +900,7 @@ freeVars Def{}        = Set.empty
 --freeVars Let{}        = Set.empty
 freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls) 
 freeVars (LLet (TBind x dom) t u) 
-  = freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
+  = maybe Set.empty freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
 freeVars (Pair f e)   = freeVars f `Set.union` freeVars e
 freeVars (App f e)    = freeVars f `Set.union` freeVars e
 -- freeVars (App e es)   = Set.unions (freeVars e : map freeVars es)
@@ -943,7 +945,7 @@ usedDefs (Below _ b) = usedDefs b
 usedDefs (Quant pisig (TBind x dom) b) = usedDefs (typ dom) ++ usedDefs b
 usedDefs (Quant Pi (TMeasure mu) b) = Foldable.foldMap usedDefs mu ++ usedDefs b
 usedDefs (Quant Pi (TBound beta) b) = Foldable.foldMap usedDefs beta ++ usedDefs b
-usedDefs (LLet (TBind x dom) e1 e2) = usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
+usedDefs (LLet (TBind x dom) e1 e2) = Foldable.foldMap usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
 usedDefs (Succ e) = usedDefs e
 usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls) 
 usedDefs (Ann e) = usedDefs (unTag e)
@@ -1010,11 +1012,16 @@ instance Pretty Expr where
   prettyPrec k (Lam dec x e) = parensIf (0 < k) $ 
     (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->") 
       <+> pretty e
-  prettyPrec k (LLet (TBind n (Domain t ki dec)) e1 e2) = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain (Just t) ki dec)) e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
        pretty n <+> vcat [ colon <+> pretty t 
                            <> (if erased dec then rbrack else PP.empty) 
                        , equals <+> pretty e1 ]))
+    $$ (text "in" <+> pretty e2)
+  prettyPrec k (LLet (TBind n (Domain Nothing ki dec)) e1 e2) = parensIf (0 < k) $
+    (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
+       pretty n <+> vcat [ if erased dec then rbrack else PP.empty 
+                         , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
 
   prettyPrec k (Below ltle e) = pretty ltle <+> prettyPrec k e
@@ -1198,7 +1205,7 @@ parSubst phi e@Def{}        = e
 -- parSubst phi e@Let{}        = e
 parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $ 
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (parSubst phi) t)) cls
-parSubst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (parSubst phi) dom) (parSubst phi b) (parSubst phi c)
+parSubst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (fmap (parSubst phi)) dom) (parSubst phi b) (parSubst phi c)
 parSubst phi (Pair f e)     = Pair (parSubst phi f) (parSubst phi e)
 parSubst phi (App f e)      = App (parSubst phi f) (parSubst phi e)
 -- parSubst phi (App e es)     = App (parSubst phi e) (List.map (parSubst phi) es)
@@ -1238,7 +1245,7 @@ subst phi e@Proj{}        = e
 -- subst phi e@Let{}        = e
 subst phi (Case e mt cls)   = Case (subst phi e) (fmap (subst phi) mt) $
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (subst phi) t)) cls
-subst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (subst phi) dom) (subst phi b) (subst phi c)
+subst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (fmap (subst phi)) dom) (subst phi b) (subst phi c)
 subst phi (Pair f e)     = Pair (subst phi f) (subst phi e)
 subst phi (App f e)      = App (subst phi f) (subst phi e)
 -- subst phi (App e es)     = App (subst phi e) (List.map (subst phi) es)
@@ -1728,6 +1735,10 @@ resurrectTele :: Telescope -> Telescope
 resurrectTele = List.map (mapDec resurrectDec)
 -}
 ---- destruction
+
+teleLam :: Telescope -> Expr -> Expr
+teleLam tel e = foldr (uncurry Lam) e $ 
+  List.map (\ tb -> (decor $ boundDom tb, boundName tb)) tel
 
 teleToType' :: (Dec -> Dec) -> Telescope -> Type -> Type
 teleToType' mod tel t = foldr (\ tb -> Quant Pi (mapDec mod tb)) t tel

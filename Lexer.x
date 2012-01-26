@@ -39,7 +39,8 @@ mutual				{ tok (\p s -> Mutual p) }
 Type				{ tok (\p s -> Type p) }
 Set				{ tok (\p s -> Set p) }
 CoSet				{ tok (\p s -> CoSet p) }
-
+"<|"                            { tok (\p s -> LTri p) }
+"|>"                            { tok (\p s -> RTri p) }
 Size				{ tok (\p s -> Size p) }
 \#				{ tok (\p s -> Infty p) }
 \$				{ tok (\p s -> Succ p) }
@@ -105,6 +106,8 @@ data Token = Id String AlexPosn
            | Succ AlexPosn
            | Max AlexPosn
            --
+           | LTri AlexPosn 
+           | RTri AlexPosn 
            | AngleOpen AlexPosn
            | AngleClose AlexPosn
            | BrOpen AlexPosn
@@ -163,6 +166,8 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Infty p -> ("#",p)
     Succ p -> ("$",p)
     Max p -> ("max",p)
+    LTri p -> ("<|",p)
+    RTri p -> ("|>",p)
     AngleOpen p -> ("<",p)
     AngleClose p -> (">",p)
     BrOpen p -> ("{",p)

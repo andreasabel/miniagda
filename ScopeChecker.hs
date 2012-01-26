@@ -13,14 +13,17 @@ import qualified Concrete as C
 
 import TraceError
 
+import Prelude hiding (mapM)
+
 import Control.Applicative -- <$>
-import Control.Monad.Identity
-import Control.Monad.Reader
-import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Identity hiding (mapM)
+import Control.Monad.Reader hiding (mapM)
+import Control.Monad.State hiding (mapM)
+import Control.Monad.Error hiding (mapM)
 
 import Data.List as List
 import Data.Maybe
+import Data.Traversable (mapM)
 
 import Debug.Trace
 
@@ -311,6 +314,24 @@ scopeCheckDeclaration d@(C.DataDecl{}) =
 scopeCheckDeclaration d@(C.FunDecl co _ _) = 
   scopeCheckFunDecls co [d] -- >>= return . (:[])
                                                
+scopeCheckDeclaration (C.LetDecl eval n tel mt e) = setDefaultPolarity A.Rec $ do 
+  tel <- generalizeTel tel
+  (tel, (mt, e)) <- scopeCheckTele tel $ do
+     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e 
+  x <- addName LetK n
+  return $ A.LetDecl eval x tel mt e
+
+{-                                             
+scopeCheckDeclaration (C.LetDecl eval n tel0 mt0 e0) = setDefaultPolarity A.Rec $ do 
+  tel <- generalizeTel tel0
+  let mt = fmap (C.teleToType tel) mt0
+      ns = C.teleNames tel
+      e  = foldr C.Lam e0 ns
+  mt' <- mapM scopeCheckExpr mt
+  e'  <- scopeCheckExpr e
+  x <- addName LetK n
+  return $ A.LetDecl eval x mt' e'
+
 scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ do 
   tel <- generalizeTel tel0
   let ts = (C.TypeSig n $ C.teleToType tel t)
@@ -320,8 +341,7 @@ scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ 
   e'  <- scopeCheckExpr e
   addTypeSig LetK ts ts'
   return $ A.LetDecl eval ts' e'
-
-{-                                               
+                           
 scopeCheckDeclaration (C.LetDecl eval ts e) = do 
   ts' <- scopeCheckTypeSig ts
   e'  <- setDefaultPolarity A.Rec $ scopeCheckExpr e
@@ -398,6 +418,18 @@ scopeCheckMutual ds0 = do
 --  zipWithM_ (addAName (FunK True)) ns funNames
   return $ A.MutualDecl measured ds'
 
+scopeCheckTele :: C.Telescope -> ScopeCheck a -> ScopeCheck (A.Telescope, a)
+scopeCheckTele []         cont = ([],) <$> cont
+scopeCheckTele (tb : tel) cont = do
+  (tbs, (tel, a)) <- scopeCheckTBind tb $ scopeCheckTele tel cont
+  return (tbs ++ tel, a)
+
+scopeCheckTBind :: C.TBind -> ScopeCheck a -> ScopeCheck ([A.TBind], a)
+scopeCheckTBind (C.TBind dec ns t) cont = do
+  t       <- scopeCheckExpr t
+  (xs, a) <- addBinds t ns $ cont
+  return (map (\ x -> A.TBind x (A.Domain t A.defaultKind dec)) xs, a)
+
 checkBody :: (A.TypeSig, C.Declaration) -> ScopeCheck A.Declaration
 {-
 checkBody (A.TypeSig n ts, C.LetDecl b _ e) = do
@@ -428,7 +460,9 @@ mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) =
   (DataK, C.TypeSig n (C.teleToType tel t))
 mutualGetTypeSig (C.FunDecl co tsig cls) = 
   (FunK False, tsig) -- fun id for use inside defining body
-mutualGetTypeSig (C.LetDecl ev n tel t e) = 
+mutualGetTypeSig (C.LetDecl ev n tel Nothing e) = 
+  error $ "let declaration of " ++ show n ++ ": type required in mutual block"  
+mutualGetTypeSig (C.LetDecl ev n tel (Just t) e) = 
   (LetK, C.TypeSig n (C.teleToType tel t))
 {- mutualGetTypeSig (C.LetDecl ev tsig e) = 
   (LetK, tsig) -}
@@ -800,7 +834,7 @@ scopeCheckExpr e =
         return $ A.Lam A.defaultDec n e1' -- dec. in Lam is ignored in t.c. 
 
       C.LLet (C.TBind dec [n] t1) e1 e2 ->  do
-        t1'      <- scopeCheckExpr t1
+        t1'      <- mapM scopeCheckExpr t1
         e1'      <- scopeCheckExpr e1
         (n, e2') <- addBind e n $ scopeCheckExpr e2
         return $ A.LLet (A.TBind n $ A.Domain t1' A.defaultKind dec) e1' e2'
