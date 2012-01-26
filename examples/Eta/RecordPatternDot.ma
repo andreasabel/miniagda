@@ -15,7 +15,7 @@ data Eq (i : Size)(A : Set i)(a : A) : A -> Set i
 -- if I put trustme here, it says it ignored an error, but 
 -- without trustme there is no error !?
 fun D : [A : Set] -> (p1, p2 : Prod A A) -> 
-        Eq 0 A (fst A A p1) (fst A A p2) -> Set 1
+        Eq 0 A (fst p1) (fst p2) -> Set 1
 { D A (pair x y) (pair .x y') (refl) = Set 
 }  -- miniagda has problem typechecking this !?
 

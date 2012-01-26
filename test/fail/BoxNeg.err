@@ -4,10 +4,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Box : ^(A : Set) -> Set
 term  box : .[A : Set] -> ^(y0 : A) -> < box y0 : Box A >
-type  Box : ^(A : Set) -> Set
 type  Neg : Set
 term  neg : ^(y0 : Box Neg -> Neg) -> < neg y0 : Neg >
-type  Neg : Set
 error during typechecking:
 checking positivity
 /// polarity check ++ <= ^ failed

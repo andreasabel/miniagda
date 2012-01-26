@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
-type  Nat : Set
 term  add : Nat -> Nat -> Nat
 { add (zero) y = y
 ; add (succ x) y = succ (add x y)
@@ -13,7 +12,6 @@ term  add : Nat -> Nat -> Nat
 type  Vec : ^(A : Set) -> ^ Nat -> Set
 term  nil : .[A : Set] -> < nil : Vec A zero >
 term  cons : .[A : Set] -> .[n : Nat] -> ^(y1 : A) -> ^(y2 : Vec A n) -> < cons n y1 y2 : Vec A (succ n) >
-type  Vec : ^(A : Set) -> ^ Nat -> Set
 term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> < n : Nat >
 { length [A] [.zero] (nil) = zero
 ; length [A] [.succ n] (cons [n] a v) = succ (length [A] [n] v)
@@ -31,7 +29,6 @@ term  zeroes : (n : Nat) -> Vec Nat n
 type  Fin : ^ Nat -> Set
 term  fzero : .[n : Nat] -> < fzero n : Fin (succ n) >
 term  fsucc : .[n : Nat] -> ^(y1 : Fin n) -> < fsucc n y1 : Fin (succ n) >
-type  Fin : ^ Nat -> Set
 term  lookup : .[A : Set] -> .[n : Nat] -> Vec A n -> Fin n -> A
 { lookup [A] [.succ n] (cons [n] a v) (fzero [.n]) = a
 ; lookup [A] [.succ n] (cons [n] a v) (fsucc [.n] i) = lookup [A] [n] v i

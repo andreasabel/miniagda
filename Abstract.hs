@@ -70,6 +70,10 @@ freshen n = fresh (suggestion n)
 emptyName :: Name -> Bool
 emptyName n = null (suggestion n)
 
+nonEmptyName :: Name -> String -> Name
+nonEmptyName n s | emptyName n = n { suggestion = s }
+                 | otherwise   = n
+
 -- temporary hack for reification
 
 iAmNotUnique :: Unique
@@ -1437,7 +1441,7 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
                 then List.foldl App ({-fun x-} letdef x) (List.map Var (parAndIndexNames ++ [recName]))
                 else Var x
       -- prefix d =  "destructor_argument_" ++ d
-      prefix d = d { suggestion = "destructor_argument_" ++ suggestion d }
+      prefix d = d { suggestion = "#" ++ suggestion d }
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
       pattern = ConP (PatternInfo (coToConK co) False) -- to bootstrap destructor, not irrefutable 

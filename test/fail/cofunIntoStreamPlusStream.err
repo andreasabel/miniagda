@@ -4,33 +4,23 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Unit : Set
 term  unit : < unit : Unit >
-type  Unit : Set
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 type  Twice : ++(A : Set) -> Set
 term  inl : .[A : Set] -> ^(y0 : A) -> < inl y0 : Twice A >
 term  inr : .[A : Set] -> ^(y0 : A) -> < inr y0 : Twice A >
-type  Twice : ++(A : Set) -> Set
 term  fmap : .[A : Set] -> .[B : Set] -> (A -> B) -> Twice A -> Twice B
 { fmap [A] [B] f (inl a) = inl (f a)
 ; fmap [A] [B] f (inr a) = inr (f a)
 }
 type  BStr : - Size -> Set
 term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < cons i head tail : BStr $i >
-type  BStr : - Size -> Set
-G> fun head : .[i : Size] -> (cons : BStr $i) -> Bool
-G> { head i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_head
-}
 term  head : .[i : Size] -> (cons : BStr $i) -> Bool
-{ head [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_head
-}
-G> fun tail : .[i : Size] -> (cons : BStr $i) -> BStr i
-G> { tail i (cons .i destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+{ head [i] (cons [.i] #head #tail) = #head
 }
 term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
-{ tail [i] (cons [.i] destructor_argument_head destructor_argument_tail) = destructor_argument_tail
+{ tail [i] (cons [.i] #head #tail) = #tail
 }
 term  idAndLast : .[i : Size] -> BStr i -> Twice (BStr i)
 error during typechecking:

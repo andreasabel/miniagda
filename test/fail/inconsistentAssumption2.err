@@ -7,10 +7,8 @@ term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
 term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
 term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
-type  SNat : + Size -> Set
 type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> < refl : Eq A a a >
-type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> .[P : A -> Set] -> (i : A) -> (j : A) -> Eq A i j -> P i -> P j
 { subst [A] [P] i .i (refl) p = p
 }

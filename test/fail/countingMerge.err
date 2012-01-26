@@ -5,15 +5,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
-type  Nat : Set
 type  List : Set
 term  nil : < nil : List >
 term  cons : ^(y0 : Nat) -> ^(y1 : List) -> < cons y0 y1 : List >
-type  List : Set
 term  leq : Nat -> Nat -> Bool
 {}
 term  merge : List -> List -> List

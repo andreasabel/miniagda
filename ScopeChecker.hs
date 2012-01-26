@@ -575,9 +575,9 @@ checkDataBody tt' n x sz co tel cs fields = do
 -}
       -- add declared destructor names
       let delta = concat $ map (uncurry contextFromConstructors) $ zip cs cs'
-      fields <- addFields (LetK) delta fields
---      fields <- addFields (FunK True) delta fields
-      -- fields <- mapM (addName $ FunK True) fields
+      -- fields <- addFields (LetK) delta fields
+      -- 2012-01-26 register as projections
+      fields <- addFields ProjK delta fields
       let pos = map (A.polarity . A.decor . A.boundDom) tel'
       return $ A.DataDecl x sz co pos tel' t' cs' fields
 

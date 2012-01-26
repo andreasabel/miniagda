@@ -37,7 +37,7 @@ let Lt : (n : Nat) -> (m : Nat) -> Set
 
 fun lookup : [A : Set] -> (n : Nat) -> (m : Nat) -> [Lt m n] -> Vec A n -> A
 { lookup A  zero    m        p v = magic A p
-; lookup A (succ n) zero     p v = fst A (\ z -> Vec A n) v
-; lookup A (succ n) (succ m) p v = lookup A n m p (snd A (\ z -> Vec A n) v)
+; lookup A (succ n) zero     p v = fst v -- fst A (\ z -> Vec A n) v
+; lookup A (succ n) (succ m) p v = lookup A n m p <| snd v -- (snd A (\ z -> Vec A n) v)
 }
 

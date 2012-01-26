@@ -5,17 +5,14 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
-type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
 { subst [A] a .a (refl) [P] x = x
 }
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  eq : .[A : Set] -> .[a : A] -> < eq : DecEq A a a >
 term  notEq : .[A : Set] -> .[a : A] -> .[b : A] -> < notEq b : DecEq A a b >
-type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 offDiag
 /// not a type: (A : Set) -> (f : (a : A) -> (b : A) -> DecEq A a b) -> (a : A) -> (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)

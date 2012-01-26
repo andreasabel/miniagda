@@ -3,7 +3,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Empty : Set
-type  Empty : Set
 term  bad' : .[Size] -> Empty
 error during typechecking:
 bad'

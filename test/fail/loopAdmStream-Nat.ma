@@ -21,7 +21,7 @@ cofun f : [i : Size] -> (Stream Nat i -> Stream Nat #) -> Stream Nat i
 }
 
 -- LOOP!
-eval let loop : Nat = head Nat # (f # (tail Nat #))
+eval let loop : Nat = head # (f # (tail #))
 
 {- 
 -- the type of f is not admissible

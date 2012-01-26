@@ -4,12 +4,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  StreamUnit : - Size -> Set
 term  cons : .[i : Size] -> ^(tail : StreamUnit i) -> < cons i tail : StreamUnit $i >
-type  StreamUnit : - Size -> Set
-G> fun tail : .[i : Size] -> (cons : StreamUnit $i) -> StreamUnit i
-G> { tail i (cons .i destructor_argument_tail) = destructor_argument_tail
-}
 term  tail : .[i : Size] -> (cons : StreamUnit $i) -> StreamUnit i
-{ tail [i] (cons [.i] destructor_argument_tail) = destructor_argument_tail
+{ tail [i] (cons [.i] #tail) = #tail
 }
 term  f : (StreamUnit # -> StreamUnit #) -> .[i : Size] -> (StreamUnit i -> StreamUnit #) -> StreamUnit i
 error during typechecking:

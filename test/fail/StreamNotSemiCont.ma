@@ -14,7 +14,7 @@ cofun bad : [i : Size] -> [A : Set] -> (Stream A i -> Stream A i) -> Stream A i
 { bad ($ i) A f = f (cons A i (bad i A f))
 }
 
-let undef : Stream Unit # = bad # Unit (tail Unit #)
+let undef : Stream Unit # = bad # Unit (tail #)
 
-eval let diverge : Unit = head Unit # undef 
+eval let diverge : Unit = head # undef 
 

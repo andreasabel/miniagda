@@ -1,6 +1,7 @@
 -- 2012-01-25
 
-record Sigma ++(A : Set) ++(B : A -> Set) : Set
+-- record
+data Sigma ++(A : Set) ++(B : A -> Set) : Set
 { pair (fst : A) (snd : B fst) : Sigma A B
 } fields fst, snd
 

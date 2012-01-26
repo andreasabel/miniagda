@@ -18,9 +18,9 @@ fields head, tail
 -- this code needs to be rejected by the type checker! :
 -- a "function" returning the input stream plus its "last" bit
 cofun idAndLast : [i : Size] -> BStr i -> Prod Bool (BStr i)
-{ idAndLast ($ i) (cons .i b bs) = pair Bool (BStr ($ i))
-   (fst Bool (BStr i) (idAndLast i bs))
-   (cons i b          (idAndLast i bs))
+{ idAndLast ($ i) (cons .i b bs) = pair {- Bool (BStr ($ i)) -}
+   (fst {- Bool (BStr i) -} (idAndLast i bs))
+   (cons i b                (idAndLast i bs))
 }
 
 cofun trues : [i : Size] -> BStr i
@@ -28,5 +28,5 @@ cofun trues : [i : Size] -> BStr i
 }
 
 -- this will loop:
-eval let last : Bool = snd Bool (BStr #) (idAndLast # (trues #))
+eval let last : Bool = snd {- Bool (BStr #) -}  (idAndLast # (trues #))
 

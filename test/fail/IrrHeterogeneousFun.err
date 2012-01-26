@@ -5,11 +5,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
-type  Nat : Set
 type  T : Bool -> Set
 { T (true) = Nat
 ; T (false) = Bool

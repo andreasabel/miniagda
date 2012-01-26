@@ -5,11 +5,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
-type  Nat : Set
 type  D : ^ Nat -> Set
 term  abs : ^(y0 : D zero -> D zero) -> < abs y0 : D zero >
 term  app : .[n : Nat] -> ^(y1 : D n) -> ^(y2 : D n) -> < app n y1 y2 : D n >
-type  D : ^ Nat -> Set
 error during typechecking:
 checking positivity
 /// polarity check ++ <= - failed

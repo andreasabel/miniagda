@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  tt : < tt : Bool >
 term  ff : < ff : Bool >
-type  Bool : Set
 term  bad'' : .[Size] -> Bool
 error during typechecking:
 bad''

@@ -167,47 +167,6 @@ typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
   echoKindedDef ki n ee
   return [LetDecl eval n [] (Just te) ee]
 
-{-  
-typeCheckDeclaration (LetDecl eval n tel Nothing e) = enter (show n) $ do
-  (tel, (te, (vt, Kinded ki ee))) <- checkTele tel $ do
-     (\ r -> (,r) <$> toExpr (fst r)) <$> inferExpr e
-  typeCheckLetDeclFinish eval n tel te vt ki ee
-
-typeCheckDeclaration (LetDecl eval n tel (Just t) e) = enter (show n) $ do
-  echoTySig n t -- debugging only
-  Kinded ki0 te <- checkType t 
-  vt <- whnf' te
-  -- getEnv >>= \ rho -> traceCheckM $ "checking let-body " ++ show e ++ " : " ++ show vt ++ " in environment " ++ show rho
-  Kinded ki1 ee <- checkExpr e vt
-  let ki = (intersectKind ki1 $ predKind ki0)
-  typeCheckLetDeclFinish eval n te vt ki ee
--}
-{-
-typeCheckDeclaration (LetDecl eval n tel (Just t) e) = enter (show n) $ do
-  echoTySig n t -- debugging only
-  Kinded ki0 te <- checkType t 
-  vt <- whnf' te
-  -- getEnv >>= \ rho -> traceCheckM $ "checking let-body " ++ show e ++ " : " ++ show vt ++ " in environment " ++ show rho
-  Kinded ki1 ee <- checkExpr e vt
-  let ki = (intersectKind ki1 $ predKind ki0)
-  typeCheckLetDeclFinish eval n te vt ki ee
--}
-{-
-  rho <- getEnv -- is emptyEnv
-  -- TODO: solve size constraints
-  -- does not work with emptyEnv
-  -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
-  let v = mkClos rho ee -- delay whnf computation
-  -- v  <- whnf' ee -- WAS: whnf' e'
-  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
---  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
-  echoKindedTySig ki n te
---  echoTySigE n te
---  echoDefE   n ee
-  echoKindedDef ki n ee
-  return [LetDecl eval n (Just te) ee]
--}
-
 typeCheckDeclaration d@(PatternDecl x xs p) = do
 {- WHY DOES THIS NOT TYPECHECK?
   let doc = (PP.text "pattern") <+> (PP.hsep (List.map Util.pretty (x:xs))) <+> PP.equals <+> Util.pretty p
@@ -242,23 +201,6 @@ typeCheckDeclaration (MutualDecl measured ds) = do
   checkPositivityGraph
   return $ concat edss
 
-
-{-
-typeCheckLetDeclFinish eval n te vt ki ee = do
-  rho <- getEnv -- is emptyEnv
-  -- TODO: solve size constraints
-  -- does not work with emptyEnv
-  -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
-  let v = mkClos rho ee -- delay whnf computation
-  -- v  <- whnf' ee -- WAS: whnf' e'
-  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
---  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
-  echoKindedTySig ki n te
---  echoTySigE n te
---  echoDefE   n ee
-  echoKindedDef ki n ee
-  return [LetDecl eval n (Just te) ee]
--}
 
 -- check signatures of a flattened mutual block
 typeCheckMutualSigs :: [Declaration] -> TypeCheck [Kinded (TySig TVal)]
@@ -372,7 +314,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      let newki = case (foldl unionKind NoKind (map kindOf kcse)) of
           NoKind -> kType -- no non-rec constructor arguments
           Kind s s' -> Kind (Set Zero) s' -- a data type is always also a type
-     echoKindedTySig newki n dte
+     -- echoKindedTySig newki n dte -- 2012-01-26 disabled (repetitive)
 
      -- solve for size variables
      sol <- solveConstraints
@@ -397,8 +339,8 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      when (not (null decls)) $ 
         traceCheckM $ "generated destructors: " ++ show decls
      declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) n' ar cls]) -> do 
-                       echo $ "G> " ++ showFun co ++ " " ++ show n ++ " : " ++ show t
-                       echo $ "G> " ++ PP.render (prettyFun n cls)
+                       -- echo $ "G> " ++ showFun co ++ " " ++ show n ++ " : " ++ show t
+                       -- echo $ "G> " ++ PP.render (prettyFun n cls)
                        checkingMutual Nothing $ typeCheckDeclaration d) 
                  decls
 
@@ -767,62 +709,6 @@ typeCheckFunClauses (Fun (TypeSig n t) n' ar cl) = enter (show n) $
       -- echo $ PP.render $ prettyFun n cle
       return result
 
-{-
-checkConType :: Env -> SemCxt -> Int -> Expr -> TypeCheck ()
-checkConType rho delta p e =
-    case e of
-      Pi dec x t1 t2 -> do
-             case (len delta) < p of
-               True ->
-                   return ()
-               False ->
-                   checkSmallType rho delta t1
-             v_t1 <- whnf rho t1
-             let (k, delta') = cxtPush (Dec False) v_t1 delta
-             checkConType (update rho x (VGen k)) (delta') p t2
-      _ -> checkExpr rho delta e VSet
- -}
-
-{-
--- check that arguments are stypes
--- check that result is a set 
---  ( params were already checked by checkDataType ) 
-checkConType :: Int -> Expr -> TypeCheck Extr
-checkConType p e = 
-    case e of
-      Pi dec x t1 t2 -> do
-             l <- getLen
-             when (l >= p) $ checkSmallType t1
-             addBind x (Dec False) t1 $ do
-               checkConType p t2 
-      _ -> checkSmallType e 
-
--- checkConType numpars t = te
--- check that arguments are stypes
--- check that result is a set 
---  ( params were already checked by checkDataType ) 
--- called initially in the empty context
--- the extracted type is does not include the parameter telescope!
-checkConType :: Sized -> Int -> Expr -> TypeCheck Extr
-checkConType NotSized 0 t = checkConTypeCore t 
--- checkConType Sized 0 t = checkConTypeCore t 
-checkConType Sized 0 t =
-    case t of
-      Pi dec x (Sort Size) t2 -> do
-             addBind x (Dec False) (Sort Size) $ do
-               t2e <- checkConTypeCore t2
-               return $ Pi dec x (Sort Size) t2e 
-      _ -> fail $ "checkConType: internal error, t=" ++ show t
-
-checkConType sz n t =
-    case t of
-      Pi dec x t1 t2 -> do
-             -- no need to check parameter t1, already checked in data decl
-             addBind x (Dec False) t1 $ do
-               checkConType sz (n-1) t2 
-      _ -> fail $ "checkConType: internal error, n=" ++ show n ++ " t=" ++ show t
--}
-
 -- checkConType sz t = Kinded ki te
 -- the returned kind is the kind of the constructor arguments
 -- check that result is a universe
@@ -845,15 +731,6 @@ checkConType' t = do
     Set{} -> return kte 
     CoSet{} -> return kte
     _ -> fail $ "checkConType: type " ++ show t ++ " of constructor not a universe"
-{-
-    case t of
-      Pi dec x t1 t2 -> do
-             t1e <- checkSmallType t1
-             addBind x (Dec False) t1 $ do
-               t2e <- checkConType' t2
-               return $ Pi dec x t1e t2e 
-      _ -> checkSmallType t 
- -}       
 
 -- check that the data type and the parameter arguments (written down like declared in telescope) 
 -- precondition: target tg type checks in current context
@@ -998,38 +875,6 @@ A constructor is always a term.
 
     
 -- type checking
-
-{-
--- entry point 1: possibly resurrects
-checkExpr :: Expr -> TVal -> TypeCheck Extr
-checkExpr e v = maybeResurrect v $ checkExpr' e v 
-
-maybeResurrect :: TVal -> TypeCheck a -> TypeCheck a
-maybeResurrect v = if v == VSet || v == VSize then resurrect else id
-
--- entry point 2: possibly resurrects
-checkExprDec :: Dec -> Expr -> TVal -> TypeCheck Extr
-checkExprDec dec e v = do ee <- maybeResurrectDec dec v $ checkExpr' e v  -- ignore erasure
-                          return $ ee -- if erased dec then Irr else ee
-
--- superseded by TCM.applyDec                           
-maybeResurrectDec :: Dec -> TVal -> TypeCheck a -> TypeCheck a
-maybeResurrectDec dec v = if erased dec || v == VSet || v == VSize then resurrect else id
--}
-{-
--- entry point 2: possibly resurrects, adjusts polarities
-checkExprDec :: Dec -> Expr -> TVal -> TypeCheck Extr
-checkExprDec dec e v = do 
-  ee <- maybeResurrectDec dec $ checkExpr' e v  -- ignore erasure
-  return $ ee -- if erased dec then Irr else ee
-
--- entry point 1: redundant
-checkExpr :: Expr -> TVal -> TypeCheck Extr
-checkExpr e v = checkExpr' e v 
-
--- checkExpr e tv = Just e' | Nothing
--- instead of e' = Irr return Nothing
--}
 
 -- checkExpr e tv = (e', ki)
 -- e' is the version of e with erasure marker at irrelevant positions
@@ -1224,23 +1069,11 @@ Following Awodey/Bauer 2001, the following rule is valid
             -- the kind of a lambda is the kind of its body  
             return $ Kinded ki1 $ Lam (decor dom) y e1e
 
-{- 
-      (Pi dec n t1 t2, VSort Set) ->
-          do t1e <- if t1 == Sort Size then return t1 
-                     else checkExpr t1 $ VSort Set  -- Size is not a set TODO:proper PTS rules!
-             addBind n (Dec False) t1e $ do  -- ignore erasure flag in Pi!
-               t2e <- checkExpr t2 $ VSort Set
-             -- never prune a Pi
-               return $ Pi dec n t1e t2e
- 
-      (Pi dec n t1 t2, VSort (CoSet vi)) ->
-          do t1e <- if t1 == Sort Size then return t1 
-                     else checkExpr t1 $ VSort Set  -- Size is not a set TODO:proper PTS rules!
-             addBind n (Dec False) t1e $ do  -- ignore erasure flag in Pi!
-               t2e <- checkExpr t2 $ VSort $ CoSet $ maybe vi id $ predSize vi
-             -- never prune a Pi
-               return $ Pi dec n t1e t2e
--}
+      -- lone projection: eta-expand!
+      (Proj Pre p, VQuant Pi x dom env t1) -> do
+         let y = nonEmptyName x "y"
+         checkForced (Lam (decor dom) y $ App e (Var y)) v
+
       (e, VBelow ltle v) -> Kinded kSize <$> checkBelow e ltle v
 
       (Zero, v) | isVSize v -> return $ Kinded kSize $ Zero
@@ -1359,7 +1192,7 @@ checkApp e2 v = do
 checkSubtype :: Expr -> TVal -> TVal -> TypeCheck ()
 checkSubtype e v2 v = do
     rho <- getEnv
-    traceSingM $ "computing singleton <" ++ show e ++ " : " ++ show v2 ++ "> in environment " ++ show rho
+    traceSingM $ "computing singleton <" ++ show e ++ " : " ++ show v2 ++ ">" -- ++ " in environment " ++ show rho
     v2principal <- sing rho e v2
     traceSingM $ "subtype checking " ++ show v2principal ++ " ?<= " ++ show v ++ " in environment " ++ show rho
     subtype v2principal v
@@ -1438,7 +1271,7 @@ inferProj e1 fx p = checkingCon False $ do
             let fail2 = failDoc (text "record" <+> prettyTCM e1 <+> text "of type" <+> prettyTCM v <+> text "does not have field" <+> text p)
 -}
             v <- force v -- if v is a corecursively defined type in Set, unfold!
-            tv <- projectType v p
+            tv <- projectType v p =<< whnf' e1e
             return (tv, Kinded ki1 (proj e1e fx p))
 {-
             case v of
@@ -1849,7 +1682,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
     VApp (VDef (DefId DatK d)) vl ->
       case p of
         ProjP proj -> do
-          tv <- projectType tv proj
+          tv <- projectType tv proj VIrr -- do not have record value here
           cxt <- ask
           return (flex, ins, cxt, tv, p, VProj Post proj, False)
 {-
@@ -2478,7 +2311,9 @@ instance Substitute Val where
 --      VCon co n -> return $ v
       VMeta x env n -> do env' <- substitute subst env
                           return $ VMeta x env' n
+{- REDUNDANT
       _ -> error $ "substitute: internal error: not defined for " ++ show v
+-}
 
 instance Substitute (Sort Val) where
   substitute subst s =

@@ -25,7 +25,7 @@ fun invertible : (A : Set) -> InvI A {}  -- postulate
 
 -- self-application on the type level
 let cantor : Set -> Set
-= \ A -> Inverse A (invertible A) A -> Empty 
+= \ A -> Inverse (invertible A) A -> Empty 
   -- not using smart case here, gives a different message
 
 let cIc : Set
@@ -33,11 +33,12 @@ let cIc : Set
 
 -- type checker loops!
 let delta : cIc
-= case (invertible (I cantor))
+= case (invertible (I cantor)) : InvI (I cantor)
   { (inv .cantor refl) ->
    -- in the branch, cIc --> cIc -> Empty --> (cIc -> Empty) -> Empty -->...
         \ f -> f f
   }
+-- HERE, one gets error "dot pattern cantor not instantiated"
 
 let delta' : cIc -> Empty
 = case (invertible (I cantor))

@@ -7,7 +7,6 @@ term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
 term  zero : .[i : Size] -> < zero i : Nat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
 term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
-type  Nat : + Size -> Set
 term  foo : .[i : Size] -> Nat i
 error during typechecking:
 foo

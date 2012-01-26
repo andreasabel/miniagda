@@ -7,11 +7,9 @@ term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
 term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
 term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
-type  SNat : + Size -> Set
 type  Maybe : ++(A : Set) -> Set
 term  nothing : .[A : Set] -> < nothing : Maybe A >
 term  just : .[A : Set] -> ^(y0 : A) -> < just y0 : Maybe A >
-type  Maybe : ++(A : Set) -> Set
 type  Nat : Set
 type  Nat = SNat #
 term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
@@ -25,7 +23,6 @@ term  inc : Nat -> Maybe Nat
 term  inc = \ n -> just (succ [#] n)
 type  Unit : Set
 term  unit : < unit : Unit >
-type  Unit : Set
 term  loop : .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 term  loop_case : .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 error during typechecking:

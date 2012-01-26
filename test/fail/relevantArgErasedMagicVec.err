@@ -4,30 +4,20 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
 term  pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < pair fst snd : Sigma A B >
-type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
-G> fun fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
-G> { fst A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
-}
 term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
-{ fst [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_fst
-}
-G> fun snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst A B pair)
-G> { snd A B (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
+{ fst [A] [B] (pair #fst #snd) = #fst
 }
 term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
-{ snd [A] [B] (pair destructor_argument_fst destructor_argument_snd) = destructor_argument_snd
+{ snd [A] [B] (pair #fst #snd) = #snd
 }
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
-type  Nat : Set
-type  Empty : Set
 type  Empty : Set
 term  magic : .[A : Set] -> .[p : Empty] -> A
 {}
 type  Unit : Set
 term  unit : < unit : Unit >
-type  Unit : Set
 type  Vec : .[A : Set] -> (n : Nat) -> Set
 error during typechecking:
 Vec

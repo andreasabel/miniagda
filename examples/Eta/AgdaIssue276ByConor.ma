@@ -44,11 +44,11 @@ goo = \ x -> boo unpack' (pack (unpack x)) x (foo x)
 -}
 
 let foo : [S : Set] -> (x : Pack S) -> (P : Pack S -> Set) -> 
-          P (pack (unpack S x)) -> P x
+          P (pack (unpack x)) -> P x
         = \ S x P p -> p
 
-let goo : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> P (unpack S x) -> P (unpack' S x)
-        = \ S x -> boo (Pack S) S (unpack' S) (pack (unpack S x)) x (foo S x)
+let goo : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> P (unpack x) -> P (unpack' S x)
+        = \ S x -> boo (Pack S) S (unpack' S) (pack (unpack x)) x (foo S x)
 
 {- normal form of goo is \ x P p -> p 
 
@@ -62,5 +62,5 @@ when checking that the expression p has type P (unpack' x)
 
 
 let goo' : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> 
-           P (unpack S x) -> P (unpack' S x)
+           P (unpack x) -> P (unpack' S x)
          = \ S x P p -> p

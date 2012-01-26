@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(pred : Nat) -> < succ pred : Nat >
-type  Nat : Set
 term  add : Nat -> Nat -> Nat
 { add (zero) y = y
 ; add (succ x) y = succ (add x y)
@@ -13,22 +12,14 @@ term  add : Nat -> Nat -> Nat
 type  Vec : ++(A : Set) -> ^ Nat -> Set
 term  vnil : .[A : Set] -> < vnil : Vec A zero >
 term  vcons : .[A : Set] -> ^(head : A) -> .[n : Nat] -> ^(tail : Vec A n) -> < vcons head n tail : Vec A (succ n) >
-type  Vec : ++(A : Set) -> ^ Nat -> Set
-G> fun head : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> A
-G> { head A n (vcons destructor_argument_head .n destructor_argument_tail) = destructor_argument_head
-}
 term  head : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> A
-{ head [A] [n] (vcons destructor_argument_head [.n] destructor_argument_tail) = destructor_argument_head
-}
-G> fun tail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> Vec A n
-G> { tail A n (vcons destructor_argument_head .n destructor_argument_tail) = destructor_argument_tail
+{ head [A] [n] (vcons #head [.n] #tail) = #head
 }
 term  tail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (succ n)) -> Vec A n
-{ tail [A] [n] (vcons destructor_argument_head [.n] destructor_argument_tail) = destructor_argument_tail
+{ tail [A] [n] (vcons #head [.n] #tail) = #tail
 }
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
-type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 error during typechecking:
 vec0vnil
 /// checkExpr 0 |- \ A -> \ n -> \ v -> \ v' -> refl : .[A : Set] -> (n : Nat) -> (v : Vec A n) -> (v' : Vec A n) -> Id (Vec A n) v v'

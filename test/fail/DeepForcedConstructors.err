@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 term  not : Bool -> Bool
 { not (true) = false
 ; not (false) = true
@@ -13,7 +12,6 @@ term  not : Bool -> Bool
 type  Nat : ^ Bool -> Set
 term  zero : < zero : Nat true >
 term  succ : ^(b : Bool) -> ^(y1 : Nat b) -> < succ b y1 : Nat false >
-type  Nat : ^ Bool -> Set
 term  f : (b : Bool) -> .[Nat b] -> Bool
 error during typechecking:
 f

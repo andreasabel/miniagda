@@ -4,7 +4,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Succ : Set
 term  succ : ^(y0 : Succ) -> < succ y0 : Succ >
-type  Succ : Set
 type  homatch : (Succ -> Succ) -> Set
 error during typechecking:
 homatch

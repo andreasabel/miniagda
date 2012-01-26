@@ -7,10 +7,8 @@ term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
 term  zero : .[i : Size] -> < zero i : SNat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
 term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
-type  SNat : + Size -> Set
 type  Stream : - Size -> Set
 term  cons : .[i : Size] -> ^(y1 : SNat #) -> ^(y2 : Stream i) -> < cons i y1 y2 : Stream $i >
-type  Stream : - Size -> Set
 term  drop : .[i : Size] -> SNat i -> .[j : Size] -> Stream j -> Stream j
 error during typechecking:
 drop

@@ -577,7 +577,7 @@ evalCase v tv env cs = do
 piApp :: TVal -> Clos -> TypeCheck TVal
 piApp (VGuard beta bv) w = piApp bv w
 piApp (VQuant Pi x dom env b) w = whnf (update env x w) b
-piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj Post p) = projectType tv p
+piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj Post p) = projectType tv p VIrr -- no rec value here
 piApp tv w = failDoc (text "piApp: IMPOSSIBLE to instantiate" <+> prettyTCM tv <+> text "to argument" <+> prettyTCM w)
 
 piApps :: TVal -> [Clos] -> TypeCheck TVal
@@ -849,8 +849,8 @@ getFieldsAtType n vl = do
     _ -> return Nothing  
 
 -- similar to piApp, but for record types and projections
-projectType :: TVal -> Name -> TypeCheck TVal
-projectType tv p = do
+projectType :: TVal -> Name -> Val -> TypeCheck TVal
+projectType tv p rv = do
   let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj Post p) <> comma <+> text "but found type" <+> prettyTCM tv)
   let fail2 = failDoc (text "record type" <+> prettyTCM tv <+> text "does not have field" <+> prettyTCM p)
   case tv of
@@ -861,7 +861,7 @@ projectType tv p = do
         Just ptvs -> 
           case lookup p ptvs of
             Nothing -> fail2 
-            Just tv -> piApp tv VIrr -- cut of record arg
+            Just tv -> piApp tv rv -- apply to record arg
     _ -> fail1 
               
 -- eta expand  v  at data type  n vl
@@ -887,20 +887,12 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
                 -- pi-apply destructor type to parameters, indices and value v
                 t' <- piApps t piv
                 -- recursively eta expand  (d <pars> v)
-                w <- foldM (app' False) w piv -- LAZY: only unfolds let, not def
+                -- OLD, defined projections:
+                -- w <- foldM (app' False) w piv -- LAZY: only unfolds let, not def
+                -- NEW, builtin projections:
+                w <- app' False v (VProj Post d)
                 up False w t' -- now: LAZY
-{-
-                -- lookup type sig  t  of destructor  d
-                t <- lookupSymbTyp d 
-                -- pi-apply destructor type to parameters, indices and value v
-                t' <- piApps t piv
-                -- recursively eta expand  (d <pars> v)
-                w <- reval (VDef (DefId LetK d))
-                w <- w `apps` piv
-                up False w t' -- now: LAZY
--}
---                up False (VDef (DefId LetK d) `VApp` piv) t' -- now: LAZY
---                up False (VDef (DefId FunK d) `VApp` piv) t' -- now: LAZY
+
           vs <- mapM arg fis 
           let fs = map fName fis
               v' = VRecord (NamedRec (coToConK co) (cName ci) False) $ zip fs vs
@@ -1507,6 +1499,12 @@ leqVals' f q tv12 vl1 vl2 = do
  
     ([], [], _) -> return tv12
 
+    (VProj Post p1 : vs1, VProj Post p2 : vs2, ShData d _) -> do
+      unless (p1 == p2) $ 
+        recoverFail $ "projections " ++ show p1 ++ " and " ++ show p2 ++ " differ!"
+      tv12 <- mapM (\ tv -> projectType tv p1 VIrr) tv12
+      leqVals' f q tv12 vs1 vs2
+
     (w1:vs1, w2:vs2, ShQuant Pi x12 dom12 env12 b12) -> do
       let p = oneOrTwo id polAnd (fmap (polarity . decor) dom12)
       let dec = Dec { polarity = p } -- WAS: , erased = erased $ decor $ first12 dom12 }
@@ -1530,7 +1528,7 @@ leqVals' f q tv12 vl1 vl2 = do
                -- type is invariant, so it does not matter which one we take
       leqVals' f q tv12 vs1 vs2
 
-    _ -> fail $ "leqVals': not (compatible) function types or mismatch number of arguments"
+    _ -> fail $ "leqVals': not (compatible) function types or mismatch number of arguments when comparing  " ++ show vl1 ++ "  to  " ++ show vl2 ++ "  at type  " ++ show tv12
 
 {-           
 leqVals' f q (VPi x1 dom1@(Domain av1 _ dec1) env1 b1, 

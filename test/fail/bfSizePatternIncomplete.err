@@ -4,7 +4,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
 term  pair : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> ^(y1 : B) -> < pair y0 y1 : Prod A B >
-type  Prod : ++(A : Set) -> ++(B : Set) -> Set
 term  split : .[A : Set] -> .[B : Set] -> Prod A B -> .[C : Set] -> (A -> B -> C) -> C
 { split [A] [B] (pair a b) [C] f = f a b
 }
@@ -13,7 +12,6 @@ term  nil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> List A s!ze
 term  nil : .[A : Set] -> .[i : Size] -> < nil i : List A $i >
 term  cons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List A i -> List A s!ze
 term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List A i) -> < cons i y1 y2 : List A $i >
-type  List : ++(A : Set) -> + Size -> Set
 term  append : .[A : Set] -> List A # -> List A # -> List A #
 { append [A] (nil [.#]) l = l
 ; append [A] (cons [.#] a as) l = cons [#] a (append [A] as l)
@@ -21,7 +19,6 @@ term  append : .[A : Set] -> List A # -> List A # -> List A #
 type  Rose : ++(A : Set) -> + Size -> Set
 term  rose : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List (Rose A i) # -> Rose A s!ze
 term  rose : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List (Rose A i) #) -> < rose i y1 y2 : Rose A $i >
-type  Rose : ++(A : Set) -> + Size -> Set
 term  step : .[j : Size] -> .[A : Set] -> .[i : Size] -> List (Rose A $i) j -> Prod (List A j) (List (Rose A i) #)
 { step [.$j] [A] [i] (nil [j]) = pair (nil [j]) (nil [#])
 ; step [.$j] [A] [.i] (cons [j] (rose [i] a rs') rs) = split [List A j] [List (Rose A i) #] (step [j] [A] [i] rs) [Prod (List A $j) (List (Rose A i) #)] (\ as -> \ rs'' -> pair (cons [j] a as) (append [Rose A i] rs' rs''))

@@ -12,6 +12,8 @@ fields unwrap
 let wrap_ : [A : Set] -> A -> Wrap A 
   = \ A a -> wrap a
 
+let foo : Wrap False = wrap_ True trivial
+
 let boo : False
-  = unwrap False (wrap_ True trivial)
+  = unwrap {- False -} foo -- (wrap_ True trivial)
 

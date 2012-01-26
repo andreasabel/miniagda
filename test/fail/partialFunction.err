@@ -4,7 +4,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
 term  put : .[A : Set] -> .[P : A -> Set] -> ^(a : A) -> .[y1 : P a] -> < put a y1 : Subset A P >
-type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
 type  PFun : ^(A : Set) -> ^(B : Set) -> Set
 error during typechecking:
 PFun

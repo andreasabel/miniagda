@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  L : +(A : Set) -> Set
 term  l1 : .[A : Set] -> ^(y0 : A) -> ^(y1 : L A) -> < l1 y0 y1 : L A >
 term  l2 : .[A : Set] -> ^(y0 : T A) -> < l2 y0 : L A >
-type  L : +(A : Set) -> Set
 type  T : +(A : Set) -> Set
 term  t1 : .[A : Set] -> ^(y0 : L A) -> < t1 y0 : T A >
 error during typechecking:

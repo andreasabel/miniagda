@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
-type  Nat : Set
 term  plus : Nat -> Nat -> Nat
 {}
 term  f : Nat -> Nat -> Nat

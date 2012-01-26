@@ -3,38 +3,28 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Empty : Set
-type  Empty : Set
 type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
 term  refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> < refl : Eq [i] A a a >
-type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
-type  I : ^(F : Set -> Set) -> Set
 type  I : ^(F : Set -> Set) -> Set
 ty-u  InvI : ^(A : Set) -> Set $0
 term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [$0] Set (I Inverse) A) -> < inv Inverse isInverse : InvI A >
-ty-u  InvI : ^(A : Set) -> Set $0
-G> fun Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
-G> { Inverse A (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
-}
 type  Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
-{ Inverse [A] (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_Inverse
-}
-G> fun isInverse : .[A : Set] -> (inv : InvI A) -> Eq $0 Set (I (Inverse A inv)) A
-G> { isInverse A (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
+{ Inverse [A] (inv #Inverse #isInverse) = #Inverse
 }
 term  isInverse : .[A : Set] -> (inv : InvI A) -> Eq [$0] Set (I (Inverse [A] inv)) A
-{ isInverse [A] (inv destructor_argument_Inverse destructor_argument_isInverse) = destructor_argument_isInverse
+{ isInverse [A] (inv #Inverse #isInverse) = #isInverse
 }
 tmty  invertible : (A : Set) -> InvI A
 {}
 type  cantor : Set -> Set
-type  cantor = \ A -> Inverse [A] (invertible A) A -> Empty
+type  cantor = \ A -> Inverse (invertible A) A -> Empty
 type  cIc : Set
 type  cIc = cantor (I cantor)
 error during typechecking:
 delta
-/// checkExpr 0 |- case invertible (I cantor)
+/// checkExpr 0 |- case invertible (I cantor) : InvI (I cantor)
                { inv .cantor (refl) -> \ f -> f f
-               } : Inverse (I cantor) (invertible (I cantor)) (I cantor) -> Empty
+               } : invertible (I cantor) .Inverse (I cantor) -> Empty
 /// case 1
 /// dot pattern cantor
 /// not instantiated

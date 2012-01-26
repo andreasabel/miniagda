@@ -4,7 +4,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Stream : ^(A : Set) -> - Size -> Set
 term  consStream : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < consStream i y1 y2 : Stream A $i >
-type  Stream : ^(A : Set) -> - Size -> Set
 type  NotMon : ^(A : Set) -> + Size -> Set
 error during typechecking:
 NotMon

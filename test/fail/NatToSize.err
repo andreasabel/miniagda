@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
-type  Nat : Set
 size  toSize : Nat -> Size
 { toSize (zero) = 0
 ; toSize (suc n) = $(toSize n)

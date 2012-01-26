@@ -7,5 +7,5 @@ data Wrap [A : Set] : Set
 fields out
 
 fun cast : [A : Set] -> [B : Set] -> A -> B
-{ cast A B a = out B (inn A a)
+{ cast A B a = out {- B -} (inn {- A -} a)
 }

@@ -5,16 +5,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
-type  Nat : Set
 type  Unit : Set
 term  unit : < unit : Unit >
-type  Unit : Set
 type  Prod : -(A : Set) -> ++(B : Set) -> Set
 term  pair : .[A : Set] -> .[B : Set] -> ^(y0 : A -> B) -> < pair y0 : Prod A B >
-type  Prod : -(A : Set) -> ++(B : Set) -> Set
 type  Tree : Set
 term  node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < node numBranches y1 : Tree >
-type  Tree : Set
 { VecTree (zero) = Unit
 ; VecTree (suc n) = Prod Tree (VecTree n)
 }

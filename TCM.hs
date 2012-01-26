@@ -917,7 +917,7 @@ introPatType (p,v) tv cont = do
     VGuard beta bv -> addBoundHyp beta $ introPatType (p,v) bv cont
     VApp (VDef (DefId DatK d)) vl -> 
       case p of 
-        ProjP n -> cont =<< projectType tv n
+        ProjP n -> cont =<< projectType tv n VIrr -- no record value here
         _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv 
     VQuant Pi x dom env b -> do
        v <- whnfClos v

@@ -4,10 +4,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  D : Set
 term  absD : ^(y0 : E -> D) -> < absD y0 : D >
-type  D : Set
 type  E : Set
 term  inE : ^(y0 : D) -> < inE y0 : E >
-type  E : Set
 error during typechecking:
 checking positivity
 /// polarity check ++ <= - failed

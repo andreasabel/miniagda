@@ -4,17 +4,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 ty-u  WrapSize : Set $0
 term  inn : .[out : Size] -> < inn out : WrapSize >
-type  WrapSize : Set $0
-G> fun out : (inn : WrapSize) -> Size
-G> { out (inn destructor_argument_out) = destructor_argument_out
-}
 size  out : (inn : WrapSize) -> Size
 error during typechecking:
 WrapSize
 /// out
 /// clause 1
 /// right hand side
-/// checkExpr 1 |- destructor_argument_out : Size
-/// inferExpr' destructor_argument_out
-/// inferExpr: variable destructor_argument_out : Size may not occur
+/// checkExpr 1 |- #out : Size
+/// inferExpr' #out
+/// inferExpr: variable #out : Size may not occur
 /// , because it is marked as erased

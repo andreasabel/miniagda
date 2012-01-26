@@ -22,7 +22,7 @@ data Id ++(A : Set)(a : A) : A -> Set
 
 -- eta equality for neutral terms
 let etaSigma : (A : Set) -> (B : A -> Set) -> (p : Sigma A B) -> 
-               Id (Sigma A B) p (pair (fst A B p) (snd A B p))
+               Id (Sigma A B) p (pair (fst p) (snd p))
              = \ A -> \ B -> \ p -> refl -- (Sigma A B) p
 data Bool : Set
 { true : Bool
@@ -34,9 +34,9 @@ let Bool2 : Set
 let pair2 : Bool -> Bool -> Bool2
           = \ b1 b2 -> pair {- Bool (\ b -> Bool)-} b1 b2
 let fst2  : Bool2 -> Bool
-          = fst Bool (\ b -> Bool)
+          = fst -- Bool (\ b -> Bool)
 let snd2  : Bool2 -> Bool
-          = snd Bool (\ b -> Bool)
+          = snd -- Bool (\ b -> Bool)
 
 fun bla : Bool -> Bool2
 { bla true  = pair2 true false

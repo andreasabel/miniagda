@@ -16,8 +16,8 @@ cofun f : (Stream Unit # -> Stream Unit #) ->
     h (g (cons j unit (f (\ x -> h (h x)) j (\ x -> g (cons j unit x))))) 
 }
 
-let bla : Stream Unit # = f (tail Unit #) # (\ x -> x)
+let bla : Stream Unit # = f (tail #) # (\ x -> x)
 
 -- LOOP!
-eval let u : Unit = head Unit # bla
-eval let us : Stream Unit # = tail Unit # bla
+eval let u : Unit = head # bla
+eval let us : Stream Unit # = tail # bla

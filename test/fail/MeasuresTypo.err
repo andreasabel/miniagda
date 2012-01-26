@@ -5,17 +5,14 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
-type  Bool : Set
 type  N : Set
 term  zz : < zz : N >
 term  ss : ^(y0 : N) -> < ss y0 : N >
-type  N : Set
 type  Nat : + Size -> Set
 term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
 term  zero : .[i : Size] -> < zero i : Nat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
 term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
-type  Nat : + Size -> Set
 term  even : .[i : Size] -> Nat i -> Bool
 term  even' : .[i : Size] -> Nat i -> Bool
 term  odd' : .[i : Size] -> Nat i -> Bool

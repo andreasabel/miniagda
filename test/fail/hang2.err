@@ -3,7 +3,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Empty : Set
-type  Empty : Set
 term  F : Empty -> Empty
 term  f : Empty -> Empty
 { F x = F x

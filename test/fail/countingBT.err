@@ -5,7 +5,6 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  BT : Set
 term  lf : < lf : BT >
 term  node : ^(y0 : BT) -> ^(y1 : BT) -> < node y0 y1 : BT >
-type  BT : Set
 term  f : BT -> BT
 term  g : BT -> BT -> BT
 { f (node l (node rl rr)) = g l rr

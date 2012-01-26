@@ -4,15 +4,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> ^ A -> Set
 term  acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(y1 : (a : A) -> Lt a b -> Acc A Lt a) -> < acc b y1 : Acc A Lt b >
-type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> ^ A -> Set
 type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
-type  Nat : Set
 type  R : ^ Nat -> ^ Nat -> Set
 term  r1 : .[x : Nat] -> < r1 x : R (succ (succ x)) (succ zero) >
 term  r2 : < r2 : R (succ zero) zero >
-type  R : ^ Nat -> ^ Nat -> Set
 term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
 term  acc2 = \ n -> acc [succ (succ n)] (\ a -> \ p -> case p : R a (succ (succ n))
                                           {})

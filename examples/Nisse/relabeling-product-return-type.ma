@@ -35,26 +35,26 @@ cofun lab : [i : Size] -> [A : Set] -> [B : Set] ->
 
       -- recursive call on right subtree, threading the label stream-stream
       in let pr   : Prod (Tree B i) (Stream (Stream B #) i)
-                  = lab i A B r (snd (Tree B i) (Stream (Stream B #) i) pl) 
+                  = lab i A B r (snd {- (Tree B i) (Stream (Stream B #) i) -} pl) 
 
       in pair -- (Tree B ($ i)) (Stream (Stream B #) ($ i))
-           (node i b  (fst (Tree B i) (Stream (Stream B #) i) pl)
-                      (fst (Tree B i) (Stream (Stream B #) i) pr))
-           (cons i bs (snd (Tree B i) (Stream (Stream B #) i) pr))
+           (node i b  (fst {- (Tree B i) (Stream (Stream B #) i) -} pl)
+                      (fst {- (Tree B i) (Stream (Stream B #) i) -} pr))
+           (cons i bs (snd {- (Tree B i) (Stream (Stream B #) i) -} pr))
 }
 
 
 -- this auxiliary function replaces the original circular program
 cofun label2 : [i : Size] -> [A : Set] -> [B : Set] -> 
   Tree A i -> Stream B # -> Stream (Stream B #) i 
-{ label2 ($ i) A B t bs = snd (Tree B ($ i)) (Stream (Stream B #) ($ i))
+{ label2 ($ i) A B t bs = snd {- (Tree B ($ i)) (Stream (Stream B #) ($ i)) -}
     (lab ($ i) A B t (cons i bs (label2 i A B t bs)))
 }
 
 -- main program
 fun label : [i : Size] -> [A : Set] -> [B : Set] -> 
   Tree A i -> Stream B # -> Tree B i
-{ label i A B t bs = fst (Tree B i) (Stream (Stream B #) i)
+{ label i A B t bs = fst {- (Tree B i) (Stream (Stream B #) i) -}
    (lab i A B t (cons i bs (label2 i A B t bs)))
 }
 
