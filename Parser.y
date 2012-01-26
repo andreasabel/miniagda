@@ -413,6 +413,7 @@ Patterns :: { [C.Pattern] }
 Patterns : {- empty -} { [] }
 --    | Pattern Patterns { $1 : $2 }
     | Patterns Pattern { $2 : $1 }
+    | Patterns '<|' ElemP { $3 : $1 }
 
 -- atomic patterns
 Pattern :: { C.Pattern }
@@ -433,7 +434,9 @@ ElemP : ConP                { let (c, ps) = $1 in C.ConP c (reverse ps) }
       | Expr3 '>' Id        { C.SizeP $1 $3 } 
       | Id '<' Expr3        { C.SizeP $3 $1 } 
       | Pattern             { $1 }
+      | ConP '<|' ElemP     { let (c, ps) = $1 in C.ConP c (reverse ($3 : ps)) }
 
+-- constructor with at least one argument pattern
 ConP :: { (Name, [C.Pattern]) }
 ConP : Id Pattern          { ($1, [$2]) }
      | ConP Pattern        { let (c, ps) = $1 in (c, $2 : ps) }

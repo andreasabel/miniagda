@@ -631,39 +631,40 @@ prettyCast False doc = doc
 
 -- expressions -------------------------------------------------------
 
-data Expr = Sort (Sort Expr)   -- Size Set CoSet
-          -- sizes
-          | Zero
-          | Succ Expr
-          | Infty
-          | Max [Expr]   -- list has at least 2 elements
-          | Plus [Expr]  -- list has at least 2 elements
-          -- identifiers 
-          | Meta MVar    -- meta-variable
-          | Var Name     -- variables are named
-          | Def DefId    -- identifiers in the signature
+data Expr 
+  = Sort (Sort Expr)   -- Size Set CoSet
+  -- sizes
+  | Zero
+  | Succ Expr
+  | Infty
+  | Max [Expr]   -- list has at least 2 elements
+  | Plus [Expr]  -- list has at least 2 elements
+  -- identifiers 
+  | Meta MVar    -- meta-variable
+  | Var Name     -- variables are named
+  | Def DefId    -- identifiers in the signature
 {-
-          | Con Co Name [Expr] -- constructors applied to arguments
-          | Def Name     -- fun/cofun ?
-          | Let Name     -- definition (non-recursive)
+  | Con Co Name [Expr] -- constructors applied to arguments
+  | Def Name     -- fun/cofun ?
+  | Let Name     -- definition (non-recursive)
 -}
-          -- dependently typed lambda calculus
-          | Record RecInfo [(Name,Expr)] -- record { p1 = e1; ...; pn = en }
-          | Proj PrePost Name    -- .p
-          | Pair Expr Expr
-          | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
-          | LLet LBind Expr Expr --local let [x : A] = t in u
-          | App Expr Expr
-          | Lam Dec Name Expr
-          | Quant PiSigma TBind Expr
-          | Sing Expr Expr  -- <t : A> singleton type
-          -- instead of bounded quantification, a type for subsets
-          -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@ 
-          | Below LtLe Expr --  <(a : Size) or <=(a : Size)
-          -- for extraction
-          | Ann (Tagged Expr) -- annotated expr, e.g. with Erased tag
-          | Irr -- for instance the term correponding to the absurd pattern
-            deriving (Eq,Ord)
+  -- dependently typed lambda calculus
+  | Record RecInfo [(Name,Expr)] -- record { p1 = e1; ...; pn = en }
+  | Proj PrePost Name    -- proj _  or  _ .proj
+  | Pair Expr Expr
+  | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
+  | LLet LBind Expr Expr --local let [x : A] = t in u
+  | App Expr Expr
+  | Lam Dec Name Expr
+  | Quant PiSigma TBind Expr
+  | Sing Expr Expr  -- <t : A> singleton type
+  -- instead of bounded quantification, a type for subsets
+  -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@ 
+  | Below LtLe Expr --  <(a : Size) or <=(a : Size)
+  -- for extraction
+  | Ann (Tagged Expr) -- annotated expr, e.g. with Erased tag
+  | Irr -- for instance the term correponding to the absurd pattern
+    deriving (Eq,Ord)
 
 data PrePost = Pre | Post deriving (Eq, Ord, Show)
 data PiSigma = Pi | Sigma deriving (Eq, Ord)
@@ -807,7 +808,8 @@ data Declaration
   | RecordDecl Name Telescope Type Constructor [Name] -- record
   | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured 
   | FunDecl Co Fun  -- fun, possibly inside MutualDecl   
-  | LetDecl Bool Name Telescope (Maybe Type) Expr -- bool for eval 
+  | LetDecl Bool Name Telescope (Maybe Type) Expr 
+      -- ^ Bool for eval.  After t.c., tel. is empty and type is Just. 
   | PatternDecl Name [Name] Pattern
   | MutualDecl Bool [Declaration]  -- mutual data/fun block, bool for measured
   | OverrideDecl Override [Declaration]    -- expect/ignore some type error

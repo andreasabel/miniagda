@@ -1059,6 +1059,8 @@ checkExpr e v = do
 
  -}
 
+      (App (Lam dec x f) e, v) | inferable e -> checkUntypedLet x dec e f v
+
       (LLet (TBind x (Domain Nothing _ dec)) e1 e2, v) -> checkUntypedLet x dec e1 e2 v
 
       (LLet (TBind x (Domain (Just t1) _ dec)) e1 e2, v) -> checkTypedLet x t1 dec e1 e2 v 
