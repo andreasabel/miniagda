@@ -1078,6 +1078,14 @@ checkExpr e v = do
                 Kinded ki2 rhse <- checkRHS [] rhs v'
                 return $ Kinded ki2 $ Case (Var x) (Just tSize) [Clause [TBind y dom] [SuccP (VarP y)] (Just rhse)]
 
+
+      (Case e mt cs, v) -> do
+          (tv, t, Kinded ki1 ee) <- checkOrInfer e mt
+          ve <- whnf' ee
+          -- tv' <- sing' ee tv -- DOES NOT WORK
+          Kinded ki2 cle <- checkCases ve (arrow tv v) cs
+          return $ Kinded ki2 $ Case ee (Just t) cle
+{-
       (Case e Nothing cs, _) -> do
           (tv, Kinded ki1 ee) <- inferExpr e
           ve <- whnf' ee
@@ -1085,7 +1093,7 @@ checkExpr e v = do
           Kinded ki2 cle <- checkCases ve (arrow tv v) cs
           t <- toExpr tv
           return $ Kinded ki2 $ Case ee (Just t) cle
-
+-}
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkExpr e bv
 
@@ -1552,6 +1560,13 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         Kinded ki1 e1e <- checkExpr e1 tv  
         return (VSort $ s, Kinded (intersectKind ki $ succKind ki1) -- not sure how useful the intersection is, maybe just ki is good enough 
                              $ Sing e1e te)
+
+      Pair e1 e2 -> do
+        (tv1, Kinded k1 e1) <- inferExpr e1
+        (tv2, Kinded k2 e2) <- inferExpr e2
+        let ki = unionKind k1 k2
+            tv = prod tv1 tv2
+        return (tv, Kinded ki $ Pair e1 e2)
 
       App (Proj Pre p) e  -> inferProj e Pre p
       App e (Proj Post p) -> inferProj e Post p

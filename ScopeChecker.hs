@@ -782,10 +782,11 @@ scopeCheckExpr e =
       C.App e1 el -> do e1' <- scopeCheckExpr e1
                         el' <- mapM scopeCheckExpr el
                         return $ foldl A.App e1' el'
-      C.Case e cl -> do 
+      C.Case e mt cl -> do 
         e'  <- scopeCheckExpr e
+        mt' <- mapM scopeCheckExpr mt
         cl' <- mapM (scopeCheckClause Nothing) cl
-        return $ A.Case e' Nothing cl'
+        return $ A.Case e' mt' cl'
 
       -- measure & bound
       -- measures can only appear in fun sigs!

@@ -23,7 +23,7 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | RApp Expr Expr
           | App Expr [Expr]
           | Lam Name Expr
-          | Case Expr [Clause]
+          | Case Expr (Maybe Type) [Clause]
           | LLet LBind Expr Expr -- local let
           | Quant PiSigma TBind Expr
           | Pair Expr Expr
@@ -197,7 +197,8 @@ prettyExpr e =
       Pair e1 e2      -> "(" ++ prettyExpr e1 ++ " , " ++  prettyExpr e2 ++ ")"
       App e1 el       -> "(" ++ prettyExprs (e1:el) ++ ")"
       Lam x e1        -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
-      Case e cs       -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
+      Case e Nothing cs -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
+      Case e (Just t) cs -> "case " ++ prettyExpr e ++ " : " ++ prettyExpr t ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       LLet tb e1 e2 -> "(let " ++ prettyLBind tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
       Record rs       -> "record {" ++ Util.showList "; " prettyRecordLine rs ++ "}"
       Proj n          -> "." ++ n

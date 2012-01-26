@@ -280,7 +280,7 @@ Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
 --     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
-     | case ExprT '{' Cases '}'         { C.Case $2 $4 }  
+     | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }  
      | Expr0                            { $1 }
      | Expr1 '+' Expr                   { C.Plus $1 $3 }
      | Expr1 '<|' Expr                  { C.App $1 [$3] }

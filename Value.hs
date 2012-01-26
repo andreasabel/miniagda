@@ -117,10 +117,14 @@ vApp f vs = VApp f vs
 failValInv :: (Monad m) => Val -> m a
 failValInv v = fail $ "internal error: value " ++ show v ++ " violates representation invariant"
 
-arrow :: TVal -> TVal -> TVal
-arrow a b = VQuant Pi x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
+arrow , prod :: TVal -> TVal -> TVal
+arrow = quant Pi
+prod = quant Sigma
+
+quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
   where x   = fresh ""
-        bla = fresh "#ARROW#"
+        bla = fresh "#codom"
+
 
 -- Sizes form a commutative semiring with multiplication (Plus) and 
 -- idempotent addition (Max) 
