@@ -64,11 +64,12 @@ type Type = Expr
 data Constructor = Constructor
   { conName :: Name
   , conTel  :: Telescope
-  , conType :: Type
+  , conType :: Maybe Type -- can be omitted *but* for families
   } deriving (Eq)
 
 instance Show Constructor where
-  show (Constructor n tel t) = n ++ " " ++ show tel ++ " : " ++ show t
+  show (Constructor n tel (Just t)) = n ++ " " ++ show tel ++ " : " ++ show t
+  show (Constructor n tel  Nothing) = n ++ " " ++ show tel
 
 type TBind = TBinding Type
 type LBind = TBinding (Maybe Type)  -- possibly domain-free

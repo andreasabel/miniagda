@@ -385,8 +385,8 @@ TypeSig :: { C.TypeSig }
 TypeSig : Id ':' Expr { C.TypeSig $1 $3 }
 
 Constructor :: { C.Constructor }
-Constructor : Id Telescope ':' Expr { C.Constructor $1 $2 $4 }
---Constructor : TypeSig { $1 }
+Constructor : Id Telescope ':' Expr { C.Constructor $1 $2 (Just $4) }
+            | Id Telescope          { C.Constructor $1 $2 Nothing }
 
 Constructors :: { [C.Constructor ] }
 Constructors :

@@ -435,8 +435,8 @@ checkBody :: (A.TypeSig, C.Declaration) -> ScopeCheck A.Declaration
 checkBody (A.TypeSig n ts, C.LetDecl b _ e) = do
   e' <- scopeCheckExpr e -- problem: n may not appear, but is already in signature !!
 -}
-checkBody (A.TypeSig n tt, C.DataDecl _ sz co tel _ cs fields) = 
-  checkDataBody tt n sz co tel cs fields
+checkBody (A.TypeSig x tt, C.DataDecl n sz co tel _ cs fields) = 
+  checkDataBody tt n x sz co tel cs fields
 checkBody (ts@(A.TypeSig n t), d@(C.FunDecl co tsig cls)) = do
   (ar,cls') <- scopeCheckFunClauses d
   let n' = A.mkExtName n
@@ -497,8 +497,9 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
     addAName DataK n x
     let names = collectTelescopeNames tel
+        target = C.App (C.Ident n) (map C.Ident names)  -- R pars
         (tel',t') = A.typeToTele' (length names) tt'   
-    c' <- addTel tel tel' $ scopeCheckConstructor A.CoInd c
+    c' <- addTel tel tel' $ scopeCheckConstructor A.CoInd target c
     let delta = contextFromConstructors c c'
     afields <- addFields ProjK delta cfields
 {-
@@ -509,8 +510,8 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     return $ A.RecordDecl x tel' t' c' afields
 
 contextFromConstructors :: C.Constructor -> A.Constructor -> Context
-contextFromConstructors (C.Constructor _ ctel0 ct) (A.TypeSig _ at) = delta
-  where (ctel, _) = C.typeToTele ct
+contextFromConstructors (C.Constructor _ ctel0 mct) (A.TypeSig _ at) = delta
+  where ctel = maybe [] (fst . C.typeToTele) mct
         (atel, _) = A.typeToTele at
         delta = matchTels (ctel0 ++ ctel) atel
 
@@ -541,14 +542,15 @@ scopeCheckDataDecl decl@(C.DataDecl n sz co tel0 t cs fields) = enter n $ do
     -- STALE: -- do not infer polarities in index arguments
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
     addAName DataK n x
-    checkDataBody tt' x sz co tel cs fields
+    checkDataBody tt' n x sz co tel cs fields
 
 -- precondition: name already added to signature
-checkDataBody :: A.Type -> A.Name -> Sized -> Co -> C.Telescope -> [C.Constructor] -> [C.Name] -> ScopeCheck A.Declaration
-checkDataBody tt' n sz co tel cs fields = do
-      let cnames = collectTelescopeNames tel
-      let (tel',t') = A.typeToTele' (length cnames) tt'
-      cs' <- addTel tel tel' (mapM (scopeCheckConstructor co) cs)
+checkDataBody :: A.Type -> C.Name -> A.Name -> Sized -> Co -> C.Telescope -> [C.Constructor] -> [C.Name] -> ScopeCheck A.Declaration
+checkDataBody tt' n x sz co tel cs fields = do
+      let cnames = collectTelescopeNames tel         -- parameters
+          target = C.App (C.Ident n) $ map C.Ident cnames  -- D pars
+          (tel',t') = A.typeToTele' (length cnames) tt'
+      cs' <- addTel tel tel' (mapM (scopeCheckConstructor co target) cs)
 {- NO LONGER INFER DESTRUCTORS 
       -- traceM ("constructors: " ++ show cs')
 --      when (t' == A.Sort A.Set && length cs' == 1) $ do
@@ -577,7 +579,7 @@ checkDataBody tt' n sz co tel cs fields = do
 --      fields <- addFields (FunK True) delta fields
       -- fields <- mapM (addName $ FunK True) fields
       let pos = map (A.polarity . A.decor . A.boundDom) tel'
-      return $ A.DataDecl n sz co pos tel' t' cs' fields
+      return $ A.DataDecl x sz co pos tel' t' cs' fields
 
 -- check whether all declarations in mutual block are (co)funs 
 checkFunMutual :: Co -> [C.Declaration] -> ScopeCheck ()
@@ -714,8 +716,9 @@ checkAndAddTypeSig (kind, ts@(C.TypeSig n _)) = do
 collectTelescopeNames :: C.Telescope -> [C.Name]
 collectTelescopeNames = concat . map C.boundNames
 
-scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
-scopeCheckConstructor co a@(C.Constructor n tel t) = checkInSig a n $ \ x -> do
+scopeCheckConstructor :: Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor co t0 a@(C.Constructor n tel mt) = checkInSig a n $ \ x -> do
+    let t = maybe t0 id mt
     t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t 
     t <- adjustTopDecsM defaultToParam t 
     addAName (ConK $ A.coToConK co) n x
