@@ -314,14 +314,21 @@ scopeCheckDeclaration d@(C.DataDecl{}) =
 scopeCheckDeclaration d@(C.FunDecl co _ _) = 
   scopeCheckFunDecls co [d] -- >>= return . (:[])
                                                
+scopeCheckDeclaration (C.LetDecl eval letdef@C.LetDef{ C.letDefDec = dec, C.letDefName = n }) = do
+  unless (dec == A.defaultDec) $
+    throwErrorMsg $ "polarity annotation not supported in global let definition of " ++ show n
+  (tel, mt, e) <- scopeCheckLetDef letdef 
+  x <- addName LetK n
+  return $ A.LetDecl eval x tel mt e
+
+{-                                    
 scopeCheckDeclaration (C.LetDecl eval n tel mt e) = setDefaultPolarity A.Rec $ do 
   tel <- generalizeTel tel
   (tel, (mt, e)) <- scopeCheckTele tel $ do
      (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e 
   x <- addName LetK n
   return $ A.LetDecl eval x tel mt e
-
-{-                                             
+                                  
 scopeCheckDeclaration (C.LetDecl eval n tel0 mt0 e0) = setDefaultPolarity A.Rec $ do 
   tel <- generalizeTel tel0
   let mt = fmap (C.teleToType tel) mt0
@@ -382,6 +389,13 @@ scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl{}:xl)) =
 scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl  co _ _:xl)) = 
   scopeCheckFunDecls co l  -- >>= return . (:[])
 scopeCheckDeclaration (C.MutualDecl _) = throwErrorMsg "mutual combination not supported"
+
+scopeCheckLetDef :: C.LetDef -> ScopeCheck (A.Telescope, Maybe (A.Type), A.Expr)
+scopeCheckLetDef (C.LetDef dec n tel mt e) =  setDefaultPolarity A.Rec $ do 
+  tel <- generalizeTel tel
+  (tel, (mt, e)) <- scopeCheckTele tel $ do
+     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e 
+  return (tel, mt, e)
 
 {- scopeCheck Mutual block 
 first check signatures
@@ -460,9 +474,9 @@ mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) =
   (DataK, C.TypeSig n (C.teleToType tel t))
 mutualGetTypeSig (C.FunDecl co tsig cls) = 
   (FunK False, tsig) -- fun id for use inside defining body
-mutualGetTypeSig (C.LetDecl ev n tel Nothing e) = 
+mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel Nothing e)) = 
   error $ "let declaration of " ++ show n ++ ": type required in mutual block"  
-mutualGetTypeSig (C.LetDecl ev n tel (Just t) e) = 
+mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel (Just t) e)) = 
   (LetK, C.TypeSig n (C.teleToType tel t))
 {- mutualGetTypeSig (C.LetDecl ev tsig e) = 
   (LetK, tsig) -}
@@ -837,12 +851,19 @@ scopeCheckExpr e =
         (n, e1') <- addBind e n $ scopeCheckExpr e1
         return $ A.Lam A.defaultDec n e1' -- dec. in Lam is ignored in t.c. 
 
+      C.LLet letdef e2 -> do
+        let dec = C.letDefDec letdef
+        (tel, mt, e1) <- scopeCheckLetDef letdef
+        (x, e2) <- addBind e (C.letDefName letdef) $ scopeCheckExpr e2
+        return $ A.LLet (A.TBind x $ A.Domain mt A.defaultKind dec) tel e1 e2
+
+{-
       C.LLet (C.TBind dec [n] t1) e1 e2 ->  do
         t1'      <- mapM scopeCheckExpr t1
         e1'      <- scopeCheckExpr e1
         (n, e2') <- addBind e n $ scopeCheckExpr e2
         return $ A.LLet (A.TBind n $ A.Domain t1' A.defaultKind dec) e1' e2'
-
+-}
       C.Record rs -> do
         let fields = map fst rs
         if (hasDuplicate fields) then (errorDuplicateField e) else do

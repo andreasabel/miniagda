@@ -149,10 +149,13 @@ typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) =
     return result
 
 typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
-  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer e mt
+{- MOVED to checkLetDef
+  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer neutralDec e mt
   te <- return $ teleToType tel te
   ee <- return $ teleLam tel ee
   vt <- whnf' te
+-}
+  (vt, te, Kinded ki ee) <- checkLetDef neutralDec tel mt e
   rho <- getEnv -- is emptyEnv
   -- TODO: solve size constraints
   -- does not work with emptyEnv
@@ -370,78 +373,6 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
 
    ) -- `throwTrace` n  -- in case of an error, add name n to the trace
 
-{- OLD CODE
-{- a record type is a data type that fulfills 3 conditions
-   1. non-recursive
-   2. exactly 1 constructor
-   3. constructor carries names for each of its arguments
- -}
-     case isPatIndFam params cs of
-      Just [(c,ps)] -> do 
-        when (t == Set && nonRec && length cs == 1) $ do
-         let constrName   = namePart (head cs) 
-         let (ctel, core) = typeToTele (typePart (head cs)) 
-         let destrNames = map (\ (dec,x,t) -> x) ctel
-         let isRec = all (/= "") destrNames
-         when isRec $ do 
-  --         echo $ "+++ generating record destructors +++"
-  {- now, generate destructors
-  
-  data Sigma (A : Set) (B : A -> Set) : Set
-  {
-    pair : (fst : A) -> (snd : B fst) -> Sigma A B
-  }
-  fst : [A : Set] -> [B : A -> Set] -> (p : Sigma A B) -> A
-  { fst A B (pair .A .B _fst _snd) = _fst }
-  snd : [A : Set] -> [B : A -> Set] -> (p : Sigma A B) -> B (fst p)
-  { snd A B (pair .A .B _fst _snd) = _snd }
-   -}      
-           -- choose a name for the record to destroy
-           let recName = "record_of_type_" ++ n
-           let parNames = map (\ (_,x,_) -> x) tel
-           -- substitute variable "fst" by application "fst A B p"
-           let phi x = if x `elem` destrNames 
-                         then App (Def x) (map Var (parNames ++ [recName]))
-                         else Var x
-           let prefix x =  "destructor_argument_" ++ x
-           let pattern = ConP co constrName (map (DotP . Var) parNames 
-                                          ++ map (VarP . prefix) destrNames)
-           let mkDestr (_,x,t) = MutualFunDecl Ind [(TypeSig x (teleToTypeErase tel t'),[clause])] where 
-                   t' = (Pi notErased recName core . parSubst phi) t
-                   clause = Clause (map VarP parNames ++ [pattern]) (Var (prefix x))
-           let decls = map mkDestr ctel
-           mapM_ typeCheckDeclaration decls
-           modifySig n (\ dataSig -> dataSig { constructors = Just [(c,ps,destrNames)] })
-         return ()
-      _ -> return ()
-   ) `throwTrace` n  -- in case of an error, add name n to the trace
-END OLD CODE -}
-
-{-
-typeCheckConstructor :: Name -> Sized -> [Pol] -> Telescope -> Constructor -> TypeCheck ()
-typeCheckConstructor d sz pos tel (TypeSig n t) = 
-   ( 
-   do sig <- gets signature 
-      let tt = teleToTypeErase tel t
-      echoTySig n tt
-      let params = length tel 
-      let p' = case sz of
-                 Sized -> params + 1
-                 NotSized -> params
-      checkConType [] cxtEmpty p' tt
-      let (_,target) = typeToTele tt
-      checkTarget d tel target
-      vt <- whnf  [] tt
-      sposConstructor d 0 pos vt
-      addSig n (ConSig vt)
-      case sz of 
-        Sized ->
-            szConstructor d (length tel) vt
-        NotSized -> return ()
-      return ()
-   ) `throwTrace` n
--}
-
 -- returns True if constructor has recursive argument
 typeCheckConstructor :: Name -> Type -> Sized -> Co -> [Pol] -> Telescope -> Constructor -> TypeCheck (Bool, Kinded EConstructor)
 typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++ show n) $ do
@@ -451,11 +382,6 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   let tt = teleToType telE t
   echoTySig n tt
   let params = length tel 
-{-
-  let p' = case sz of
-             Sized -> params + 1
-             NotSized -> params
--}
   -- when checking constructor types,  do NOT resurrect telescope
   --   data T [A : Set] : Set { inn : A -> T A }
   -- should be rejected, since A ~= T A, and T A = T B means A ~=B for arb. A, B!
@@ -504,23 +430,6 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki) 
 --  echoTySigE n tte
   return (isRec, Kinded ki $ TypeSig n te)
-
-{-
-typeCheckFuns :: Co -> [(TypeSig,[Clause])] -> TypeCheck ()
-typeCheckFuns co funs = do 
-    mapM addFunSig funs
-    mapM typeCheckFunSig funs
-    -- type check and solve size constraints
-    -- return clauses with meta vars resolved
-    clss <- mapM typeCheckFunClauses funs 
-    -- replace old clauses by new ones in funs
-    let funs' = zipWith (\(tysig,cls) cls' -> (tysig,cl')) funs clss
-    -- check sized types for admissibility
-    mapM (admCheckFunSig (map (\ (TypeSig n t, cls) -> n) funs')) funs'
-    liftIO $ terminationCheck funs'  
-    mapM enableSig funs'      
-    return ()
--}
 
 typeCheckMeasuredFuns :: Co -> [Fun] -> TypeCheck [EFun]
 typeCheckMeasuredFuns co funs = do 
@@ -648,38 +557,6 @@ admCheckFunSig co@Ind mutualNames (TypeSig n t) cls = traceAdm ("admCheckFunSig:
              admFunDef co cls vt
     ) `throwTrace` ("checking type of " ++ show n ++ " for admissibility")
         
-
-{-
--- admCheckFunSig mutualNames (TypeSig thisName thisType, clauses)
-admCheckFunSig :: [Name] -> (TypeSig,[Clause]) -> TypeCheck () 
-admCheckFunSig mutualNames (TypeSig n t, cls) =   
-   (
-    do -- a function is not recursive if did does not mention any of the
-       -- mutually defined function names
-       let usedNames = rhsDefs cls
-       let notRecursive = all (\ n -> not (n `elem` usedNames)) mutualNames 
-       -- for non-recursive functions, we can skip the admissibility check
-       when (not notRecursive) $ do
-         vt <- whnf [] t
-       when (not notRecursive) $ do
-         vt <- whnf [] t              
-         (case co of
-            Ind -> do 
-               when (not (completeFun cls)) $
-                  fail $ n ++ " : size pattern incomplete" 
-               let admpos = getSizeMatches cls -- admissible in which size variables?  
-               szCheckIndFun admpos vt `throwTrace` "type not admissible"
-
-            CoInd -> do 
-               res <- admCoFun vt `throwTrace` "type not admissible"
-               case res of
-                  CoFun -> return ()
-                  SizedCoFun i ->
-                     when (not (coFunSuccPat i cls)) $
-                        fail $ n ++ " : corecursive size arguments can only be matched agains ($ i) for some size variable i"       
-            )  -- TODO: this might be incorrect for mutual cofuns
-    ) `throwTrace` ("type of " ++ n)
--}
 
 enableSig :: Kind -> Fun -> TypeCheck ()
 enableSig ki (Fun (TypeSig n _) n' ar' cl') = do 
@@ -904,11 +781,13 @@ checkExpr e v = do
 
  -}
 
-      (App (Lam dec x f) e, v) | inferable e -> checkUntypedLet x dec e f v
+      (App (Lam dec x f) e, v) | inferable e -> checkLet dec x [] Nothing e f v
 
+{-
       (LLet (TBind x (Domain Nothing _ dec)) e1 e2, v) -> checkUntypedLet x dec e1 e2 v
-
       (LLet (TBind x (Domain (Just t1) _ dec)) e1 e2, v) -> checkTypedLet x t1 dec e1 e2 v 
+-}
+      (LLet (TBind x (Domain mt _ dec)) tel e1 e2, v) -> checkLet dec x tel mt e1 e2 v 
 
       (Case (Var x) Nothing [Clause _ [SuccP (VarP y)] (Just rhs)], v) -> do
           (tv, _) <- resurrect $ inferExpr (Var x)
@@ -925,7 +804,7 @@ checkExpr e v = do
 
 
       (Case e mt cs, v) -> do
-          (tv, t, Kinded ki1 ee) <- checkOrInfer e mt
+          (tv, t, Kinded ki1 ee) <- checkOrInfer neutralDec e mt
           ve <- whnf' ee
           -- tv' <- sing' ee tv -- DOES NOT WORK
           Kinded ki2 cle <- checkCases ve (arrow tv v) cs
@@ -951,6 +830,23 @@ checkExpr e v = do
 
       ) -- >> (trace ("checkExpr successful: " ++ show e ++ ":" ++ show v) $ return ())
 
+-- | checkLet @let .x tel : t = e1 in e2@
+checkLet :: Dec -> Name -> Telescope -> Maybe Type -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
+checkLet dec x tel mt1 e1 e2 v = do 
+  (v_t1, t1e, Kinded ki1 e1e) <- checkLetDef dec tel mt1 e1
+--  (v_t1, t1e, Kinded ki1 e1e) <- checkOrInfer dec e1 mt1
+  checkLetBody x t1e v_t1 ki1 dec e1e e2 v
+
+-- | checkLetDef @.x tel : t = e@ becomes @.x : tel -> t = \ tel -> e@
+checkLetDef :: Dec -> Telescope -> Maybe Type -> Expr -> TypeCheck (TVal, EType, Kinded Extr)
+checkLetDef dec tel mt e = do
+  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer dec e mt
+  te <- return $ teleToType tel te
+  ee <- return $ teleLam tel ee
+  vt <- whnf' te
+  return (vt, te, Kinded ki ee)
+
+{-
 checkTypedLet :: Name -> Type -> Dec -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkTypedLet x t1 dec e1 e2 v = do 
   Kinded kit t1e <- checkType t1
@@ -972,6 +868,7 @@ checkUntypedLet x dec e1 e2 v = do
   v_e1 <- whnf' e1
   t1e <- toExpr v_t1
   checkLetBody x t1e v_t1 ki1 dec e1e e2 v 
+-}
 
 checkLetBody :: Name -> EType -> TVal -> Kind -> Dec -> Extr -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
@@ -979,7 +876,7 @@ checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
   new x (Domain v_t1 ki1 dec) $ \ vx -> do
     addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
       Kinded ki2 e2e <- checkExpr e2 v'
-      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) e1e e2e 
+      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) [] e1e e2e 
 {-
 -- Dependent let: not checkable in rho;Delta style
 --            v_e1 <- whnf rho e1
@@ -1222,19 +1119,19 @@ ptsRule s1 s2 = do
                               case minSize v1 v2 of
                                 Just v -> return $ CoSet v
                                 Nothing -> fail $ err ++ "min" ++ show (v1,v2) ++ " does not exist"
-                            else if v1==VInfty then return $ CoSet $succSize v2 
+                            else if v1==VInfty then return $ CoSet $ succSize v2 
                                   else fail $ err ++ "domain cannot be sized"
     _ -> return s2
     
-checkOrInfer :: Expr -> Maybe Type -> TypeCheck (TVal, EType, Kinded Extr)
-checkOrInfer e Nothing = do
-  (tv, ke) <- inferExpr e
+checkOrInfer :: Dec -> Expr -> Maybe Type -> TypeCheck (TVal, EType, Kinded Extr)
+checkOrInfer dec e Nothing = do
+  (tv, ke) <- applyDec dec $ inferExpr e
   te <- toExpr tv
   return (tv, te, ke)
-checkOrInfer e (Just t) = do
+checkOrInfer dec e (Just t) = do
   Kinded kt te <- checkType t
   tv <- whnf' te
-  Kinded ke ee <- checkExpr e tv
+  Kinded ke ee <- applyDec dec $ checkExpr e tv
   let ki = intersectKind ke $ predKind kt
   return $ (tv, te, Kinded ki ee)
 
@@ -2828,14 +2725,6 @@ szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++
 
 
 
-
-
-
-
-
-
-
-
 -- for inductive fun, and for every size argument i
 -- - every argument needs to be either inductive or antitone in i 
 -- - the result needs to be monotone in i 
@@ -3035,16 +2924,6 @@ szCheckCoFunSize delta i tv = -- traceCheck ("szco " ++ show tv) $
        -- result must be coinductive
        _ -> szCoInductive delta i tv
 
--}
-              
-{-
-szMono :: Co -> Int -> TVal -> TypeCheck Bool
-szMono co i tv = 
-  (do case co of
-         Ind   -> szMonotone i tv
-         CoInd -> szAntitone i tv
-      return True
-  ) `catchError` (\ _ -> return False)
 -}
 
 szMono :: Co -> Int -> TVal -> TypeCheck ()

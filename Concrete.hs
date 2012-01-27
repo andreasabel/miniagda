@@ -24,7 +24,8 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | App Expr [Expr]
           | Lam Name Expr
           | Case Expr (Maybe Type) [Clause]
-          | LLet LBind Expr Expr -- local let
+          | LLet LetDef Expr -- local let
+--          | LLet LBind Expr Expr -- local let
           | Quant PiSigma TBind Expr
           | Pair Expr Expr
           | Record [([Name],Expr)]
@@ -35,6 +36,14 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | Sing Expr Expr 
           deriving (Eq)
 
+data LetDef = LetDef 
+  { letDefDec :: Dec
+  , letDefName :: Name
+  , letDefTel  ::  Telescope
+  , letDefType :: (Maybe Type)
+  , letDefExpr :: Expr
+  } deriving (Eq, Show)
+          
 instance Show Expr where
     show = prettyExpr
 
@@ -48,7 +57,8 @@ data Declaration
   | RecordDecl Name Telescope Type Constructor 
       [Name] -- list of field names
   | FunDecl Co TypeSig [Clause] 
-  | LetDecl Bool Name Telescope (Maybe Type) Expr -- True = if eval 
+  | LetDecl Bool LetDef -- True = if eval 
+--  | LetDecl Bool Name Telescope (Maybe Type) Expr -- True = if eval 
   | PatternDecl Name [Name] Pattern
   | MutualDecl [Declaration]
   | OverrideDecl Override [Declaration] -- fail etc.
@@ -178,8 +188,29 @@ prettyTBind inPi (TBind dec x t) =
         addPol b x = if pol==Mixed then x 
                       else show pol ++ (if b then " " else "") ++ x  
 -}
+prettyLetBody :: String -> Expr -> String
+prettyLetBody s e = parens $ s ++ " in " ++ prettyExpr e
 
+prettyLetAssign :: String -> Expr -> String
+prettyLetAssign s e = "let " ++ s ++ " = " ++ prettyExpr e
 
+prettyLetDef :: LetDef -> String
+prettyLetDef (LetDef dec n [] mt e) = prettyLetAssign (prettyLBind tb) e
+  where tb = TBind dec [n] mt
+prettyLetDef (LetDef dec n tel mt e) = prettyLetAssign s e
+  where s = prettyDecId dec n ++ " " ++ prettyTel tel ++ prettyMaybeType mt
+
+prettyDecId :: Dec -> String -> String
+prettyDecId dec x 
+  | erased dec = brackets x
+  | otherwise  =
+     let pol = polarity dec
+     in  if pol == defaultPol then x else show pol ++ x  
+
+prettyTel :: Telescope -> String
+prettyTel = Util.showList " " (prettyTBind False)
+
+prettyMaybeType = maybe "" $ \ t -> " : " ++ prettyExpr t
 
 prettyExpr :: Expr -> String
 prettyExpr e = 
@@ -199,7 +230,10 @@ prettyExpr e =
       Lam x e1        -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
       Case e Nothing cs -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       Case e (Just t) cs -> "case " ++ prettyExpr e ++ " : " ++ prettyExpr t ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
+      LLet letdef e -> prettyLetBody (prettyLetDef letdef) e
+{-
       LLet tb e1 e2 -> "(let " ++ prettyLBind tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")" 
+-}
       Record rs       -> "record {" ++ Util.showList "; " prettyRecordLine rs ++ "}"
       Proj n          -> "." ++ n
       Ident n         -> n

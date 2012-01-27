@@ -147,6 +147,9 @@ defaultUpperDec = Dec { polarity = pprod SPos }
 -- notErased = Dec False
 -- resurrectDec d = d { erased = False }
 
+-- | Composing with 'neutralDec' should do nothing.
+neutralDec = Dec { polarity = SPos }
+
 coDomainDec :: Dec -> Dec
 coDomainDec dec
     | polarity dec == Pol.Const = dec { polarity = Param }
@@ -657,7 +660,7 @@ data Expr
   | Proj PrePost Name    -- proj _  or  _ .proj
   | Pair Expr Expr
   | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
-  | LLet LBind Expr Expr --local let [x : A] = t in u
+  | LLet LBind Telescope Expr Expr --local let [x : A] = t in u, let [x] tel = t in u ...
   | App Expr Expr
   | Lam Dec Name Expr
   | Quant PiSigma TBind Expr
@@ -873,7 +876,7 @@ eraseMeasure :: Expr -> Expr
 eraseMeasure (Quant Pi (TMeasure{}) b) = b -- there can only be one measure!
 eraseMeasure (Quant Pi a@(TBind{}) b)  = Quant Pi a $ eraseMeasure b
 eraseMeasure (Quant Pi a@(TBound{}) b) = Quant Pi a $ eraseMeasure b
-eraseMeasure (LLet a e b) = LLet a e $ eraseMeasure b
+eraseMeasure (LLet a tel e b) = LLet a tel e $ eraseMeasure b
 eraseMeasure t = t
 
 -- inferable term = True/False
@@ -905,7 +908,7 @@ freeVars (Var name)   = Set.singleton name
 freeVars Def{}        = Set.empty
 --freeVars Let{}        = Set.empty
 freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls) 
-freeVars (LLet (TBind x dom) t u) 
+freeVars (LLet (TBind x dom) [] t u) 
   = maybe Set.empty freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
 freeVars (Pair f e)   = freeVars f `Set.union` freeVars e
 freeVars (App f e)    = freeVars f `Set.union` freeVars e
@@ -918,7 +921,7 @@ freeVars (Sing e t)   = freeVars e `Set.union` freeVars t
 freeVars (Below _ e)  = freeVars e 
 freeVars (Ann te)  = freeVars (unTag te)
 freeVars Irr          = Set.empty
--- freeVars e            = error $ "freeVars " ++ show e ++ " not implemented"
+freeVars e            = error $ "freeVars " ++ show e ++ " not implemented"
 
 freeVarsClause :: Clause -> Set Name
 freeVarsClause (Clause _ ps Nothing) = Set.empty
@@ -951,7 +954,7 @@ usedDefs (Below _ b) = usedDefs b
 usedDefs (Quant pisig (TBind x dom) b) = usedDefs (typ dom) ++ usedDefs b
 usedDefs (Quant Pi (TMeasure mu) b) = Foldable.foldMap usedDefs mu ++ usedDefs b
 usedDefs (Quant Pi (TBound beta) b) = Foldable.foldMap usedDefs beta ++ usedDefs b
-usedDefs (LLet (TBind x dom) e1 e2) = Foldable.foldMap usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
+usedDefs (LLet (TBind x dom) [] e1 e2) = Foldable.foldMap usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
 usedDefs (Succ e) = usedDefs e
 usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls) 
 usedDefs (Ann e) = usedDefs (unTag e)
@@ -965,6 +968,7 @@ usedDefs Proj{} = []
 usedDefs (Record ri rs) = Foldable.foldMap (usedDefs . snd) rs
 -- usedDefs Con{} = []
 -- usedDefs Let{} = []
+usedDefs e            = error $ "usedDefs " ++ show e ++ " not implemented"
          
 rhsDefs :: [Clause] -> [Name]
 rhsDefs cls = List.foldl (\ ns (Clause _ ps e) -> maybe [] usedDefs e ++ ns) [] cls
@@ -1018,18 +1022,25 @@ instance Pretty Expr where
   prettyPrec k (Lam dec x e) = parensIf (0 < k) $ 
     (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->") 
       <+> pretty e
-  prettyPrec k (LLet (TBind n (Domain (Just t) ki dec)) e1 e2) = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain mt ki dec)) [] e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
-       pretty n <+> vcat [ colon <+> pretty t 
+       pretty n <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt 
                            <> (if erased dec then rbrack else PP.empty) 
                        , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
+  prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) = parensIf (0 < k) $
+    (text "let" <+> hsep (((if erased dec then brackets else id) $ pretty n)
+                         : List.map pretty tel)
+                <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt 
+                         , equals <+> pretty e1 ])
+    $$ (text "in" <+> pretty e2)
+{-
   prettyPrec k (LLet (TBind n (Domain Nothing ki dec)) e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
        pretty n <+> vcat [ if erased dec then rbrack else PP.empty 
                          , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
-
+-}
   prettyPrec k (Below ltle e) = pretty ltle <+> prettyPrec k e
   prettyPrec k (Quant Pi (TMeasure mu) t2) = parensIf (precArrL <= k) $ 
     (pretty mu <+> text "->" <+> pretty t2)
@@ -1058,6 +1069,25 @@ instance Pretty Expr where
           ppol = if pol==defaultPol then PP.empty else text $ show pol 
 
   prettyPrec k (Ann e) = pretty e
+
+instance Pretty TBind where
+  prettyPrec k (TMeasure mu) = pretty mu
+  prettyPrec k (TBound beta) = pretty beta
+
+  prettyPrec k (TBind x (Domain (Below ltle t1) ki dec)) =
+    ppol <>
+    ((if erased dec then brackets else parens) $
+      pretty x <+> pretty ltle <+> pretty t1)
+    where pol = polarity dec
+          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+
+  prettyPrec k (TBind x (Domain t1 ki dec)) =
+    ppol <>
+    ((if erased dec then brackets else parens) $
+      pretty x <+> colon <+> pretty t1)
+    where pol = polarity dec
+          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+  
 
 prettyRecFields rs =
     let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs 
@@ -1211,7 +1241,7 @@ parSubst phi e@Def{}        = e
 -- parSubst phi e@Let{}        = e
 parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $ 
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (parSubst phi) t)) cls
-parSubst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (fmap (parSubst phi)) dom) (parSubst phi b) (parSubst phi c)
+parSubst phi (LLet (TBind x dom) [] b c) = LLet (TBind x $ fmap (fmap (parSubst phi)) dom) [] (parSubst phi b) (parSubst phi c)
 parSubst phi (Pair f e)     = Pair (parSubst phi f) (parSubst phi e)
 parSubst phi (App f e)      = App (parSubst phi f) (parSubst phi e)
 -- parSubst phi (App e es)     = App (parSubst phi e) (List.map (parSubst phi) es)
@@ -1251,7 +1281,7 @@ subst phi e@Proj{}        = e
 -- subst phi e@Let{}        = e
 subst phi (Case e mt cls)   = Case (subst phi e) (fmap (subst phi) mt) $
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (subst phi) t)) cls
-subst phi (LLet (TBind x dom) b c) = LLet (TBind x $ fmap (fmap (subst phi)) dom) (subst phi b) (subst phi c)
+subst phi (LLet (TBind x dom) [] b c) = LLet (TBind x $ fmap (fmap (subst phi)) dom) [] (subst phi b) (subst phi c)
 subst phi (Pair f e)     = Pair (subst phi f) (subst phi e)
 subst phi (App f e)      = App (subst phi f) (subst phi e)
 -- subst phi (App e es)     = App (subst phi e) (List.map (subst phi) es)
@@ -1328,7 +1358,24 @@ data ConstructorInfo = ConstructorInfo
 corePat :: ConstructorInfo -> [Pattern]
 corePat = snd . cPatFam
 
-{-  For the constructor
+{- Old comment:  
+a record type is a data type that fulfills 3 conditions
+   1. non-recursive
+   2. exactly 1 constructor
+   3. constructor carries names for each of its arguments
+
+Non-indexed case: generate destructors
+  
+  data Sigma (A : Set) (B : A -> Set) : Set
+  { pair : (fst : A) -> (snd : B fst) -> Sigma A B
+  }
+  fst : [A : Set] -> [B : A -> Set] -> (p : Sigma A B) -> A
+  { fst A B (pair _fst _snd) = _fst }
+  snd : [A : Set] -> [B : A -> Set] -> (p : Sigma A B) -> B (fst p)
+  { snd A B (pair _fst _snd) = _snd }
+
+-}
+{- Indexed case: For the constructor
 
   vcons : (n : Nat) -> (head : A) -> (tail : Vec A n) -> Vec A (suc n)
 
@@ -1342,10 +1389,10 @@ cEtaExp = True, but may be set to False later since the constructor is recursive
 We generate the destructors
   
   head : (A : Set) -> (n : Nat) -> (x : Vec A (suc n)) -> A
-  head .A .n (vcons A n _head _tail) = _head
+  head A n (vcons .n _head _tail) = _head
   
   tail : (A : Set) -> (n : Nat) -> (x : Vec A (suc n)) -> Vec A n
-  tail .A .n (vcons A n _head _tail) = _tail
+  tail A n (vcons .n _head _tail) = _tail
 
 in the implementation we use "constructed_by_head" for "x"
 
@@ -1356,25 +1403,6 @@ discriminate index arguments from fields
   - create a list of (name,type,classification) for each constructor arg,
     where classification in {index,field}
 
--}
-
-{- functionality relocated to sposConstructor 
--- cannot exclude that the type is a recursive occurrence
-maybeRecursiveOccurrence :: Name -> Expr -> Bool
-maybeRecursiveOccurrence dataName ty =
-  case (fst (spineView ty)) of
-    Def (DefId Dat n) -> n == dataName
-    Def (DefId (Con _) n) -> False
-    Pi{} -> False
-    Sort{} -> False
-    Var{} -> False
-    Sing e ty -> maybeRecursiveOccurrence dataName ty
-    Erased e  -> maybeRecursiveOccurrence dataName e
-    Case{} -> True
-    LLet{} -> True
-    Def (DefId Fun _) -> True -- being cautious
-    Def (DefId Let _) -> True -- being cautious
--- TODO: analyze value, not expression!
 -}
     
 -- TODO: analyze value, not expression!

@@ -798,7 +798,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
                                  [cg]
           (Case e _ cls) -> loop tso e ++ concatMap (loop (tsoCase tso e cls)) (map (maybe Irr id . clExpr) cls)
           (Lam _ _ e1) -> loop tso e1
-          (LLet tb e1 e2) ->  
+          (LLet tb [] e1 e2) ->  
              (loop tso e1) ++ -- type won't get evaluated 
              (loop tso e2) 
           (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)

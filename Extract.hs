@@ -437,14 +437,14 @@ extractCheck e tv = do
              new' y (defaultDomain VIrr) $
                extractCheck e VIrr
 
-    LLet (TBind x dom0) e1 e2 -> do
+    LLet (TBind x dom0) [] e1 e2 -> do
       let dom = fmap Maybe.fromJust dom0 
       if erased (decor dom) then extractCheck e2 tv else do -- discard let
        vdom <- Traversable.mapM whnf' dom         -- MiniAgda type val
        dom  <- Traversable.mapM extractType vdom  -- Fomega type
        vdom <- Traversable.mapM whnf' dom         -- Fomega type val
        e1  <- extractCheck e1 (typ vdom)
-       LLet (TBind x (fmap Just dom)) e1 <$> do
+       LLet (TBind x (fmap Just dom)) [] e1 <$> do
          new' x vdom $ extractCheck e2 tv
 
     Pair e1 e2 -> do

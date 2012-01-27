@@ -132,8 +132,15 @@ Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
       
 Let :: { C.Declaration }
+Let : Eval let LetDef { C.LetDecl $1 $3 }
+
+{-
 Let : Eval let Id Telescope TypeOpt '=' ExprT { C.LetDecl $1 $3 $4 $5 $7 }
 -- Let : Eval let Id Telescope ':' Expr '=' ExprT { C.LetDecl $1 $3 $4 $6 $8 }
+-}
+
+LetDef :: { C.LetDef }
+LetDef : PolId Telescope TypeOpt '=' ExprT { let (dec,n) = $1 in C.LetDef dec n $2 $3 $5 }
 
 Eval :: { Bool }
 Eval : {- nothing -}  { False }
@@ -215,6 +222,17 @@ UntypedBind : Id              { C.TBind A.defaultDec [$1] Nothing }
             | Pol Id          { C.TBind (Dec $1) [$2] Nothing }
             | Pol '(' Id ')'  { C.TBind (Dec $1) [$3] Nothing }
 
+PolId :: { (Dec, C.Name) }
+PolId : Id              {  (A.defaultDec   , $1) }
+      | '[' Id ']'      {  (A.irrelevantDec, $2) }
+      | Pol Id          {  (Dec $1         , $2) }
+
+LLetDef :: { C.LetDef }
+LLetDef : LetDef        { $1 }
+-- legacy forms
+        |  '[' Id ':' Expr ']' '=' Expr     { C.LetDef A.irrelevantDec $2 [] (Just $4) $7 }  -- erased binding
+        |  Pol '(' Id ':' Expr ')' '=' Expr { C.LetDef (Dec $1) $3 [] (Just $5) $8 } -- ordinary binding
+
 -- let binding
 LBind :: { C.LBind }
 LBind :  UntypedBind         { $1 }
@@ -279,7 +297,8 @@ Expr :: { C.Expr }
 Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 } 
 --     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
-     | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
+     | let LLetDef in ExprT             { C.LLet $2 $4 }
+--     | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
      | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }  
      | Expr0                            { $1 }
      | Expr1 '+' Expr                   { C.Plus $1 $3 }

@@ -220,7 +220,7 @@ translateExpr e =
       e <- translateExpr e
       return $ if erased dec then e else H.mkLam y e
 
-    LLet (TBind x dom) e1 e2 -> do
+    LLet (TBind x dom) [] e1 e2 -> do
       x  <- hsVarName x
       e2 <- translateExpr e2 
       if erased (decor dom) then return e2 else do

@@ -377,8 +377,9 @@ closToExpr rho e =
     Var x          -> toExpr =<< whnf rho e 
     Def d          -> return e
     Case e mt cls  -> Case <$> closToExpr rho e <*> mapM (closToExpr rho) mt <*> mapM (clauseToExpr rho) cls
-    LLet (TBind x dom) e1 e2 -> addNameEnv x rho $ \ x rho' -> 
-      LLet <$> (TBind x <$> mapM (mapM (closToExpr rho)) dom) 
+    LLet (TBind x dom) [] e1 e2 -> addNameEnv x rho $ \ x rho' -> 
+      LLet <$> (TBind x <$> mapM (mapM (closToExpr rho)) dom)
+           <*> pure [] 
            <*> closToExpr rho e1 
            <*> closToExpr rho' e2
 {-
@@ -424,7 +425,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Meta i -> do let v = VMeta i env 0
                  traceMetaM $ "whnf meta " ++ show v
                  return v
-    LLet (TBind x dom) e1 e2 -> do 
+    LLet (TBind x dom) [] e1 e2 -> do 
       let v1 = mkClos env e1
       whnf (update env x v1) e2
 {-
