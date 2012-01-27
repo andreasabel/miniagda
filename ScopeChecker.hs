@@ -198,6 +198,9 @@ getSig = ScopeCheck $ gets signature
 -- | Add a global identifier.
 addName :: IKind -> C.Name -> ScopeCheck A.Name
 addName k n = do
+  sig <- getSig
+  when (isJust (lookupSig n sig)) $
+    errorAlreadyInSignature "shadowing of global definitions forbidden" n
   let x = A.fresh n
   addAName k n x
   return x

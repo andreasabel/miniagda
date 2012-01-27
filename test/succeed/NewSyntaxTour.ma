@@ -16,7 +16,7 @@ let two1 [A : Set] (f : A -> A) (a : A) : A
 -- since the type A of the let-body f (f a) is inferable
 -- we can omit it
 
-let two1 [A : Set] (f : A -> A) (a : A)
+let two2 [A : Set] (f : A -> A) (a : A)
   = f (f a)
 
 -- Untyped local let
@@ -30,7 +30,17 @@ let twice [F : Set -> Set] (f : [A : Set] -> A -> F A)
     let fa   = f A a in f FA fa
 
 -- local lets can also use telescopes
-let test : Size =
+let localLetTel : Size =
   let two1 [A : Set] (f : A -> A) (a : A)
     = f (f a)
   in 0
+
+-- and can still be made irrelevant
+let localLetIrr [A : Set] (f : [A -> A] -> Size) [a : A] : Size =
+  let [g] (x : A) = a
+  in  f g
+
+-- alternative with . instead of brackets
+let localLetIrr1 [A : Set] (f : .(A -> A) -> Size) .(a : A) : Size =
+  let .g (x : A) = a
+  in  f g
