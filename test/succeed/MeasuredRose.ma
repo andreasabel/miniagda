@@ -22,3 +22,10 @@ fun mapRose : [A : Set] -> [B : Set] -> (A -> B) ->
 { mapRose A B f i (rose (i > j) a rs) = 
     rose j (f a) (mapList (Rose A j) (Rose B j) (mapRose A B f j) rs)
 }
+
+-- 2012-01-27 it is also possible to place the measure after the rec.arg.
+fun mapRose' : [A : Set] -> [B : Set] -> (A -> B) -> 
+               [i : Size] -> Rose A i -> |i| -> Rose B i
+{ mapRose' A B f i (rose (i > j) a rs) = 
+    rose j (f a) (mapList (Rose A j) (Rose B j) (mapRose' A B f j) rs)
+}

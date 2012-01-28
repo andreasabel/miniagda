@@ -1156,10 +1156,6 @@ inferExpr e = do
       return (vb, ee)
     _ -> return (tv, ee)
 
-checkGuard :: Bound Val -> TypeCheck ()
-checkGuard beta@(Bound ltle mu mu') = enterDoc (text "checkGuard" <+> prettyTCM beta) $
-  lexSizes ltle (measure mu) (measure mu')
-
 inferProj :: Expr -> PrePost -> Name -> TypeCheck (TVal, Kinded Extr)
 inferProj e1 fx p = checkingCon False $ do
             (v, Kinded ki1 e1e) <- inferExpr e1

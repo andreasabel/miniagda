@@ -46,11 +46,11 @@ deep
 /// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- L $i (pre i f) : O $$i
 /// inferExpr' pre i f
 /// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- (xSing# : Nat) -> < f xSing# : O j2 >  <=+  Nat -> O $$i
-/// new xSing# : Nat||Nat
+/// new  : Nat
 /// comparing codomain < vSing# xSing# : O i > with O $$i
-/// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- < f xSing# : O j2 >  <=+  O $$i
-/// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- O j2  <=+  O $$i
-/// leqVal' [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- j2  <=+  $$i : Size
+/// leqVal' (subtyping) [(,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- < f  : O j2 >  <=+  O $$i
+/// leqVal' (subtyping) [(,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- O j2  <=+  O $$i
+/// leqVal' [(,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- j2  <=+  $$i : Size
 /// leSize v2 <=+ ($ ($ v6))
 /// leSize' v2 <= ($ ($ v6))
 /// bound not entailed

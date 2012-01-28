@@ -1355,6 +1355,14 @@ leqVal' f p mt12 u1' u2' = do
               (VGuard beta1 bv1, VGuard beta2 bv2) -> do
                  entailsGuard (switch p) beta1 beta2
                  leqVal' f p Nothing bv1 bv2
+
+              (VGuard beta u1, u2) | p `elem` [Neg,Pos] -> 
+                addOrCheckGuard (switch p) beta $
+                  leqVal' f p Nothing u1 u2
+
+              (u1, VGuard beta u2) | p `elem` [Neg,Pos] -> 
+                addOrCheckGuard p beta $
+                  leqVal' f p Nothing u1 u2
  {-
   p' <= p   
   Gamma' |- A' <= Gamma |- A
@@ -1369,9 +1377,19 @@ leqVal' f p mt12 u1' u2' = do
                     recoverFailDoc $ text "subtyping" <+> prettyTCM u1 <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2 <+> text "failed"
                   else do     
                     leqVal' (switch f) p' Nothing av1 av2
+                    -- take smaller domain
+                    let dom = if (p' == Neg) then dom2 else dom1
+                    let x = if emptyName x1 then x2 else
+                            if emptyName x2 then x1 else
+                            if p' == Neg then x2 else x1    
+                    new x dom $ \ xv -> do
+                      bv1 <- whnf (update env1 x1 xv) b1
+                      bv2 <- whnf (update env2 x2 xv) b2
+{-
                     new2 x1 (dom1, dom2) $ \ (xv1, xv2) -> do
                       bv1 <- whnf (update env1 x1 xv1) b1
                       bv2 <- whnf (update env2 x2 xv2) b2
+-}
                       enterDoc (text "comparing codomain" <+> prettyTCM b1 <+> text "with" <+> prettyTCM b2) $
                         leqVal' f p Nothing bv1 bv2
 
@@ -1904,7 +1922,16 @@ eqGuard (Bound (Measure mu1) (Measure mu1')) (Bound (Measure mu2) (Measure mu2')
   zipWithM (leqSize mixed) mu1 mu2
   zipWithM (leqSize mixed) mu1' mu2'
   return ()
--}           
+-}          
+
+checkGuard :: Bound Val -> TypeCheck ()
+checkGuard beta@(Bound ltle mu mu') = 
+  enterDoc (text "checkGuard" <+> prettyTCM beta) $
+    lexSizes ltle (measure mu) (measure mu')
+
+addOrCheckGuard :: Pol -> Bound Val -> TypeCheck a -> TypeCheck a
+addOrCheckGuard Neg beta cont = checkGuard beta >> cont
+addOrCheckGuard Pos beta cont = addBoundHyp beta cont
 
 -- comparing polarities -------------------------------------------------
 
