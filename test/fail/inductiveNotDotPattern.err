@@ -13,8 +13,8 @@ bla
 /// clause 1
 /// pattern zero $i
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i : Size] -> < zero i : SNat $i > ends in correct coinductive sized type
-/// new i : Size
+/// checkPattern $i : matching on size, checking that target .[i <= #] -> < zero i : SNat $i > ends in correct coinductive sized type
+/// new i <= #
 /// endsInSizedCo: < zero i : SNat $i >
 /// endsInSizedCo: SNat $i
 /// endsInSizedCo: target SNat $i of corecursive function is neither a CoSet or codata of size i nor a tuple type

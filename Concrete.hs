@@ -9,6 +9,8 @@ import Polarity
 
 type Name = String -- concrete names
 
+set0 = Set Zero
+
 data Expr = Set Expr        -- Type 0 for backward compat
           | CoSet Expr
 --          | Type Expr

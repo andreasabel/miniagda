@@ -16,7 +16,8 @@ cabalp=cabal install -p --enable-executable-profiling
 
 default : Main test
 
-#current : miniagda-prof
+prof-current : miniagda-prof
+	miniagda-prof test/succeed/Zero.ma +RTS -prof -s
 #	miniagda-prof privateExamples/NisseContNorm/negative-2010-11-23.ma +RTS -prof
 current : Main
 #	Main test/fail/BoundedFake.ma

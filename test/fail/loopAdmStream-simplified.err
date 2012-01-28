@@ -12,8 +12,8 @@ error during typechecking:
 f
 /// clause 1
 /// pattern $j
-/// checkPattern $j : matching on size, checking that target .[i : Size] -> (StreamUnit i -> StreamUnit #) -> StreamUnit i ends in correct coinductive sized type
-/// new i : Size
+/// checkPattern $j : matching on size, checking that target .[i <= #] -> (StreamUnit i -> StreamUnit #) -> StreamUnit i ends in correct coinductive sized type
+/// new i <= #
 /// endsInSizedCo: (StreamUnit i -> StreamUnit #) -> StreamUnit i
 /// new  : ((StreamUnit v1)::Tm -> StreamUnit #{i = v1})
 /// type StreamUnit i -> StreamUnit # not lower semi continuous in i

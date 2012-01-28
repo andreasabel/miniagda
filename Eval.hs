@@ -1401,11 +1401,13 @@ leqVal' f p mt12 u1' u2' = do
                  v1 <- whnfClos v1
                  leSize ltle p v1 v2
 
+{- 2012-01-28 now vSize is VBelow Le Infty
+
               -- extra cases since vSize is not implemented as VBelow Le Infty
               (u1,u2) | isVSize u1 && isVSize u2 -> return ()
               (VSort (SortC Size), VBelow{}) -> leqStructural (VBelow Le VInfty) u2
               (VBelow{}, VSort (SortC Size)) -> leqStructural u1 (VBelow Le VInfty)
-
+-}
               -- care needed to not make <=# a subtype of <#
               (VBelow ltle1 v1, VBelow ltle2 v2) -> 
                 case (p, ltle1, ltle2) of

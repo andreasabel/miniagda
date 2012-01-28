@@ -12,8 +12,8 @@ error during typechecking:
 copyFirst
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i : Size] -> Stream Nat i -> Stream Nat $i ends in correct coinductive sized type
-/// new i : Size
+/// checkPattern $i : matching on size, checking that target .[i <= #] -> Stream Nat i -> Stream Nat $i ends in correct coinductive sized type
+/// new i <= #
 /// endsInSizedCo: Stream Nat i -> Stream Nat $i
 /// new  : (Stream {Nat {i = v0}} v0)
 /// endsInSizedCo: Stream Nat $i

@@ -797,7 +797,8 @@ instance MonadCxt TypeCheck where
     let fSize (i, tv12) = 
           case tv12 of
             One dom -> isVSize $ typ dom
-            _ -> False   
+            _ -> -- trace ("not a size variable " ++ show i ++ " : " ++ show tv12) $ 
+                   False   
     -- create a list of key (gen) and Domain pairs for the size variables
     let idl = filter fSize $ Map.toAscList (cxt delta)
     let udecs = upperDecs delta

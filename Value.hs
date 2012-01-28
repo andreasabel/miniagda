@@ -71,8 +71,8 @@ data MeasVal = MeasVal [Val]  -- lexicographic termination measure
 
 -- | The value representing type Size.
 vSize :: Val
--- vSize = VBelow Le VInfty 
-vSize = VSort $ SortC Size
+vSize = VBelow Le VInfty -- 2012-01-28 non-termination bug I have not found
+-- vSize = VSort $ SortC Size
 
 -- | Ensure we construct the correct value representing Size.
 vSort :: Sort Val -> Val
@@ -90,6 +90,10 @@ vTopSort :: Val
 vTopSort = VSort $ Set VInfty
 
 mkClos :: Env -> Expr -> Val
+mkClos rho Infty       = VInfty
+mkClos rho Zero        = VZero
+-- mkClos rho (Succ e)    = VSucc (mkClos rho e)  -- violates an invariant!! succeed/crazys
+mkClos rho (Below ltle e) = VBelow ltle (mkClos rho e)
 mkClos rho (Proj fx n) = VProj fx n
 mkClos rho (Var x) = lookupPure rho x 
 mkClos rho e = VClos rho e
@@ -278,10 +282,11 @@ showVal (VMeasured mu tv) = parens $ show mu ++ " -> " ++ show tv
 showVal (VGuard beta tv) = parens $ show beta ++ " -> " ++ show tv
 showVal (VBelow ltle v) = show ltle ++ " " ++ show v
 
-showVal (VQuant pisig x (Domain (VBelow ltle v) ki dec) env b) =
+showVal (VQuant pisig x (Domain (VBelow ltle v) ki dec) env b) 
+  | (ltle,v) /= (Le,VInfty) =
   parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
             (if erased dec then brackets binding else parens binding) 
-              ++ " " ++ show pisig ++ show " " ++ show b ++ showEnv env
+              ++ " " ++ show pisig ++ " " ++ show b ++ showEnv env
          where binding = show x ++ " " ++ show ltle ++ " " ++ showVal v
 
 showVal (VQuant pisig x (Domain av ki dec) env b) =

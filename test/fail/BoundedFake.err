@@ -7,9 +7,9 @@ error during typechecking:
 bad
 /// clause 1
 /// pattern j < i
-/// new j : Size
+/// new j <= #
 /// adding size rel. v1 + 1 <= v0
-/// leqVal' (subtyping) [(i,0),(j,1)] |- Size  <=+  < i
+/// leqVal' (subtyping) [(i,0),(j,1)] |- <= #  <=+  < i
 /// leSize # <+ v0
 /// leSize' # < v0
 /// leSize: # + 0 < i failed

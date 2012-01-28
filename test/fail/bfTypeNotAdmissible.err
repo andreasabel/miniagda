@@ -32,8 +32,8 @@ checking type of bf' for admissibility
 /// new a : _
 /// new r : _
 /// new rs : _
-/// new i : Size
-/// admType: checking ((List v0 {# {i = v6, A = v0}})::Tm -> List (Rose A i) # -> List A #{i = v6, A = v0}) admissible in v6
-/// new  : (List v0 {# {i = v6, A = v0}})
-/// admType: checking ((List {Rose A i {i = v6, A = v0}} {# {i = v6, A = v0}})::Tm -> List A #{i = v6, A = v0}) admissible in v6
-/// type (List {Rose A i {i = v6, A = v0}} {# {i = v6, A = v0}}) not lower semi continuous in v6
+/// new i <= #
+/// admType: checking ((List v0 #)::Tm -> List (Rose A i) # -> List A #{i = v6, A = v0}) admissible in v6
+/// new  : (List v0 #)
+/// admType: checking ((List {Rose A i {i = v6, A = v0}} #)::Tm -> List A #{i = v6, A = v0}) admissible in v6
+/// type (List {Rose A i {i = v6, A = v0}} #) not lower semi continuous in v6

@@ -101,7 +101,7 @@ Declaration : Data                      { $1 }
            | check '{' Declarations '}'   { C.OverrideDecl Check $3 }
            | trustme Declaration          { C.OverrideDecl TrustMe [$2] }
            | trustme '{' Declarations '}' { C.OverrideDecl TrustMe $3 }
-
+{-
 Data :: { C.Declaration }
 Data : data Id DataTelescope ':' Expr '{' Constructors '}' OptFields
    { C.DataDecl $2 A.NotSized A.Ind $3 $5 (reverse $7) $9 }
@@ -121,6 +121,39 @@ SizedCoData : sized codata Id DataTelescope ':' Expr '{' Constructors '}' OptFie
 RecordDecl :: { C.Declaration }
 RecordDecl : record Id DataTelescope ':' Expr '{' Constructor '}'  OptFields
    { C.RecordDecl $2 $3 $5 $7 $9 }
+-}
+
+Data :: { C.Declaration }
+Data : data DataDef 
+  { let (n,tel,t,cs,fs) = $2 in C.DataDecl n A.NotSized A.Ind tel t cs fs }
+
+SizedData :: { C.Declaration }
+SizedData : sized data DataDef 
+  { let (n,tel,t,cs,fs) = $3 in C.DataDecl n A.Sized A.Ind tel t cs fs }
+
+CoData :: { C.Declaration }
+CoData : codata DataDef 
+  { let (n,tel,t,cs,fs) = $2 in C.DataDecl n A.NotSized A.CoInd tel t cs fs }
+
+SizedCoData :: { C.Declaration }
+SizedCoData : sized codata DataDef 
+  { let (n,tel,t,cs,fs) = $3 in C.DataDecl n A.Sized A.CoInd tel t cs fs }
+
+RecordDecl :: { C.Declaration }
+RecordDecl : record DataDef1
+  { let (n,tel,t,c,fs) = $2 in C.RecordDecl n tel t c fs }
+
+DataDef :: { (C.Name, C.Telescope, C.Type, [C.Constructor], [C.Name]) }
+DataDef : Id DataTelescope ':' Expr '{' Constructors '}' OptFields 
+            { ($1, $2, $4, reverse $6, $8)}
+        | Id DataTelescope '{' Constructors '}' OptFields 
+            { ($1, $2, C.set0, reverse $4, $6)}
+
+DataDef1 :: { (C.Name, C.Telescope, C.Type, C.Constructor, [C.Name]) }
+DataDef1 : Id DataTelescope ':' Expr '{' Constructor '}' OptFields 
+            { ($1, $2, $4, $6, $8)}
+         | Id DataTelescope '{' Constructor '}' OptFields 
+            { ($1, $2, C.set0, $4, $6)}
 
 Fun :: { C.Declaration }
 Fun : fun TypeSig '{' Clauses '}' { C.FunDecl A.Ind $2 $4 }

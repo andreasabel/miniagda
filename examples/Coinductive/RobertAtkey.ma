@@ -33,8 +33,8 @@ cofun Str : -Size -> Set
 }
 pattern cons n ns = (n, ns)
 
-cofun mergef : ([i : Size] -> Nat # -> Nat # -> Str i -> Str $i) ->
-  [i : Size] -> Str i -> Str i -> Str i
+fun mergef : ([i : Size] -> Nat # -> Nat # -> Str i -> Str $i) ->
+  [i : Size] -> |i| -> Str i -> Str i -> Str i
 { mergef f i s1 s2 (j < i) = case (s1 j, s2 j)
   { (cons x xs, cons y ys) -> f j x y (mergef f j xs ys) j }
 } 
@@ -43,7 +43,7 @@ cofun mergef : ([i : Size] -> Nat # -> Nat # -> Str i -> Str $i) ->
 fail
 let test_badf = mergef (\ i x y s -> s)
 
-cofun map : (f : Nat # -> Nat #) -> [i : Size] -> Str i -> Str i
+fun map : (f : Nat # -> Nat #) -> [i : Size] -> |i| -> Str i -> Str i
 { map f i s (j < i) = case s j
   { (cons x xs) -> cons (f x) (map f j xs)
   }
@@ -57,37 +57,6 @@ let test_f' = mergef (\ i x y s j -> cons x (map (suc #) i s))
 
 -- Clock Variables
 ----------------------------------------------------------------------
-{-
--- "Tomorrow": the |> operator 
-let Tri +(S : Size -> Set) -(k : Size) : Set
-  = [j < k] -> S j
-
--- Front Streams: the head is always visible
-
-cofun Stream : -(k : Size) -> |k| -> Set
-{ -- Stream k = Nat# & ([j < k] -> Stream j)
-Stream i = Nat# & Tri Stream i -- termination check fails
-}
-
--- "|>^k removes one unit of time remaining in k"
-let delay [A : -Size -> Set] [k : Size] : A k -> Tri A k -- waste
-  = \ a j -> a
--- Comment: delay wastes one unit, more precise is  Tri A $k
---          Should be called "waste"
--- Need A to be contravariant here
-
-let Arr -(A : Size -> Set) +(B : Size -> Set) : Size -> Set
-  = \ i -> A i -> B i
-
-let app [k : Size] [A, B : Size -> Set] 
-    (f : Tri (Arr A B) k) (a : Tri A k) : Tri B k
-  = \ j -> f j (a j)
-
-fun fix : [A : Size -> Set] -> (f : [j : Size] -> Tri A j -> A j) -> 
-  [k : Size] -> |k| -> A k
-{ fix A f i = f i (fix A f)
-}
--}
 
 -- "Tomorrow": the |> operator 
 let Tri -(k : Size) +(S : (j < k) -> Set) : Set
@@ -96,8 +65,7 @@ let Tri -(k : Size) +(S : (j < k) -> Set) : Set
 -- Front Streams: the head is always visible
 
 cofun Stream : -(k : Size) -> |k| -> Set
-{ -- Stream k = Nat# & ([j < k] -> Stream j)
-Stream i = Nat# & Tri i Stream -- termination check fails
+{ Stream i = Nat# & Tri i Stream
 }
 
 -- "|>^k removes one unit of time remaining in k"

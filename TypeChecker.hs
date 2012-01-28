@@ -662,11 +662,34 @@ checkDataType p e = do
        return $ Kinded (kUniv Zero) (s, Sort $ CoSet e1e)
      _ -> throwErrorMsg "doesn't target Set or CoSet"
                 
+{-
+checkSize :: Expr -> TypeCheck Extr
+checkSize Infty = return Infty
+checkSize e = valueOf <$> checkExpr e vSize
+-}
 
 checkSize :: Expr -> TypeCheck Extr
-checkSize e = valueOf <$> checkExpr e vSize
+checkSize e = 
+  case e of
+    Zero  -> return e
+    Infty -> return e
+    Succ e  -> Succ <$> checkSize e
+    Plus es -> Plus <$> mapM checkSize es
+    Max  es -> Max  <$> mapM checkSize es
+    Meta i  -> do
+      ren <- asks renaming
+      addMeta ren i
+      return e
+    e       -> inferSize e
+
+inferSize :: Expr -> TypeCheck Extr
+inferSize e = do
+  (v, Kinded ki e) <- inferExpr e
+  subtype v vSize
+  return e
 
 checkBelow :: Expr -> LtLe -> Val -> TypeCheck Extr
+checkBelow e Le VInfty = checkSize e
 checkBelow e ltle v = do
   e' <- checkSize e
   v' <- whnf' e
@@ -898,13 +921,6 @@ checkForced e v = do
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkForced e bv
 
-      -- metavariables must have type size
-      (Meta i, _) | isVSize v -> do 
-        addMeta ren i
-        return $ Kinded kSize $ Meta i 
-{-  problem: what to return here
--}
-
       (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) -> do
          Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
          v1 <- whnf' e1
@@ -970,9 +986,18 @@ Following Awodey/Bauer 2001, the following rule is valid
       (Proj Pre p, VQuant Pi x dom env t1) -> do
          let y = nonEmptyName x "y"
          checkForced (Lam (decor dom) y $ App e (Var y)) v
+{-
+      -- should be subsumed by checkBelow:
+      (e, v) | isVSize v -> Kinded kSize <$> checkSize e
+-}
+{-  MOVED to checkSize
+ 
+      -- metavariables must have type size
+      (Meta i, _) | isVSize v -> do 
+        addMeta ren i
+        return $ Kinded kSize $ Meta i 
 
-      (e, VBelow ltle v) -> Kinded kSize <$> checkBelow e ltle v
-
+     (Infty, v) | isVSize v -> return $ Kinded kSize $ Infty
       (Zero, v) | isVSize v -> return $ Kinded kSize $ Zero
  
       (Plus es, v) | isVSize v -> do
@@ -986,6 +1011,9 @@ Following Awodey/Bauer 2001, the following rule is valid
       (Succ e2, v) | isVSize v -> do
               e2e <- checkSize e2 
               return $ Kinded kSize $ Succ e2e
+-}
+
+      (e, VBelow ltle v) -> Kinded kSize <$> checkBelow e ltle v
 {-
               -- prune sizes
               return $ if e2e==Irr then Irr else Succ e2e

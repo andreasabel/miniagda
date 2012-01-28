@@ -17,7 +17,7 @@ type of h
 /// not a type: (ass : (i : Size) -> Eq Size $i i) -> (i : Size) -> SNat i -> SNat #
 /// inferExpr' (ass : (i : Size) -> Eq Size $i i) -> (i : Size) -> SNat i -> SNat #
 /// inferExpr' (i : Size) -> Eq Size $i i
-/// new i : Size
+/// new i <= #
 /// inferExpr' Eq Size $i i
 /// inferExpr' Eq Size $i
 /// inferExpr' Eq Size
