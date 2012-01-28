@@ -29,4 +29,4 @@ offDiag
 /// checkForced fromList [(A,0),(f,1),(a,2),(b,3)] |- notEq A a b : DecEq A a b
 /// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- < A : Set >  <=+  A
 /// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- Set  <=+  A
-/// leqApp: Set[] !<=+ v0[]
+/// leqApp: head mismatch Set != v0

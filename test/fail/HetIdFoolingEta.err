@@ -26,4 +26,4 @@ offDia
 /// inferExpr' Id A B
 /// leqVal' (subtyping) [(A,1),(f,0),(B,2),(a,3),(b,4)] |- < B : Set >  <=+  A
 /// leqVal' (subtyping) [(A,1),(f,0),(B,2),(a,3),(b,4)] |- Set  <=+  A
-/// leqApp: Set[] !<=+ v1[]
+/// leqApp: head mismatch Set != v1

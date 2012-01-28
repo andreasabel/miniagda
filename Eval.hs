@@ -29,6 +29,7 @@ import Control.Monad.Identity hiding (mapM)
 import Control.Monad.State hiding (mapM)
 import Control.Monad.Error hiding (mapM)
 import Control.Monad.Reader hiding (mapM)
+import Control.Monad.IfElse  -- unlessM
 
 import Debug.Trace
 
@@ -1453,6 +1454,8 @@ leqVal' f p mt12 u1' u2' = do
 -}
               (VSing v1 av1, av2)  -> leqVal' f p Nothing av1 av2  -- subtyping ax 
               (VSort s1, VSort s2) -> leqSort p s1 s2
+              (VApp v1 vl1, u2) -> leqApp f p v1 vl1 u2 []
+              (u1, VApp v2 vl2) -> leqApp f p u1 []  v2 vl2
               (a1,a2) | a1 == a2 -> return ()
               _ -> leqApp f p u1 [] u2 []
           
@@ -1580,22 +1583,34 @@ leqNe f v1 v2 = --trace ("leqNe " ++ show v1 ++ "<=" ++ show v2) $
 leqApp :: Force -> Pol -> Val -> [Val] -> Val -> [Val] -> TypeCheck ()
 leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- " 
                                   ++ show v1 ++ show w1 ++ " <=" ++ show pol ++ " " ++ show v2 ++ show w2) $ -}
-  do case (v1,v2) of
+  do let headMismatch = recoverFail $ 
+            "leqApp: head mismatch "  ++ show v1 ++ " != " ++ show v2  
+     let emptyOrUnit u1 u2 =
+          unlessM (isEmptyType u1) $ unlessM (isUnitType u2) $ headMismatch
+     case (v1,v2) of
+{-  IMPOSSIBLE:
       (VApp v1 [], v2) -> leqApp f pol v1 w1 v2 w2
       (v1, VApp v2 []) -> leqApp f pol v1 w1 v2 w2
-{-
+-}
+{- 
       (VApp{}, _)    -> throwErrorMsg $ "leqApp: internal error: hit application v1 = " ++ show v1 
       (_, VApp{})    -> throwErrorMsg $ "leqApp: internal error: hit application v2 = " ++ show v2 
 -}
       (VUp v1 _, v2) -> leqApp f pol v1 w1 v2 w2
       (v1, VUp v2 _) -> leqApp f pol v1 w1 v2 w2
+
+      (VGen k1, VGen k2) | k1 == k2 -> do 
+        tv12 <- (fmap typ . domain) <$> lookupGen k1
+        leqVals' f pol tv12 w1 w2
+        return ()
+{-
       (VGen k1, VGen k2) -> 
         if k1 /= k2 
-          then recoverFail $ 
-            "leqApp: head mismatch "  ++ show v1 ++ " != " ++ show v2 
+          then headMismatch
           else do tv12 <- (fmap typ . domain) <$> lookupGen k1
                   leqVals' f pol tv12 w1 w2
                   return ()
+-}
 {-
       (VCon _ n, VCon _ m) -> 
         if n /= m 
@@ -1607,14 +1622,35 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
             (ConSig tv) -> -- constructor
                leqVals' f tv (repeat mixed) w1 w2 >> return ()
 -}
+
+      (VDef n, VDef m) | n == m ->  do 
+        tv <- lookupSymbTyp (name n)  
+        leqVals' f pol (One tv) w1 w2 
+        return ()
+
+      -- check for least or greatest type
+
+      (u1,u2) -> if pol == Pos then emptyOrUnit u1 u2 else
+                 if pol == Neg then emptyOrUnit u2 u1 else headMismatch
+
+{-
+      -- least type
+      (VDef (DefId DatK n), v2) | pol == Pos -> 
+        ifM (isEmptyData n) (return ()) headMismatch
+      (v1, VDef (DefId DatK n)) | pol == Neg -> 
+        ifM (isEmptyData n) (return ()) headMismatch
+-}
+{-
       (VDef n, VDef m) -> 
-        if (name n) /= (name m) 
-         then recoverFail $ 
-            "leqApp: head mismatch "  ++ show v1 ++ " != " ++ show v2  
+        if (name n) /= (name m) then do
+           bot <- if pol==Neg then isEmptyData $ name m else 
+                  if pol==Pos then isEmptyData $ name n else return False
+           if bot then return () else headMismatch
          else do 
-          tv <- lookupSymbTyp (name n)  
-          leqVals' f pol (One tv) w1 w2 
-          return ()
+           tv <- lookupSymbTyp (name n)  
+           leqVals' f pol (One tv) w1 w2 
+           return ()
+-}
 {-
           sig <- gets signature
           case lookupSig (name n) sig of
@@ -1630,18 +1666,19 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
             entry -> leqVals' f (symbTyp entry) (repeat mixed) w1 w2 >> return ()
 -}
 
-{-
-            (ConSig tv) -> -- constructor
-               leqVals' f tv (repeat mixed) w1 w2 >> return ()
-            (FunSig co tv _ _) ->  
-               leqVals' f tv (repeat mixed) w1 w2 >> return ()
--}
-                                                 
+{-                                                 
+      _ -> headMismatch
+
       _ -> recoverFail $ "leqApp: " ++ show v1 ++ show w1 ++ " !<=" ++ show pol ++ " " ++ show v2 ++ show w2
-{-
-             do leqVal delta v1 v2 
-                eqVals delta w1 w2
- -}
+-}
+
+isEmptyType :: TVal -> TypeCheck Bool
+isEmptyType (VDef (DefId DatK n)) = isEmptyData n
+isEmptyType _ = return False
+
+isUnitType :: TVal -> TypeCheck Bool
+isUnitType (VDef (DefId DatK n)) = isUnitData n
+isUnitType _ = return False
 
 -- comparing sorts and sizes -----------------------------------------
 

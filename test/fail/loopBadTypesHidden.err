@@ -24,19 +24,20 @@ term  inc = \ n -> just (succ [#] n)
 type  Unit : Set
 term  unit : < unit : Unit >
 type  loopType : Unit -> Set
-{ loopType (unit) = .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+{ loopType un!t = .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 }
 type  loopCaseType : Unit -> Set
-{ loopCaseType (unit) = .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+{ loopCaseType un!t = .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 }
 term  loop : (u : Unit) -> loopType u
 term  loop_case : (u : Unit) -> loopCaseType u
 error during typechecking:
 checking type of loop for admissibility
+/// new un!t : _
 /// new i : _
 /// new f : _
 /// new i <= #
-/// admType: checking ((SNat v2)::Tm -> (Nat -> Maybe (SNat i)) -> Unit{i = v2}) admissible in v2
-/// new  : (SNat v2)
-/// admType: checking (((SNat #)::Tm -> Maybe (SNat i){i = v2})::Tm -> Unit{i = v2}) admissible in v2
-/// type ((SNat #)::Tm -> Maybe (SNat i){i = v2}) not lower semi continuous in v2
+/// admType: checking ((SNat v3)::Tm -> (Nat -> Maybe (SNat i)) -> Unit{i = v3, un!t = v0}) admissible in v3
+/// new  : (SNat v3)
+/// admType: checking (((SNat #)::Tm -> Maybe (SNat i){i = v3, un!t = v0})::Tm -> Unit{i = v3, un!t = v0}) admissible in v3
+/// type ((SNat #)::Tm -> Maybe (SNat i){i = v3, un!t = v0}) not lower semi continuous in v3

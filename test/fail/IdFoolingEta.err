@@ -26,4 +26,4 @@ offDia
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- < refl : Id (Id A a b) (f [A] a b) (f [A] a b) >  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- Id (Id A a b) (f [A] a b) (f [A] a b)  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// leqVal' [(A,1),(f,0),(a,2),(b,3)] |- f [A] a b  <=^  subst [A] a b (f [A] a b) [Id A a] refl : Id A a b
-/// leqApp: v0[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3] !<=^ subst[{[A] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},v2,v3,{f [A] a b {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{[Id A a] {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}},{refl {b = v3, a = v2, A = v1, f = (v0 Up (.[A : Set] -> (a : A) -> (b : A) -> Id A a b))}}]
+/// leqApp: head mismatch v0 != subst

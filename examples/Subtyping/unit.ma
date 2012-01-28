@@ -9,7 +9,7 @@ data Bool : Set { true : Bool; false : Bool }
 -- record subtyping is hard at the moment since we have a nominal type
 -- system
 
-fail
+-- 2012-01-28 works now (only for unit and empty type)
 fun f : Bool -> Top
 { f x = x
 }

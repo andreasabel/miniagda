@@ -1032,6 +1032,23 @@ data SigDef
             } -- # parameters, positivity of parameters  , sized , co , type  
               deriving (Show)
 
+isEmptyData :: Name -> TypeCheck Bool
+isEmptyData n = do
+  sig <- lookupSymb n
+  case sig of
+    DataSig { constructors } -> return $ null constructors
+    _ -> throwErrorMsg $ "internal error: isEmptyData " ++ show n ++ ": name of data type expected"
+
+isUnitData :: Name -> TypeCheck Bool
+isUnitData n = do
+  sig <- lookupSymb n
+  case sig of
+    DataSig { constructors = [c], isTuple } -> return $ 
+      isTuple && null (cFields c) && cPatFam c == (LinearPatterns, [])
+    DataSig { constructors } -> return False
+    _ -> throwErrorMsg $ "internal error: isUnitData " ++ show n ++ ": name of data type expected"
+
+
 undefinedFType :: Name -> Expr
 undefinedFType n = Irr
 -- undefinedFType n = error $ "no extracted type for " ++ show n

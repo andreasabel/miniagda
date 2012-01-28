@@ -30,7 +30,8 @@ executable miniagda
                     containers >= 0.3 && < 0.5,
                     haskell-src-exts >= 1.9.5 && < 1.12,
                     mtl == 2.0.*,
-                    pretty >= 1.0 && < 1.2
+                    pretty >= 1.0 && < 1.2,
+                    ifelse >= 0.85 && < 2.0
   build-tools:      happy >= 1.15 && < 2,
                     alex >= 2.0.1 && < 4
   extensions:       MultiParamTypeClasses

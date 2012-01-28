@@ -1675,8 +1675,16 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 -- TODO: refactor with monad transformers
 -- put absp into writer monad
 
+turnIntoVarPatAtUnitType :: TVal -> Pattern -> TypeCheck Pattern
+turnIntoVarPatAtUnitType (VApp (VDef (DefId DatK n)) _) p@(ConP pi c []) = 
+  flip (ifM $ isUnitData n) (return p) $ do
+    let x = fresh "un!t"
+    return $ VarP x
+turnIntoVarPatAtUnitType _ p = return p
+
 checkPattern' :: [Goal] -> Substitution -> Domain -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,EPattern,Val,Bool)
 checkPattern' flex ins domEr@(Domain av ki decEr) p = do
+       p <- turnIntoVarPatAtUnitType av p
        let erased' = erased decEr
        let maybeErase p = if erased' then ErasedP p else p
 --       let erasedOrIrrefutable p = if erased' then ErasedP p else IrrefutableP p
