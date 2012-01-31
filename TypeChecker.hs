@@ -974,7 +974,7 @@ Following Awodey/Bauer 2001, the following rule is valid
 -- NOW just my rule (LICS 2010 draft) a la Barras/Bernardo
 
       (Lam _ y e1, VQuant Pi x dom env t1) -> do
-          rho <- getEnv  -- get the environment corresponding to Gamma
+          -- rho <- getEnv  -- get the environment corresponding to Gamma
           new y dom $ \ vy -> do
             v_t1 <- whnf (update env x vy) t1
             -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1 
@@ -1046,7 +1046,26 @@ Following Awodey/Bauer 2001, the following rule is valid
             (v2,kee) <- inferExpr e 
             checkSubtype (valueOf kee) v2 v 
             return kee
+ 
+-- | Check (partially applied) constructor term, eta-expand it and turn it
+--   into a named record.
+checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
+checkConTerm co c es v = do
+  case v of
+    VQuant Pi x dom env b -> do
+      let y = freshen $ nonEmptyName x "y"
+      new y dom $ \ vx -> do
+        vb <- whnf (update env x vx) b
+        Kinded ki ee <- checkConTerm co c (es ++ [Var y]) vb
+        return $ Kinded ki $ Lam (decor dom) y ee
+    _ -> do   
+      tv <- conType c v
+      (knes, dv) <- checkSpine es tv
+      let ee = Record (NamedRec co c False) $ map valueOf knes 
+      checkSubtype ee dv v
+      return $ Kinded kTerm ee
 
+{- 
 -- | Check (partially applied) constructor term, eta-expand it and turn it
 --   into a named record.
 checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
@@ -1063,8 +1082,9 @@ checkConTerm co c es v = do
       e1   = Record (NamedRec co c False) rs
       e    = foldr (uncurry Lam) e1 (zip decs ys)
   return $ Kinded kTerm e
+-}
 
-{- UNUSED
+{-
 -- | Only eta-expand at function types, do not force.
 etaExpandPis :: Expr -> TVal -> TypeCheck Expr
 etaExpandPis e tv = do

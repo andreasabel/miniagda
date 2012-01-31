@@ -2,7 +2,7 @@
 
 data Nat : Set {
   zero : Nat;
-  succ : Nat -> Nat 
+  succ : (n : Nat) -> Nat 
 }
 
 fun add : Nat -> Nat -> Nat {

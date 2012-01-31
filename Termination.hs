@@ -3,7 +3,7 @@
 module Termination where
 
 import Data.Monoid
-import Control.Monad.Writer
+import Control.Monad.Writer -- (Writer, runWriter, tell, listen, Any(..), ...)
 
 import Data.List as List
 import Data.Set (Set)

@@ -594,7 +594,8 @@ instance MonadCxt TypeCheck where
   nameOfGen k = do
     ce <- ask
     case Map.lookup k (naming ce) of
-      Nothing -> fail $ "internal error: no name for variable " ++ show k
+      Nothing -> return $ fresh $ "error_unnamed_gen" ++ show k
+       -- fail $ "internal error: no name for variable " ++ show k
       Just x -> return x
 
 {-
@@ -1081,8 +1082,10 @@ data DataView
 dataView :: TVal -> TypeCheck DataView
 dataView tv = do -- maybe force tv?
   case tv of
+{- 2012-01-31 EVIL, LEADS TO UNBOUND VARS:
     VQuant Pi x dom env b         -> do
       new x dom $ \ xv -> dataView =<< whnf (update env x xv) b
+-}
     VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
     VSing v dv                    -> dataView =<< whnfClos dv
     _                             -> return $ NoData 

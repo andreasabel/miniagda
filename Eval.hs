@@ -97,6 +97,7 @@ reval u = -- trace ("reval " ++ show u) $
   VSort (CoSet v) -> reval v >>= return . VSort . CoSet
   VSort{} -> return u
   VInfty  -> return u
+  VZero   -> return u
   VSucc{} -> return u  -- no rewriting in size expressions
   VMax{}  -> return u
   VPlus{}  -> return u
@@ -146,7 +147,7 @@ reval u = -- trace ("reval " ++ show u) $
                            tv' <- reval tv
                            return $ vSing v' tv'
   VIrr -> return u
-
+  v -> throwErrorMsg $ "NYI : reval " ++ show v
 
 -- TODO: singleton Sigma types
 -- This is a bit of a hack (finding a fresh name)

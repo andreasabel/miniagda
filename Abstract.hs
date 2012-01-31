@@ -6,7 +6,7 @@ module Abstract where
 
 import Prelude hiding (showList, map, concat, foldl)
 
-import Control.Monad.Writer
+import Control.Monad.Writer (Writer, tell, All(..))
 
 import Control.Applicative hiding (empty)
 import Data.Foldable (Foldable)

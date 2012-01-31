@@ -1,4 +1,5 @@
 { 
+{-# LANGUAGE BangPatterns #-} 
 module Parser where
 
 import qualified Lexer as T

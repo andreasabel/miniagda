@@ -3,7 +3,8 @@
 files=Main Lexer Parser Polarity Abstract ScopeChecker TypeChecker Value TCM Eval Termination SPos Concrete Warshall Util TreeShapedOrder TraceError Extract HsSyntax ToHaskell PrettyTCM Semiring SparseMatrix
 # RETIRED: Completness
 hsfiles=$(foreach file,$(files),$(file).hs)
-ghcflags=-fglasgow-exts -ignore-package monads-fd -rtsopts
+ghcflags=-ignore-package monads-fd -rtsopts
+# -fglasgow-exts 
 optflags=
 # -O
 profflags=-prof -auto-all

@@ -6,7 +6,7 @@ module Util where
 import Prelude hiding (showList)
 
 import Control.Applicative hiding (empty)
-import Control.Monad.Writer
+import Control.Monad.Writer (Writer, runWriter, All, getAll)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Debug.Trace
