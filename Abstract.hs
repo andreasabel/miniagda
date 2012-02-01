@@ -1,3 +1,7 @@
+-- Some optimizations (-O) destroy the expected behavior of unsafePerformIO
+-- So, special options are needed, plus NOINLINE for the affected functions.
+{-# OPTIONS -fno-cse -fno-full-laziness #-}
+  
 {-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving, TypeSynonymInstances,
       DeriveFunctor, DeriveFoldable, DeriveTraversable, NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -62,6 +66,7 @@ instance Show Name where
 --   To a void a monad here, we use imperative features (@unsafePerformIO@).
 fresh :: String -> Name
 fresh n = Name n UserName $ unsafePerformIO newUnique
+{-# NOINLINE fresh #-}
 
 freshen :: Name -> Name
 freshen n = fresh (suggestion n)
@@ -78,6 +83,7 @@ nonEmptyName n s | emptyName n = n { suggestion = s }
 
 iAmNotUnique :: Unique
 iAmNotUnique = unsafePerformIO newUnique
+{-# NOINLINE iAmNotUnique #-}
 
 unsafeName :: String -> Name
 unsafeName s = Name s QuoteName iAmNotUnique
@@ -86,6 +92,7 @@ unsafeName s = Name s QuoteName iAmNotUnique
 mkExtName :: Name -> Name
 mkExtName n = Name (suggestion n) EtaAliasName $ unsafePerformIO newUnique
 -- mkExtName n = "_" ++ n
+{-# NOINLINE mkExtName #-}
 
 mkExtRef  n = letdef (mkExtName n)
 

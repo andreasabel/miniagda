@@ -1744,7 +1744,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
           VarP y -> do
             new y domEr $ \ xv -> do
               cxt' <- ask 
-              return (flex, ins, cxt', maybeErase $ VarP y, xv, False)
+              p' <- case av of
+                       VBelow Lt v -> flip SizeP y <$> toExpr v
+                       _ -> return p 
+              return (flex, ins, cxt', maybeErase $ p', xv, False)
 
 {- checking bounded size patterns
 

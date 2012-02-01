@@ -6,7 +6,7 @@ hsfiles=$(foreach file,$(files),$(file).hs)
 ghcflags=-ignore-package monads-fd -rtsopts
 # -fglasgow-exts 
 optflags=
-# -O
+# -O  #slow compilation, not much speedup
 profflags=-prof -auto-all
 distfiles=*.hs *.hs-boot Lexer.x Parser.y Makefile 
 distdirs=test/succeed test/fail examples
