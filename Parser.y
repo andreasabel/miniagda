@@ -279,6 +279,18 @@ LBind :  UntypedBind         { $1 }
       |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] (Just $5) } -- ordinary binding
 --      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
 
+Domain :: { C.Telescope }
+Domain : Expr0             { [C.TBind (Dec Default) {- A.defaultDec -} [] $1] }
+       | '[' Expr ']'      { [C.TBind A.irrelevantDec [] $2] }
+       | Pol Expr0         { [C.TBind (Dec $1) [] $2] }
+--       | Pol '[' Expr ']'  { [C.TBind (Dec True  $1) [] $3] }
+       | TBind             { [$1] }
+       | Measure           { [C.TMeasure $1] }
+       | Bound             { [C.TBound $1] }
+       | Telescope         { $1 }
+
+{-
+
 Domain :: { C.TBind }
 Domain : Expr0             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
@@ -288,7 +300,6 @@ Domain : Expr0             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | Measure           { C.TMeasure $1 }
        | Bound             { C.TBound $1 }
 
-{-
 TBind :: { C.TBind }
 TBind :  '(' Ids ':' Type ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
       |  '[' Ids ':' Type ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
@@ -345,7 +356,7 @@ Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
 
 Expr0 :: { C.Expr }
 Expr0 : Expr1                            { $1 }
-      | SigDom '&' Expr0                 { C.Quant A.Sigma $1 $3 } 
+      | SigDom '&' Expr0                 { C.Quant A.Sigma [$1] $3 } 
 
 SigDom :: { C.TBind }
 SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }

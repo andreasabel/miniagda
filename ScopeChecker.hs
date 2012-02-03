@@ -444,6 +444,9 @@ scopeCheckTele (tb : tel) cont = do
 scopeCheckTBind :: C.TBind -> ScopeCheck a -> ScopeCheck ([A.TBind], a)
 scopeCheckTBind tb cont = do
   case tb of
+    C.TBind dec [] t -> do -- non-dependent function type
+      t       <- scopeCheckExpr t
+      ([A.noBind $ A.Domain t A.defaultKind dec],) <$> cont
     C.TBind dec ns t -> do
       t       <- scopeCheckExpr t
       (xs, a) <- addBinds tb ns $ cont
@@ -651,28 +654,28 @@ scopeCheckFunType t =
   case t of
 
       -- found a measure: continue normal scope checking
-      C.Quant A.Pi (C.TMeasure mu) e1 -> do 
+      C.Quant A.Pi [C.TMeasure mu] e1 -> do 
         mu' <- scopeCheckMeasure mu 
         e1' <- scopeCheckExpr e1
         return (Just $ length (measure mu'), A.pi (A.TMeasure mu') e1')
 
-      C.Quant A.Pi (C.TBound beta) e1 -> do 
+      C.Quant A.Pi [C.TBound beta] e1 -> do 
         beta'     <- scopeCheckBound beta
         (ml, e1') <- scopeCheckFunType e1
         return (ml, A.pi (A.TBound beta') e1')
+
+      C.Quant A.Pi tel e -> do
+        tel <- generalizeTel tel
+        (tel, (ml, e)) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ scopeCheckFunType e
+        return (ml, A.teleToType tel e)
       
+{-
       C.Quant A.Pi (C.TBounded dec n ltle eb) e1 -> do 
         eb'            <- setDefaultPolarity A.Rec $ scopeCheckExpr eb
         (n, (ml, e1')) <- addBind t n $ scopeCheckFunType e1 -- t is just for printing an error message
         dec'      <- generalizeDec dec
         
         return (ml, A.pi (A.TBind n $ A.belowDomain dec ltle eb') $ e1')
-{-
-        return (ml, A.pi (A.TBind n $ A.sizeDomain dec) $
-                      A.pi (A.TBound (A.Bound ltle (A.Measure [A.Var n])
-                                                   (A.Measure [eb']))) e1')
- -}
---        return (ml, A.pi (A.TBounded dec n ltle eb') e1')
       
       -- empty list of names in TBind means non-dep fun
       C.Quant A.Pi (C.TBind dec [] t) e1 -> do 
@@ -687,6 +690,7 @@ scopeCheckFunType t =
         (ns, (ml, e1')) <- addBinds t ns $ scopeCheckFunType e1
         dec'            <- generalizeDec dec
         return (ml, foldr (\ n e -> A.pi (A.TBind n $ A.Domain t' A.defaultKind dec') e) e1' ns)
+-}
 
       t -> (Nothing,) <$> scopeCheckExpr t -- no measure found
 
@@ -817,7 +821,7 @@ scopeCheckExpr e =
 
       -- measure & bound
       -- measures can only appear in fun sigs!
-      C.Quant pisig (C.TMeasure mu) e1 -> do
+      C.Quant pisig [C.TMeasure mu] e1 -> do
         fail $ "measure not allowed in expression " ++ show e
 {- 
         mu' <- scopeCheckMeasure mu 
@@ -825,26 +829,30 @@ scopeCheckExpr e =
         return $ A.pi (A.TMeasure mu') e1'
 -}
       -- measure bound mu < mu'
-      C.Quant A.Pi (C.TBound beta) e1 -> do 
+      C.Quant A.Pi [C.TBound beta] e1 -> do 
         beta' <- scopeCheckBound beta
         e1'   <- scopeCheckExpr e1
         return $ A.pi (A.TBound beta') e1'
 
-      C.Quant A.Sigma (C.TBound beta) e1 -> fail $ 
+      C.Quant A.Sigma [C.TBound beta] e1 -> fail $ 
         "measure bound not allowed in expression " ++ show e
+      
+      C.Quant pisig tel e -> do
+        tel <- generalizeTel tel
+        pol <- asks defaultPolarity
+        (tel, e) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ do
+                      setDefaultPolarity pol $ scopeCheckExpr e
+        return $ quant pisig tel e where
+          quant A.Sigma [tb] = A.Quant A.Sigma tb
+          quant A.Pi    tel  = A.teleToType tel
 
+{-
       -- bounded quantification
       C.Quant pisig (C.TBounded dec n ltle eb) e1 -> do 
         eb'      <- setDefaultPolarity A.Rec $ scopeCheckExpr eb
         (n, e1') <- addBind e n $ scopeCheckExpr e1 -- e is just for printing an error message
         dec'  <- generalizeDec dec
         return $ A.Quant pisig (A.TBind n $ A.belowDomain dec ltle eb') e1'
-{-
-        return $ A.pi (A.TBind n $ A.sizeDomain dec) $
-                      A.pi (A.TBound (A.Bound ltle (A.Measure [A.Var n])
-                                                   (A.Measure [eb']))) e1'
--}
---        return (A.pi (A.TBounded dec n ltle eb') e1')
       
       -- empty list of names in TBind means non-dep fun
       C.Quant pisig (C.TBind dec [] t) e1 -> do 
@@ -859,6 +867,7 @@ scopeCheckExpr e =
         (ns, e1') <- addBinds e ns $ scopeCheckExpr e1
         dec'      <- generalizeDec dec
         return $ foldr (\ n e -> A.Quant pisig (A.TBind n $ A.Domain t' A.defaultKind dec') e) e1' ns
+-}
 
       C.Lam n e1 -> do 
         (n, e1') <- addBind e n $ scopeCheckExpr e1

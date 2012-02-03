@@ -28,7 +28,8 @@ data Expr = Set Expr        -- Type 0 for backward compat
           | Case Expr (Maybe Type) [Clause]
           | LLet LetDef Expr -- local let
 --          | LLet LBind Expr Expr -- local let
-          | Quant PiSigma TBind Expr
+          | Quant PiSigma Telescope Expr
+--          | Quant PiSigma TBind Expr
           | Pair Expr Expr
           | Record [([Name],Expr)]
           | Proj Name 
@@ -200,7 +201,7 @@ prettyLetDef :: LetDef -> String
 prettyLetDef (LetDef dec n [] mt e) = prettyLetAssign (prettyLBind tb) e
   where tb = TBind dec [n] mt
 prettyLetDef (LetDef dec n tel mt e) = prettyLetAssign s e
-  where s = prettyDecId dec n ++ " " ++ prettyTel tel ++ prettyMaybeType mt
+  where s = prettyDecId dec n ++ " " ++ prettyTel False tel ++ prettyMaybeType mt
 
 prettyDecId :: Dec -> String -> String
 prettyDecId dec x 
@@ -209,8 +210,8 @@ prettyDecId dec x
      let pol = polarity dec
      in  if pol == defaultPol then x else show pol ++ x  
 
-prettyTel :: Telescope -> String
-prettyTel = Util.showList " " (prettyTBind False)
+prettyTel :: Bool -> Telescope -> String
+prettyTel inPi = Util.showList " " (prettyTBind inPi)
 
 prettyMaybeType = maybe "" $ \ t -> " : " ++ prettyExpr t
 
@@ -241,7 +242,8 @@ prettyExpr e =
       Ident n         -> n
       Unknown         -> "_"
       Sing e t        -> "<" ++ prettyExpr e ++ " : " ++ prettyExpr t ++ ">"
-      Quant pisig tb t2 -> parens $ prettyTBind True tb
+--      Quant pisig tb t2 -> parens $ prettyTBind True tb
+      Quant pisig tel t2 -> parens $ prettyTel True tel
                                   ++ " " ++ show pisig ++ " " ++ prettyExpr t2
 
 prettyRecordLine (xs, e) = Util.showList " " id xs ++ " = " ++ prettyExpr e
@@ -266,6 +268,17 @@ prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " id (n:ns)) ++
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t
+teleToType (tb:tel) t2 = Quant Pi [tb] (teleToType tel t2)
+--teleToType (PosTB dec n t:tel) t2 = Pi dec n t (teleToType tel t2)
+
+typeToTele :: Type -> (Telescope, Type)
+typeToTele (Quant A.Pi tel0 c) =
+  let (tel, a) = typeToTele c in (tel0 ++ tel, a)
+typeToTele a = ([],a)
+
+{-
+teleToType :: Telescope -> Type -> Type
+teleToType [] t = t
 teleToType (tb:tel) t2 = Quant Pi tb (teleToType tel t2)
 --teleToType (PosTB dec n t:tel) t2 = Pi dec n t (teleToType tel t2)
 
@@ -276,6 +289,7 @@ typeToTele' :: Int -> Type -> (Telescope, Type)
 typeToTele' k (Quant A.Pi tb c) | k /= 0 = 
   let (tel, a) = typeToTele' (k-1) c in (tb:tel, a)
 typeToTele' _ a = ([],a)
+-}
 
 teleNames :: Telescope -> [Name]
 teleNames tel = concat $ map tbindNames tel
