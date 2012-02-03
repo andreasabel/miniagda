@@ -2,7 +2,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- opening "StoreSize.ma" ---
 --- scope checking ---
 --- type checking ---
-ty-u  WrapSize : Set $0
+ty-u  WrapSize : Set 1
 term  inn : .[out : Size] -> < inn out : WrapSize >
 size  out : (inn : WrapSize) -> Size
 error during typechecking:

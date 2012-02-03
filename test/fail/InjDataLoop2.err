@@ -6,12 +6,12 @@ type  Empty : Set
 type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
 term  refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> < refl : Eq [i] A a a >
 type  I : ^(F : Set -> Set) -> Set
-ty-u  InvI : ^(A : Set) -> Set $0
-term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [$0] Set (I Inverse) A) -> < inv Inverse isInverse : InvI A >
+ty-u  InvI : ^(A : Set) -> Set 1
+term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(isInverse : Eq [1] Set (I Inverse) A) -> < inv Inverse isInverse : InvI A >
 type  Inverse : .[A : Set] -> (inv : InvI A) -> Set -> Set
 { Inverse [A] (inv #Inverse #isInverse) = #Inverse
 }
-term  isInverse : .[A : Set] -> (inv : InvI A) -> Eq [$0] Set (I (Inverse [A] inv)) A
+term  isInverse : .[A : Set] -> (inv : InvI A) -> Eq [1] Set (I (Inverse [A] inv)) A
 { isInverse [A] (inv #Inverse #isInverse) = #isInverse
 }
 tmty  invertible : (A : Set) -> InvI A

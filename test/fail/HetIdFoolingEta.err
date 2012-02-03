@@ -2,7 +2,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- opening "HetIdFoolingEta.ma" ---
 --- scope checking ---
 --- type checking ---
-ty-u  Id : ^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set $0
+ty-u  Id : ^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set 1
 term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a A a >
 error during typechecking:
 offDia

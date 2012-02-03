@@ -713,6 +713,12 @@ funType a b = Quant Pi (noBind a) b
 erasedExpr e = Ann (Tagged [Erased] e)
 castExpr   e = Ann (Tagged [Cast]   e)
 
+succView :: Expr -> (Int, Expr)
+succView (Succ e) = inc (succView e) where inc (n, e) = (n+1, e)
+succView e = (0, e)
+
+-- Clauses and patterns ----------------------------------------------
+
 data Clause = Clause 
   { clTele     :: TeleVal      -- top-level telescope of type values for PVars
   , clPatterns :: [Pattern]    
@@ -1004,7 +1010,11 @@ instance Pretty Expr where
   prettyPrec _ (Def id)    = pretty id
 --  prettyPrec _ (Let n)     = text n
   prettyPrec _ (Sing e t)  = angleBrackets $ pretty e <+> colon <+> pretty t
-  prettyPrec k (Succ e)    = text "$" <> prettyPrec precAppR e  
+  prettyPrec k e@Succ{}    = 
+    case succView e of
+      (n, Zero) -> text $ show n
+      (n, e)    -> text (replicate n '$') <> prettyPrec precAppR e  
+--  prettyPrec k (Succ e)    = text "$" <> prettyPrec precAppR e  
 {-  prettyPrec k (Succ e)    = parensIf (precAppR <= k) $ 
                               text "$" <+> prettyPrec precAppR e   -}
   prettyPrec k (Max es)  = parensIf (precAppR <= k) $

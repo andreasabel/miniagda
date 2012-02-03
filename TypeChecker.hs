@@ -926,7 +926,7 @@ checkForced e v = do
          v1 <- whnf' e1
          bv <- whnf (update env y v1) b
          Kinded k2 e2 <- checkExpr e2 bv
-         return $ Kinded (unionKind k1 k2) $ Pair e1 e2
+         return $ Kinded (unionKind k1 k2) $ Pair (maybeErase dec e1) e2
 
       (Record ri rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
          let fail1 = failDoc (text "expected" <+> prettyTCM t <+> text "to be a record type")
@@ -1103,6 +1103,8 @@ checkSpine (e : es) tv = do
   (knes, tv) <- checkSpine es tv
   return (kne : knes, tv)
 
+maybeErase dec = if erased dec then erasedExpr else id
+
 -- | checking e against (x : A) -> B returns (x,e) and B[e/x]
 checkApp :: Expr -> TVal -> TypeCheck (Kinded (Name, Extr), TVal)
 checkApp e2 v = do
@@ -1128,7 +1130,7 @@ checkApp e2 v = do
               return (ki, v2, e2e)
        bv <- whnf (update env x v2) b
        -- the kind of the application is the kind of its head
-       return (Kinded ki $ (x,) $ if erased dec then erasedExpr e2e else e2e, bv)
+       return (Kinded ki $ (x,) $ maybeErase dec e2e, bv)
        -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
     _ -> throwErrorMsg $ "checking application to " ++ show e2 ++ ": expected function type, found " ++ show v
 
@@ -1335,12 +1337,14 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         return (VSort $ s, Kinded (intersectKind ki $ succKind ki1) -- not sure how useful the intersection is, maybe just ki is good enough 
                              $ Sing e1e te)
 
+{- Not safe to infer pairs because of irrelevance!
       Pair e1 e2 -> do
         (tv1, Kinded k1 e1) <- inferExpr e1
         (tv2, Kinded k2 e2) <- inferExpr e2
         let ki = unionKind k1 k2
             tv = prod tv1 tv2
         return (tv, Kinded ki $ Pair e1 e2)
+-}
 
       App (Proj Pre p) e  -> inferProj e Pre p
       App e (Proj Post p) -> inferProj e Post p

@@ -1217,7 +1217,7 @@ class Monad m => MonadMeta m where
 
   addLe            :: LtLe -> Val -> Val -> m ()
   addLe Le v1 v2 = addLeq v1 v2
-  addLe Lt v1 v2 = addLeq (succSize v1) v2
+  addLe Lt v1 v2 = addLeq (succSize v1) v2 -- broken for #
 
   solveConstraints :: m Solution
 

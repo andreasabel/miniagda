@@ -27,15 +27,20 @@ let suc [i : Size] (n : Nat i) : Nat $i = succ i n
   
 
 -- Number Streams
+mutual {
 
-cofun Str : -Size -> Set
-{ Str i = [j < i] -> Nat # & Str j
+  cofun Str : -(i : Size) -> |i,0| -> Set
+  { Str i = [j < i] -> Front j
+  }
+  cofun Front : -(j : Size) -> |j,1| -> Set
+  { Front j = Nat # & Str j
+  }
 }
 pattern cons n ns = (n, ns)
 
 fun mergef : ([i : Size] -> Nat # -> Nat # -> Str i -> Str $i) ->
   [i : Size] -> |i| -> Str i -> Str i -> Str i
-{ mergef f i s1 s2 (j < i) = case (s1 j, s2 j)
+{ mergef f i s1 s2 (j < i) = case (s1 j, s2 j) : Front j & Front j
   { (cons x xs, cons y ys) -> f j x y (mergef f j xs ys) j }
 } 
 

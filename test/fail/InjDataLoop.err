@@ -6,8 +6,8 @@ type  Empty : Set
 type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
 term  refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> < refl : Eq [i] A a a >
 type  I : ^(F : Set -> Set) -> Set
-ty-u  InvI : ^(A : Set) -> Set $0
-term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(y1 : Eq [$0] Set (I Inverse) A) -> < inv Inverse y1 : InvI A >
+ty-u  InvI : ^(A : Set) -> Set 1
+term  inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(y1 : Eq [1] Set (I Inverse) A) -> < inv Inverse y1 : InvI A >
 tmty  invertible : (A : Set) -> InvI A
 {}
 type  cantor : Set -> Set

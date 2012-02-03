@@ -2,7 +2,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- opening "BigDataInSet0.ma" ---
 --- scope checking ---
 --- type checking ---
-ty-u  BigOk : Set $0
+ty-u  BigOk : Set 1
 term  bigOk : ^(y0 : Set) -> < bigOk y0 : BigOk >
 type  Big : Set
 error during typechecking:

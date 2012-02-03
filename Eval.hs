@@ -347,6 +347,7 @@ addPatternEnv :: Pattern -> Env -> (Pattern -> Env -> TypeCheck a) -> TypeCheck 
 addPatternEnv p rho cont = 
   case p of
     VarP x       -> addNameEnv     x  rho $ cont . VarP -- \ x rho -> cont (VarP x) rho
+    SizeP e x    -> addNameEnv     x  rho $ cont . VarP
     PairP p1 p2  -> addPatternEnv  p1 rho $ \ p1 rho -> 
                      addPatternEnv p2 rho $ \ p2 rho -> cont (PairP p1 p2) rho 
     ConP pi n ps -> addPatternsEnv ps rho $ cont . ConP pi n -- \ ps rho -> cont (ConP pi n ps) rho
@@ -1800,6 +1801,7 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
             if b then return () else
               recoverFailDoc (text "leSize'':" <+> prettyTCM v1 <+> text (show ltle) <+> prettyTCM v2 <+> text "failed") 
          (VZero,_) | bal <= ltlez -> return ()
+         (VZero,VInfty) -> return ()
          (VZero,VGen _) | bal > ltlez -> fail $ "0 not < " ++ show v2
          (VSucc v1, v2) -> leSize'' ltle (bal + 1) v1 v2
          (v1, VSucc v2) -> leSize'' ltle (bal - 1) v1 v2

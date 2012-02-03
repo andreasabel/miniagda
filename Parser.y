@@ -232,7 +232,10 @@ Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
       | Measure '<=' Measure { A.Bound A.Le $1 $3 } {- (A.succMeasure C.Succ $3) } -}
 
 EIds :: { [Name] } -- non-empty list
-EIds : ExprList       { map (\ (C.Ident x) -> x) $1 }
+EIds : ExprList       { let { f (C.Ident x) = x
+                            ; f e = error ("not an identifier: " ++ C.prettyExpr e) 
+                            } in map f $1 
+                      }
 
 Telescope :: { C.Telescope }
 Telescope :  {- empty -}          { [] }
