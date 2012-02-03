@@ -534,7 +534,7 @@ TBindSP : '(' Ids ':' Expr ')' { C.TBind (Dec Default) $2 $4 } -- ordinary bindi
 --        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  
         |  '(' '+' Ids ':' Expr ')' { C.TBind (Dec SPos) $3 $5 }
 --        |  '[' '+' Ids ':' Expr ']' { C.TBind (Dec True SPos) $3 $5 }
-        | '(' sized Id ')'     { C.TSized $3 }
+--        | '(' sized Id ')'     { C.TSized $3 }
 
 DataTelescope :: { C.Telescope }
 DataTelescope :  {- empty -}          { [] }

@@ -8,7 +8,7 @@ term  false : < false : Bool >
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
-{ subst [A] a .a (refl) [P] x = x
+{ subst [A] a .a refl [P] x = x
 }
 type  DecEq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  eq : .[A : Set] -> .[a : A] -> < eq : DecEq A a a >

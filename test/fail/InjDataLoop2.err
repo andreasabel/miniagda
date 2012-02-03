@@ -23,7 +23,7 @@ type  cIc = cantor (I cantor)
 error during typechecking:
 delta
 /// checkExpr 0 |- case invertible (I cantor) : InvI (I cantor)
-               { inv .cantor (refl) -> \ f -> f f
+               { inv .cantor refl -> \ f -> f f
                } : invertible (I cantor) .Inverse (I cantor) -> Empty
 /// case 1
 /// dot pattern cantor

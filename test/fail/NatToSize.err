@@ -6,11 +6,11 @@ type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
 size  toSize : Nat -> Size
-{ toSize (zero) = 0
+{ toSize zero = 0
 ; toSize (suc n) = $(toSize n)
 }
 size  toSizeNT : Nat -> Size
-{ toSizeNT (zero) = 0
+{ toSizeNT zero = 0
 ; toSizeNT (suc n) = $(toSizeNT (suc n))
 }
 error during typechecking:

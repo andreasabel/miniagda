@@ -15,14 +15,14 @@ term  L : .[i : Size] -> ^(y1 : Nat -> O i) -> < L i y1 : O $i >
 term  M : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> ^ O i -> O s!ze
 term  M : .[i : Size] -> ^(y1 : O i) -> ^(y2 : O i) -> < M i y1 y2 : O $i >
 term  f01 : .[i : Size] -> Nat -> O $$$i
-{ f01 [i] (zero) = Z [i]
-; f01 [i] (succ (zero)) = S [$i] (Z [i])
+{ f01 [i] zero = Z [i]
+; f01 [i] (succ zero) = S [$i] (Z [i])
 ; f01 [i] (succ (succ n)) = S [$$i] (S [$i] (Z [i]))
 }
 term  v5 : .[i : Size] -> O $$$$$i
 term  v5 = [\ i ->] M [$$$$i] (L [$$$i] (f01 [i])) (S [$$$i] (S [$$i] (S [$i] (Z [i]))))
 term  emb : Nat -> O #
-{ emb (zero) = Z [#]
+{ emb zero = Z [#]
 ; emb (succ n) = S [#] (emb n)
 }
 term  pre : .[i : Size] -> (Nat -> O $$i) -> Nat -> O $i
@@ -48,9 +48,9 @@ deep
 /// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- (xSing# : Nat) -> < f xSing# : O j2 >  <=+  Nat -> O $$i
 /// new xSing# : Nat
 /// comparing codomain < vSing# xSing# : O i > with O $$i
-/// leqVal' (subtyping) [(xSing#,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- < f xSing# : O j2 >  <=+  O $$i
-/// leqVal' (subtyping) [(xSing#,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- O j2  <=+  O $$i
-/// leqVal' [(xSing#,9),(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- j2  <=+  $$i : <= #
+/// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- < f xSing# : O j2 >  <=+  O $$i
+/// leqVal' (subtyping) [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- O j2  <=+  O $$i
+/// leqVal' [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8),(xSing#,9)] |- j2  <=+  $$i : <= #
 /// leSize v2 <=+ ($ ($ v6))
 /// leSize' v2 <= ($ ($ v6))
 /// bound not entailed

@@ -6,7 +6,7 @@ type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 term  add : Nat -> Nat -> Nat
-{ add (zero) y = y
+{ add zero y = y
 ; add (succ x) y = succ (add x y)
 }
 type  Vec : ++(A : Set) -> ^ Nat -> Set

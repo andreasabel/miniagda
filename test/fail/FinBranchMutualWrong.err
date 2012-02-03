@@ -11,7 +11,7 @@ type  Prod : -(A : Set) -> ++(B : Set) -> Set
 term  pair : .[A : Set] -> .[B : Set] -> ^(y0 : A -> B) -> < pair y0 : Prod A B >
 type  Tree : Set
 term  node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < node numBranches y1 : Tree >
-{ VecTree (zero) = Unit
+{ VecTree zero = Unit
 ; VecTree (suc n) = Prod Tree (VecTree n)
 }
 error during typechecking:

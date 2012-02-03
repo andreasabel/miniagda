@@ -898,6 +898,7 @@ inferable Infty{} = True
 inferable (Def (DefId { idKind = ConK{} }))  = False
 inferable Def{} = True 
 inferable (App f e) = inferable f
+-- inferable (Pair f e) = inferable f && inferable e  -- pairs are not inferable due to irrelevant sigma!
 -- inferable Sing{}  = True  -- not with universes
 inferable _       = False
 
@@ -1016,8 +1017,9 @@ instance Pretty Expr where
   prettyPrec k (Record AnonRec rs) = text "record" <+> prettyRecFields rs
   prettyPrec k (Record (NamedRec _ n _) []) = pretty n
   prettyPrec k (Record (NamedRec _ n True) rs) = pretty n <+> prettyRecFields rs
-  prettyPrec k (Record (NamedRec _ n False) rs) = parensIf (precAppR <= k) $ 
-   pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
+  prettyPrec k (Record (NamedRec _ n False) rs) = 
+   parensIf (not (null rs) && precAppR <= k) $ 
+     pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
   prettyPrec k (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
   prettyPrec k (App f e)  = parensIf (precAppR <= k) $
     prettyPrec precAppL f <+> prettyPrec precAppR e 
@@ -1139,7 +1141,7 @@ instance Pretty (Sort Expr) where
 
 instance Pretty Pattern where
   prettyPrec k (VarP x)       = pretty x
-  prettyPrec k (ConP co c ps) = parensIf (precAppR <= k) $
+  prettyPrec k (ConP co c ps) = parensIf (not (null ps) && precAppR <= k) $
     pretty c <+> hsep (List.map (prettyPrec precAppR) ps)
   prettyPrec k (SuccP p)      = text "$" <> prettyPrec k p
   prettyPrec k (SizeP x y)    = parensIf (precAppR <= k) $ pretty y <+> text "<" <+> pretty x

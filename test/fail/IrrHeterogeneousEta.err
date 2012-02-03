@@ -8,8 +8,8 @@ type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
 type  T : Bool -> Set
-{ T (true) = Bool -> Bool
-; T (false) = Bool
+{ T true = Bool -> Bool
+; T false = Bool
 }
 block fails as expected, error message:
 etaFun'
@@ -50,8 +50,8 @@ etaFun
 /// leqVal' [(g,1),(F,0),(a,2),(||,3)] |- \ y -> || y : Bool -> Bool  <=*  || : Bool
 /// type (Bool::Tm -> Bool) has different shape than Bool
 type  U : Bool -> Set
-{ U (true) = Unit
-; U (false) = Bool
+{ U true = Unit
+; U false = Bool
 }
 block fails as expected, error message:
 etaUnit'

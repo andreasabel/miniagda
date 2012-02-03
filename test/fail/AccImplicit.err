@@ -22,13 +22,13 @@ term  aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
 term  acc1 : Acc Nat R (succ zero)
 term  acc1 = acc aux1
 term  aux0 : (a : Nat) -> (p : R a zero) -> Acc Nat R a
-{ aux0 .(succ zero) (r2) = acc1
+{ aux0 .(succ zero) r2 = acc1
 }
 term  acc0 : Acc Nat R zero
 term  acc0 = acc aux0
 term  accR : (n : Nat) -> Acc Nat R n
-{ accR (zero) = acc0
-; accR (succ (zero)) = acc1
+{ accR zero = acc0
+; accR (succ zero) = acc1
 ; accR (succ (succ n)) = acc2 n
 }
 term  acc_dest : .[n : Nat] -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Nat R m
@@ -37,13 +37,13 @@ term  acc_dest : .[n : Nat] -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Na
 term  f : (x : Nat) -> Acc Nat R x -> Nat
 { f x (acc p) = case x : Nat
                 { zero -> f (succ x) (p (succ x) r2)
-                ; succ (zero) -> f (succ x) (p (succ x) (r1 [zero]))
+                ; succ zero -> f (succ x) (p (succ x) (r1 [zero]))
                 ; succ (succ y) -> zero
                 }
 }
 term  h : (x : Nat) -> .[Acc Nat R x] -> Nat
-{ h (zero) [acc [p]] = h (succ zero) [p (succ zero) r2]
-; h (succ (zero)) [acc [p]] = h (succ (succ zero)) [p (succ (succ zero)) (r1 [zero])]
+{ h zero [acc [p]] = h (succ zero) [p (succ zero) r2]
+; h (succ zero) [acc [p]] = h (succ (succ zero)) [p (succ (succ zero)) (r1 [zero])]
 ; h (succ (succ y)) [p] = zero
 }
 term  bla : Nat

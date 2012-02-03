@@ -6,8 +6,8 @@ type  Bool : Set
 term  true : < true : Bool >
 term  false : < false : Bool >
 term  not : Bool -> Bool
-{ not (true) = false
-; not (false) = true
+{ not true = false
+; not false = true
 }
 type  Nat : ^ Bool -> Set
 term  zero : < zero : Nat true >

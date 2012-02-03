@@ -9,8 +9,8 @@ type  Nat : Set
 term  zero : < zero : Nat >
 term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
 type  T : Bool -> Set
-{ T (true) = Nat
-; T (false) = Bool
+{ T true = Nat
+; T false = Bool
 }
 term  good : .[F : Nat -> Set] -> .[f : .[b : Bool] -> (.[T b] -> Nat) -> Nat] -> (g : (n : Nat) -> F (f [true] ([\ x ->] n))) -> (h : F (f [false] ([\ x ->] zero)) -> Bool) -> Bool
 { good [F] [f] g h = h (g zero)
@@ -21,9 +21,9 @@ warning: ignoring error: type Nat has different shape than Bool
 term  bad1 : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [false] (\ x -> x) zero -> Bool) -> (h : (n : Nat) -> F [true] (\ x -> x) n) -> Bool
 term  bad1 = [\ F ->] \ g -> \ h -> g (h zero)
 term  f : (b : Bool) -> T b -> T b
-{ f (true) x = x
-; f (false) (true) = false
-; f (false) (false) = true
+{ f true x = x
+; f false true = false
+; f false false = true
 }
 error during typechecking:
 bad2

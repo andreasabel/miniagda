@@ -46,9 +46,8 @@ traceMatch msg a = a -- trace msg a
 traceMatchM msg = return () -- traceM msg
 {-
 traceMatch msg a = trace msg a 
-traceMatchM msg = traceM msg
--}  
-
+traceMatchM msg = traceM msg  
+-}
 
 traceSize msg a = a -- trace msg a 
 traceSizeM msg = return () -- traceM msg
@@ -1031,9 +1030,10 @@ matchClause _ _ _ [] = return Nothing
 match :: Env -> Pattern -> Val -> TypeCheck (Maybe Env)
 match env p v0 = --trace (show env ++ show v0) $ 
   do 
-    -- force against constructor pattern
+    -- force against constructor pattern or pair pattern
     v <- case p of 
-           (ConP _ _ _) -> traceMatch ("matching pattern " ++ show p) $ force v0
+           ConP{}  -> traceMatch ("matching pattern " ++ show p) $ force v0
+           PairP{} -> traceMatch ("matching pattern " ++ show p) $ force v0
            _ -> return v0
     case (p,v) of
 --      (ErasedP _,_) -> return $ Just env  -- TOO BAD, DOES NOT WORK (eta!)

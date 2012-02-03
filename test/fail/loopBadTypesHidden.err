@@ -13,7 +13,7 @@ term  just : .[A : Set] -> ^(y0 : A) -> < just y0 : Maybe A >
 type  Nat : Set
 type  Nat = SNat #
 term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
-{ shift_case [i] (nothing) = nothing
+{ shift_case [i] nothing = nothing
 ; shift_case [.i] (just (zero [i])) = nothing
 ; shift_case [.i] (just (succ [i] x)) = just x
 }

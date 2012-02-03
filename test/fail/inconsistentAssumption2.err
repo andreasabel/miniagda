@@ -10,7 +10,7 @@ term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
 type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
 term  refl : .[A : Set] -> .[a : A] -> < refl : Eq A a a >
 term  subst : .[A : Set] -> .[P : A -> Set] -> (i : A) -> (j : A) -> Eq A i j -> P i -> P j
-{ subst [A] [P] i .i (refl) p = p
+{ subst [A] [P] i .i refl p = p
 }
 error during typechecking:
 type of h

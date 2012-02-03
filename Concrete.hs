@@ -100,7 +100,7 @@ data TBinding a = TBind
   } 
   | TMeasure (Measure Expr)
   | TBound (Bound Expr) 
-  | TSized { boundName :: Name } -- the size parameter of a sized record
+--  | TSized { boundName :: Name } -- the size parameter of a sized record
     deriving (Eq,Show)
 
 type Telescope = [TBind]
@@ -137,7 +137,7 @@ type Case = (Pattern,Expr)
 ----
 
 prettyLBind :: LBind -> String
-prettyLBind (TSized x)                   = prettyTBind False (TSized x)                  
+-- prettyLBind (TSized x)                   = prettyTBind False (TSized x)                  
 prettyLBind (TMeasure mu)                = prettyTBind False (TMeasure mu)               
 prettyLBind (TBound (Bound ltle mu mu')) = prettyTBind False (TBound (Bound ltle mu mu'))
 prettyLBind (TBounded dec x ltle e)      = prettyTBind False (TBounded dec x ltle e)     
@@ -153,7 +153,7 @@ prettyLBind (TBind dec xs Nothing) =
 
 
 prettyTBind :: Bool -> TBind -> String
-prettyTBind inPi (TSized x) = parens ("sized " ++ x)
+-- prettyTBind inPi (TSized x) = parens ("sized " ++ x)
 prettyTBind inPi (TMeasure mu) = "|" ++ 
   (Util.showList ","  prettyExpr (measure mu)) ++ "|"
 prettyTBind inPi (TBound (Bound ltle mu mu')) = "|" ++  
@@ -283,5 +283,5 @@ teleNames tel = concat $ map tbindNames tel
 tbindNames :: TBind -> [Name]
 tbindNames TBind{ boundNames }   = boundNames
 tbindNames TBounded{ boundName } = [boundName]
-tbindNames TSized{ boundName }   = [boundName]
+-- tbindNames TSized{ boundName }   = [boundName]
 tbindNames tb = error $ "tbindNames (" ++ show tb ++ ")"

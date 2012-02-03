@@ -442,10 +442,20 @@ scopeCheckTele (tb : tel) cont = do
   return (tbs ++ tel, a)
 
 scopeCheckTBind :: C.TBind -> ScopeCheck a -> ScopeCheck ([A.TBind], a)
-scopeCheckTBind (C.TBind dec ns t) cont = do
-  t       <- scopeCheckExpr t
-  (xs, a) <- addBinds t ns $ cont
-  return (map (\ x -> A.TBind x (A.Domain t A.defaultKind dec)) xs, a)
+scopeCheckTBind tb cont = do
+  case tb of
+    C.TBind dec ns t -> do
+      t       <- scopeCheckExpr t
+      (xs, a) <- addBinds tb ns $ cont
+      return (map (\ x -> A.TBind x (A.Domain t A.defaultKind dec)) xs, a)
+    C.TBounded dec n ltle e -> do
+      e <- scopeCheckExpr e
+      (x, a) <- addBind tb n $ cont
+      return ([A.TBind x (A.Domain (A.Below ltle e) A.defaultKind dec)], a)
+    C.TMeasure mu -> throwErrorMsg $ "measure not allowed in telescope"
+    C.TBound beta -> do
+      beta <- scopeCheckBound beta
+      ([A.TBound beta],) <$> cont
 
 checkBody :: (A.TypeSig, C.Declaration) -> ScopeCheck A.Declaration
 {-

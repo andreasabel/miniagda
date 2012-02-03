@@ -14,13 +14,13 @@ term  list = cons aa (cons bb (cons cc nil))
 term  rev : .[A : Set] -> List A -> List A
 term  rev1 : .[A : Set] -> A -> List A -> A
 term  rev2 : .[A : Set] -> A -> List A -> List A
-{ rev [A] (nil) = nil
+{ rev [A] nil = nil
 ; rev [A] (cons x xs) = cons (rev1 [A] x xs) (rev2 [A] x xs)
 }
-{ rev1 [A] a (nil) = a
+{ rev1 [A] a nil = a
 ; rev1 [A] a (cons x xs) = rev1 [A] x xs
 }
-{ rev2 [A] a (nil) = nil
+{ rev2 [A] a nil = nil
 ; rev2 [A] a (cons x xs) = rev [A] (cons a (rev [A] (rev2 [A] x xs)))
 }
 error during typechecking:
