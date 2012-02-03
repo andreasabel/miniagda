@@ -377,10 +377,13 @@ irrSortFor (Set e) (Set e')      = not $ leqSizeE e e'
 
 data Kind 
   = Kind { lowerKind :: Sort Expr , upperKind :: Sort Expr }
-  | NoKind -- absurd clauses
+  | NoKind   -- absurd clauses, neutral wrt. union
+  | AnyKind  -- not yet classified, neutral wrt. intersection
     deriving (Eq, Ord)
 
-defaultKind = Kind (SortC Tm) topSort -- no classification, could be anything
+--defaultKind = Kind (SortC Tm) topSort -- no classification, could be anything
+defaultKind = AnyKind
+
 preciseKind s = Kind s s
 kSize   = preciseKind (SortC Size)
 kTSize  = preciseKind (SortC TSize)
@@ -390,14 +393,16 @@ kUniv e = preciseKind (Set (Succ (sizeVarsToInfty e)))
 
 instance Show Kind where
   show NoKind = "()"
-  show k | k == defaultKind = "?" 
+  show AnyKind = "?"
+--  show k | k == defaultKind = "?" 
   show (Kind kl ku) | kl == ku = show kl
   show (Kind kl ku) = show kl ++ ".." ++ show ku
 
 -- print kind in four letters
 prettyKind :: Kind -> String
 prettyKind NoKind                       = "none"
-prettyKind k | k == defaultKind         = "anyk"
+prettyKind AnyKind                      = "anyk"
+-- prettyKind k | k == defaultKind         = "anyk"
 prettyKind (Kind _ (SortC Tm))          = "term"
 prettyKind (Kind _ (SortC Size))        = "size"
 prettyKind k | k == kType               = "type"
@@ -413,11 +418,13 @@ dataKind (Kind _ (Set (Succ e))) = Kind (Set Zero) (Set e)
 -- in (x : A) -> B, if x : A and A has kind ki, then x has kind argKind ki
 argKind :: Kind -> Kind
 argKind NoKind = NoKind
+argKind AnyKind = AnyKind
 argKind (Kind s s') = Kind (predSort s) (predSort s')
 
 -- if e : A and A has kind ki, then e has kind predKind ki
 predKind :: Kind -> Kind
 predKind NoKind = NoKind
+predKind AnyKind = AnyKind
 -- predecessors in the kind hierarchy
 predKind ki@(Kind _ (SortC Size))  = error $ "predKind " ++ show ki
 predKind (Kind _ (SortC TSize)) = kSize
@@ -429,14 +436,17 @@ predKind (Kind (Set (Succ e)) s) = Kind (Set Zero) (predSort s)
 predKind (Kind _ s) = Kind (SortC Tm) (predSort s)
 
 succKind :: Kind -> Kind
+succKind AnyKind = AnyKind
 succKind (Kind _ (SortC Tm)) = kType
 succKind (Kind _ (SortC Size)) = kTSize
 succKind (Kind s _) = Kind (succSort s) (Set Infty) -- no upper bound
 
 -- partial operation!
 intersectKind :: Kind -> Kind -> Kind
-intersectKind NoKind ki = ki
+intersectKind NoKind ki = ki -- NoKind means here "intersection is not happening"
 intersectKind ki NoKind = ki
+intersectKind AnyKind ki = ki
+intersectKind ki AnyKind = ki
 intersectKind (Kind x1 x2) (Kind y1 y2) = 
   Kind (maxSort x1 y1) (minSort x2 y2)
 
@@ -445,6 +455,8 @@ unionKind ki1 ki2 = -- trace (show ki1 ++ " `unionKind` " ++ show ki2) $
   case (ki1,ki2) of
     (NoKind, ki) -> ki
     (ki, NoKind) -> ki
+    (AnyKind, ki) -> AnyKind
+    (ki, AnyKind) -> AnyKind
     (Kind x1 x2, Kind y1 y2) ->
       Kind (minSort x1 y1) (maxSort x2 y2)
 
@@ -453,6 +465,8 @@ unionKind ki1 ki2 = -- trace (show ki1 ++ " `unionKind` " ++ show ki2) $
 irrelevantFor :: Kind -> Kind -> Bool
 irrelevantFor NoKind _ = False -- do not make a statement if there is no info
 irrelevantFor _ NoKind = False
+irrelevantFor AnyKind _ = False
+irrelevantFor _ AnyKind = False
 irrelevantFor (Kind s _) (Kind _ s') = irrSortFor s s'
 -- worst case szenario: the least kind of the argument is still 
 -- irrelevant for the biggest kind of the result

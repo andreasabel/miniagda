@@ -315,7 +315,8 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      -- compute the kind of the data type from the kinds of the 
      -- constructor arguments  (mmh, DOES NOT WORK FOR MUTUAL DATA!)
      let newki = case (foldl unionKind NoKind (map kindOf kcse)) of
-          NoKind -> kType -- no non-rec constructor arguments
+          NoKind  -> kType -- no non-rec constructor arguments
+          AnyKind -> AnyKind 
           Kind s s' -> Kind (Set Zero) s' -- a data type is always also a type
      -- echoKindedTySig newki n dte -- 2012-01-26 disabled (repetitive)
 

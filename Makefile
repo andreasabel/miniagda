@@ -13,9 +13,10 @@ distdirs=test/succeed test/fail examples
 
 cabalp=cabal install -p --enable-executable-profiling
 
-.PHONY : test examples current default clean veryclean
+.PHONY : test examples lib current default all clean veryclean
 
 default : Main test
+all : Main test examples lib
 
 prof-current : miniagda-prof
 	miniagda-prof test/succeed/Zero.ma +RTS -prof -s
@@ -86,6 +87,12 @@ examples : Main
 	@echo "========================== Suite of examples ========================="
 	@echo "======================================================================"
 	make -C examples
+
+lib : Main
+	@echo "======================================================================"
+	@echo "=============================== Library =============================="
+	@echo "======================================================================"
+	make -C lib
 
 
 clean : 
