@@ -1673,7 +1673,9 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                      endsInSizedCo i vb0
 
                  cxt <- ask
-                 (flex',ins',cxt',tv',p2e,p2v,absp) <- checkPattern decEr flex ins (vSize `arrow` vSize) p2
+                 -- 2012-02-05 assume size variable in SuccP to be < #
+                 let sucTy = (vFinSize `arrow` vFinSize) 
+                 (flex',ins',cxt',tv',p2e,p2v,absp) <- checkPattern decEr flex ins sucTy p2
                  -- leqVal Mixed delta' VSet VSize av -- av = VSize 
                  let pe = SuccP p2e
                  let pv = VSucc p2v

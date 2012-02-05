@@ -15,7 +15,7 @@ term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
 { tail [A] [i] (cons [.i] x xs) = xs
 }
 term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
-{ zipWith [A] [B] [C] f $[i] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+{ zipWith [A] [B] [C] f $[i < #] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
 }
 term  n0 : Nat
 term  n0 = zero

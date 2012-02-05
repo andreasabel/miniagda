@@ -737,7 +737,7 @@ instance MonadCxt TypeCheck where
   addSizeRel son dist father k = 
     enter -- enterTrace 
       ("adding size rel. v" ++ show son ++ " + " ++ show dist ++ " <= v" ++ show father) $ do
-    let modBI belowInfty = if father `elem` belowInfty then son : belowInfty else belowInfty
+    let modBI belowInfty = if father `elem` belowInfty || dist > 0 then son : belowInfty else belowInfty
     local (\ cxt -> cxt 
       { sizeRels = TSO.insert son (dist, father) (sizeRels cxt) 
       , belowInfty = modBI (belowInfty cxt)

@@ -11,7 +11,7 @@ term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
 { tail [A] [i] (cons [.i] #head #tail) = #tail
 }
 term  iterate : .[A : Set] -> (step : A -> A) -> (start : A) -> .[i : Size] -> Stream A i
-{ iterate [A] step start $[i] = cons [i] start (iterate [A] step (step start) [i])
+{ iterate [A] step start $[i < #] = cons [i] start (iterate [A] step (step start) [i])
 }
 type  Tm : Set
 term  abs : ^(y0 : ^ Tm -> Tm) -> < abs y0 : Tm >

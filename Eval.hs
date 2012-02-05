@@ -1759,6 +1759,7 @@ leSize ltle pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show ltle ++ show 
            else throwErrorMsg $ "leqSize: head mismatch: " ++ show v1 ++ " !<= " ++ show v2 
 -}
          (VInfty,VInfty) | ltle == Le -> return ()
+                         | otherwise -> recoverFail "leSize: # < # failed"
          (VApp h1 tl1,VApp h2 tl2) -> leqApp N pol h1 tl1 h2 tl2
          _ -> relPolM pol (leSize' ltle) v1 v2
 
@@ -1800,13 +1801,16 @@ leSize' ltle v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ 
 -- invariant: bal is zero in cases for VMax and VMeta
 leSize'' :: LtLe -> Int -> Val -> Val -> TypeCheck ()  
 leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal ++ " " ++ show ltle ++ " " ++ show v2) $ 
-    do let ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
+    do let failure = recoverFailDoc (text "leSize'':" <+> prettyTCM v1 <+> text ("+ " ++ show bal) <+> text (show ltle) <+> prettyTCM v2 <+> text "failed") 
+           check mb = ifM mb (return ()) failure
+           ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
        case (v1,v2) of
+         _ | v1 == v2 && ltle == Le && bal <= 0 -> return ()
+         (VGen i, VGen j) | i == j && bal <= -1 -> check $ isBelowInfty i
+{- UNSOUND for variables not < #
          _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
-         (VGen i, VInfty) | ltle == Lt -> do
-            b <- isBelowInfty i
-            if b then return () else
-              recoverFailDoc (text "leSize'':" <+> prettyTCM v1 <+> text (show ltle) <+> prettyTCM v2 <+> text "failed") 
+-}
+         (VGen i, VInfty) | ltle == Lt -> check $ isBelowInfty i
          (VZero,_) | bal <= ltlez -> return ()
          (VZero,VInfty) -> return ()
          (VZero,VGen _) | bal > ltlez -> fail $ "0 not < " ++ show v2
@@ -1821,8 +1825,18 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
          (_,VZero) -> leSizePlus ltle bal [v1] []
          _ -> leSizePlus ltle bal [v1] [v2]
 
+-- problem: can only cancel variables < #
 leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
-leSizePlus ltle bal vs1 vs2 = leSizePlus' ltle bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+leSizePlus Lt bal vs1 vs2 = do
+  vs2' <- filterM varBelowInfty vs2
+  vs1' <- filterM varBelowInfty vs1
+  leSizePlus' Lt bal (vs1 List.\\ vs2') (vs2 List.\\ vs1')
+leSizePlus Le bal vs1 vs2 = 
+  leSizePlus' Le bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+
+varBelowInfty :: Val -> TypeCheck Bool
+varBelowInfty (VGen i) = isBelowInfty i
+varBelowInfty _        = return False
 
 leSizePlus' :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
 leSizePlus' ltle bal vs1 vs2 = do

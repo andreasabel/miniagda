@@ -22,14 +22,14 @@ term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
 { tail [A] [i] (cons [.i] #head #tail) = #tail
 }
 term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
-{ zipWith [A] [B] [C] f $[i] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+{ zipWith [A] [B] [C] f $[i < #] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
 }
 term  n0 : Nat
 term  n0 = zero [#]
 term  n1 : Nat
 term  n1 = succ [#] n0
 term  fib : .[i : Size] -> Stream Nat i
-{ fib $[i] = cons [i] n0 (zipWith [Nat] [Nat] [Nat] add [i] (cons [i] n1 (fib [i])) (fib [i]))
+{ fib $[i < #] = cons [i] n0 (zipWith [Nat] [Nat] [Nat] add [i] (cons [i] n1 (fib [i])) (fib [i]))
 }
 term  fib2 : .[i : Size] -> Stream Nat (i + i)
 error during typechecking:

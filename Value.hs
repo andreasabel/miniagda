@@ -74,6 +74,8 @@ vSize :: Val
 vSize = VBelow Le VInfty -- 2012-01-28 non-termination bug I have not found
 -- vSize = VSort $ SortC Size
 
+vFinSize = VBelow Lt VInfty
+
 -- | Ensure we construct the correct value representing Size.
 vSort :: Sort Val -> Val
 vSort (SortC Size) = vSize

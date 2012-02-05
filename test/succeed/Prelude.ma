@@ -23,12 +23,16 @@ cofun Nat : +Size -> Set
 pattern zero j   = (j, nothing)
 pattern succ j n = (j, just n)
 
-let zer [i : Size]             : Nat $i = zero i
-let suc [i : Size] (n : Nat i) : Nat $i = succ i n
+      let zer [i : Size]          : Nat $i = zero 0
+check let suc [i < #] (n : Nat i) : Nat $i = succ i n
+
+fun suc : [i : Size] (n : Nat i) -> Nat $i 
+{ suc i (i', m) = succ $i' (i', m)
+}
 
 fun plus : [i : Size] -> (n : Nat i) -> 
            [j : Size] -> (m : Nat j) -> Nat (i+j)
 { plus i (zero i')   j m = m
-; plus i (succ i' n) j m = succ (i'+j) <| plus i' n j m
+; plus i (succ i' n) j m = suc (i'+j) <| plus i' n j m
 }
 -- 2012-02-01 type checker turns var pattern i' into size pattern (i' < i)

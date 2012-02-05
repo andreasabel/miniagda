@@ -11,7 +11,7 @@ type  Colist : ^(A : Set) -> - Size -> Set
 term  nil : .[A : Set] -> .[i : Size] -> < nil i : Colist A $i >
 term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < cons i y1 y2 : Colist A $i >
 term  olist' : .[i : Size] -> Colist (Nat #) i
-{ olist' $[i] = cons [i] (zero [#]) (olist' [i])
+{ olist' $[i < #] = cons [i] (zero [#]) (olist' [i])
 }
 term  length : .[i : Size] -> .[A : Set] -> Colist A i -> Nat i
 error during typechecking:
