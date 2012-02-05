@@ -1281,7 +1281,8 @@ leqVal' f p mt12 u1' u2' = do
     ce <- ask
     trace  (("rewrites: " +?+ show (rewrites ce)) ++ "  leqVal': " ++ show ce ++ "\n |- " ++ show u1' ++ "\n  <=" ++ show p ++ "  " ++ show u2') $
 -}  
-    sh12 <- case mt12 of
+    mt12f <- mapM (mapM force) mt12
+    sh12 <- case mt12f of
               Nothing -> return Nothing
               Just tv12 -> case typeView12 tv12 of
                 Right sh -> return $ Just sh
@@ -1323,19 +1324,21 @@ leqVal' f p mt12 u1' u2' = do
       _ -> do 
        u1 <- reduce =<< whnfClos u1'
        u2 <- reduce =<< whnfClos u2'
-       (f1,u1f) <- force' False u1
-       (f2,u2f) <- force' False u2
-       case (f1,f2) of -- (u1f /= u1,u2f /= u2) of
-         (True,False) | f /= R -> -- only unroll one side  
-            enter ("forcing LHS") $
-                      leqVal' L p mt12 u1f u2
-         (False,True) | f /= L ->
-            enter ("forcing RHS") $
-                      leqVal' R p mt12 u1 u2f    
- 
-         _ -> leqStructural u1 u2 where
 
-          leqCons n1 vl1 n2 vl2 = do
+       let tryForcing fallback = do
+            (f1,u1f) <- force' False u1
+            (f2,u2f) <- force' False u2
+            case (f1,f2) of -- (u1f /= u1,u2f /= u2) of
+
+              (True,False) | f /= R -> -- only unroll one side  
+                 enter ("forcing LHS") $
+                           leqVal' L p mt12 u1f u2
+              (False,True) | f /= L ->
+                 enter ("forcing RHS") $
+                           leqVal' R p mt12 u1 u2f    
+              _ -> fallback 
+
+           leqCons n1 vl1 n2 vl2 = do
                  unless (n1 == n2) $ 
                   recoverFail $ 
                     "leqVal': head mismatch "  ++ show u1 ++ " != " ++ show u2  
@@ -1345,9 +1348,11 @@ leqVal' f p mt12 u1' u2' = do
                      ct12 <- Traversable.mapM (conType n1) tv12
                      leqVals' f p ct12 vl1 vl2
                      return ()
-
+{-
+       leqStructural u1 u2 where
           leqStructural u1 u2 = 
-           case (u1,u2) of
+-}
+       case (u1,u2) of
 
 {-
   C = C'  (proper: C' entails C, but I do not want to implement entailment) 
@@ -1443,7 +1448,6 @@ leqVal' f p mt12 u1' u2' = do
               (VApp v1@(VDef (DefId (ConK _) n1)) vl1, 
                VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> leqCons n1 vl1 n2 vl2
 -}
-              (VApp v1 vl1, VApp v2 vl2) -> leqApp f p v1 vl1 v2 vl2
 
               -- smart equality is not transitive
               (VCase v1 tv1 env1 cl1, VCase v2 tv2 env2 cl2) -> do
@@ -1456,10 +1460,13 @@ leqVal' f p mt12 u1' u2' = do
 -}
               (VSing v1 av1, av2)  -> leqVal' f p Nothing av1 av2  -- subtyping ax 
               (VSort s1, VSort s2) -> leqSort p s1 s2
-              (VApp v1 vl1, u2) -> leqApp f p v1 vl1 u2 []
-              (u1, VApp v2 vl2) -> leqApp f p u1 []  v2 vl2
               (a1,a2) | a1 == a2 -> return ()
-              _ -> leqApp f p u1 [] u2 []
+              (u1,u2) -> tryForcing $ 
+                case (u1,u2) of
+                  (VApp v1 vl1, VApp v2 vl2) -> leqApp f p v1 vl1 v2 vl2
+                  (VApp v1 vl1, u2) -> leqApp f p v1 vl1 u2 []
+                  (u1, VApp v2 vl2) -> leqApp f p u1 []  v2 vl2
+                  _ -> leqApp f p u1 [] u2 []
           
 -- naive implementation for now         
 leqClauses :: Force -> Pol -> MT12 -> Val -> TVal -> Env -> [Clause] -> Env -> [Clause] -> TypeCheck ()
@@ -1520,7 +1527,7 @@ leqCase f pol mt12 v1 v tvp env (Clause _ [p] (Just e)) = enterDoc (text "leqCas
 -- q ::= mixed | Pos | Neg
 leqVals' :: Force -> Pol -> OneOrTwo TVal -> [Val] -> [Val] -> TypeCheck (OneOrTwo TVal)
 leqVals' f q tv12 vl1 vl2 = do
-  sh12 <- typeView12 tv12
+  sh12 <- typeView12 =<< mapM force tv12
   case (vl1, vl2, sh12) of
  
     ([], [], _) -> return tv12

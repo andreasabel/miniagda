@@ -948,7 +948,7 @@ matchPatType (p,v) dom cont =
              sige <- lookupSymb n
              let vc = symbTyp sige
 -}
-             vc <- conType n (typ dom)
+             vc <- conType n =<< force (typ dom)
              introPatTypes (zip pl vl) vc $ \ _ -> cont
  
           (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont 
