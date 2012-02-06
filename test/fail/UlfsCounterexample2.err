@@ -20,6 +20,6 @@ bad
 /// inferExpr' h (g zero)
 /// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- < g zero : F (f [true] (nat zero)) >  <=+  F (f [false] (bool false))
 /// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- F (f [true] (nat zero))  <=+  F (f [false] (bool false))
-/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- f [true] (nat zero)  <=*  f [false] (bool false) : Nat
+/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- f true (nat zero)  <=*  f false (bool false) : Nat
 /// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- nat zero : T true  <=*  bool false : T false
 /// leqVal': head mismatch nat{y0 = zero{}} != bool{y0 = false{}}

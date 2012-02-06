@@ -21,6 +21,6 @@ bad
 /// inferExpr' h (g zero)
 /// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- < g zero : F (f [true] zero) >  <=+  F (f [false] false)
 /// leqVal' (subtyping) [(f,1),(F,0),(g,2),(h,3)] |- F (f [true] zero)  <=+  F (f [false] false)
-/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- f [true] zero  <=*  f [false] false : Nat
+/// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- f true zero  <=*  f false false : Nat
 /// leqVal' [(f,1),(F,0),(g,2),(h,3)] |- zero : Nat  <=*  false : Bool
 /// type Nat has different shape than Bool

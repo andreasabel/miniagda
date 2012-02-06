@@ -49,12 +49,12 @@ traceRewM msg = traceM msg
 
 -- metavariables and constraints
 
-{-
 traceMeta msg a = a -- trace msg a 
 traceMetaM msg = return () -- traceM msg
--}
+{-
 traceMeta msg a = trace msg a 
 traceMetaM msg = traceM msg
+-}
 
 -- type checking monad -----------------------------------------------
 

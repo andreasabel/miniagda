@@ -25,5 +25,5 @@ offDia
 /// checkForced fromList [(A,1),(f,0),(a,2),(b,3)] |- refl : Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- < refl : Id (Id A a b) (f [A] a b) (f [A] a b) >  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
 /// leqVal' (subtyping) [(A,1),(f,0),(a,2),(b,3)] |- Id (Id A a b) (f [A] a b) (f [A] a b)  <=+  Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] refl)
-/// leqVal' [(A,1),(f,0),(a,2),(b,3)] |- f [A] a b  <=^  subst [A] a b (f [A] a b) [Id A a] refl : Id A a b
+/// leqVal' [(A,1),(f,0),(a,2),(b,3)] |- f A a b  <=^  subst A a b (f [A] a b) (Id A a) refl : Id A a b
 /// leqApp: head mismatch v0 != subst

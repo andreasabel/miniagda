@@ -98,6 +98,7 @@ mkClos rho Zero        = VZero
 mkClos rho (Below ltle e) = VBelow ltle (mkClos rho e)
 mkClos rho (Proj fx n) = VProj fx n
 mkClos rho (Var x) = lookupPure rho x 
+mkClos rho (Ann e) = mkClos rho $ unTag e
 mkClos rho e = VClos rho e
   -- Problem with MetaVars: freeVars of a meta var is unknown in this repr.!
   -- VClos (rho { envMap = filterEnv (freeVars e) (envMap rho)}) e

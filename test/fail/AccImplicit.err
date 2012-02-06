@@ -59,5 +59,5 @@ p1
 /// checkForced fromList [(p,0)] |- refl : Id Nat (h zero [p]) (h zero [acc0])
 /// leqVal' (subtyping) [(p,0)] |- < refl : Id Nat (h zero [p]) (h zero [p]) >  <=+  Id Nat (h zero [p]) (h zero [acc0])
 /// leqVal' (subtyping) [(p,0)] |- Id Nat (h zero [p]) (h zero [p])  <=+  Id Nat (h zero [p]) (h zero [acc0])
-/// leqVal' [(p,0)] |- h zero [p]  <=^  zero : Nat
+/// leqVal' [(p,0)] |- h zero p  <=^  zero : Nat
 /// leqApp: head mismatch h != zero{}

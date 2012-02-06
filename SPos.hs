@@ -1,12 +1,10 @@
 module SPos (nocc,noccFromBool) where
--- module SPos (nocc,noccFromBool,sposConstructor,posArgs) where
 
 import Abstract
 import Polarity
 import Value
 import TCM
 import Eval
--- import CallStack
 import TraceError
 import Util
 
@@ -15,6 +13,7 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Error
+-- import Control.Monad.HT (andLazy) -- now also in Util.hs
 
 import Debug.Trace
 
@@ -26,48 +25,38 @@ traceSPos msg a = trace msg a
 traceSPosM msg = traceM msg
 
 
+
 -- nocc (used by SPos and TypeCheck)
 -- check that a does not occur in tv
 -- a may be a "atomic value" i.e not pi , lam , app , or succ 
 nocc :: Int -> Val -> TVal -> TypeCheck Bool
-nocc k a tv = -- trace ("noccRecArg " ++ show tv) 
-  do tv <- whnfClos tv
-     case tv of
-         a' | a == a' -> return False
-         VQuant Pi x dom env b -> 
-             do no <- nocc k a (typ dom)
-                case no of 
-                  True -> do
-                      bv <- whnf (update env x (VGen k)) b
-                      nocc (k+1) a bv
-                  False  -> return False
-         VLam x env b -> do
-                 bv <- whnf (update env x (VGen k)) b
-                 nocc (k+1) a bv
-         VSucc v -> nocc k a v
-         VApp v1 [] -> return True -- because  VApp v1 [] != a  
-         VApp v1 vl -> do n <- nocc k a (VApp v1 [])
-                          nl <- mapM (nocc k a) vl
-                          return $ n && and nl
-         VRecord AnonRec rs -> and <$> mapM (nocc k a . snd) rs
-         VRecord (NamedRec co c _) rs -> (&&) <$> nocc k a (vCon co c) <*> do
-           and <$> mapM (nocc k a . snd) rs
-         VGen{} -> return $ True
-         VZero  -> return $ True
-         VInfty -> return $ True
-         VMax vl -> do nl <- mapM (nocc k a) vl
-                       return $ and nl
-         VPlus vl -> and <$> mapM (nocc k a) vl
-         VSort (CoSet v) -> nocc k a v
-         VSort{} -> return $ True
-         VSing v tv -> nocc k a tv 
-         VUp v tv   -> nocc k a v
-         VIrr    -> return $ True
-         VCase v _ env cls -> do
-           n  <- nocc k a v
-           nl <- mapM (nocc k a . snd) (envMap env)
-           return $ and $ n : nl
-         _ -> fail $ "internal error: nocc " ++ show (k,a,tv) ++ " NYI"
+nocc k a tv = do 
+  -- traceM ("noccRecArg " ++ show tv) 
+  tv <- whnfClos tv
+  case tv of
+    a' | a == a'                 -> return False
+    VQuant Pi x dom env b        -> nocc k a (typ dom) `andLazy` do
+       nocc (k+1) a =<< whnf (update env x (VGen k)) b
+    VLam x env b                 -> nocc (k+1) a =<< whnf (update env x (VGen k)) b
+    VSucc v                      -> nocc k a v
+    VApp v1 []                   -> return True -- because  VApp v1 [] != a  
+    VApp v1 vl                   -> andM $ map (nocc k a) $ VApp v1 [] : vl
+    VRecord AnonRec rs           -> andM $ map (nocc k a . snd) rs
+    VRecord (NamedRec co c _) rs -> andM $ 
+      nocc k a (vCon co c) : map (nocc k a . snd) rs
+    VGen{}                       -> return $ True
+    VZero                        -> return $ True
+    VInfty                       -> return $ True
+    VMax vl                      -> andM $ map (nocc k a) vl
+    VPlus vl                     -> andM $ map (nocc k a) vl
+    VSort (CoSet v)              -> nocc k a v
+    VSort{}                      -> return $ True
+    VSing v tv                   -> nocc k a tv 
+    VUp v tv                     -> nocc k a v
+    VIrr                         -> return $ True
+    VCase v _ env cls            -> andM $ 
+      nocc k a v : map (nocc k a . snd) (envMap env)
+    _                            -> fail $ "internal error: NYI: nocc " ++ show (k,a,tv)
 
 noccFromBool :: Bool -> Pol
 noccFromBool True  = Polarity.Const

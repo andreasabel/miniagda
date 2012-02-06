@@ -30,6 +30,7 @@ import Control.Monad.State hiding (mapM)
 import Control.Monad.Error hiding (mapM)
 import Control.Monad.Reader hiding (mapM)
 import Control.Monad.IfElse  -- unlessM
+-- import Control.Monad.HT      -- andLazy  -- because liftM2 (&&) is NOT lazy!
 
 import Debug.Trace
 
@@ -47,6 +48,13 @@ traceMatchM msg = return () -- traceM msg
 {-
 traceMatch msg a = trace msg a 
 traceMatchM msg = traceM msg  
+-}
+
+traceLoop msg a = a -- trace msg a 
+traceLoopM msg = return () -- traceM msg
+{-
+traceLoop msg a = trace msg a 
+traceLoopM msg = traceM msg  
 -}
 
 traceSize msg a = a -- trace msg a 
@@ -91,7 +99,7 @@ Implementation:
  -}
 
 reval :: Val -> TypeCheck Val
-reval u = -- trace ("reval " ++ show u) $ 
+reval u = traceLoop ("reval " ++ show u) $ 
  case u of
   VSort (CoSet v) -> reval v >>= return . VSort . CoSet
   VSort{} -> return u
@@ -182,7 +190,7 @@ reEnv (Environ rho mmeas) = do
 
 -- reduce the root of a value
 reduce :: Val -> TypeCheck Val
-reduce v = -- trace ("reduce " ++ show v) $
+reduce v = traceLoop ("reduce " ++ show v) $
  do
   rewrules <- asks rewrites
   mr <- findM (\ rr -> equal v (lhs rr)) rewrules
@@ -193,22 +201,22 @@ reduce v = -- trace ("reduce " ++ show v) $
 -- equal v v'  tests values for untyped equality
 -- precond: v v' are in --> whnf
 equal :: Val -> Val -> TypeCheck Bool
-equal u1 u2 = -- trace ("equal " ++ show u1 ++ " =?= " ++ show u2) $
+equal u1 u2 = traceLoop ("equal " ++ show u1 ++ " =?= " ++ show u2) $
   case (u1,u2) of
     (v1,v2) | v1 == v2 -> return True -- includes all size expressions
 --    (VSucc v1, VSucc v2) -> equal v1 v2  -- NO REDUCING NECC. HERE (Size expr)
     (VApp v1 vl1, VApp v2 vl2) -> 
-       liftM2 (&&) (equal v1 v2) (equals' vl1 vl2)
+       (equal v1 v2) `andLazy` (equals' vl1 vl2)
     (VQuant pisig1 x1 dom1 env1 b1, VQuant pisig2 x2 dom2 env2 b2) | pisig1 == pisig2 ->
-       liftM2 (&&) (equal (typ dom1) (typ dom2)) $  -- NO RED. NECC. (Type)
+       andLazy (equal (typ dom1) (typ dom2)) $  -- NO RED. NECC. (Type)
          new x1 dom1 $ \ vx -> do 
            v1 <- whnf (update env1 x1 vx) b1
            v2 <- whnf (update env2 x2 vx) b2 
            equal v1 v2
 
-    (VPair v1 w1, VPair v2 w2) -> liftM2 (&&) (equal v1 v2) (equal w1 w2)
+    (VPair v1 w1, VPair v2 w2) -> (equal v1 v2) `andLazy` (equal w1 w2)
     (VBelow ltle1 v1, VBelow ltle2 v2) | ltle1 == ltle2 -> equal v1 v2
-    (VSing v1 tv1, VSing v2 tv2) -> liftM2 (&&) (equal v1 v2) (equal tv1 tv2) 
+    (VSing v1 tv1, VSing v2 tv2) -> (equal v1 v2) `andLazy` (equal tv1 tv2) 
 
     (VLam x1 env1 b1, VLam x2 env2 b2) -> -- PROBLEM: DOMAIN MISSING
          addName x1 $ \ vx -> do          -- CAN'T "up" fresh variable
@@ -225,8 +233,7 @@ notDifferentNames _ _ = True
 
 equals' :: [Val] -> [Val] -> TypeCheck Bool
 equals' [] []             = return True
-equals' (w1:vs1) (w2:vs2) = liftM2 (&&) (equal' w1 w2) 
-                                        (equals' vs1 vs2)
+equals' (w1:vs1) (w2:vs2) = (equal' w1 w2) `andLazy` (equals' vs1 vs2)
 equals' vl1 vl2           = return False
 
 equal' w1 w2 = whnfClos w1 >>= \ v1 -> equal v1 =<< whnfClos w2

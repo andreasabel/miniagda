@@ -31,6 +31,7 @@ executable miniagda
                     haskell-src-exts >= 1.9.5 && < 1.12,
                     mtl == 2.0.*,
                     pretty >= 1.0 && < 1.2,
+--                    utility-ht >= 0.0.1 && < 1.0,
                     IfElse >= 0.85 && < 2.0
   build-tools:      happy >= 1.15 && < 2,
                     alex >= 2.0.1 && < 4

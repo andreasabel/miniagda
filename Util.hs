@@ -66,11 +66,13 @@ mapMapM f = Map.foldrWithKey step (return $ Map.empty)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM c d e = do { b <- c ; if b then d else e }
- 
-allM  :: Monad m => [m Bool] -> m Bool
-allM [] = return True
-allM (m:ms) = do b <- m
-                 if b then allM ms else return False
+
+andLazy :: Monad m => m Bool -> m Bool -> m Bool
+andLazy ma mb = ifM ma mb $ return False
+
+andM  :: Monad m => [m Bool] -> m Bool
+andM []     = return True
+andM (m:ms) = m `andLazy` andM ms
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
 findM p []       = return Nothing

@@ -19,7 +19,8 @@ default : Main test
 all : Main test examples lib
 
 prof-current : miniagda-prof
-	miniagda-prof test/succeed/Zero.ma +RTS -prof -s
+	miniagda-prof examples/FiCS12/fics12-06.ma +RTS -prof -s
+#	miniagda-prof test/succeed/Zero.ma +RTS -prof -s
 #	miniagda-prof privateExamples/NisseContNorm/negative-2010-11-23.ma +RTS -prof
 current : Main
 #	Main test/fail/BoundedFake.ma
@@ -62,6 +63,8 @@ install-prof-libs :
 	$(cabalp) preprocessor-tools
 	$(cabalp) cpphs
 	$(cabalp) haskell-src-exts
+	$(cabalp) IfElse
+	$(cabalp) utility-ht
 
 SCT : SCT.hs Lexer.hs SCTParser.hs SCTSyntax.hs
 	ghc $(ghcflags) $< --make -o $@
