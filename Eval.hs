@@ -1805,11 +1805,12 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
            check mb = ifM mb (return ()) failure
            ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
        case (v1,v2) of
+{- Allow cancelling of all variables
          _ | v1 == v2 && ltle == Le && bal <= 0 -> return ()
          (VGen i, VGen j) | i == j && bal <= -1 -> check $ isBelowInfty i
-{- UNSOUND for variables not < #
-         _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
+-- RESTORED: UNSOUND for variables not < #
 -}
+         _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
          (VGen i, VInfty) | ltle == Lt -> check $ isBelowInfty i
          (VZero,_) | bal <= ltlez -> return ()
          (VZero,VInfty) -> return ()
@@ -1825,7 +1826,14 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
          (_,VZero) -> leSizePlus ltle bal [v1] []
          _ -> leSizePlus ltle bal [v1] [v2]
 
--- problem: can only cancel variables < #
+leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
+leSizePlus ltle bal vs1 vs2 = 
+  leSizePlus' ltle bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+
+{-  2012-02-06 this modification cancels only variables < #
+    However, omega-instantiation is valid [i < #] -> F i subseteq F #
+    because every chain has a limit at #.
+
 leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
 leSizePlus Lt bal vs1 vs2 = do
   vs2' <- filterM varBelowInfty vs2
@@ -1833,6 +1841,7 @@ leSizePlus Lt bal vs1 vs2 = do
   leSizePlus' Lt bal (vs1 List.\\ vs2') (vs2 List.\\ vs1')
 leSizePlus Le bal vs1 vs2 = 
   leSizePlus' Le bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+-}
 
 varBelowInfty :: Val -> TypeCheck Bool
 varBelowInfty (VGen i) = isBelowInfty i

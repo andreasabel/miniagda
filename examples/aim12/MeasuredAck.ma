@@ -13,7 +13,8 @@ fun ack : Nat # -> Nat # -> Nat #
 }
 -}
 
-fail -- 2012-02-05 this fails because size vars are not < #
+-- fail -- 2012-02-05 this fails because size vars are not < #
+check -- 2012-02-06 restored old behavior
 fun ack : [i, j : Size] -> |i,j| -> Nat i -> Nat j -> Nat #
 { ack .$i j   (zero i)    m         = succ # m
 ; ack .$i .$j (succ i n) (zero j)   = ack i # n (succ # (zero #))
