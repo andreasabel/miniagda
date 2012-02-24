@@ -685,7 +685,7 @@ inferSize e =
     Infty -> return e
     Succ e  -> Succ <$> checkSize e
     Plus es -> Plus <$> mapM checkSize es
-    Max  es -> Max  <$> mapM checkSize es
+    Max  es -> maxE <$> mapM checkSize es
     e -> do
       (v, Kinded ki e) <- inferExpr e
       subtype v vSize

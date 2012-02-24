@@ -261,7 +261,7 @@ reify' m v0 = do
     (VZero)              -> return $ Zero
     (VInfty)             -> return $ Infty
     (VSucc v)            -> Succ <$> reify v
-    (VMax vs)            -> Max  <$> mapM reify vs
+    (VMax vs)            -> maxE <$> mapM reify vs
     (VPlus vs)           -> Plus <$> mapM reify vs
     (VMeta x rho n)      -> -- error $ "cannot reify meta-variable " ++ show v0
                             return $ iterate Succ (Meta x) !! n
@@ -307,7 +307,7 @@ toExpr v =
     VZero           -> return $ Zero
     VInfty          -> return $ Infty
     (VSucc v)       -> Succ <$> toExpr v
-    VMax vs         -> Max  <$> mapM toExpr vs
+    VMax vs         -> maxE <$> mapM toExpr vs
     VPlus vs        -> Plus <$> mapM toExpr vs
     VMeta x rho n   -> metaToExpr x rho n
     VSort s         -> Sort <$> mapM toExpr s

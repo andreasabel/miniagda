@@ -2,6 +2,8 @@
  
 module Value where
 
+import Control.Applicative
+
 import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -160,7 +162,7 @@ quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (
 succSize :: Val -> Val
 succSize v = case v of
             VInfty -> VInfty
-            VMax vs -> VMax $ map succSize vs
+            VMax vs -> maxSize $ map succSize vs
             VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
             _ -> VSucc v 
 vSucc = succSize
@@ -189,12 +191,13 @@ plusSizes (v:vs) = v `plusSize` (plusSizes vs)
 --            = VMax (sort (nub (flatten vs)) else
 -- precondition vs 
 
+
 maxSize :: [Val] -> Val
-maxSize vs = case flatten vs of
+maxSize vs = case Set.toList . Set.fromList <$> flatten vs of
    Nothing -> VInfty
    Just [] -> VZero
    Just [v] -> v
-   Just vs' -> VMax $ Set.toList $ Set.fromList $ vs' -- sort, nub
+   Just vs' -> VMax vs'
   where flatten (VZero:vs) = flatten vs
         flatten (VInfty:_) = Nothing
         flatten (VMax vs:vs') = flatten vs' >>= return . (vs++)

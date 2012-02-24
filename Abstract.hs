@@ -239,7 +239,19 @@ maxSizeE e1 Infty = Infty
 maxSizeE Zero  e2 = e2
 maxSizeE e1 Zero  = e1
 maxSizeE (Succ e1) (Succ e2) = Succ (maxSizeE e1 e2)
-maxSizeE e1 e2 = error $ "maxSizeE " ++ (Util.parens $ show e1) ++ " " ++ (Util.parens $ show e2)
+maxSizeE e1 e2 = Max [e1, e2]
+-- maxSizeE e1 e2 = error $ "maxSizeE " ++ (Util.parens $ show e1) ++ " " ++ (Util.parens $ show e2)
+
+flattenMax :: Expr -> [Expr] -> [Expr]
+flattenMax Infty          acc = [Infty]
+flattenMax Zero           acc = acc
+flattenMax (Max [])       acc = acc 
+flattenMax (Max (e : es)) acc = flattenMax e $ flattenMax (Max es) acc 
+flattenMax e              acc = e : acc
+
+-- smart constructor for MAX
+maxE :: [Expr] -> Expr
+maxE es = Max $ foldr flattenMax [] es 
 
 sizeVarsToInfty :: Expr -> Expr
 sizeVarsToInfty Zero = Zero
