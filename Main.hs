@@ -75,7 +75,7 @@ allLet :: Signature -> [A.Declaration] -> [(Name,A.Expr)]
 allLet sig [] = []
 allLet sig (decl:xs) =
     case decl of
-      (A.LetDecl True n [] (Just t) e) -> 
+      (A.LetDecl True n [] _ e) -> 
           (n,e):(allLet sig xs)
       _ -> allLet sig xs 
 

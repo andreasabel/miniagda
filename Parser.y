@@ -240,6 +240,7 @@ EIds : ExprList       { let { f (C.Ident x) = x
 Telescope :: { C.Telescope }
 Telescope :  {- empty -}          { [] }
               | TBind Telescope { $1 : $2 } 
+              | Measure Telescope { C.TMeasure $1 : $2 } 
 
 TBind :: { C.TBind }
 TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding

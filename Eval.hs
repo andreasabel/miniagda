@@ -1256,6 +1256,7 @@ typeView12 (Two tv1 tv2) =
     (VSing v tv, _)      -> return $ ShSingL v tv tv2
     (_, VSing v tv)      -> return $ ShSingR tv1 v tv
     _ -> case (typeView tv1, typeView tv2) of
+           (ShSort s1, ShSort s2) | s1 == s2 -> return $ ShSort $ s1
            (ShData n1 _, ShData n2 _) | n1 == n2 -> return $ ShData n1 (Two tv1 tv2)
            (ShNe{}     , ShNe{}     )            -> return $ ShNe (Two tv1 tv2)
            _ -> throwError $ strMsg $ "type " ++ show tv1 ++ " has different shape than " ++ show tv2
@@ -1288,7 +1289,7 @@ leqVal' f p mt12 u1' u2' = do
     ce <- ask
     trace  (("rewrites: " +?+ show (rewrites ce)) ++ "  leqVal': " ++ show ce ++ "\n |- " ++ show u1' ++ "\n  <=" ++ show p ++ "  " ++ show u2') $
 -}  
-    mt12f <- mapM (mapM force) mt12
+    mt12f <- mapM (mapM force) mt12 -- leads to LOOP, see HungryEta.ma
     sh12 <- case mt12f of
               Nothing -> return Nothing
               Just tv12 -> case typeView12 tv12 of

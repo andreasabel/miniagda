@@ -562,6 +562,7 @@ boundType = typ . boundDom
 
 mapDec :: (Dec -> Dec) -> TBind -> TBind
 mapDec f (TBind x dom) = TBind x (dom { decor = f (decor dom) })
+mapDec f tb = tb
 
 mapDecM :: (Applicative m) => (Dec -> m Dec) -> TBind -> m TBind
 mapDecM f (TBind x dom) = 

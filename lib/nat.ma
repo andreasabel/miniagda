@@ -10,6 +10,11 @@ pattern suc n = just n
 
 let succ [i : Size] (n : Nat i) : Nat $i = suc (i, n)
 
+let oneN   : Nat 1 = suc (0, zero)
+let twoN   : Nat 2 = suc (1, oneN)
+let threeN : Nat 3 = suc (2, twoN)
+let fourN  : Nat 4 = suc (3, threeN)
+
 fun caseNat : [i : Size] -> |i| -> (n : Nat $i) -> 
   [C : Set] -> C -> ([i : Size] -> (m : Nat i) -> C) -> C
 { caseNat i zero          C z s = z
@@ -26,6 +31,11 @@ fun caseNat : [i : Size] -> |i| -> (n : Nat $i) ->
 ; caseNat i (suc (i', n)) C z s = s i' n
 }
 -}
+
+fun iterNat : [A : Set](f : A -> A)(a : A)[i : Size](n : Nat i) -> A
+{ iterNat A f a i zero          = a
+; iterNat A f a i (suc (i', n)) = iterNat A f (f a) i' n
+}
 
 fun pred : [i : Size] -> (n : Nat $i) -> Nat i
 { pred i zero = zero

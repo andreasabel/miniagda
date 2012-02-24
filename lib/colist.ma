@@ -23,6 +23,17 @@ fun codrop : [A : Set ] ->
 ; codrop A i (suc (i', n)) j (cons a l) = codrop A i' n j (l (j+i'))
 }
 
+-- direct encoding of tail
+check
+fun cotail : [A : Set] [i : Size] (l : CoList A $i) -> CoList A i
+{ cotail A i nil        = nil
+; cotail A i (cons a l) = l i 
+}
+
+-- tail as instance of drop
+let cotail [A : Set] : [i : Size] (l : CoList A $i) -> CoList A i
+  = codrop A $0 (suc (0, zero))
+
 fun coappend : [A : Set] -> [i : Size] -> |i| -> 
                CoList A i -> CoList A i -> CoList A i
 { coappend A i nil        bs = bs
@@ -33,3 +44,16 @@ fun coappend : [A : Set] -> [i : Size] -> |i| ->
 
 let take [A : Set] [i : Size] (n : Nat i) (as : List A i) : List A i 
   = cotake A i n (colist A i as) 
+
+{-
+
+fun cotail : [A : Set] -> [i : Size] -> CoList A $i -> CoList A i
+{ cotail A i l = case l
+   { nil -> nil
+   ; (cons a as) -> cons a (\ j -> as $j
+
+mapMaybe (A & ([i' < $i] -> CoList A i'))  
+                        (A & ([i' < i] -> CoList A i'))
+    
+}
+-}

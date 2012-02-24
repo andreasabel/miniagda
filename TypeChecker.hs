@@ -672,11 +672,6 @@ checkSize e = valueOf <$> checkExpr e vSize
 checkSize :: Expr -> TypeCheck Extr
 checkSize e = 
   case e of
-    Zero  -> return e
-    Infty -> return e
-    Succ e  -> Succ <$> checkSize e
-    Plus es -> Plus <$> mapM checkSize es
-    Max  es -> Max  <$> mapM checkSize es
     Meta i  -> do
       ren <- asks renaming
       addMeta ren i
@@ -684,10 +679,17 @@ checkSize e =
     e       -> inferSize e
 
 inferSize :: Expr -> TypeCheck Extr
-inferSize e = do
-  (v, Kinded ki e) <- inferExpr e
-  subtype v vSize
-  return e
+inferSize e = 
+  case e of
+    Zero  -> return e
+    Infty -> return e
+    Succ e  -> Succ <$> checkSize e
+    Plus es -> Plus <$> mapM checkSize es
+    Max  es -> Max  <$> mapM checkSize es
+    e -> do
+      (v, Kinded ki e) <- inferExpr e
+      subtype v vSize
+      return e
 
 checkBelow :: Expr -> LtLe -> Val -> TypeCheck Extr
 checkBelow e Le VInfty = checkSize e

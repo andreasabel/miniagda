@@ -34,7 +34,7 @@ executable miniagda
 --                    utility-ht >= 0.0.1 && < 1.0,
                     IfElse >= 0.85 && < 2.0
   build-tools:      happy >= 1.15 && < 2,
-                    alex >= 2.0.1 && < 4
+                    alex >= 3.0 && < 4
   extensions:       MultiParamTypeClasses
                     TypeSynonymInstances
                     FlexibleInstances

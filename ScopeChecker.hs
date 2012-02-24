@@ -268,11 +268,15 @@ generalizeDec dec =
       _      -> return $ dec { polarity = p0 }
    else return dec
 
--- | Insert polarity variables in telescope.
-generalizeTel :: C.Telescope -> ScopeCheck C.Telescope
-generalizeTel tel = flip mapM tel $ \ tb -> do 
+generalizeTBind :: C.TBind -> ScopeCheck C.TBind
+generalizeTBind tb@C.TMeasure{} = return tb
+generalizeTBind tb = do 
   dec' <- generalizeDec (C.boundDec tb)  
   return $ tb { C.boundDec = dec' }
+
+-- | Insert polarity variables in telescope.
+generalizeTel :: C.Telescope -> ScopeCheck C.Telescope
+generalizeTel = mapM generalizeTBind
 
 -- * Scope checking concrete syntax.
 ----------------------------------------------------------------------
@@ -455,7 +459,10 @@ scopeCheckTBind tb cont = do
       e <- scopeCheckExpr e
       (x, a) <- addBind tb n $ cont
       return ([A.TBind x (A.Domain (A.Below ltle e) A.defaultKind dec)], a)
-    C.TMeasure mu -> throwErrorMsg $ "measure not allowed in telescope"
+    C.TMeasure mu -> do
+      mu <- scopeCheckMeasure mu
+      ([A.TMeasure mu],) <$> cont
+--    C.TMeasure mu -> throwErrorMsg $ "measure not allowed in telescope"
     C.TBound beta -> do
       beta <- scopeCheckBound beta
       ([A.TBound beta],) <$> cont
@@ -667,6 +674,11 @@ scopeCheckFunType t =
       C.Quant A.Pi tel e -> do
         tel <- generalizeTel tel
         (tel, (ml, e)) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ scopeCheckFunType e
+        ml' <- findMeasure tel
+        ml <- case (ml,ml') of
+                 (Nothing,ml') -> return ml'
+                 (ml, Nothing) -> return ml
+                 (Just{}, Just{}) -> errorOnlyOneMeasure
         return (ml, A.teleToType tel e)
       
 {-
@@ -693,6 +705,13 @@ scopeCheckFunType t =
 -}
 
       t -> (Nothing,) <$> scopeCheckExpr t -- no measure found
+
+findMeasure :: A.Telescope -> ScopeCheck (Maybe Int)
+findMeasure tel = 
+  case [ mu | A.TMeasure mu <- tel ] of
+    []           -> return Nothing
+    [Measure mu] -> return $ Just $ length mu
+    _            -> errorOnlyOneMeasure
 
 -- | Check whether concrete name is already in signature.  
 --   If yes, fail. If no, create abstract name and continue.
@@ -1229,3 +1248,5 @@ errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ n ++ " undefined"
 errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ n 
 
 errorClauseIdentifier (Just n) (Just n') = throwErrorMsg $ "Expected identifier " ++ show n' ++ " as clause head, found " ++ show n
+
+errorOnlyOneMeasure = throwErrorMsg "only one measure allowed in a function type"
