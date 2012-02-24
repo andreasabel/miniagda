@@ -862,8 +862,9 @@ scopeCheckExpr e =
         (tel, e) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ do
                       setDefaultPolarity pol $ scopeCheckExpr e
         return $ quant pisig tel e where
-          quant A.Sigma [tb] = A.Quant A.Sigma tb
-          quant A.Pi    tel  = A.teleToType tel
+--          quant A.Sigma [tb] = A.Quant A.Sigma tb
+          quant A.Sigma tel e = foldr (A.Quant A.Sigma) e tel
+          quant A.Pi    tel e = A.teleToType tel e
 
 {-
       -- bounded quantification
