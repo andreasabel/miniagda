@@ -1080,7 +1080,8 @@ data DataView
 
 -- | Find datatype @D vs@ in type @Tel -> D vs@.
 dataView :: TVal -> TypeCheck DataView
-dataView tv = do -- maybe force tv?
+dataView tv = do 
+  tv <- force tv
   case tv of
 {- 2012-01-31 EVIL, LEADS TO UNBOUND VARS:
     VQuant Pi x dom env b         -> do
