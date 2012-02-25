@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections, FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE CPP #-}
  
 module Eval where
 
@@ -512,6 +513,8 @@ whnf env e = enter ("whnf " ++ show e) $
         item <- lookupSymb n
         whnfClos (definingVal item)
 
+    Def (DefId (ConK DefPat) n) -> whnfClos . definingVal =<< lookupSymb n
+--    Def (DefId (ConK DefPat) n) -> fail $ "internal error: whnf of defined pattern " ++ show n
     Def id   -> return $ vDef id
 {-
     Con co n -> return $ VCon co n
@@ -1040,9 +1043,9 @@ match env p v0 = --trace (show env ++ show v0) $
   do 
     -- force against constructor pattern or pair pattern
     v <- case p of 
-           ConP{}  -> traceMatch ("matching pattern " ++ show p) $ force v0
-           PairP{} -> traceMatch ("matching pattern " ++ show p) $ force v0
-           _ -> return v0
+           ConP{}  -> do v <- force v0; traceMatch ("matching pattern " ++ show (p,v)) $ return v
+           PairP{} -> do v <- force v0; traceMatch ("matching pattern " ++ show (p,v)) $ return v
+           _ -> whnfClos v0
     case (p,v) of
 --      (ErasedP _,_) -> return $ Just env  -- TOO BAD, DOES NOT WORK (eta!)
       (ErasedP p,_) -> match env p v
@@ -1062,6 +1065,7 @@ match env p v0 = --trace (show env ++ show v0) $
             Just v' -> match env p' v'
 --      (SuccP p',VInfty) -> match env p' VInfty 
 --      (SuccP p',VSucc v') -> match env p' v'
+      (UnusableP p,_) -> throwErrorMsg ("internal error: match " ++ show (p,v))
       _ -> return Nothing
 
 matchList :: Env -> [Pattern] -> [Val] -> TypeCheck (Maybe Env)
@@ -1344,7 +1348,8 @@ leqVal' f p mt12 u1' u2' = do
               (False,True) | f /= L ->
                  enter ("forcing RHS") $
                            leqVal' R p mt12 u1 u2f    
-              _ -> fallback 
+              _ -> -- enter ("not forcing " ++ show (f1,f2,f)) $ 
+                     fallback 
 
            leqCons n1 vl1 n2 vl2 = do
                  unless (n1 == n2) $ 
@@ -1447,6 +1452,7 @@ leqVal' f p mt12 u1' u2' = do
               -- the following three cases should be impossible
               -- but aren't.  I gave up on this bug -- 2012-01-25 
               -- FOUND IT
+
               (VRecord (NamedRec _ n1 _) rs1,
                VApp v2@(VDef (DefId (ConK _) n2)) vl2) -> leqCons n1 (map snd rs1) n2 vl2
 
@@ -1813,12 +1819,14 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
            check mb = ifM mb (return ()) failure
            ltlez = case ltle of { Le -> 0 ; Lt -> -1 }
        case (v1,v2) of
-{- Allow cancelling of all variables
+#ifdef STRICTINFTY
+-- Only cancel variables < #
          _ | v1 == v2 && ltle == Le && bal <= 0 -> return ()
          (VGen i, VGen j) | i == j && bal <= -1 -> check $ isBelowInfty i
--- RESTORED: UNSOUND for variables not < #
--}
+#else
+-- Allow cancelling of all variables
          _ | v1 == v2 && bal <= ltlez -> return () -- TODO: better handling of sums!
+#endif
          (VGen i, VInfty) | ltle == Lt -> check $ isBelowInfty i
          (VZero,_) | bal <= ltlez -> return ()
          (VZero,VInfty) -> return ()
@@ -1834,14 +1842,11 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
          (_,VZero) -> leSizePlus ltle bal [v1] []
          _ -> leSizePlus ltle bal [v1] [v2]
 
-leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
-leSizePlus ltle bal vs1 vs2 = 
-  leSizePlus' ltle bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
-
+#if (defined STRICTINFTY)
 {-  2012-02-06 this modification cancels only variables < #
     However, omega-instantiation is valid [i < #] -> F i subseteq F #
     because every chain has a limit at #.
-
+-}
 leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
 leSizePlus Lt bal vs1 vs2 = do
   vs2' <- filterM varBelowInfty vs2
@@ -1849,7 +1854,12 @@ leSizePlus Lt bal vs1 vs2 = do
   leSizePlus' Lt bal (vs1 List.\\ vs2') (vs2 List.\\ vs1')
 leSizePlus Le bal vs1 vs2 = 
   leSizePlus' Le bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
--}
+#else
+leSizePlus :: LtLe -> Int -> [Val] -> [Val] -> TypeCheck ()
+leSizePlus ltle bal vs1 vs2 = 
+  leSizePlus' ltle bal (vs1 List.\\ vs2) (vs2 List.\\ vs1)
+#endif
+
 
 varBelowInfty :: Val -> TypeCheck Bool
 varBelowInfty (VGen i) = isBelowInfty i

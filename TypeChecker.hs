@@ -433,10 +433,11 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   return (isRec, Kinded ki $ TypeSig n te)
 
 typeCheckMeasuredFuns :: Co -> [Fun] -> TypeCheck [EFun]
-typeCheckMeasuredFuns co funs = do 
+typeCheckMeasuredFuns co funs0 = do 
     -- echo $ show funs
-    kfse <- mapM typeCheckFunSig funs -- also erases measure
-    -- TODO: use erased type sigs in funs, but retain measure!
+    kfse <- mapM typeCheckFunSig funs0 -- NO LONGER erases measure
+    -- use erased type signatures with retaines measure
+    let funs = zipWith (\ (Kinded ki ts) f -> f { funTypeSig = ts }) kfse funs0
 
     -- type check and solve size constraints
     -- return clauses with meta vars resolved
@@ -450,7 +451,7 @@ typeCheckMeasuredFuns co funs = do
 -}
     -- get the list of mutually defined function names 
     let funse = List.zipWith4 Fun 
-                  (map valueOf kfse) 
+                  (map (fmap eraseMeasure . valueOf) kfse) 
                   (map funExtName funs) 
                   (map funArity funs) 
                   clse
@@ -572,10 +573,10 @@ enableSig ki (Fun (TypeSig n _) n' ar' cl') = do
 typeCheckFunSig :: Fun -> TypeCheck (Kinded ETypeSig) 
 typeCheckFunSig (Fun (TypeSig n t) n' ar cls) = enter ("type of " ++ show n) $ do  
   echoTySig n t
-  Kinded ki0 te0 <- checkType t
-  let te = eraseMeasure te0
+  Kinded ki0 te <- checkType t
+  -- let te = eraseMeasure te0
   let ki = predKind ki0
-  echoKindedTySig ki n te
+  echoKindedTySig ki n (eraseMeasure te)
 --  echoTySigE n te
   return $ Kinded ki $ TypeSig n te
 

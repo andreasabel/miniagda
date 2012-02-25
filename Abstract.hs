@@ -870,7 +870,7 @@ data Override
     deriving (Eq,Ord,Show)
 
 data TySig a = TypeSig { namePart :: Name, typePart :: a }
-               deriving (Eq,Ord,Show)
+               deriving (Eq,Ord,Show,Functor)
 type TypeSig = TySig Type
 
 type Type = Expr
@@ -908,8 +908,10 @@ type ETelescope   = Telescope
 
 -- boilerplate -------------------------------------------------------
 
+{-
 instance Functor TySig where
   fmap f ts = ts { typePart = f (typePart ts) }
+-}
 
 -- eraseMeasure (Delta -> mu -> T) = Delta -> T
 eraseMeasure :: Expr -> Expr
