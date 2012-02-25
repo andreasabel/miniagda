@@ -75,5 +75,6 @@ let l : List # =
   (cons # n4 (cons # n9 (cons # n1 (cons # n7 (cons # n6 
   (cons # n4 (cons # n0 (cons # n0 
   (cons # n3 (cons # n3 (cons # n3 (cons # n2 (cons # n3 (nil #))))))))))))))
-eval let l' : List # = quicksort l
+-- eval  -- 2012-02-25 NO LONGER 
+let l' : List # = quicksort l
  
