@@ -13,6 +13,13 @@ import Debug.Trace
 
 import Text.PrettyPrint as PP
 
+(+?+) :: String -> String -> String
+(+?+) xs "[]" = []
+(+?+) xs ys = xs ++ ys
+
+implies :: Bool -> Bool -> Bool
+implies a b = if a then b else True
+
 class Pretty a where
     pretty	:: a -> Doc
     prettyPrec	:: Int -> a -> Doc
@@ -52,11 +59,6 @@ liftMaybe = maybe (fail "Util.liftMaybe: unexpected Nothing") return
 
 lookupM :: (Monad m, Show k, Ord k) => k -> Map k v -> m v
 lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
-
-(+?+) :: String -> String -> String
-(+?+) xs "[]" = []
-(+?+) xs ys = xs ++ ys
-
 
 mapMapM :: (Monad m, Ord k) => (a -> m b) -> Map k a -> m (Map k b)
 mapMapM f = Map.foldrWithKey step (return $ Map.empty)

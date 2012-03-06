@@ -21,6 +21,6 @@ type of h
 /// inferExpr' Eq Size $i i
 /// inferExpr' Eq Size $i
 /// inferExpr' Eq Size
-/// leqVal' (subtyping) [(i,0)] |- < Size : TSize >  <=+  Set
-/// leqVal' (subtyping) [(i,0)] |- TSize  <=+  Set
+/// leqVal' (subtyping)  < Size : TSize >  <=+  Set
+/// leqVal' (subtyping)  TSize  <=+  Set
 /// universe test TSize <= Set failed

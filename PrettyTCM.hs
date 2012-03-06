@@ -12,6 +12,7 @@ import qualified Util
 import Value
 
 import Control.Applicative hiding (empty)
+import Control.Monad ((<=<))
 import Data.Traversable
 
 import qualified Text.PrettyPrint as P
@@ -74,8 +75,21 @@ instance PrettyTCM Pattern where
 instance PrettyTCM Expr where
   prettyTCM = pretty
 
+instance PrettyTCM (Sort Expr) where
+  prettyTCM = pretty
+
 instance PrettyTCM Val where
-  prettyTCM v = pretty =<< toExpr v
+  prettyTCM = pretty <=< toExpr
+
+instance PrettyTCM [Val] where
+  prettyTCM = sep . map (pretty <=< toExpr)
+
+instance PrettyTCM (Sort Val) where
+  prettyTCM = pretty <=< mapM toExpr
+
+instance PrettyTCM a => PrettyTCM (OneOrTwo a) where
+  prettyTCM (One a)     = prettyTCM a
+  prettyTCM (Two a1 a2) = prettyTCM a1 <+> text "||" <+> prettyTCM a2
 
 instance (ToExpr a) => PrettyTCM (Measure a) where
   prettyTCM mu = pretty =<< mapM toExpression mu

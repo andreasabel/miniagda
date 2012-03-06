@@ -26,10 +26,10 @@ kast
 /// checkForced fromList [(n,1),(i,0)] |- \ x -> x : Id n (Nat #) -> Id n (Nat i)
 /// new x : (Id v1 {Nat # {n = v1, i = v0}})
 /// checkExpr 3 |- x : Id n (Nat i)
-/// leqVal' (subtyping) [(n,1),(i,0),(x,2)] |- < x : Id n (Nat #) >  <=+  Id n (Nat i)
-/// leqVal' (subtyping) [(n,1),(i,0),(x,2)] |- Id n (Nat #)  <=+  Id n (Nat i)
-/// leqVal' [(n,1),(i,0),(x,2)] |- Nat #  <=+  Nat i : Set
-/// leqVal' [(n,1),(i,0),(x,2)] |- #  <=+  i : <= #
-/// leSize # <=+ v0
-/// leSize' # <= v0
+/// leqVal' (subtyping)  < x : Id n (Nat #) >  <=+  Id n (Nat i)
+/// leqVal' (subtyping)  Id n (Nat #)  <=+  Id n (Nat i)
+/// leqVal'  Nat #  <=+  Nat i : Set
+/// leqVal'  #  <=+  i : <= #
+/// leSize # <=+ i
+/// leSize' # <= i
 /// leSize: # + 0 <= i failed

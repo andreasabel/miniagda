@@ -11,5 +11,5 @@ id
 /// checkForced fromList [(A,0)] |- \ x -> x : (.[A] -> A) -> A -> A
 /// new x : (.[v0::Tm] -> A{A = v0})
 /// checkExpr 2 |- x : A -> A
-/// leqVal' (subtyping) [(x,1),(A,0)] |- .[xSing# : A] -> < x xSing# : A >  <=+  A -> A
+/// leqVal' (subtyping)  .[xSing# : A] -> < x xSing# : A >  <=+  A -> A
 /// subtyping .[xSing# : A] -> < x xSing# : A >  <=+  A -> A failed

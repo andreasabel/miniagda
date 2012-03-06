@@ -27,6 +27,6 @@ offDiag
 /// inferExpr' Id (DecEq A a b) (f a b) (notEq A a b)
 /// checkExpr 4 |- notEq A a b : DecEq A a b
 /// checkForced fromList [(A,0),(f,1),(a,2),(b,3)] |- notEq A a b : DecEq A a b
-/// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- < A : Set >  <=+  A
-/// leqVal' (subtyping) [(A,0),(f,1),(a,2),(b,3)] |- Set  <=+  A
-/// leqApp: head mismatch Set != v0
+/// leqVal' (subtyping)  < A : Set >  <=+  A
+/// leqVal' (subtyping)  Set  <=+  A
+/// leqApp: head mismatch Set != A

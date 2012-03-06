@@ -22,11 +22,11 @@ mySucc
 /// new n : (Nat v0)
 /// checkExpr 3 |- succ j n : Nat j
 /// checkForced fromList [(j,1),(i,0),(n,2)] |- succ j n : Nat j
-/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
-/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
-/// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : <= #
-/// leSize v0 <=+ v1
-/// leSize' v0 <= v1
+/// leqVal' (subtyping)  < n : Nat i >  <=+  Nat j
+/// leqVal' (subtyping)  Nat i  <=+  Nat j
+/// leqVal'  i  <=+  j : <= #
+/// leSize i <=+ j
+/// leSize' i <= j
 /// bound not entailed
 error during typechecking:
 explicitCast
@@ -42,9 +42,9 @@ explicitCast
 /// checkForced fromList [(j,1),(i,0)] |- \ n -> n : Nat i -> Nat j
 /// new n : (Nat v0)
 /// checkExpr 3 |- n : Nat j
-/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- < n : Nat i >  <=+  Nat j
-/// leqVal' (subtyping) [(j,1),(i,0),(n,2)] |- Nat i  <=+  Nat j
-/// leqVal' [(j,1),(i,0),(n,2)] |- i  <=+  j : <= #
-/// leSize v0 <=+ v1
-/// leSize' v0 <= v1
+/// leqVal' (subtyping)  < n : Nat i >  <=+  Nat j
+/// leqVal' (subtyping)  Nat i  <=+  Nat j
+/// leqVal'  i  <=+  j : <= #
+/// leSize i <=+ j
+/// leSize' i <= j
 /// bound not entailed

@@ -13,8 +13,8 @@ NotMon
 /// new i <= #
 /// szSizeVarUsage of i in ^(y1 : Stream A i) -> ^(y2 : NotMon A i) -> < consBla i y1 y2 : NotMon A $i >
 /// checking Stream A i  to be isotone in variable i
-/// leqVal' [(A,0),(i,1)] |- Stream A i  <=+  Stream A $i : Set #
-/// leqVal' [(A,0),(i,1)] |- i  <=-  $i : <= #
-/// leSize v1 <=- ($ v1)
-/// leSize' ($ v1) <= v1
+/// leqVal'  Stream A i  <=+  Stream A $i : Set #
+/// leqVal'  i  <=-  $i : <= #
+/// leSize i <=- $i
+/// leSize' $i <= i
 /// leSize: 0 + 1 <= 0 failed

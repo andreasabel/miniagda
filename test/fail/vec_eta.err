@@ -36,7 +36,7 @@ vec0vnil
 /// new v' : (Vec v0 v1)
 /// checkExpr 4 |- refl : Id (Vec A n) v v'
 /// checkForced fromList [(n,1),(A,0),(v,2),(v',3)] |- refl : Id (Vec A n) v v'
-/// leqVal' (subtyping) [(n,1),(A,0),(v,2),(v',3)] |- < refl : Id (Vec A n) v v >  <=+  Id (Vec A n) v v'
-/// leqVal' (subtyping) [(n,1),(A,0),(v,2),(v',3)] |- Id (Vec A n) v v  <=+  Id (Vec A n) v v'
-/// leqVal' [(n,1),(A,0),(v,2),(v',3)] |- v  <=^  v' : Vec A n
-/// leqApp: head mismatch v2 != v3
+/// leqVal' (subtyping)  < refl : Id (Vec A n) v v >  <=+  Id (Vec A n) v v'
+/// leqVal' (subtyping)  Id (Vec A n) v v  <=+  Id (Vec A n) v v'
+/// leqVal'  v  <=^  v' : Vec A n
+/// leqApp: head mismatch v != v'

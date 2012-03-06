@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, FlexibleInstances #-}
+{-# LANGUAGE TupleSections, FlexibleInstances, NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE CPP #-}
 
@@ -43,6 +43,8 @@ traceEta msg a = trace msg a
 traceEtaM msg = traceM msg
 -}
 
+traceRecord msg a = a
+traceRecordM msg = return ()
 
 traceMatch msg a = a -- trace msg a
 traceMatchM msg = return () -- traceM msg
@@ -803,7 +805,8 @@ data MatchingConstructors a
     deriving (Eq,Show)
 
 getMatchingConstructor
-  :: Name           -- d     : the name of the data types
+  :: Bool           -- eta   : must the field etaExpand be set of the data type
+  -> Name           -- d     : the name of the data types
   -> [Val]          -- vl    : the arguments of the data type
   -> TypeCheck (MatchingConstructors
      ( Co           -- co    : coinductive type?
@@ -812,20 +815,21 @@ getMatchingConstructor
      , [Val]        -- indvs : the index values of the constructor
      , ConstructorInfo -- ci : the only matching constructor
      ))
-getMatchingConstructor  n vl = -- trace ("getMatchingConstructor " ++ n ++ show vl) $
+getMatchingConstructor eta n vl = traceRecord ("getMatchingConstructor " ++ show (n, vl)) $
  do
   -- when checking a mutual data decl, the sig entry of the second data
   -- is not yet in place when checking the first, thus, lookup may fail
   sig <- gets signature
   case Map.lookup n sig of
-    Just (DataSig {symbTyp = dv, numPars = npars, isCo = co, constructors = cs, etaExpand = True}) -> if (null cs) then return NoConstructor else do -- no constructor: empty type
+    Just (DataSig {symbTyp = dv, numPars = npars, isCo = co, constructors = cs, etaExpand}) | eta `implies` etaExpand ->
+     if (null cs) then return NoConstructor else do -- no constructor: empty type
        -- for each constructor, match its core against the type
       -- produces a list of maybe (c.info, environment)
       cenvs <- matchingConstructors'' False vl dv cs
-      -- traceM $ "Matching constructors: " ++ show cenvs
+      traceRecordM $ "Matching constructors: " ++ show cenvs
       case cenvs of
         -- exactly one matching constructor: can eta expand
-        [(ci,env)] -> if not (cEtaExp ci) then return UnknownConstructors else do
+        [(ci,env)] -> if not (eta `implies` cEtaExp ci) then return UnknownConstructors else do
           -- get list of index values from environment
           let fis = cFields ci
           let indices = filter (\ fi -> fClass fi == Index) fis
@@ -835,7 +839,7 @@ getMatchingConstructor  n vl = -- trace ("getMatchingConstructor " ++ n ++ show 
         -- more or less than one matching constructors: cannot eta expand
         l -> -- trace ("getMatchingConstructor: " ++ show (length l) ++ " patterns match at type " ++ show n ++ show vl) $
                return ManyConstructors
-    _ -> return UnknownConstructors
+    _ -> traceRecord ("no eta expandable type") $ return UnknownConstructors
 
 getFieldsAtType
   :: Name           -- d     : the name of the data types
@@ -845,7 +849,7 @@ getFieldsAtType
        [(Name       -- list of projection names
         ,TVal)])    -- and their instantiated type R ... -> C
 getFieldsAtType n vl = do
-  mc <- getMatchingConstructor n vl
+  mc <- getMatchingConstructor False n vl
   case mc of
     OneConstructor (_, pars, _, indvs, ci) -> do
       let pi = pars ++ indvs
@@ -857,8 +861,7 @@ getFieldsAtType n vl = do
             -- pi-apply destructor type to parameters and indices
             t' <- piApps t pi
             return [(d,t')]
-      ls <- mapM arg (cFields ci)
-      return $ Just $ concat ls
+      Just . concat <$> mapM arg (cFields ci)
     _ -> return Nothing
 
 -- similar to piApp, but for record types and projections
@@ -882,7 +885,7 @@ upData :: Bool -> Val -> Name -> [Val] -> TypeCheck Val
 upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
  do
   let ret v' = traceEta ("Eta-expanding: " ++ show v ++ " --> " ++ show v' ++ " at type " ++ show n ++ show vl) $ return v'
-  mc <- getMatchingConstructor n vl
+  mc <- getMatchingConstructor True n vl
   case mc of
     NoConstructor -> ret VIrr
     OneConstructor (co, pars, env, indvs, ci) ->
@@ -1286,9 +1289,21 @@ leqVal' f p mt12 u1' u2' = do
  l <- getLen
  ren <- getRen
  enterDoc (case mt12 of
-  Nothing -> (text ("leqVal' (subtyping) " ++ show  (Map.toList $ ren) ++ " |-") <+> prettyTCM u1' <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2')
-  Just (One tv) -> (text ("leqVal' " ++ show  (Map.toList $ ren) ++ " |-") <+> prettyTCM u1' <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2' <+> colon <+> prettyTCM tv)
-  Just (Two tv1 tv2) -> (text ("leqVal' " ++ show  (Map.toList $ ren) ++ " |-") <+> prettyTCM u1' <+> colon <+> prettyTCM tv1 <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2' <+> colon <+> prettyTCM tv2)) $ do
+  Nothing -> -- text ("leqVal' (subtyping) " ++ show  (Map.toList $ ren) ++ " |-")
+             text "leqVal' (subtyping) "
+             <+> prettyTCM u1' <+> text (" <=" ++ show p ++ " ")
+             <+> prettyTCM u2'
+  Just (One tv) -> -- text ("leqVal' " ++ show  (Map.toList $ ren) ++ " |-")
+             text "leqVal' "
+             <+> prettyTCM u1' <+> text (" <=" ++ show p ++ " ")
+             <+> prettyTCM u2' <+> colon
+             <+> prettyTCM tv
+  Just (Two tv1 tv2) -> -- text ("leqVal' " ++ show  (Map.toList $ ren) ++ " |-")
+             text "leqVal' "
+             <+> prettyTCM u1' <+> colon
+             <+> prettyTCM tv1 <+> text (" <=" ++ show p ++ " ")
+             <+> prettyTCM u2' <+> colon
+             <+> prettyTCM tv2) $ do
 {-
     ce <- ask
     trace  (("rewrites: " +?+ show (rewrites ce)) ++ "  leqVal': " ++ show ce ++ "\n |- " ++ show u1' ++ "\n  <=" ++ show p ++ "  " ++ show u2') $
@@ -1594,7 +1609,10 @@ leqVals' f q tv12 vl1 vl2 = do
 
     (VProj Post p1 : vs1, VProj Post p2 : vs2, ShData d _) -> do
       unless (p1 == p2) $
-        recoverFail $ "projections " ++ show p1 ++ " and " ++ show p2 ++ " differ!"
+        recoverFailDoc $ text "projections"
+          <+> prettyTCM p1 <+> text "and"
+          <+> prettyTCM p2 <+> text "differ!"
+        -- recoverFail $ "projections " ++ show p1 ++ " and " ++ show p2 ++ " differ!"
       tv12 <- mapM (\ tv -> projectType tv p1 VIrr) tv12
       leqVals' f q tv12 vs1 vs2
 
@@ -1621,7 +1639,11 @@ leqVals' f q tv12 vl1 vl2 = do
                -- type is invariant, so it does not matter which one we take
       leqVals' f q tv12 vs1 vs2
 
-    _ -> fail $ "leqVals': not (compatible) function types or mismatch number of arguments when comparing  " ++ show vl1 ++ "  to  " ++ show vl2 ++ "  at type  " ++ show tv12
+    _ -> failDoc $ text "leqVals': not (compatible) function types or mismatch number of arguments when comparing "
+           <+> prettyTCM vl1 <+> text " to "
+           <+> prettyTCM vl2 <+> text " at type "
+           <+> prettyTCM tv12
+--    _ -> fail $ "leqVals': not (compatible) function types or mismatch number of arguments when comparing  " ++ show vl1 ++ "  to  " ++ show vl2 ++ "  at type  " ++ show tv12
 
 {-
 leqVals' f q (VPi x1 dom1@(Domain av1 _ dec1) env1 b1,
@@ -1652,8 +1674,12 @@ leqNe f v1 v2 = --trace ("leqNe " ++ show v1 ++ "<=" ++ show v2) $
 leqApp :: Force -> Pol -> Val -> [Val] -> Val -> [Val] -> TypeCheck ()
 leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
                                   ++ show v1 ++ show w1 ++ " <=" ++ show pol ++ " " ++ show v2 ++ show w2) $ -}
+{-
   do let headMismatch = recoverFail $
             "leqApp: head mismatch "  ++ show v1 ++ " != " ++ show v2
+-}
+  do let headMismatch = recoverFailDoc $ text "leqApp: head mismatch"
+           <+> prettyTCM v1 <+> text "!=" <+> prettyTCM v2
      let emptyOrUnit u1 u2 =
           unlessM (isEmptyType u1) $ unlessM (isUnitType u2) $ headMismatch
      case (v1,v2) of
@@ -1761,7 +1787,10 @@ leqSort Pos s1 s2 = leqSort' s1 s2
 
 leqSort' :: Sort Val -> Sort Val -> TypeCheck ()
 leqSort' s1 s2 = do
-  let err = "universe test " ++ show s1 ++ " <= " ++ show s2 ++ " failed"
+--  let err = "universe test " ++ show s1 ++ " <= " ++ show s2 ++ " failed"
+  let err = text "universe test"
+            <+> prettyTCM s1 <+> text "<="
+            <+> prettyTCM s2 <+> text "failed"
   case (s1,s2) of
      (_            , Set VInfty)         -> return ()
      (SortC c      , SortC c') | c == c' -> return ()
@@ -1769,7 +1798,7 @@ leqSort' s1 s2 = do
      (CoSet VInfty , Set v)              -> return ()
      (Set VZero    , CoSet{})            -> return ()
      (CoSet v1     , CoSet v2)           -> leqSize Neg v1 v2
-     _ -> recoverFail err
+     _ -> recoverFailDoc err
 
 minSize :: Val -> Val -> Maybe Val
 minSize v1 v2 =
@@ -1798,7 +1827,10 @@ ltSize :: Val -> Val -> TypeCheck ()
 ltSize = leSize Lt Pos
 
 leSize :: LtLe -> Pol -> Val -> Val -> TypeCheck ()
-leSize ltle pol v1 v2 = enter ("leSize " ++ show v1 ++ " " ++ show ltle ++ show pol ++ " " ++ show v2) $
+leSize ltle pol v1 v2 = enterDoc (text "leSize"
+      <+> prettyTCM v1 <+> text (show ltle ++ show pol)
+      <+> prettyTCM v2) $
+-- enter ("leSize " ++ show v1 ++ " " ++ show ltle ++ show pol ++ " " ++ show v2) $
     traceSize ("leSize " ++ show v1 ++ " " ++ show ltle ++ show pol ++ " " ++ show v2) $
     do case (v1,v2) of
          _ | v1 == v2 && ltle == Le -> return () -- TODO: better handling of sums!
@@ -1827,14 +1859,18 @@ leqSize' :: Val -> Val -> TypeCheck ()
 leqSize' = leSize' Le
 
 leSize' :: LtLe -> Val -> Val -> TypeCheck ()
-leSize' ltle v1 v2 = enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2) $
+leSize' ltle v1 v2 = -- enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2) $
+  enterDoc (text "leSize'" <+> prettyTCM v1 <+> text (show ltle) <+> prettyTCM v2) $
     traceSize ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2) $
-    do let err = "leSize': " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2 ++ " failed"
+    do let failure = recoverFailDoc $ text "leSize':"
+             <+> prettyTCM v1 <+> text (show ltle)
+             <+> prettyTCM v2 <+> text "failed"
+           -- err = "leSize': " ++ show v1 ++ " " ++ show ltle ++ " " ++ show v2 ++ " failed"
        case (v1,v2) of
          (VZero,_) | ltle == Le -> return ()
-         (VSucc{}, VZero) -> fail err
-         (VInfty, VZero) -> fail err
-         (VGen{}, VZero) -> fail err
+         (VSucc{}, VZero) -> failure
+         (VInfty, VZero) -> failure
+         (VGen{}, VZero) -> failure
          (VMax vs,_) -> mapM_ (\ v -> leSize' ltle v v2) vs -- all v in vs <= v2
          (_,VMax vs)  -> foldr1 orM $ map (leSize' ltle v1) vs -- this produces a disjunction
 --         (_,VMax _)  -> addLe ltle v1 v2 -- this produces a disjunction
@@ -1876,7 +1912,7 @@ leSize'' ltle bal v1 v2 = traceSize ("leSize'' " ++ show v1 ++ " + " ++ show bal
          (VGen i, VInfty) | ltle == Lt -> check $ isBelowInfty i
          (VZero,_) | bal <= ltlez -> return ()
          (VZero,VInfty) -> return ()
-         (VZero,VGen _) | bal > ltlez -> fail $ "0 not < " ++ show v2
+         (VZero,VGen _) | bal > ltlez -> recoverFailDoc $ text "0 not <" <+> prettyTCM v2
          (VSucc v1, v2) -> leSize'' ltle (bal + 1) v1 v2
          (v1, VSucc v2) -> leSize'' ltle (bal - 1) v1 v2
          (VPlus vs1, VPlus vs2) -> leSizePlus ltle bal vs1 vs2
@@ -2000,7 +2036,8 @@ lexSizes ltle mu1 mu2 = traceSize ("lexSizes " ++ show (ltle,mu1,mu2)) $
     (lt, a1:mu1, a2:mu2) -> do
       b <- newAssertionHandling Failure $ errorToBool $ leSize ltle Pos a1 a2
       case (lt,b) of
-        (Le,False) -> recoverFail $ "lexSizes: expected " ++ show a1 ++ " <= " ++ show a2
+        (Le,False) -> recoverFailDoc $ text "lexSizes: expected" <+> prettyTCM a1 <+> text "<=" <+> prettyTCM a2
+            -- recoverFail $ "lexSizes: expected " ++ show a1 ++ " <= " ++ show a2
         (Lt,True) -> return ()
         _ -> lexSizes ltle mu1 mu2
 

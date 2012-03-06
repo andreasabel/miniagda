@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
 module TCM where
 
@@ -71,7 +71,7 @@ class (MonadCxt m, MonadSig m, MonadMeta m, MonadError TraceError m) =>
 -- then one could still get completeness of pattern matching!
 -- now we have lots of boilerplate code
 
-data OneOrTwo a = One a | Two a a deriving (Eq, Ord)
+data OneOrTwo a = One a | Two a a deriving (Eq, Ord, Functor, Foldable, Traversable)
 
 instance Show a => Show (OneOrTwo a) where
   show (One a)   = show a
@@ -85,6 +85,7 @@ name12 (Two n1 n2)
   | suggestion n1 == suggestion n2 = n1
   | otherwise = fresh (suggestion n1 ++ "||" ++ suggestion n2)
 
+{-
 instance Functor OneOrTwo where
   fmap f (One a)   = One (f a)
   fmap f (Two a b) = Two (f a) (f b)
@@ -97,6 +98,7 @@ instance Foldable OneOrTwo where
 instance Traversable OneOrTwo where
   traverse f (One a) = One <$> f a
   traverse f (Two a b) = Two <$> f a <*> f b
+-}
 
 -- eliminator
 oneOrTwo :: (a -> b) -> (a -> a -> b) -> OneOrTwo a -> b

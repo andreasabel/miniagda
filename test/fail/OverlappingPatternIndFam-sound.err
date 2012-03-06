@@ -26,7 +26,7 @@ fDiag
 /// new a : v1
 /// checkExpr 3 |- refl : Id (DecEq A a a) (f [A] a a) eq
 /// checkForced fromList [(A,1),(f,0),(a,2)] |- refl : Id (DecEq A a a) (f [A] a a) eq
-/// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- < refl : Id (DecEq A a a) (f [A] a a) (f [A] a a) >  <=+  Id (DecEq A a a) (f [A] a a) eq
-/// leqVal' (subtyping) [(A,1),(f,0),(a,2)] |- Id (DecEq A a a) (f [A] a a) (f [A] a a)  <=+  Id (DecEq A a a) (f [A] a a) eq
-/// leqVal' [(A,1),(f,0),(a,2)] |- f A a a  <=^  eq : DecEq A a a
-/// leqApp: head mismatch v0 != eq{}
+/// leqVal' (subtyping)  < refl : Id (DecEq A a a) (f [A] a a) (f [A] a a) >  <=+  Id (DecEq A a a) (f [A] a a) eq
+/// leqVal' (subtyping)  Id (DecEq A a a) (f [A] a a) (f [A] a a)  <=+  Id (DecEq A a a) (f [A] a a) eq
+/// leqVal'  f A a a  <=^  eq : DecEq A a a
+/// leqApp: head mismatch f != eq

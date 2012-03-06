@@ -9,6 +9,6 @@ Any
 /// new Any : Set
 /// inferExpr' ^(Out : Set) -> Any
 /// new Out : Set
-/// leSize ($ 0) <=+ 0
-/// leSize' ($ 0) <= 0
-/// leSize': ($ 0) <= 0 failed
+/// leSize 1 <=+ 0
+/// leSize' 1 <= 0
+/// leSize': 1 <= 0 failed

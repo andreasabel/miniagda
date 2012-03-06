@@ -20,7 +20,7 @@ evens
 /// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $$.(i + j) ?<=- $(i + j) : <= #
 /// inst [(Dec {polarity = .}Set::Set,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = .}Size::Size,Dec {polarity = ++}),(Dec {polarity = *}v0::Tm,Dec {polarity = ++}),(Dec {polarity = *}(Stream v0 v5)::(),Dec {polarity = ++})] |- $.(i + j) ?<=- i + j : <= #
 /// inst: leqVal ($ v5) ?<=- (v2 + v1) : Size failed
-/// leqVal' [(A,0),(i,1),(j,2),(.(i + j + 1),3),(a,4),(.(i + j),5),(b,6),(as,7)] |- $.(i + j)  <=-  i + j : <= #
-/// leSize ($ v5) <=- (v2 + v1)
-/// leSize' (v2 + v1) <= ($ v5)
+/// leqVal'  $.(i + j)  <=-  i + j : <= #
+/// leSize $.(i + j) <=- i + j
+/// leSize' i + j <= $.(i + j)
 /// leSize: i + j <= .(i + j) + 1 failed

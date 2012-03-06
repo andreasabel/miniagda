@@ -8,5 +8,5 @@ MakePos
 /// checkForced fromList [] |- \ F -> F : (- Set -> Set) -> + Set -> Set
 /// new F : (-Set -> Set)
 /// checkExpr 1 |- F : + Set -> Set
-/// leqVal' (subtyping) [(F,0)] |- -(xSing# : Set) -> < F xSing# : Set >  <=+  + Set -> Set
+/// leqVal' (subtyping)  -(xSing# : Set) -> < F xSing# : Set >  <=+  + Set -> Set
 /// subtyping -(xSing# : Set) -> < F xSing# : Set >  <=+  + Set -> Set failed

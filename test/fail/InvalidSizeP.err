@@ -16,7 +16,7 @@ test
 /// new l < v0
 /// adding size rel. v3 + 1 <= v0
 /// adding size rel. v3 + 1 <= v1
-/// leqVal' (subtyping) [(i,0),(k,1),(x,2),(l,3)] |- < i  <=+  < k
-/// leSize v0 <=+ v1
-/// leSize' v0 <= v1
+/// leqVal' (subtyping)  < i  <=+  < k
+/// leSize i <=+ k
+/// leSize' i <= k
 /// bound not entailed

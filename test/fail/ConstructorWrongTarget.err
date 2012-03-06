@@ -12,5 +12,5 @@ D
 /// new D : (^(n : Nat::Tm) -> Set)
 /// new n : Nat
 /// checking datatype parameters in constructor target
-/// leqVal' [(D,0),(n,1)] |- zero  <=*  n : Nat
-/// leqApp: head mismatch zero{} != v1
+/// leqVal'  zero  <=*  n : Nat
+/// leqApp: head mismatch zero != n
