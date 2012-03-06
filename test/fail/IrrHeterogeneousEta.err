@@ -27,8 +27,8 @@ etaFun'
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- < h true : F true (\ x -> \ y -> x y) true >  <=+  F false (\ x -> x) true
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- F true (\ x -> \ y -> x y) true  <=+  F false (\ x -> x) true
 /// leqVal' [(g,1),(F,0),(h,2)] |- \ x -> \ y -> x y : (Bool -> Bool) -> T true  <=*  \ x -> x : Bool -> T false
-/// new || : (Bool::Tm -> Bool)||Bool
-/// leqVal' [(g,1),(F,0),(h,2),(||,3)] |- \ y -> || y : Bool -> Bool  <=*  || : Bool
+/// new x : (Bool::Tm -> Bool)||Bool
+/// leqVal' [(x,3),(g,1),(F,0),(h,2)] |- \ y -> x y : Bool -> Bool  <=*  x : Bool
 /// type (Bool::Tm -> Bool) has different shape than Bool
 block fails as expected, error message:
 etaFun
@@ -46,8 +46,8 @@ etaFun
 /// leqVal' (subtyping) [(g,1),(F,0),(a,2)] |- < a : F true (\ x -> \ y -> x y) >  <=+  F false (\ x -> x)
 /// leqVal' (subtyping) [(g,1),(F,0),(a,2)] |- F true (\ x -> \ y -> x y)  <=+  F false (\ x -> x)
 /// leqVal' [(g,1),(F,0),(a,2)] |- \ x -> \ y -> x y : (Bool -> Bool) -> T true  <=*  \ x -> x : Bool -> T false
-/// new || : (Bool::Tm -> Bool)||Bool
-/// leqVal' [(g,1),(F,0),(a,2),(||,3)] |- \ y -> || y : Bool -> Bool  <=*  || : Bool
+/// new x : (Bool::Tm -> Bool)||Bool
+/// leqVal' [(x,3),(g,1),(F,0),(a,2)] |- \ y -> x y : Bool -> Bool  <=*  x : Bool
 /// type (Bool::Tm -> Bool) has different shape than Bool
 type  U : Bool -> Set
 { U true = Unit
@@ -69,8 +69,8 @@ etaUnit'
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- < h true : F true (\ x -> unit) true >  <=+  F false (\ x -> x) true
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- F true (\ x -> unit) true  <=+  F false (\ x -> x) true
 /// leqVal' [(g,1),(F,0),(h,2)] |- \ x -> unit : Unit -> U true  <=*  \ x -> x : Bool -> U false
-/// new || : Unit||Bool
-/// leqVal' [(g,1),(F,0),(h,2),(||,3)] |- unit : Unit  <=*  || : Bool
+/// new x : Unit||Bool
+/// leqVal' [(g,1),(F,0),(h,2),(x,3)] |- unit : Unit  <=*  x : Bool
 /// type Unit has different shape than Bool
 error during typechecking:
 etaUnit
@@ -88,6 +88,6 @@ etaUnit
 /// leqVal' (subtyping) [(g,1),(F,0),(a,2)] |- < a : F true (\ x -> unit) >  <=+  F false (\ x -> x)
 /// leqVal' (subtyping) [(g,1),(F,0),(a,2)] |- F true (\ x -> unit)  <=+  F false (\ x -> x)
 /// leqVal' [(g,1),(F,0),(a,2)] |- \ x -> unit : Unit -> U true  <=*  \ x -> x : Bool -> U false
-/// new || : Unit||Bool
-/// leqVal' [(g,1),(F,0),(a,2),(||,3)] |- unit : Unit  <=*  || : Bool
+/// new x : Unit||Bool
+/// leqVal' [(g,1),(F,0),(a,2),(x,3)] |- unit : Unit  <=*  x : Bool
 /// type Unit has different shape than Bool

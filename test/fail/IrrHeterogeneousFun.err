@@ -41,6 +41,6 @@ bad2
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- < h zero : F true (\ x -> f true x) zero >  <=+  F false (\ x -> f false x) zero
 /// leqVal' (subtyping) [(g,1),(F,0),(h,2)] |- F true (\ x -> f true x) zero  <=+  F false (\ x -> f false x) zero
 /// leqVal' [(g,1),(F,0),(h,2)] |- \ x -> f true x : Nat -> T true  <=*  \ x -> f false x : Bool -> T false
-/// new || : Nat||Bool
-/// leqVal' [(g,1),(F,0),(h,2),(||,3)] |- || : Nat  <=*  f false || : Bool
+/// new x : Nat||Bool
+/// leqVal' [(x,3),(g,1),(F,0),(h,2)] |- x : Nat  <=*  f false x : Bool
 /// type Nat has different shape than Bool

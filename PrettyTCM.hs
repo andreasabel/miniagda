@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module PrettyTCM where
@@ -8,7 +8,7 @@ import Prelude hiding (sequence, mapM)
 import Abstract
 import {-# SOURCE #-} Eval
 import {-# SOURCE #-} TCM
-import qualified Util 
+import qualified Util
 import Value
 
 import Control.Applicative hiding (empty)
@@ -50,10 +50,10 @@ punctuate d ds = zipWith (<>) ds (replicate n d ++ [empty])
     where
 	n = length ds - 1
 
--- monadic pretty printing 
+-- monadic pretty printing
 
 class ToExpr a where
-  toExpression :: a -> TypeCheck Expr 
+  toExpression :: a -> TypeCheck Expr
 
 instance ToExpr Expr where
   toExpression = return
@@ -63,7 +63,7 @@ instance ToExpr Val where
 
 
 class PrettyTCM a where
-  prettyTCM :: a -> TypeCheck Doc 
+  prettyTCM :: a -> TypeCheck Doc
 
 instance PrettyTCM Name where
   prettyTCM = pretty
@@ -83,4 +83,4 @@ instance (ToExpr a) => PrettyTCM (Measure a) where
 instance (ToExpr a) => PrettyTCM (Bound a) where
   prettyTCM beta = pretty =<< mapM toExpression beta
 
-  
+

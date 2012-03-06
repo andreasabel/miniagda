@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, PatternGuards, FlexibleContexts, NamedFieldPuns #-}
- 
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns #-}
+
 module TCM where
 
 import Control.Monad
@@ -11,7 +11,7 @@ import Control.Monad.Reader
 import Control.Applicative
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as Foldable
-import Data.Traversable (Traversable) 
+import Data.Traversable (Traversable)
 import qualified Data.Traversable as Traversable
 import Data.Monoid
 
@@ -27,7 +27,7 @@ import Value
 import {-# SOURCE #-} Eval -- (up,whnf')
 import PrettyTCM
 
--- import CallStack 
+-- import CallStack
 import TraceError
 
 import TreeShapedOrder (TSO)
@@ -40,34 +40,34 @@ import Warshall
 -- traceSig msg a = trace msg a
 traceSig msg a = a
 
-traceRew msg a = a -- trace msg a 
+traceRew msg a = a -- trace msg a
 traceRewM msg = return () -- traceM msg
 {-
-traceRew msg a = trace msg a 
+traceRew msg a = trace msg a
 traceRewM msg = traceM msg
 -}
 
 -- metavariables and constraints
 
-traceMeta msg a = a -- trace msg a 
+traceMeta msg a = a -- trace msg a
 traceMetaM msg = return () -- traceM msg
 {-
-traceMeta msg a = trace msg a 
+traceMeta msg a = trace msg a
 traceMetaM msg = traceM msg
 -}
 
 -- type checking monad -----------------------------------------------
 
-class (MonadCxt m, MonadSig m, MonadMeta m, MonadError TraceError m) => 
+class (MonadCxt m, MonadSig m, MonadMeta m, MonadError TraceError m) =>
   MonadTCM m where
 
 
 -- lists of exactly one or two elements ------------------------------
 
--- this would have been better implemented by just lists and a view 
+-- this would have been better implemented by just lists and a view
 --   type OneOrTwo a = [a]
---   data View12 a = One a | Two a a  
---   fromList12 
+--   data View12 a = One a | Two a a
+--   fromList12
 -- then one could still get completeness of pattern matching!
 -- now we have lots of boilerplate code
 
@@ -79,7 +79,11 @@ instance Show a => Show (OneOrTwo a) where
 
 name12 :: OneOrTwo Name -> Name
 name12 (One n) = n
-name12 (Two n1 n2) = fresh (suggestion n1 ++ "||" ++ suggestion n2)
+name12 (Two n1 n2)
+  | null (suggestion n2) = n1
+  | null (suggestion n1) = n2
+  | suggestion n1 == suggestion n2 = n1
+  | otherwise = fresh (suggestion n1 ++ "||" ++ suggestion n2)
 
 instance Functor OneOrTwo where
   fmap f (One a)   = One (f a)
@@ -89,7 +93,7 @@ instance Foldable OneOrTwo where
   foldMap f (One a) = f a
   foldMap f (Two a b) = f a `mappend` f b
 
--- traverse :: Applicative f => (a -> f b) -> t a -> f (t b)	
+-- traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
 instance Traversable OneOrTwo where
   traverse f (One a) = One <$> f a
   traverse f (Two a b) = Two <$> f a <*> f b
@@ -121,7 +125,7 @@ zipWith12 :: (a -> b -> c) -> OneOrTwo a -> OneOrTwo b -> OneOrTwo c
 zipWith12 f (One a) (One b) = One (f a b)
 zipWith12 f (Two a a') (Two b b') = Two (f a b) (f a' b')
 
-zipWith123 :: (a -> b -> c -> d) -> 
+zipWith123 :: (a -> b -> c -> d) ->
               OneOrTwo a -> OneOrTwo b -> OneOrTwo c -> OneOrTwo d
 zipWith123 f (One a) (One b) (One c) = One (f a b c)
 zipWith123 f (Two a a') (Two b b') (Two c c') = Two (f a b c) (f a' b' c')
@@ -130,21 +134,21 @@ toList12 :: OneOrTwo a -> [a]
 toList12 (One a) = [a]
 toList12 (Two a1 a2) = [a1,a2]
 
-fromList12 :: Show a => [a] -> OneOrTwo a 
+fromList12 :: Show a => [a] -> OneOrTwo a
 fromList12 [a]     = One a
 fromList12 [a1,a2] = Two a1 a2
 fromList12 l = error $ "fromList12 " ++ show l
 
-toMaybe12 :: Show a => [a] -> Maybe (OneOrTwo a) 
+toMaybe12 :: Show a => [a] -> Maybe (OneOrTwo a)
 toMaybe12 []      = Nothing
 toMaybe12 [a]     = Just $ One a
 toMaybe12 [a1,a2] = Just $ Two a1 a2
 toMaybe12 l = error $ "toMaybe12 " ++ show l
 
 
--- reader monad for local environment 
+-- reader monad for local environment
 
-data TCContext = TCContext 
+data TCContext = TCContext
   { context   :: SemCxt
   , renaming  :: Ren       -- assigning de Bruijn Levels to names
   , naming    :: Map Int Name  -- assigning names to de Bruijn levels
@@ -158,21 +162,21 @@ data TCContext = TCContext
   , checkingConType :: Bool  -- different PTS rules for constructor types (parametric function space!)
   , assertionHandling :: AssertionHandling -- recover from errors?
   , impredicative :: Bool       -- use impredicative PTS rules
-  -- checking measured functions 
+  -- checking measured functions
   , funsTemplate :: Map Name (Kinded Fun) -- types of mutual funs with measures checking body
   , mutualFuns :: Map Name SigDef -- types of mutual funs while checking body
   , mutualCo :: Co                -- mutual block (co)recursive ?
   , checkingMutualName :: Maybe DefId -- which body of a mutual block am I checking?
-  } 
+  }
 
 instance Show TCContext where
     show ce = show (environ ce) ++ "; " ++ show (context ce)
 
-emptyContext = TCContext 
+emptyContext = TCContext
   { context  = cxtEmpty
-  , renaming = Map.empty 
+  , renaming = Map.empty
   , naming   = Map.empty
-  , environ  = emptyEnv 
+  , environ  = emptyEnv
   , rewrites = emptyRewrites
   , sizeRels = TSO.empty
   , belowInfty = []
@@ -188,7 +192,7 @@ emptyContext = TCContext
 
 -- state monad for global signature
 
-data TCState = TCState 
+data TCState = TCState
   { signature   :: Signature
   , metaVars    :: MetaVars
   , constraints :: Constraints
@@ -199,7 +203,7 @@ type MetaVars = Map MVar MetaVar
 emptyMetaVars = Map.empty
 
 type MScope = [Name] -- ^ names of size variables which are in scope of mvar
-data MetaVar = MetaVar 
+data MetaVar = MetaVar
   { mscope   :: MScope
   , solution :: Maybe Val
   }
@@ -208,8 +212,8 @@ type PosConstrnt = Constrnt PPoly DefId ()
 type PositivityGraph = [PosConstrnt]
 emptyPosGraph = []
 
--- type TypeCheck = StateT TCState (ReaderT TCContext (CallStackT String IO)) 
-type TypeCheck = StateT TCState (ReaderT TCContext (ErrorT TraceError IO)) 
+-- type TypeCheck = StateT TCState (ReaderT TCContext (CallStackT String IO))
+type TypeCheck = StateT TCState (ReaderT TCContext (ErrorT TraceError IO))
 
 instance MonadAssert TypeCheck where
   assert b s = do
@@ -218,13 +222,13 @@ instance MonadAssert TypeCheck where
   newAssertionHandling h = local ( \ ce -> ce { assertionHandling = h })
 
 {- mtl-2 provides these instances
--- TypeCheck is applicative since every monad is.  
+-- TypeCheck is applicative since every monad is.
 -- I do not know why this ain't in the libraries...
 instance Applicative TypeCheck where
   pure      = return
   mf <*> ma = mf >>= \ f -> ma >>= \ a -> pure (f a)
 -}
- 
+
 -- rewriting rules -----------------------------------------------
 
 data Rewrite  = Rewrite { lhs :: Val,  rhs :: Val }
@@ -258,15 +262,15 @@ name involves first looking up the generic value, and then its type.
 -}
 
 {-
--- data Domain = Domain { typ :: TVal, decor :: Dec } 
-data Domain = Domain { typ :: TVal, kind :: Class, decor :: Dec } 
+-- data Domain = Domain { typ :: TVal, decor :: Dec }
+data Domain = Domain { typ :: TVal, kind :: Class, decor :: Dec }
 
 mapTyp :: (TVal -> TVal) -> Domain -> Domain
 mapTyp f dom = dom { typ = f (typ dom) }
 
 mapTypM :: Monad m => (TVal -> m TVal) -> Domain -> m Domain
 mapTypM f dom = do
-  t' <- f (typ dom) 
+  t' <- f (typ dom)
   return $ dom { typ = t' }
 
 instance Show Domain where
@@ -281,48 +285,48 @@ data CxtE a = CxtEntry { domain :: a, upperDec :: UDec }
 type CxtEntry  = CxtE (OneOrTwo Domain)
 type CxtEntry1 = CxtE Domain
 
-data SemCxt = SemCxt 
+data SemCxt = SemCxt
   { len   :: Int
   , cxt   :: Context2 Domain  -- fixed part of context
-  , upperDecs :: Context UDec -- the "should be below" decoration for each var.; this is updated by resurrection 
+  , upperDecs :: Context UDec -- the "should be below" decoration for each var.; this is updated by resurrection
   }
-{- invariant: length (cxt delta) = length (upperDecs delta) = len 
+{- invariant: length (cxt delta) = length (upperDecs delta) = len
      cxt(i) = Two ... iff  upperDecs(i) = Two ...
  -}
 
 instance Show SemCxt where
-  show delta = 
-    show $ zip (Map.elems (cxt delta)) 
+  show delta =
+    show $ zip (Map.elems (cxt delta))
                (Map.elems (upperDecs delta))
 {-
-  show delta = show $ zip ( 
-    zipWith3 (zipWith12 Domain) 
---    zipWith (\ entry dec -> fmap ((flip Domain) dec) entry) 
+  show delta = show $ zip (
+    zipWith3 (zipWith12 Domain)
+--    zipWith (\ entry dec -> fmap ((flip Domain) dec) entry)
       (Map.elems (cxt delta))
       (Map.elems (kinds delta))
       (Map.elems (decs delta))
     ) (Map.elems (upperDecs delta))
 -}
-cxtEmpty = SemCxt 
+cxtEmpty = SemCxt
   { len = 0
   , cxt = Map.empty
 --  , kinds = Map.empty
---  , decs = Map.empty 
+--  , decs = Map.empty
   , upperDecs = Map.empty
   }
 
 -- push a new type declaration on context
 cxtPush' :: OneOrTwo Domain -> SemCxt -> SemCxt
-cxtPush' entry delta = 
+cxtPush' entry delta =
   delta { len = k + 1
         , cxt  = Map.insert k entry (cxt delta)
 --        , cxt  = Map.insert k (fmap typ   entry) (cxt delta)
---        , decs = Map.insert k (fmap decor entry) (decs delta) 
+--        , decs = Map.insert k (fmap decor entry) (decs delta)
         , upperDecs = Map.insert k defaultUpperDec (upperDecs delta)
         }
   where k = len delta
 {-
-cxtPush' (tv12, dec) delta = 
+cxtPush' (tv12, dec) delta =
   delta { len = k + 1
         , cxt  = Map.insert k tv12 (cxt delta)
         , decs = Map.insert k dec (decs delta) }
@@ -349,7 +353,7 @@ cxtPush2 doml domr delta = cxtPushEntry (Two doml domr) delta
 {-
 -- push a variable with a left and a right type
 cxtPush2 :: Dec -> TVal -> TVal -> SemCxt -> (Int, SemCxt)
-cxtPush2 dec tvl tvr delta = 
+cxtPush2 dec tvl tvr delta =
   (len delta, cxtPush' (Two tvl tvr, dec) delta)
 -}
 
@@ -359,7 +363,7 @@ cxtPushGen x delta = cxtPush bot delta
 
 -- only defined for single bindings
 cxtSetType :: Int -> Domain -> SemCxt -> SemCxt
-cxtSetType k dom delta = 
+cxtSetType k dom delta =
   delta { cxt  = Map.insert k (One dom) (cxt delta)
         -- upperDecs need not be updated
         }
@@ -367,9 +371,9 @@ cxtSetType k dom delta =
 {-
 -- only defined for single bindings
 cxtSetType :: Int -> Dec -> TVal -> SemCxt -> SemCxt
-cxtSetType k dec tv delta = 
+cxtSetType k dec tv delta =
   delta { cxt  = Map.insert k (One tv) (cxt delta)
-        , decs = Map.insert k (One dec) (decs delta) 
+        , decs = Map.insert k (One dec) (decs delta)
         -- upperDecs need not be updated
         }
 --        , decs = Map.insert k dec (decs delta) }
@@ -415,7 +419,7 @@ cxtApplyDec dec delta = delta { upperDecs = Map.map (compDec dec) (upperDecs del
 
 {- RETIRED, use cxtApplyDec instead
 -- clear all "erased" flags (see Pfenning, LICS 2001)
--- UPDATE: resurrection sets "target" status to erased 
+-- UPDATE: resurrection sets "target" status to erased
 --         (as opposed to setting "source" status to non-erased)
 cxtResurrect :: SemCxt -> SemCxt
 cxtResurrect delta = delta { upperDecs = Map.map (\ dec -> dec { erased = True}) (upperDecs delta) }
@@ -426,48 +430,48 @@ cxtResurrect delta = delta { upperDecs = Map.map (\ dec -> dec { erased = True})
 
 {-
 -- | Size decrements in bounded quantification do not count for termination
-data LamPi 
+data LamPi
   = LamBind -- ^ add a lambda binding to the context
   | PiBind  -- ^ add a pi binding to the context
 -}
 
 class Monad m => MonadCxt m where
 --  bind     :: Name -> Domain -> Val -> m a -> m a
---  new performs eta-expansion "up" of new gen 
+--  new performs eta-expansion "up" of new gen
   -- adding types (Two t1 t2) returns values (Two (Up t1 vi) (Up t2 vi))
-  newVar     :: Name -> OneOrTwo Domain -> (Int -> OneOrTwo Val -> m a) -> m a 
-  newWithGen :: Name -> Domain -> (Int -> Val -> m a) -> m a 
+  newVar     :: Name -> OneOrTwo Domain -> (Int -> OneOrTwo Val -> m a) -> m a
+  newWithGen :: Name -> Domain -> (Int -> Val -> m a) -> m a
   newWithGen x d k = newVar x (One d)
     (\ i (One v) -> k i v)
-  new2WithGen:: Name -> (Domain, Domain) -> (Int -> (Val, Val) -> m a) -> m a   
-  new2WithGen x (doml, domr) k = newVar x (Two doml domr) 
+  new2WithGen:: Name -> (Domain, Domain) -> (Int -> (Val, Val) -> m a) -> m a
+  new2WithGen x (doml, domr) k = newVar x (Two doml domr)
     (\ i (Two vl vr) -> k i (vl, vr))
 {-
-  new2WithGen:: Name -> (TVal, TVal, Dec) -> (Int -> (Val, Val) -> m a) -> m a   
-  new2WithGen x (tvl, tvr, dec) k = newVar x (Two tvl tvr, dec) 
+  new2WithGen:: Name -> (TVal, TVal, Dec) -> (Int -> (Val, Val) -> m a) -> m a
+  new2WithGen x (tvl, tvr, dec) k = newVar x (Two tvl tvr, dec)
     (\ i (Two vl vr) -> k i (vl, vr))
 -}
   new        :: Name -> Domain -> (Val -> m a) -> m a
-  new x d cont = newWithGen x d (\ _ -> cont)   
+  new x d cont = newWithGen x d (\ _ -> cont)
   new2       :: Name -> (Domain, Domain) -> ((Val, Val) -> m a) -> m a
-  new2 x d cont = new2WithGen x d (\ _ -> cont)   
+  new2 x d cont = new2WithGen x d (\ _ -> cont)
 {-
   new2       :: Name -> (TVal, TVal, Dec) -> ((Val, Val) -> m a) -> m a
-  new2 x d cont = new2WithGen x d (\ _ -> cont)   
+  new2 x d cont = new2WithGen x d (\ _ -> cont)
 -}
   new'       :: Name -> Domain -> m a -> m a
-  new' x d cont = new x d (\ _ -> cont) 
+  new' x d cont = new x d (\ _ -> cont)
   newIrr     :: Name -> m a -> m a  -- only add binding x = VIrr to env
-  addName    :: Name -> (Val -> m a) -> m a  
+  addName    :: Name -> (Val -> m a) -> m a
 {- RETIRED
   addTypeSigs :: [TySig TVal] -> m a -> m a
   addTypeSigs [] k = k
-  addTypeSigs (TypeSig n tv : tss) k = 
+  addTypeSigs (TypeSig n tv : tss) k =
     new' n (defaultDomain tv) $ addTypeSigs tss k
 -}
   addKindedTypeSigs :: [Kinded (TySig TVal)] -> m a -> m a
   addKindedTypeSigs [] k = k
-  addKindedTypeSigs (Kinded ki (TypeSig n tv) : ktss) k = 
+  addKindedTypeSigs (Kinded ki (TypeSig n tv) : ktss) k =
     new' n (Domain tv ki defaultDec) $ addKindedTypeSigs ktss k
 --  addName x = new x dontCare
   setType    :: Int -> Domain -> m a -> m a
@@ -483,7 +487,7 @@ class Monad m => MonadCxt m where
   lookupGen  :: Int -> m CxtEntry
   lookupGenType2 :: Int -> m (TVal, TVal)
   lookupGenType2 i = do
-    entry <- lookupGen i 
+    entry <- lookupGen i
     case domain entry of
       One d1    -> return (typ d1, typ d1)
       Two d1 d2 -> return (typ d1, typ d2)
@@ -503,7 +507,7 @@ class Monad m => MonadCxt m where
   addRewrite :: Rewrite -> [Val] -> ([Val] -> m a) -> m a
   addPattern :: TVal -> Pattern -> Env -> (TVal -> Val -> Env -> m a) -> m a -- step under pat
   addPatterns:: TVal -> [Pattern] -> Env -> (TVal -> [Val] -> Env -> m a) -> m a
-  addSizeRel  :: Int -> Int -> Int -> m a -> m a  
+  addSizeRel  :: Int -> Int -> Int -> m a -> m a
   addBelowInfty :: Int -> m a -> m a
   addBoundHyp :: Bound Val -> m a -> m a
   isBelowInfty :: Int -> m Bool
@@ -515,12 +519,12 @@ class Monad m => MonadCxt m where
   checkingDom :: m a -> m a  -- check domain A of Pi x:A.B (takes care of polarities)
   setCo :: Co -> m a -> m a -- entering a recursive or corecursive function?
   installFuns :: Co -> [Kinded Fun] -> m a -> m a
-  setMeasure  :: Measure Val -> m a -> m a 
+  setMeasure  :: Measure Val -> m a -> m a
   activateFuns :: m a -> m a -- create instance of mutually recursive functions bounded by measure
   goImpredicative :: m a -> m a
   checkingMutual :: Maybe DefId -> m a -> m a
 
-dontCare = error "Internal error: tried to retrieve unassigned type of variable" 
+dontCare = error "Internal error: tried to retrieve unassigned type of variable"
 
 instance MonadCxt TypeCheck where
 
@@ -531,7 +535,7 @@ instance MonadCxt TypeCheck where
     cxtenv <- ask
     let (k, delta) = cxtPushGen x (context cxtenv)
     let v = VGen k
-    let rho = update (environ cxtenv) x (One v) 
+    let rho = update (environ cxtenv) x (One v)
     x' <- uniqueName x k
     local (\ cxt -> cxt { context = delta
                         , renaming = Map.insert x k (renaming cxtenv)
@@ -539,7 +543,7 @@ instance MonadCxt TypeCheck where
                         , environ = rho }) (f v)
 
 
-  newVar x dom12@(One (Domain (VBelow ltle v) ki dec)) f = do 
+  newVar x dom12@(One (Domain (VBelow ltle v) ki dec)) f = do
     enter ("new " ++ show x ++ " " ++ show ltle ++ " " ++ show v) $ do
       cxtenv <- ask
       let (k, delta) = cxtPushEntry (One (Domain vSize kSize dec)) (context cxtenv)
@@ -547,7 +551,7 @@ instance MonadCxt TypeCheck where
       let v12 = One xv
       let rho = update (environ cxtenv) x v12
       let beta = Bound ltle (Measure [xv]) (Measure [v])
-      x' <- uniqueName x k 
+      x' <- uniqueName x k
       local (\ cxt -> cxt { context = delta
                           , renaming = Map.insert x k (renaming cxtenv)
                           , naming = Map.insert k x' (naming cxtenv)
@@ -555,14 +559,14 @@ instance MonadCxt TypeCheck where
         addBoundHyp beta $ (f k v12)
 
 
-  newVar x dom12 f = do 
+  newVar x dom12 f = do
     let tv12 = fmap typ dom12
     enter ("new " ++ show x ++ " : " ++ show tv12) $ do
       cxtenv <- ask
       let (k, delta) = cxtPushEntry dom12 (context cxtenv)
       v12 <- Traversable.mapM (up False (VGen k)) tv12
       let rho = update (environ cxtenv) x v12
-      x' <- uniqueName x k 
+      x' <- uniqueName x k
       local (\ cxt -> cxt { context = delta
                           , renaming = Map.insert x k (renaming cxtenv)
                           , naming = Map.insert k x' (naming cxtenv)
@@ -572,25 +576,25 @@ instance MonadCxt TypeCheck where
     cxtenv <- ask
     let (k, delta) = cxtPushEntry (tv12, dec) (context cxtenv)
     v12 <- Traversable.mapM (up (VGen k)) tv12
-    let rho = update (environ cxtenv) x v12 
+    let rho = update (environ cxtenv) x v12
     local (\ cxt -> cxt { context = delta
                         , renaming = Map.insert x k (renaming cxtenv)
                         , environ = rho }) (f k v12)
 -}
   setType k dom =
-    local (\ ce -> ce { context = cxtSetType k dom (context ce) }) 
+    local (\ ce -> ce { context = cxtSetType k dom (context ce) })
 
   setTypeOfName x dom cont = do
     ce <- ask
     let Just k = Map.lookup x (renaming ce)
     setType k dom cont
-    
+
   genOfName x = do
     ce <- ask
     case Map.lookup x (renaming ce) of
       Nothing -> fail $ "internal error: variable not bound: " ++ show x
       Just k -> return k
-  
+
   nameOfGen k = do
     ce <- ask
     case Map.lookup k (naming ce) of
@@ -617,7 +621,7 @@ instance MonadCxt TypeCheck where
   -- does not work with shadowing!
   getContextTele = do
     ce <- ask
-    let cxt = context ce   
+    let cxt = context ce
     let ren = renaming ce
     let env = envMap $ environ ce
     let mkTBind (x,_) = (TBind x .fromOne . domain) <$> cxtLookupName cxt ren x
@@ -641,14 +645,14 @@ instance MonadCxt TypeCheck where
   applyDec dec = local (\ ce -> ce { context = cxtApplyDec dec (context ce) })
 --  applyDec dec = local (\ ce -> ce { upperDecs = Map.map (compDec dec) (upperDecs ce) })
 
-  -- resurrection sets "target" status to erased 
+  -- resurrection sets "target" status to erased
   -- (as opposed to setting "source" status to non-erased)
 {-
-  resurrect = local (\ ce -> ce { upperDecs = 
+  resurrect = local (\ ce -> ce { upperDecs =
     Map.map (\ dec -> dec { erased = True }) (upperDecs ce) })
 -}
 {-
-  resurrect = local (\ ce -> ce { context = cxtResurrect (context ce) }) 
+  resurrect = local (\ ce -> ce { context = cxtResurrect (context ce) })
 -}
 
 
@@ -658,21 +662,21 @@ instance MonadCxt TypeCheck where
     local (\ cxt -> cxt { rewrites = rew : (rewrites cxt) }) $ do
       ce <- ask
       -- normalize all types in context
-      traceRewM "normalizing types in context" 
+      traceRewM "normalizing types in context"
       cx' <- mapMapM (Traversable.mapM (Traversable.mapM reval)) (cxt (context ce))  -- LOOP!
-      -- normalize environment 
+      -- normalize environment
       traceRewM "normalizing environment"
       let Environ rho mmeas = environ ce
       rho' <- mapM (\ (x,v12) -> Traversable.mapM reval v12 >>= \ v12' -> return (x, v12')) rho
       let en' = Environ rho' mmeas -- no need to rewrite in measure since only size expressions
-      -- normalize given values 
+      -- normalize given values
       vs' <- mapM reval vs
       -- continue in updated context
       local (\ ce -> ce { context = (context ce) { cxt = cx' }
-                        , environ = en' }) $ cont vs' 
+                        , environ = en' }) $ cont vs'
 
   -- addPattern :: TVal -> Pattern -> (TVal -> Val -> Env -> m a) -> m a
-  addPattern tv@(VQuant Pi x dom env b) p rho cont =  
+  addPattern tv@(VQuant Pi x dom env b) p rho cont =
        case p of
           VarP y -> new y dom $ \ xv -> do
               bv <- whnf (update env x xv) b
@@ -681,12 +685,12 @@ instance MonadCxt TypeCheck where
           SizeP e y -> newWithGen y dom $ \ j xv -> do
               bv <- whnf (update env x xv) b
               ve <- whnf' e
-              addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $ 
+              addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $
                 cont bv xv (update rho y xv)
 {-
           SizeP z y -> newWithGen y dom $ \ j xv -> do
               bv <- whnf (update env x xv) b
-              VGen k <- whnf' (Var z) 
+              VGen k <- whnf' (Var z)
               addSizeRel j 1 k $
                 cont bv xv (update rho y xv)
 -}
@@ -708,9 +712,9 @@ instance MonadCxt TypeCheck where
                 vb  <- whnf (update env x pv) b
                 cont vb pv rho
 -}
-          SuccP p2 -> do  
+          SuccP p2 -> do
               addPattern (vSize `arrow` vSize) p2 rho $ \ _ vp2 rho -> do
-                let pv = succSize vp2 
+                let pv = succSize vp2
                 vb  <- whnf (update env x pv) b
                 cont vb pv rho
 
@@ -727,25 +731,25 @@ instance MonadCxt TypeCheck where
               vb <- whnf (update env x v) b
               cont vb v rho -- [(x,v)]
 
-   
+
   addPatterns tv [] rho cont = cont tv [] rho
-  addPatterns tv (p:ps) rho cont = 
-    addPattern tv p rho $ \ tv' v env -> 
-      addPatterns tv' ps env $ \ tv'' vs env' -> 
+  addPatterns tv (p:ps) rho cont =
+    addPattern tv p rho $ \ tv' v env ->
+      addPatterns tv' ps env $ \ tv'' vs env' ->
         cont tv'' (v:vs) env' -- (env' ++ env)
 
-  addSizeRel son dist father k = 
-    enter -- enterTrace 
+  addSizeRel son dist father k =
+    enter -- enterTrace
       ("adding size rel. v" ++ show son ++ " + " ++ show dist ++ " <= v" ++ show father) $ do
     let modBI belowInfty = if father `elem` belowInfty || dist > 0 then son : belowInfty else belowInfty
-    local (\ cxt -> cxt 
-      { sizeRels = TSO.insert son (dist, father) (sizeRels cxt) 
+    local (\ cxt -> cxt
+      { sizeRels = TSO.insert son (dist, father) (sizeRels cxt)
       , belowInfty = modBI (belowInfty cxt)
       }) k
 
   addBelowInfty i = local $ \ cxt -> cxt { belowInfty = i : belowInfty cxt }
 
-  addBoundHyp beta@(Bound ltle (Measure mu) (Measure mu')) cont = 
+  addBoundHyp beta@(Bound ltle (Measure mu) (Measure mu')) cont =
     case (ltle, mu, mu') of
       (Le, _, [VInfty]) -> cont
 --      (Lt, _, [VInfty]) -> failure  -- handle j < #
@@ -766,7 +770,7 @@ instance MonadCxt TypeCheck where
           addIrregularBound i j n = local (\ ce -> ce { bounds = beta : bounds ce }) where
               v' = iterate VSucc (VGen j) !! n
               beta = Bound Le (Measure [VGen i]) (Measure [v'])
-  
+
   isBelowInfty i = (i `elem`) <$> asks belowInfty
 
 {-
@@ -783,7 +787,7 @@ instance MonadCxt TypeCheck where
   sizeVarBelow son ancestor = do
     cxt <- ask
     return $ TSO.isAncestor son ancestor (sizeRels cxt)
-{-  
+{-
   getSizeDiff son ancestor = do
     cxt <- ask
     return $ TSO.diff son ancestor (sizeRels cxt)
@@ -795,15 +799,15 @@ instance MonadCxt TypeCheck where
   getSizeVarsInScope = do
     TCContext { context = delta, naming = nam } <- ask
     -- get all the size variables with positive or mixed polarity
-    let fSize (i, tv12) = 
+    let fSize (i, tv12) =
           case tv12 of
             One dom -> isVSize $ typ dom
-            _ -> -- trace ("not a size variable " ++ show i ++ " : " ++ show tv12) $ 
-                   False   
+            _ -> -- trace ("not a size variable " ++ show i ++ " : " ++ show tv12) $
+                   False
     -- create a list of key (gen) and Domain pairs for the size variables
     let idl = filter fSize $ Map.toAscList (cxt delta)
     let udecs = upperDecs delta
-    let fPos (i, One dom) = 
+    let fPos (i, One dom) =
          case fromPProd (polarity (Maybe.fromJust (Map.lookup i udecs))) of
            Just p -> leqPol (polarity (decor dom)) p
            Nothing -> False
@@ -814,7 +818,7 @@ instance MonadCxt TypeCheck where
   checkingCon b = local (\ cxt -> cxt { checkingConType = b})
 
 {-
-  checkingDom = local $ \ cxt -> 
+  checkingDom = local $ \ cxt ->
     if checkingConType cxt then cxt
      else cxt { context = cxtApplyDec (Dec False Neg) (context cxt) }
 -}
@@ -828,15 +832,15 @@ instance MonadCxt TypeCheck where
   -- install functions for checking function clauses
   -- ==> use internal names
   installFuns co kfuns k = do
-    let funt = foldl (\ m fun@(Kinded _ (Fun (TypeSig n _) n' _ _)) -> Map.insert n fun m) 
-                     Map.empty 
-                     kfuns    
+    let funt = foldl (\ m fun@(Kinded _ (Fun (TypeSig n _) n' _ _)) -> Map.insert n fun m)
+                     Map.empty
+                     kfuns
     local (\ cxt -> cxt { mutualCo = co, funsTemplate = funt }) k
 
   setMeasure mu k =  do
       rho0 <- getEnv
       let rho = rho0 { envBound = Just mu }
-      local (\ cxt -> cxt 
+      local (\ cxt -> cxt
         { environ    = (environ cxt) { envBound = Just mu }
         }) k
 
@@ -845,27 +849,27 @@ instance MonadCxt TypeCheck where
       case (envBound rho) of
          Nothing -> k
          Just mu ->
-           local (\ cxt -> cxt 
-             { mutualFuns = 
-                 Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt) 
+           local (\ cxt -> cxt
+             { mutualFuns =
+                 Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt)
              }) k
     where boundFun :: Env -> Co -> Kinded Fun -> SigDef
-          boundFun rho co (Kinded ki (Fun (TypeSig n t) n' ar cls)) = 
+          boundFun rho co (Kinded ki (Fun (TypeSig n t) n' ar cls)) =
             FunSig co (VClos rho t) ki ar cls False undefined
 
 {-
   activateFuns mu k = do
       rho0 <- getEnv
       let rho = rho0 { envBound = Just mu }
-      local (\ cxt -> cxt 
+      local (\ cxt -> cxt
         { environ    = (environ cxt) { envBound = Just mu }
-        , mutualFuns = 
-            Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt) 
+        , mutualFuns =
+            Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt)
         }) k
     where boundFun :: Env -> Co -> Fun -> SigDef
-          boundFun rho co (TypeSig n t, (ar, cls)) = 
+          boundFun rho co (TypeSig n t, (ar, cls)) =
             FunSig co (VClos rho t) ar cls False
- -}   
+ -}
 
   goImpredicative = local (\ cxt -> cxt { impredicative = True })
 
@@ -875,7 +879,7 @@ instance MonadCxt TypeCheck where
 -- addBind :: MonadTCM m => TBind -> m a -> m a
 addBind :: TBind -> TypeCheck a -> TypeCheck a
 addBind (TBind x dom) cont = do
-  dom' <- (Traversable.mapM whnf' dom) 
+  dom' <- (Traversable.mapM whnf' dom)
   new' x dom' cont
 
 addBinds :: Telescope -> TypeCheck a -> TypeCheck a
@@ -895,10 +899,10 @@ introPatterns ps tv cont =                -- Problem: NO ETA EXPANSION!
 -- extend delta by generic values but do not introduce their types
 -- this is to deal with dot patterns
 introPatVar :: Pattern -> TypeCheck a -> TypeCheck a
-introPatVar p cont = 
+introPatVar p cont =
     case p of
-      VarP n -> addName n $ \ _ -> cont 
-      SizeP m n -> addName n $ \ _ -> cont 
+      VarP n -> addName n $ \ _ -> cont
+      SizeP m n -> addName n $ \ _ -> cont
       ConP co n pl -> introPatVars pl cont
       PairP p1 p2 -> introPatVars [p1,p2] cont
       SuccP p -> introPatVar p cont
@@ -917,15 +921,15 @@ introPatType :: (Pattern,Val) -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 introPatType (p,v) tv cont = do
   case tv of
     VGuard beta bv -> addBoundHyp beta $ introPatType (p,v) bv cont
-    VApp (VDef (DefId DatK d)) vl -> 
-      case p of 
+    VApp (VDef (DefId DatK d)) vl ->
+      case p of
         ProjP n -> cont =<< projectType tv n VIrr -- no record value here
-        _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv 
+        _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv
     VQuant Pi x dom env b -> do
        v <- whnfClos v
        bv <- whnf (update env x v) b
        matchPatType (p,v) dom $ cont bv
-    _ -> fail $ "introPatType: internal error, expected Pi-type, found " ++ show tv 
+    _ -> fail $ "introPatType: internal error, expected Pi-type, found " ++ show tv
 
 introPatTypes :: [(Pattern,Val)] -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 introPatTypes pvs tv f = do
@@ -934,7 +938,7 @@ introPatTypes pvs tv f = do
     (pv:pvs') -> introPatType pv tv $ \ tv' -> introPatTypes pvs' tv' f
 
 matchPatType :: (Pattern, Val) -> Domain -> TypeCheck a -> TypeCheck a
-matchPatType (p,v) dom cont = 
+matchPatType (p,v) dom cont =
        case (p,v) of
                                                    -- erasure does not matter!
           (VarP y, VGen k) -> setType k dom $ cont
@@ -950,8 +954,8 @@ matchPatType (p,v) dom cont =
 -}
              vc <- conType n =<< force (typ dom)
              introPatTypes (zip pl vl) vc $ \ _ -> cont
- 
-          (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont 
+
+          (SuccP p2, VSucc v2) -> matchPatType (p2, v2) (defaultDomain vSize) $ cont
 
           (PairP p1 p2, VPair v1 v2) -> do
              av <- force (typ dom)
@@ -974,46 +978,46 @@ matchPatType (p,v) dom cont =
 
 type Signature = Map Name SigDef
 
--- a signature entry is either  
--- * a fun/cofun, 
--- * a defined constant, 
--- * a constructor, or 
+-- a signature entry is either
+-- * a fun/cofun,
+-- * a defined constant,
+-- * a constructor, or
 -- * a data type id with its kind
 -- they share "symbTyp", the type signature of the definition
-data SigDef 
-  = FunSig  { isCo          :: Co 
-            , symbTyp       :: TVal 
-            , symbolKind    :: Kind 
+data SigDef
+  = FunSig  { isCo          :: Co
+            , symbTyp       :: TVal
+            , symbolKind    :: Kind
             , arity         :: Arity
-            , clauses       :: [Clause] 
-            , isTypeChecked :: Bool 
+            , clauses       :: [Clause]
+            , isTypeChecked :: Bool
             , extrTyp       :: Expr   -- Fomega type
             } --type , co , clauses , whether its type checked
   | LetSig  { symbTyp       :: TVal
-            , symbolKind    :: Kind 
-            , definingVal   :: Val 
---            , definingExpr  :: Expr 
+            , symbolKind    :: Kind
+            , definingVal   :: Val
+--            , definingExpr  :: Expr
             , extrTyp       :: Expr   -- Fomega type
-            }-- type , expr 
+            }-- type , expr
   | PatSig  { patVars       :: [Name]
             , definingPat   :: Pattern
             , definingVal   :: Val
             }
   | ConSig  { numPars       :: Int
-            , lhsTyp        :: Maybe TVal -- lhs type of construcor for pattern matching, e.g. 
+            , lhsTyp        :: Maybe TVal -- lhs type of construcor for pattern matching, e.g.
    -- cons : [A : Set] -> [i : Size] -> [j < i] -> A -> List A j -> List A i
             , recOccs       :: [Bool] -- which of the arguments contain rec.occs.of the (co)data type?
             , symbTyp       :: TVal   -- type, e.g
    -- cons : [A : Set] -> [i : Size] -> A -> List A i -> List A $i
             , dataName      :: Name
             , extrTyp       :: Expr   -- Fomega type
-            }   
+            }
   | DataSig { numPars       :: Int
-            , positivity    :: [Pol] 
-            , isSized       :: Sized 
+            , positivity    :: [Pol]
+            , isSized       :: Sized
             , isCo          :: Co
             , symbTyp       :: TVal
-            , symbolKind    :: Kind 
+            , symbolKind    :: Kind
             -- the following information is only needed for eta-expansion
             -- hence it is only provided for suitable ind.fams.
             , constructors  :: [ConstructorInfo]
@@ -1028,9 +1032,9 @@ data SigDef
             , extrTyp       :: Expr -- Fomega kind
 {-
             , destructors   :: Maybe [Name] -- Nothing if not a record
-            , isFamily      :: Bool 
+            , isFamily      :: Bool
 -}
-            } -- # parameters, positivity of parameters  , sized , co , type  
+            } -- # parameters, positivity of parameters  , sized , co , type
               deriving (Show)
 
 isEmptyData :: Name -> TypeCheck Bool
@@ -1044,7 +1048,7 @@ isUnitData :: Name -> TypeCheck Bool
 isUnitData n = do
   sig <- lookupSymb n
   case sig of
-    DataSig { constructors = [c], isTuple } -> return $ 
+    DataSig { constructors = [c], isTuple } -> return $
       isTuple && null (cFields c) && cPatFam c == (LinearPatterns, [])
     DataSig { constructors } -> return False
     _ -> throwErrorMsg $ "internal error: isUnitData " ++ show n ++ ": name of data type expected"
@@ -1074,13 +1078,13 @@ class MonadCxt m => MonadSig m where
 
 -- Signature implementation ------------------------------------------
 
-data DataView 
+data DataView
   = Data Name [Clos]
   | NoData
 
 -- | Find datatype @D vs@ in type @Tel -> D vs@.
 dataView :: TVal -> TypeCheck DataView
-dataView tv = do 
+dataView tv = do
   tv <- force tv
   case tv of
 {- 2012-01-31 EVIL, LEADS TO UNBOUND VARS:
@@ -1089,7 +1093,7 @@ dataView tv = do
 -}
     VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
     VSing v dv                    -> dataView =<< whnfClos dv
-    _                             -> return $ NoData 
+    _                             -> return $ NoData
 
 -- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
 --   with parameters instantiated
@@ -1109,8 +1113,8 @@ conType c tv = do
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) $
         failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv 
-                   <+> text ("to be a data type applied to all of its " ++ 
+                   <+> prettyTCM tv
+                   <+> text ("to be a data type applied to all of its " ++
                      show numPars ++ " parameters"))
       piApps symbTyp pars
 -}
@@ -1134,8 +1138,8 @@ instConType c numPars symbTyp tv = do
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) $
         failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv 
-                   <+> text ("to be a data type applied to all of its " ++ 
+                   <+> prettyTCM tv
+                   <+> text ("to be a data type applied to all of its " ++
                      show numPars ++ " parameters"))
       piApps symbTyp pars
 
@@ -1143,8 +1147,8 @@ instConType c numPars symbTyp tv = do
 instConLType :: Name -> Int -> TVal -> Maybe TVal -> (Val -> Bool) -> TVal -> TypeCheck TVal
 instConLType c numPars symbTyp isSized isFlex tv = do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv 
-                   <+> text ("to be a data type applied to all of its " ++ 
+                   <+> prettyTCM tv
+                   <+> text ("to be a data type applied to all of its " ++
                      show numPars ++ " parameters"))
   dv <- dataView tv
   case dv of
@@ -1179,10 +1183,10 @@ instance MonadSig TypeCheck where
       Just k -> return $ k
       Nothing -> do
         sig <- gets signature
-        lookupSig n sig 
+        lookupSig n sig
           where
             -- lookupSig :: Name -> Signature -> TypeCheck SigDef
-            lookupSig n sig = 
+            lookupSig n sig =
               case (Map.lookup n sig) of
                 Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
                 Just k -> return k
@@ -1214,7 +1218,7 @@ class Monad m => MonadMeta m where
   resetConstraints :: m ()
   mkConstraint     :: Val -> Val -> m (Maybe Constraint)
   addMeta          :: Ren -> MVar -> m ()
-  addLeq           :: Val -> Val -> m () 
+  addLeq           :: Val -> Val -> m ()
 
   addLe            :: LtLe -> Val -> Val -> m ()
   addLe Le v1 v2 = addLeq v1 v2
@@ -1242,8 +1246,8 @@ instance MonadMeta TypeCheck where
   -- mkConstraint :: Val -> Val -> TypeCheck (Maybe Constraint)
   mkConstraint v (VMax vs) = do
     bs <- mapM (errorToBool . leqSize' v) vs
-    if any id bs then return Nothing else 
-     fail $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs) 
+    if any id bs then return Nothing else
+     fail $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs)
   mkConstraint w@(VMax vs) v = fail $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
   mkConstraint (VMeta i rho n) (VMeta j rho' m) = retret $ arc (Flex i) (m-n) (Flex j)
   mkConstraint (VMeta i rho n) VInfty      = retret $ arc (Flex i) 0 (Rigid (RConst Infinite))
@@ -1268,7 +1272,7 @@ instance MonadMeta TypeCheck where
 
   -- addLeq :: Val -> Val -> TypeCheck ()
   addLeq v1 v2 = traceMeta ("Constraint: " ++ show v1 ++ " <= " ++ show v2) $
-    do mc <- mkConstraint v1 v2 
+    do mc <- mkConstraint v1 v2
        case mc of
          Nothing -> return ()
          Just c -> do
@@ -1279,10 +1283,10 @@ instance MonadMeta TypeCheck where
   solveConstraints = do
     cs <- gets constraints
     if null cs then return emptySolution
-     else case solve cs of 
-        Just subst -> -- trace ("solution" ++ show subst) $ 
-                      return subst 
-        Nothing    -> fail $ "size constraints " ++ show cs ++ " unsolvable" 
+     else case solve cs of
+        Just subst -> -- trace ("solution" ++ show subst) $
+                      return subst
+        Nothing    -> fail $ "size constraints " ++ show cs ++ " unsolvable"
 
 
 nameOf :: EnvMap -> Int -> Maybe Name
@@ -1302,7 +1306,7 @@ sizeExprToExpr rho (SizeVar i n) | Just x <- nameOf (envMap rho) i = add (Var x)
   where add e n | n <= 0 = e
                 | otherwise = add (Succ e) (n-1)
 sizeExprToExpr rho e@(SizeVar i n) | Nothing <- nameOf (envMap rho) i = error $ "panic: sizeExprToExpr " ++ Util.parens (show e) ++ ": variable v" ++ show i ++ " not in scope " ++ show (envMap rho)
-        
+
 
 maxExpr :: [Expr] -> Expr
 maxExpr [] = Infty
@@ -1327,7 +1331,7 @@ solToSubst sol rho = Map.foldWithKey step Map.empty sol
 
 -- pattern to Value ----------------------------------------------
 
-{- RETIRED 
+{- RETIRED
 patternToVal :: Pattern -> TypeCheck Val
 patternToVal p = do
   k <- getLen
@@ -1336,14 +1340,14 @@ patternToVal p = do
 -- turn a pattern into a value
 -- dot patterns get variables corresponding to their flexible generic value
 p2v :: Int -> Pattern -> (Val,Int)
-p2v k p = 
+p2v k p =
     case p of
       VarP n -> (VGen k,k+1)
       ConP co n [] -> (VCon co n,k)
       ConP co n pl -> let (vl,k') = ps2vs k pl
                       in (VApp (VCon co n) vl,k')
       SuccP p -> let (v,k') = p2v k p
-                 in (VSucc v,k')   
+                 in (VSucc v,k')
       DotP e -> (VGen k,k+1)
 
 ps2vs :: Int -> [Pattern] -> ([Val],Int)

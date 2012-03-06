@@ -40,7 +40,7 @@ pwords = map text . words
 fwords :: String -> Doc
 fwords = fsep . pwords
 
-fromAllWriter :: Writer All a -> (Bool, a) 
+fromAllWriter :: Writer All a -> (Bool, a)
 fromAllWriter m = let (a, w) = runWriter m
                   in  (getAll w, a)
 
@@ -55,7 +55,7 @@ lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.look
 
 (+?+) :: String -> String -> String
 (+?+) xs "[]" = []
-(+?+) xs ys = xs ++ ys 
+(+?+) xs ys = xs ++ ys
 
 
 mapMapM :: (Monad m, Ord k) => (a -> m b) -> Map k a -> m (Map k b)
@@ -76,16 +76,16 @@ andM (m:ms) = m `andLazy` andM ms
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
 findM p []       = return Nothing
-findM p (x : xs) = do b <- p x 
-                      if b then return (Just x) else findM p xs 
-                        
+findM p (x : xs) = do b <- p x
+                      if b then return (Just x) else findM p xs
+
 parens :: String -> String
 parens s = "(" ++ s ++ ")"
 
-brackets :: String -> String 
+brackets :: String -> String
 brackets s = "[" ++ s ++ "]"
 
-bracketsIf :: Bool -> String -> String 
+bracketsIf :: Bool -> String -> String
 bracketsIf False s = s
 bracketsIf True  s = "[" ++ s ++ "]"
 
@@ -97,7 +97,7 @@ separate sep x y  = x ++ sep ++ y
 showList :: String -> (a -> String) -> [a] -> String
 showList sep f [] = ""
 showList sep f [e] = f e
-showList sep f (e:es) = f e ++ sep ++ showList sep f es 
+showList sep f (e:es) = f e ++ sep ++ showList sep f es
 -- OR: showList sep f es = foldl separate "" $ map f es
 
 hasDuplicate :: (Eq a) => [a] -> Bool
@@ -136,9 +136,12 @@ mapAssoc :: (a -> b) -> [(n,a)] -> [(n,b)]
 mapAssoc f = map (\ (n, a) -> (n, f a))
 
 mapAssocM :: (Applicative m, Monad m) => (a -> m b) -> [(n,a)] -> m [(n,b)]
-mapAssocM f = mapM (\ (n, a) -> (n,) <$> f a) 
+mapAssocM f = mapM (\ (n, a) -> (n,) <$> f a)
+
+compAssoc :: Eq b => [(a,b)] -> [(b,c)] -> [(a,c)]
+compAssoc xs ys = [ (a,c) | (a,b) <- xs, (b',c) <- ys, b == b' ]
 
 {- this is Traversable.mapM
 fmapM :: (Functor f) => (a -> m b) -> f a -> m (f b)
-fmapM = Traversable.traverse 
+fmapM = Traversable.traverse
 -}
