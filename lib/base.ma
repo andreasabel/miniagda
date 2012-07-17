@@ -10,8 +10,8 @@ fun subst : [A : Set] -> [P : A -> Set] -> [a, b : A] -> Id A a b -> P a -> P b
 { subst A P a .a refl h = h
 }
 
-fun cong : [A : Set] -> [B : A -> Set] -> [f : (x : A) -> B x] -> 
-  [a, b : A] -> (p : Id A a b) -> 
+fun cong : [A : Set] -> [B : A -> Set] -> [f : (x : A) -> B x] ->
+  [a, b : A] -> (p : Id A a b) ->
   Id (B b) (subst A B a b p (f a)) (f b)
 { cong A B f a .a refl = refl
 }
@@ -65,7 +65,7 @@ pattern nothing = left unit
 pattern just a  = right a
 
 let maybe [A, B : Set] (n : B) (j : A -> B) : Maybe A -> B
-  = either Unit A (\ x -> B) (\ u -> n) j 
+  = either Unit A (\ x -> B) (\ u -> n) j
 
 let mapMaybe [A, B : Set] (f : A -> B) : Maybe A -> Maybe B
   = mapEither Unit A Unit B (\ u -> u) f
@@ -84,3 +84,11 @@ let Tri ++(A, B, C : Set) = (t : Three) & ThreeT t A B C
 pattern first  a = (one, a)
 pattern second b = (two, b)
 pattern third  c = (three, c)
+
+-- * Recursion principle
+
+fun fix : [A : Size -> Set] ->
+          ([i : Size] -> ([j < i] -> A j) -> A i) ->
+          [i : Size] -> |i| -> A i
+{ fix A f i = f i (fix A f)
+}

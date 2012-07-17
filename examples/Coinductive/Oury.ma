@@ -5,7 +5,14 @@ data Eq (A : Set)(a : A) : A -> Set
 { refl : Eq A a a
 }
 
-{- Greetings,
+{-
+From: Nicolas Oury <npo@cs.nott.ac.uk>
+To: coq-club@pauillac.inria.fr
+Subject: [Coq-Club] Coinductive types and type preservation.
+List-Archive: <http://pauillac.inria.fr/pipermail/coq-club/>
+Date: Fri, 6 Jun 2008 15:09:28 +0100
+
+Greetings,
 
 I was playing with CoInductive types in Coq and found this problem:
 -----------------
@@ -20,7 +27,7 @@ CoInductive Stream : Set :=
 CoFixpoint ones : Stream := cons ones.
 -}
 
-sized codata Stream : Size -> Set 
+sized codata Stream : Size -> Set
 { cons : [i : Size] -> (tail : Stream i) -> Stream ($ i)
 }
 -- tail : [i : Size] -> Stream ($ i) -> Stream i
@@ -43,7 +50,7 @@ fun eta : Stream # -> Stream #
 -- 1st step: definition by destructors
 -- tail .# (eta (cons .# s)) = s
 -- 2nd step: translating irrefutable pattern (cons .# s) = s' --> s = tail # s'
--- tail .# (eta s') = tail # s' 
+-- tail .# (eta s') = tail # s'
 
 {- (*Then you can prove: forall xs, xs = out xs *)
 
