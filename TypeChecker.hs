@@ -41,28 +41,28 @@ import Termination
 -- import Completness
 
 
-traceCheck msg a = a -- trace msg a 
+traceCheck msg a = a -- trace msg a
 traceCheckM msg = return () -- traceM msg
 {-
-traceCheck msg a = trace msg a 
+traceCheck msg a = trace msg a
 traceCheckM msg = traceM msg
 -}
 
-traceSing msg a = a -- trace msg a 
+traceSing msg a = a -- trace msg a
 traceSingM msg = return () -- traceM msg
 
 
-traceAdm msg a = a -- trace msg a 
+traceAdm msg a = a -- trace msg a
 traceAdmM msg = return () -- traceM msg
 {-
-traceAdm msg a = trace msg a 
+traceAdm msg a = trace msg a
 traceAdmM msg = traceM msg
 -}
-  
+
 {- DEAD CODE
 runWhnf :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
-runWhnf sig tc = (runErrorT (runStateT tc  sig)) 
--} 
+runWhnf sig tc = (runErrorT (runStateT tc  sig))
+-}
 
 doNf sig e = runErrorT (runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) emptyContext)
 doWhnf sig e = runErrorT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) emptyContext)
@@ -71,9 +71,9 @@ doWhnf sig e = runErrorT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (
 -- top-level functions -------------------------------------------
 
 runTypeCheck :: TCState -> TypeCheck a -> IO (Either TraceError (a,TCState))
-runTypeCheck st tc = runErrorT (runReaderT (runStateT tc st) emptyContext) 
+runTypeCheck st tc = runErrorT (runReaderT (runStateT tc st) emptyContext)
 -- runTypeCheck st tc = runCallStackT (runReaderT (runStateT tc st) emptyContext) []
- 
+
 typeCheck dl = runTypeCheck initSt (typeCheckDecls dl)
 
 -- checking top-level declarations -------------------------------
@@ -93,7 +93,7 @@ echoKindedTySig ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " : " ++ show
 echoKindedDef :: MonadIO m => Kind -> Name -> Expr -> m ()
 echoKindedDef ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " = " ++ show t
 
- 
+
 echoEPrefix = "E> "
 
 echoTySigE :: MonadIO m => Name -> Expr -> m ()
@@ -102,14 +102,14 @@ echoTySigE n t = echo $ echoEPrefix ++ show n ++ " : " ++ show t
 echoDefE :: MonadIO m => Name -> Expr -> m ()
 echoDefE n t = echo $ echoEPrefix ++ show n ++ " = " ++ show t
 
--- the type checker returns pruned (extracted) terms 
+-- the type checker returns pruned (extracted) terms
 -- with irrelevant subterms replaced by Irr
 typeCheckDecls :: [Declaration] -> TypeCheck [EDeclaration]
 typeCheckDecls []     = return []
-typeCheckDecls (d:ds) = do 
-  de  <- typeCheckDeclaration d                         
-  dse <- typeCheckDecls ds                              
-  return (de ++ dse)           
+typeCheckDecls (d:ds) = do
+  de  <- typeCheckDeclaration d
+  dse <- typeCheckDecls ds
+  return (de ++ dse)
 
 -- since a data declaration generates destructor declarations
 -- we need to return a list here
@@ -121,27 +121,27 @@ typeCheckDeclaration (OverrideDecl Check ds) = do
   return []
 typeCheckDeclaration (OverrideDecl Fail ds) = do
   st <- get
-  r <- (typeCheckDecls ds >> return True) `catchError` 
+  r <- (typeCheckDecls ds >> return True) `catchError`
         (\ s -> do liftIO $ putStrLn ("block fails as expected, error message:\n" ++ show s)
                    return False)
   if r then fail "unexpected success" else do
     put st
     return []
 
-typeCheckDeclaration (OverrideDecl TrustMe ds) = 
+typeCheckDeclaration (OverrideDecl TrustMe ds) =
   newAssertionHandling Warning $ typeCheckDecls ds
 
-typeCheckDeclaration (OverrideDecl Impredicative ds) = 
+typeCheckDeclaration (OverrideDecl Impredicative ds) =
   goImpredicative $ typeCheckDecls ds
 
-typeCheckDeclaration (RecordDecl n tel t0 c fields) = 
+typeCheckDeclaration (RecordDecl n tel t0 c fields) =
   -- just one "mutual" declaration
   checkingMutual (Just $ DefId DatK n) $ do
     result <- typeCheckDataDecl n NotSized CoInd [] tel t0 [c] fields
     checkPositivityGraph
     return result
 
-typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) = 
+typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) =
   -- just one "mutual" declaration
   checkingMutual (Just $ DefId DatK n) $ do
     result <- typeCheckDataDecl n sz co pos0 tel t0 cs fields
@@ -175,18 +175,18 @@ typeCheckDeclaration d@(PatternDecl x xs p) = do
   let doc = (PP.text "pattern") <+> (PP.hsep (List.map Util.pretty (x:xs))) <+> PP.equals <+> Util.pretty p
   echo $ PP.render $ doc
 -}
-  echo $ "pattern " ++ Util.showList " " show (x:xs) ++ " = " ++ show p    
+  echo $ "pattern " ++ Util.showList " " show (x:xs) ++ " = " ++ show p
   v <- whnf' $ foldr (Lam defaultDec) (patternToExpr p) xs
   addSig x (PatSig xs p v)
   return [d]
 
-typeCheckDeclaration (MutualFunDecl False co funs) = 
+typeCheckDeclaration (MutualFunDecl False co funs) =
   -- traceCheck ("type checking a function block") $
   do
     funse <- typeCheckFuns co funs
     return $ [MutualFunDecl False co funse]
 
-typeCheckDeclaration (MutualFunDecl True co funs) = 
+typeCheckDeclaration (MutualFunDecl True co funs) =
   -- traceCheck ("type checking a block of measured function") $
   do
     funse <- typeCheckMeasuredFuns co funs
@@ -198,8 +198,8 @@ typeCheckDeclaration (MutualDecl measured ds) = do
   ktss <- typeCheckMutualSigs ds
   -- then check bodies
   -- we need to construct a positivity graph
-  edss <- addKindedTypeSigs ktss $ 
-    zipWithM (typeCheckMutualBody measured) (map (predKind . kindOf) ktss) ds  
+  edss <- addKindedTypeSigs ktss $
+    zipWithM (typeCheckMutualBody measured) (map (predKind . kindOf) ktss) ds
   -- check and reset positivity graph
   checkPositivityGraph
   return $ concat edss
@@ -222,25 +222,25 @@ typeCheckSignature (TypeSig n t) = do
   return $ Kinded (predKind ki) $ TypeSig n tv
 
 typeCheckMutualSig :: Declaration -> TypeCheck (Kinded (TySig TVal))
-typeCheckMutualSig (LetDecl ev n tel (Just t) e) =  
+typeCheckMutualSig (LetDecl ev n tel (Just t) e) =
   typeCheckSignature $ TypeSig n $ teleToType tel t
 typeCheckMutualSig (DataDecl n sz co pos tel t cs fields) = do
   Kinded ki ts <- typeCheckSignature (TypeSig n (teleToType tel t))
   return $ Kinded ki ts
 typeCheckMutualSig (FunDecl co (Fun ts n' ar cls)) =
-  typeCheckSignature ts 
-typeCheckMutualSig (OverrideDecl TrustMe [d]) = 
+  typeCheckSignature ts
+typeCheckMutualSig (OverrideDecl TrustMe [d]) =
   newAssertionHandling Warning $ typeCheckMutualSig d
 typeCheckMutualSig (OverrideDecl Impredicative [d]) =
   goImpredicative $ typeCheckMutualSig d
-typeCheckMutualSig d = fail $ "typeCheckMutualSig: panic: unexpected declaration " ++ show d 
+typeCheckMutualSig d = fail $ "typeCheckMutualSig: panic: unexpected declaration " ++ show d
 
 -- typeCheckMutualBody measured kindCandidate
 typeCheckMutualBody :: Bool -> Kind -> Declaration -> TypeCheck [EDeclaration]
 typeCheckMutualBody measured _ (DataDecl n sz co pos tel t cs fields) = do
   -- set name of mutual thing whose body we are checking
   checkingMutual (Just $ DefId DatK n) $
-    -- 
+    --
     typeCheckDataDecl n sz co pos tel t cs fields
 typeCheckMutualBody measured@False ki (FunDecl co fun@(Fun ts@(TypeSig n t) n' ar cls)) = do
   checkingMutual (Just $ DefId FunK n) $ do
@@ -251,7 +251,7 @@ typeCheckDataDecl :: Name -> Sized -> Co -> [Pol] -> Telescope -> Type -> [Const
 typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
  (do -- sig <- gets signature
      let params = length tel0
-     -- in case we are dealing with a sized type, check that 
+     -- in case we are dealing with a sized type, check that
      -- the polarity annotation (if present) at the size arg. is correct.
      (p', pos, t) <- do
        case sz of
@@ -288,8 +288,8 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      let (tel, _) = typeToTele' params dte
      let cis = analyzeConstructors co n tel cs0
      let cs  = map reassembleConstructor cis
-     addSig n (DataSig { numPars = params 
-                       , positivity = pos 
+     addSig n (DataSig { numPars = params
+                       , positivity = pos
                        , isSized = sz
                        , isCo = co
                        , symbTyp = v
@@ -309,64 +309,64 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      when (sz == Sized) $
            szType co params v
 
-     (isRecList, kcse) <- liftM unzip $ 
+     (isRecList, kcse) <- liftM unzip $
        mapM (typeCheckConstructor n dte sz co pos tel) cs
 
-     -- compute the kind of the data type from the kinds of the 
+     -- compute the kind of the data type from the kinds of the
      -- constructor arguments  (mmh, DOES NOT WORK FOR MUTUAL DATA!)
      let newki = case (foldl unionKind NoKind (map kindOf kcse)) of
           NoKind  -> kType -- no non-rec constructor arguments
-          AnyKind -> AnyKind 
+          AnyKind -> AnyKind
           Kind s s' -> Kind (Set Zero) s' -- a data type is always also a type
      -- echoKindedTySig newki n dte -- 2012-01-26 disabled (repetitive)
 
      -- solve for size variables
      sol <- solveConstraints
      -- TODO: substitute
-     resetConstraints     
+     resetConstraints
 
      -- add destructors only for the constructors that are non-overlapping
-     let mkDestr fi = 
+     let mkDestr fi =
           case (fClass fi) of
-             Field (Just (ty, arity, cl)) | not (erased $ fDec fi) && not (emptyName $ fName fi) -> 
+             Field (Just (ty, arity, cl)) | not (erased $ fDec fi) && not (emptyName $ fName fi) ->
                let n' = fName fi
-                   n  = internal n' 
+                   n  = internal n'
                in
-               [MutualFunDecl False Ind [Fun (TypeSig n ty) n' arity [cl]]]  
+               [MutualFunDecl False Ind [Fun (TypeSig n ty) n' arity [cl]]]
              _ -> []
      -- cEtaExp = True means that all field names are present
      -- and constructor is not overlapping with others
-     let mkDestrs ci | cEtaExp ci 
+     let mkDestrs ci | cEtaExp ci
             = concat $ map mkDestr (cFields ci)
          mkDestrs ci = []
      let decls = concat $ map mkDestrs cis
-     when (not (null decls)) $ 
+     when (not (null decls)) $
         traceCheckM $ "generated destructors: " ++ show decls
-     declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) n' ar cls]) -> do 
+     declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) n' ar cls]) -> do
                        -- echo $ "G> " ++ showFun co ++ " " ++ show n ++ " : " ++ show t
                        -- echo $ "G> " ++ PP.render (prettyFun n cls)
-                       checkingMutual Nothing $ typeCheckDeclaration d) 
+                       checkingMutual Nothing $ typeCheckDeclaration d)
                  decls
 
      -- decide whether to eta-expand at this type
      -- all patterns need to be proper and non-overlapping
      -- at least one constructor needs to be eta-expandable
-     let isPatIndFam = all (\ ci -> fst (cPatFam ci) /= NotPatterns && cEtaExp ci) cis 
+     let isPatIndFam = all (\ ci -> fst (cPatFam ci) /= NotPatterns && cEtaExp ci) cis
 --                    && not (or overlapList)
      -- do not eta-expand recursive constructors (might not terminate)
-     let disableRec ci {-ov-} rec' = ci { cEtaExp  
+     let disableRec ci {-ov-} rec' = ci { cEtaExp
            =  cEtaExp ci                      -- all destructors present
            && fst (cPatFam ci) /= NotPatterns -- proper pattern to compute indices
 --           && not ov                          -- non-overlapping
            && not (co==Ind && rec') }         -- non-recursive
      let cis' = zipWith disableRec cis {-overlapList-} isRecList
-     let typeEtaExpandable = isPatIndFam && (null cis || any cEtaExp cis') 
+     let typeEtaExpandable = isPatIndFam && (null cis || any cEtaExp cis')
      traceEtaM $ "data " ++ show n ++ " eta-expandable " ++ show typeEtaExpandable ++ " constructors " ++ show cis'
-     modifySig n (\ dataSig -> 
+     modifySig n (\ dataSig ->
                       dataSig { symbolKind = newki
                               , etaExpand = typeEtaExpandable
                               , constructors = cis'
-                              , isTuple = length cis' >= 1 && isPatIndFam 
+                              , isTuple = length cis' >= 1 && isPatIndFam
                               })
      -- compute extracted data decl
      let (tele, te) = typeToTele' (length tel) dte
@@ -377,12 +377,12 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
 -- returns True if constructor has recursive argument
 typeCheckConstructor :: Name -> Type -> Sized -> Co -> [Pol] -> Telescope -> Constructor -> TypeCheck (Bool, Kinded EConstructor)
 typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++ show n) $ do
-  sig <- gets signature 
+  sig <- gets signature
   let telE = map (mapDec (const irrelevantDec)) tel -- need kinded tel!!
     -- parameters are erased in types of constructors
   let tt = teleToType telE t
   echoTySig n tt
-  let params = length tel 
+  let params = length tel
   -- when checking constructor types,  do NOT resurrect telescope
   --   data T [A : Set] : Set { inn : A -> T A }
   -- should be rejected, since A ~= T A, and T A = T B means A ~=B for arb. A, B!
@@ -399,19 +399,19 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
 
   -- make type of a constructor a singleton type
 --  let mkName i n | null (suggestion n) = n { suggestion = "y" ++ show i }
-  let mkName i n | emptyName n = fresh $ "y" ++ show i 
+  let mkName i n | emptyName n = fresh $ "y" ++ show i
                  | otherwise   = n
       fields = map boundName argts
-      argns  = zipWith mkName [0..] $ fields 
+      argns  = zipWith mkName [0..] $ fields
       argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
---      core   = (foldl App (con (coToConK co) n) $ map Var argns) 
-      core   = Record (NamedRec (coToConK co) n False) $ zip fields $ map Var argns 
+--      core   = (foldl App (con (coToConK co) n) $ map Var argns)
+      core   = Record (NamedRec (coToConK co) n False) $ zip fields $ map Var argns
       tsing  = teleToType argtbs $ Sing core target
 
   let tte = teleToType telE tsing -- te -- DO resurrect here!
   vt <- whnf' tte
   {- old code was more accurate, since it evaluated before checking
-     for recursive occurrence. 
+     for recursive occurrence.
   recOccs <- sposConstructor d 0 pos vt -- get recursive occurrences
   -}
   let recOccs = map (\ tb -> d `elem` usedDefs (boundType tb)) argts
@@ -428,12 +428,12 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   addSig n (ConSig params isSz recOccs vt d fType)
 --  let (tele, te) = typeToTele (length tel) tte -- NOT NECESSARY
   echoKindedTySig kTerm n tte
-  -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki) 
+  -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki)
 --  echoTySigE n tte
   return (isRec, Kinded ki $ TypeSig n te)
 
 typeCheckMeasuredFuns :: Co -> [Fun] -> TypeCheck [EFun]
-typeCheckMeasuredFuns co funs0 = do 
+typeCheckMeasuredFuns co funs0 = do
     -- echo $ show funs
     kfse <- mapM typeCheckFunSig funs0 -- NO LONGER erases measure
     -- use erased type signatures with retaines measure
@@ -441,19 +441,19 @@ typeCheckMeasuredFuns co funs0 = do
 
     -- type check and solve size constraints
     -- return clauses with meta vars resolved
-    kcle <- installFuns co (zipWith Kinded (map kindOf kfse) funs) $ 
+    kcle <- installFuns co (zipWith Kinded (map kindOf kfse) funs) $
       mapM typeCheckFunClauses funs
     let kis  = map kindOf kcle
     let clse = map valueOf kcle
-{- 
+{-
     -- replace old clauses by new ones in funs
     let funs' = zipWith (\(tysig,(ar,cls)) cls' -> (tysig,(ar,cls'))) funs clss
 -}
-    -- get the list of mutually defined function names 
-    let funse = List.zipWith4 Fun 
-                  (map (fmap eraseMeasure . valueOf) kfse) 
-                  (map funExtName funs) 
-                  (map funArity funs) 
+    -- get the list of mutually defined function names
+    let funse = List.zipWith4 Fun
+                  (map (fmap eraseMeasure . valueOf) kfse)
+                  (map funExtName funs)
+                  (map funArity funs)
                   clse
     -- print reconstructed clauses
     mapM_ (\ (Fun (TypeSig n t) n' ar cls) -> do
@@ -461,13 +461,13 @@ typeCheckMeasuredFuns co funs0 = do
         echoR $ (PP.render $ prettyFun n cls))
       funse
     -- replace in signature by erased clauses
-    zipWithM (enableSig co) (zipWith intersectKind kis $ map kindOf kfse) funse 
+    zipWithM (enableSig co) (zipWith intersectKind kis $ map kindOf kfse) funse
     return $ funse
 
   where
     enableSig :: Co -> Kind -> Fun -> TypeCheck ()
     enableSig co ki (Fun (TypeSig n t) n' ar' cl') = do
-      vt <- whnf' t 
+      vt <- whnf' t
       addSig n (FunSig co vt ki ar' cl' True $ undefinedFType n)
       -- add a let binding for external use
       v <- up False (vFun n) vt
@@ -478,7 +478,7 @@ typeCheckMeasuredFuns co funs0 = do
 -- type check the body of one function in a mutual block
 -- type signature is already checked and added to local context
 typeCheckFunBody :: Co -> Kind -> Fun -> TypeCheck EFun
-typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do 
+typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do
     -- echo $ show fun
     addFunSig co $ Kinded ki0 fun
     -- type check and solve size constraints
@@ -489,7 +489,7 @@ typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do
     -- TODO: proper cleanup, proper removal of admissibility check!
     -- clse <- admCheckFunSig co names ts clse
 
-    -- print reconstructed clauses    
+    -- print reconstructed clauses
     -- echoR $ n ++ " : " ++ show t
     echoR $ (PP.render $ prettyFun n clse)
     -- replace in signature by erased clauses
@@ -499,7 +499,7 @@ typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do
 
 
 typeCheckFuns :: Co -> [Fun] -> TypeCheck [EFun]
-typeCheckFuns co funs0 = do 
+typeCheckFuns co funs0 = do
     -- echo $ show funs
     kfse <- mapM typeCheckFunSig funs0
     let kfuns = zipWith (\ (Kinded ki ts) (Fun ts0 n' ar cls) -> Kinded ki (Fun ts n' ar cls)) kfse funs0
@@ -510,17 +510,17 @@ typeCheckFuns co funs0 = do
     -- return clauses with meta vars resolved
     kce <- setCo co $ mapM typeCheckFunClauses funs
     let kis = map kindOf kce
-    let clse = map valueOf kce 
-    -- get the list of mutually defined function names 
+    let clse = map valueOf kce
+    -- get the list of mutually defined function names
     let names   = map (\ (Fun (TypeSig n t) n' ar cls) -> n) funs
     -- check new clauses for admissibility, inserting "unusuable" flags in the patterns where necessary
     -- TODO: proper cleanup, proper removal of admissibility check!
     clse <- zipWithM (\ (Fun tysig _ _ _) cls' -> admCheckFunSig co names tysig cls') funs clse
     -- replace old clauses by new ones in funs
-    let funse = List.zipWith4 Fun 
-                  (map valueOf kfse) 
+    let funse = List.zipWith4 Fun
+                  (map valueOf kfse)
                   (map funExtName funs)
-                  (map funArity funs) 
+                  (map funArity funs)
                   clse
 --    let funse = zipWith (\(tysig,(ar,cls)) cls' -> (tysig,(ar,cls'))) funs clse
     -- print reconstructed clauses
@@ -528,40 +528,40 @@ typeCheckFuns co funs0 = do
         -- echoR $ n ++ " : " ++ show t
         echoR $ (PP.render $ prettyFun n cls))
       funse
-    terminationCheck funse 
+    terminationCheck funse
     -- replace in signature by erased clauses
-    zipWithM enableSig kis funse 
+    zipWithM enableSig kis funse
     return $ funse
 
 addFunSig :: Co -> Kinded Fun -> TypeCheck ()
 addFunSig co (Kinded ki (Fun (TypeSig n t) n' ar cl)) = do
-    sig <- gets signature 
+    sig <- gets signature
     vt <- whnf' t -- TODO: PROBLEM for internal extraction (would need te here)
     addSig n (FunSig co vt ki ar cl False $ undefinedFType n) --not yet type checked / termination checked
 
 -- ADMCHECK FOR COFUN is not taking place in checking the lhs
 -- TODO: proper analysis for size patterns!
 -- admCheckFunSig mutualNames (TypeSig thisName thisType, clauses)
-admCheckFunSig :: Co -> [Name] -> TypeSig -> [Clause] -> TypeCheck [Clause] 
+admCheckFunSig :: Co -> [Name] -> TypeSig -> [Clause] -> TypeCheck [Clause]
 admCheckFunSig CoInd  mutualNames (TypeSig n t) cls = return cls
-admCheckFunSig co@Ind mutualNames (TypeSig n t) cls = traceAdm ("admCheckFunSig: checking admissibility of " ++ show n ++ " : " ++ show t) $  
+admCheckFunSig co@Ind mutualNames (TypeSig n t) cls = traceAdm ("admCheckFunSig: checking admissibility of " ++ show n ++ " : " ++ show t) $
    (
     do -- a function is not recursive if did does not mention any of the
        -- mutually defined function names
        let usedNames = rhsDefs cls
-       let notRecursive = all (\ n -> not (n `elem` usedNames)) mutualNames 
+       let notRecursive = all (\ n -> not (n `elem` usedNames)) mutualNames
        -- for non-recursive functions, we can skip the admissibility check
-       if notRecursive then 
+       if notRecursive then
           -- trace ("function " ++ n ++ " is not recursive") $
             return cls
-        else -- trace ("function " ++ n ++ " is recursive ") $ 
+        else -- trace ("function " ++ n ++ " is recursive ") $
           do vt <- whnf' t
              admFunDef co cls vt
     ) `throwTrace` ("checking type of " ++ show n ++ " for admissibility")
-        
+
 
 enableSig :: Kind -> Fun -> TypeCheck ()
-enableSig ki (Fun (TypeSig n _) n' ar' cl') = do 
+enableSig ki (Fun (TypeSig n _) n' ar' cl') = do
   (FunSig co vt ki0 ar cl _ ftyp) <- lookupSymb n
   addSig n (FunSig co vt (intersectKind ki ki0) ar cl' True ftyp)
   -- add a let binding for external use
@@ -570,8 +570,8 @@ enableSig ki (Fun (TypeSig n _) n' ar' cl') = do
 
 
 -- typeCheckFunSig (TypeSig thisName thisType, clauses)
-typeCheckFunSig :: Fun -> TypeCheck (Kinded ETypeSig) 
-typeCheckFunSig (Fun (TypeSig n t) n' ar cls) = enter ("type of " ++ show n) $ do  
+typeCheckFunSig :: Fun -> TypeCheck (Kinded ETypeSig)
+typeCheckFunSig (Fun (TypeSig n t) n' ar cls) = enter ("type of " ++ show n) $ do
   echoTySig n t
   Kinded ki0 te <- checkType t
   -- let te = eraseMeasure te0
@@ -591,10 +591,10 @@ typeCheckFunClauses (Fun (TypeSig n t) n' ar cl) = enter (show n) $
 -- checkConType sz t = Kinded ki te
 -- the returned kind is the kind of the constructor arguments
 -- check that result is a universe
---  ( params were already checked by checkDataType and are not included in t ) 
+--  ( params were already checked by checkDataType and are not included in t )
 -- called initially in the context consisting of the parameter telescope
 checkConType :: Sized -> Expr -> TypeCheck (Kinded Extr)
-checkConType NotSized t = checkConType' t 
+checkConType NotSized t = checkConType' t
 checkConType Sized t =
     case t of
       Quant Pi tb@(TBind _ (Domain t1 _ _)) t2 | isSize t1 -> do
@@ -607,11 +607,11 @@ checkConType' :: Expr -> TypeCheck (Kinded Extr)
 checkConType' t = do
   (s, kte) <- checkingCon True $ inferType t
   case s of
-    Set{} -> return kte 
+    Set{} -> return kte
     CoSet{} -> return kte
     _ -> fail $ "checkConType: type " ++ show t ++ " of constructor not a universe"
 
--- check that the data type and the parameter arguments (written down like declared in telescope) 
+-- check that the data type and the parameter arguments (written down like declared in telescope)
 -- precondition: target tg type checks in current context
 checkTarget :: Name -> TVal -> Telescope -> Type -> TypeCheck ()
 checkTarget d dv tel tg = do
@@ -619,26 +619,26 @@ checkTarget d dv tel tg = do
   case tv of
     VApp (VDef (DefId DatK n)) vs | n == d -> do
       telvs <- mapM (\ tb -> whnf' (Var (boundName tb))) tel
-      enter ("checking datatype parameters in constructor target") $ 
+      enter ("checking datatype parameters in constructor target") $
         leqVals' N mixed (One dv) (take (length tel) vs) telvs
       return ()
     _ -> fail $ "constructor should produce something in data type " ++ show d
 
 {- RETIRED (syntactic check)
 checkTarget :: Name -> Telescope -> Type -> TypeCheck ()
-checkTarget d tel tg =  
+checkTarget d tel tg =
     case spineView tg of
       (Def (DefId Dat n), args) | n == d -> checkParams tel (take (length tel) args)
       _ -> throwErrorMsg $ "target mismatch"  ++ show tg
 
     where checkParams :: Telescope -> [Expr] -> TypeCheck ()
           checkParams [] [] = return ()
-          checkParams (tb : tl) ((Var n') : el) | boundName tb == n' 
+          checkParams (tb : tl) ((Var n') : el) | boundName tb == n'
             = checkParams tl el
-          checkParams tl al = throwErrorMsg $ "target param mismatch " ++ 
+          checkParams tl al = throwErrorMsg $ "target param mismatch " ++
             d ++ " " ++ show tel ++ " != " ++ show tg ++ "\ncheckParams " ++ show tl ++ " " ++ show al ++ " failed"
 -}
-                      
+
 -- check that params are types
 -- check that arguments are stypes
 -- check that target is set
@@ -646,16 +646,16 @@ checkDataType :: Int -> Expr -> TypeCheck (Kinded (Sort Expr, Extr))
 checkDataType p e = do
   traceCheckM ("checkDataType " ++ show e ++ " p=" ++ show p)
   case e of
-     Quant Pi tb@(TBind x (Domain t1 _ dec)) t2 -> do 
+     Quant Pi tb@(TBind x (Domain t1 _ dec)) t2 -> do
        k <- getLen
-       traceCheckM ("length of context = " ++ show k)  
-       -- t1e <- checkingDom $ if k <= p then checkType t1 else checkSmallType t1    
+       traceCheckM ("length of context = " ++ show k)
+       -- t1e <- checkingDom $ if k <= p then checkType t1 else checkSmallType t1
        (s1, Kinded ki0 t1e) <- checkingDom $ inferType t1
        let ki1 = predKind ki0
        addBind (TBind x (Domain t1 ki1 defaultDec)) $ do
          Kinded ki2 (s, t2e) <- checkDataType p t2
          -- when k <= p $ ltSort s1 s -- check size of indices (disabled)
-         return $ Kinded ki2 (s, Quant Pi (TBind x (Domain t1e ki1 dec)) t2e)  
+         return $ Kinded ki2 (s, Quant Pi (TBind x (Domain t1e ki1 dec)) t2e)
      Sort s@(Set e1)   -> do
        (_, e1e) <- checkLevel e1
        return $ Kinded (kUniv e1e) (s, Sort $ Set e1e)
@@ -663,7 +663,7 @@ checkDataType p e = do
        e1e <- checkSize e1
        return $ Kinded (kUniv Zero) (s, Sort $ CoSet e1e)
      _ -> throwErrorMsg "doesn't target Set or CoSet"
-                
+
 {-
 checkSize :: Expr -> TypeCheck Extr
 checkSize Infty = return Infty
@@ -671,7 +671,7 @@ checkSize e = valueOf <$> checkExpr e vSize
 -}
 
 checkSize :: Expr -> TypeCheck Extr
-checkSize e = 
+checkSize e =
   case e of
     Meta i  -> do
       ren <- asks renaming
@@ -680,7 +680,7 @@ checkSize e =
     e       -> inferSize e
 
 inferSize :: Expr -> TypeCheck Extr
-inferSize e = 
+inferSize e =
   case e of
     Zero  -> return e
     Infty -> return e
@@ -699,7 +699,7 @@ checkBelow e ltle v = do
   v' <- whnf' e
   leSize ltle Pos v' v
   return e'
-  
+
 
 -- checkLevel e = (value of e, ee)
 -- if e : Size and value of e != Infty
@@ -733,7 +733,7 @@ We like to infer kinds of expressions
 
   Tm < Set < Set1 < Set2 < ...
 
-For  t : A  if kind(A) = Tm then t is a term, 
+For  t : A  if kind(A) = Tm then t is a term,
                        = Set then t is a type,
                        = Set1 then t is a type1 (e.g, a universe) ...
 
@@ -777,7 +777,7 @@ A constructor is always a term.
 
 -}
 
-    
+
 -- type checking
 
 -- checkExpr e tv = (e', ki)
@@ -795,13 +795,13 @@ checkExpr e v = do
 
    ce <- ask
    traceCheck ("checkExpr: " ++ show (renaming ce) ++ ";" ++ show (context ce) ++ " |- " ++ show e ++ " : " ++ show v ++ " in env" ++ show (environ ce)) $ do
-  
+
     (case (e, v) of
 
-{- In the presence of full bracket types, 
+{- In the presence of full bracket types,
    we could implement the following "resurrecting version of let"
 
-   Gamma |- s : [A]   
+   Gamma |- s : [A]
    Gamma, x:A |- t : C   Gamma, x:A, y:A |- t = t[y/x] : C
    -------------------------------------------------------
    Gamma |- let x:[A] = s in t : C
@@ -812,9 +812,9 @@ checkExpr e v = do
 
 {-
       (LLet (TBind x (Domain Nothing _ dec)) e1 e2, v) -> checkUntypedLet x dec e1 e2 v
-      (LLet (TBind x (Domain (Just t1) _ dec)) e1 e2, v) -> checkTypedLet x t1 dec e1 e2 v 
+      (LLet (TBind x (Domain (Just t1) _ dec)) e1 e2, v) -> checkTypedLet x t1 dec e1 e2 v
 -}
-      (LLet (TBind x (Domain mt _ dec)) tel e1 e2, v) -> checkLet dec x tel mt e1 e2 v 
+      (LLet (TBind x (Domain mt _ dec)) tel e1 e2, v) -> checkLet dec x tel mt e1 e2 v
 
       (Case (Var x) Nothing [Clause _ [SuccP (VarP y)] (Just rhs)], v) -> do
           (tv, _) <- resurrect $ inferExpr (Var x)
@@ -848,9 +848,9 @@ checkExpr e v = do
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkExpr e bv
 
-      (e,v) | inferable e -> do 
+      (e,v) | inferable e -> do
           (v2, Kinded ki1 ee) <- inferExpr e
-          checkSubtype ee v2 v 
+          checkSubtype ee v2 v
           return $ Kinded ki1 ee
 
       _ -> checkForced e v
@@ -859,7 +859,7 @@ checkExpr e v = do
 
 -- | checkLet @let .x tel : t = e1 in e2@
 checkLet :: Dec -> Name -> Telescope -> Maybe Type -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
-checkLet dec x tel mt1 e1 e2 v = do 
+checkLet dec x tel mt1 e1 e2 v = do
   (v_t1, t1e, Kinded ki1 e1e) <- checkLetDef dec tel mt1 e1
 --  (v_t1, t1e, Kinded ki1 e1e) <- checkOrInfer dec e1 mt1
   checkLetBody x t1e v_t1 ki1 dec e1e e2 v
@@ -875,7 +875,7 @@ checkLetDef dec tel mt e = do
 
 {-
 checkTypedLet :: Name -> Type -> Dec -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
-checkTypedLet x t1 dec e1 e2 v = do 
+checkTypedLet x t1 dec e1 e2 v = do
   Kinded kit t1e <- checkType t1
   v_t1 <- whnf' t1
   Kinded ki0 e1e <- applyDec dec $ checkExpr e1 v_t1
@@ -886,7 +886,7 @@ checkTypedLet x t1 dec e1 e2 v = do
   new x (Domain v_t1 ki1 dec) $ \ vx -> do
     addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
       Kinded ki2 e2e <- checkExpr e2 v'
-      return $ Kinded ki2 $ LLet (TBind x (Domain t1e ki1 dec)) e1e e2e  -- if e2e==Irr then Irr else LLet n t1e e1e e2e  
+      return $ Kinded ki2 $ LLet (TBind x (Domain t1e ki1 dec)) e1e e2e  -- if e2e==Irr then Irr else LLet n t1e e1e e2e
 -}
 
 checkUntypedLet :: Name -> Dec -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
@@ -894,7 +894,7 @@ checkUntypedLet x dec e1 e2 v = do
   (v_t1, Kinded ki1 e1e) <- applyDec dec $ inferExpr e1
   v_e1 <- whnf' e1
   t1e <- toExpr v_t1
-  checkLetBody x t1e v_t1 ki1 dec e1e e2 v 
+  checkLetBody x t1e v_t1 ki1 dec e1e e2 v
 -}
 
 checkLetBody :: Name -> EType -> TVal -> Kind -> Dec -> Extr -> Expr -> TVal -> TypeCheck (Kinded Extr)
@@ -903,11 +903,11 @@ checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
   new x (Domain v_t1 ki1 dec) $ \ vx -> do
     addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
       Kinded ki2 e2e <- checkExpr e2 v'
-      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) [] e1e e2e 
+      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) [] e1e e2e
 {-
 -- Dependent let: not checkable in rho;Delta style
 --            v_e1 <- whnf rho e1
---            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v  
+--            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v
 -}
 
 -- check expression after forcing the type
@@ -943,20 +943,20 @@ checkForced e v = do
              let checkField :: (Name, Expr) -> TypeCheck (Kinded [(Name,Expr)]) -> TypeCheck (Kinded [(Name,Expr)])
                  checkField (p,e) cont =
                   case lookup p ptv of
-                    Nothing -> failDoc (prettyTCM p <+> text "is not a field of record" <+> prettyTCM t) 
+                    Nothing -> failDoc (prettyTCM p <+> text "is not a field of record" <+> prettyTCM t)
                     Just tv -> do
                       tv <- piApp tv VIrr -- remove record argument (cannot be dependent!)
                       Kinded k e <- checkExpr e tv
-                      Kinded k' es <- cont 
+                      Kinded k' es <- cont
                       return $ Kinded (unionKind k k') ((p,e) : es)
-             Kinded k rs <- foldr checkField (return $ Kinded NoKind []) rs 
+             Kinded k rs <- foldr checkField (return $ Kinded NoKind []) rs
              return $ Kinded k $ Record ri rs
 
-           
+
 {- OLD:
 Following Awodey/Bauer 2001, the following rule is valid
 
-   Gamma, x:A |- t : B    Gamma, x:A, y:A |- t = t[y/x] : B 
+   Gamma, x:A |- t : B    Gamma, x:A, y:A |- t = t[y/x] : B
    --------------------------------------------------------
    Gamma |- \xt : Pi x:[A]. B
 
@@ -964,26 +964,26 @@ Following Awodey/Bauer 2001, the following rule is valid
           rho <- getEnv  -- get the environment corresponding to Gamma
           new y (Domain va (resurrectDec dec)) $ \ vy -> do
             v_t1 <- whnf (update env x vy) t1
-            -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1 
-            e1e <- checkExpr e1 v_t1  
-            when (erased dec) $ do  -- now check invariance of the e1 
+            -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1
+            e1e <- checkExpr e1 v_t1
+            when (erased dec) $ do  -- now check invariance of the e1
               new y (Domain va (resurrectDec dec)) $ \ vy' -> do
-                ve  <- whnf (update rho y vy)  e1e 
+                ve  <- whnf (update rho y vy)  e1e
                 ve' <- whnf (update rho y vy') e1e
-                eqVal v_t1 ve ve'  -- BUT: ve' does not have type v_t1 !? 
+                eqVal v_t1 ve ve'  -- BUT: ve' does not have type v_t1 !?
             -- prune the lambda if body has been pruned
             return $ if e1e==Irr then Irr else Lam y e1e
- -}   
- 
+ -}
+
 -- NOW just my rule (LICS 2010 draft) a la Barras/Bernardo
 
       (Lam _ y e1, VQuant Pi x dom env t1) -> do
           -- rho <- getEnv  -- get the environment corresponding to Gamma
           new y dom $ \ vy -> do
             v_t1 <- whnf (update env x vy) t1
-            -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1 
+            -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1
             Kinded ki1 e1e <- checkExpr e1 v_t1
-            -- the kind of a lambda is the kind of its body  
+            -- the kind of a lambda is the kind of its body
             return $ Kinded ki1 $ Lam (decor dom) y e1e
 
       -- lone projection: eta-expand!
@@ -995,25 +995,25 @@ Following Awodey/Bauer 2001, the following rule is valid
       (e, v) | isVSize v -> Kinded kSize <$> checkSize e
 -}
 {-  MOVED to checkSize
- 
+
       -- metavariables must have type size
-      (Meta i, _) | isVSize v -> do 
+      (Meta i, _) | isVSize v -> do
         addMeta ren i
-        return $ Kinded kSize $ Meta i 
+        return $ Kinded kSize $ Meta i
 
      (Infty, v) | isVSize v -> return $ Kinded kSize $ Infty
       (Zero, v) | isVSize v -> return $ Kinded kSize $ Zero
- 
+
       (Plus es, v) | isVSize v -> do
               ese <- mapM checkSize es
               return $ Kinded kSize $ Plus ese
- 
+
       (Max es, v) | isVSize v -> do
               ese <- mapM checkSize es
               return $ Kinded kSize $ Max ese
 
       (Succ e2, v) | isVSize v -> do
-              e2e <- checkSize e2 
+              e2e <- checkSize e2
               return $ Kinded kSize $ Succ e2e
 -}
 
@@ -1034,7 +1034,7 @@ Following Awodey/Bauer 2001, the following rule is valid
                  e          = foldr (Lam defaultDec) body xs2
              checkForced e v
 
-          -- check constructor term 
+          -- check constructor term
           (h@(Def (DefId (ConK co) c)), es) -> checkConTerm co c es v
 {-
           (h@(Def (DefId (ConK co) c)), es) -> do
@@ -1043,14 +1043,14 @@ Following Awodey/Bauer 2001, the following rule is valid
              let e = foldl App h $ map (snd . valueOf) knes
              checkSubtype e dv v
              e <- etaExpandPis e dv -- a bit similiar to checkSubtype, which computes a singleton
-             return $ Kinded kTerm $ e 
+             return $ Kinded kTerm $ e
 -}
           -- else infer
-          _ -> do 
-            (v2,kee) <- inferExpr e 
-            checkSubtype (valueOf kee) v2 v 
+          _ -> do
+            (v2,kee) <- inferExpr e
+            checkSubtype (valueOf kee) v2 v
             return kee
- 
+
 -- | Check (partially applied) constructor term, eta-expand it and turn it
 --   into a named record.
 checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
@@ -1062,14 +1062,14 @@ checkConTerm co c es v = do
         vb <- whnf (update env x vx) b
         Kinded ki ee <- checkConTerm co c (es ++ [Var y]) vb
         return $ Kinded ki $ Lam (decor dom) y ee
-    _ -> do   
+    _ -> do
       tv <- conType c v
       (knes, dv) <- checkSpine es tv
-      let ee = Record (NamedRec co c False) $ map valueOf knes 
+      let ee = Record (NamedRec co c False) $ map valueOf knes
       checkSubtype ee dv v
       return $ Kinded kTerm ee
 
-{- 
+{-
 -- | Check (partially applied) constructor term, eta-expand it and turn it
 --   into a named record.
 checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
@@ -1080,7 +1080,7 @@ checkConTerm co c es v = do
   checkSubtype e0 dv v
   (vTel, _) <- telView dv
   let xs   = map (boundName . snd) vTel
-      decs = map (decor . boundDom . snd) vTel 
+      decs = map (decor . boundDom . snd) vTel
       ys   = map freshen xs
       rs   = map valueOf knes ++ (zip xs $ map Var ys)
       e1   = Record (NamedRec co c False) rs
@@ -1126,7 +1126,7 @@ checkApp e2 v = do
                  VSing v2 av'' -> do subtype av' av
                                      return (ki, v2, e2e)
                  _ -> do checkSubtype e2e av' av
-                         v2 <- whnf' e2e 
+                         v2 <- whnf' e2e
                          return (ki, v2, e2e)
             else do
               Kinded ki e2e <- applyDec dec $ checkExpr e2 av
@@ -1135,7 +1135,7 @@ checkApp e2 v = do
        bv <- whnf (update env x v2) b
        -- the kind of the application is the kind of its head
        return (Kinded ki $ (x,) $ maybeErase dec e2e, bv)
-       -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
+       -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e])
     _ -> throwErrorMsg $ "checking application to " ++ show e2 ++ ": expected function type, found " ++ show v
 
 
@@ -1151,32 +1151,33 @@ checkSubtype e v2 v = do
 
 -- ptsRule s1 s2 = s  if (s1,s2,s) is a valid rule
 -- precondition: s1,s2 are proper sorts, i.e., not Size or Tm
-ptsRule :: Sort Val -> Sort Val -> TypeCheck (Sort Val)
-ptsRule s1 s2 = do
+ptsRule :: Bool -> Sort Val -> Sort Val -> TypeCheck (Sort Val)
+ptsRule er s1 s2 = do
   cxt <- ask
   let parametric = checkingConType cxt  -- are we dealing with a parametric pi?
   let err = "ptsRule " ++ show (s1,s2) ++ " " ++ (if parametric then "(in type of constructor)" else "") ++ ": "
   case (s1,s2) of
     (Set VInfty,_) -> fail $ err ++ "domain too big"
-    (Set v1, Set v2) -> 
-      if parametric then do 
-         leqSize Pos v1 v2 -- when we are checking a constructor, to reject 
-         {- data Bad (A : Set) : Set { bad : (A : Set) -> Bad A } -}
+    (Set v1, Set v2) ->
+      if parametric then do
+         unless er $ leqSize Pos v1 v2 -- when we are checking a constructor, to reject
+         {- data Bad : Set { bad : Set -> Bad } -}
          return s2
-       else return $ Set $ maxSize [v1,v2] 
-    (CoSet v1, Set VZero) -> 
-      if parametric then return $ CoSet v1
-       else if v1==VInfty then return $ Set VZero
-             else fail $ err ++ "domain cannot be sized"
-    (CoSet v1, CoSet v2) -> if parametric then do 
-                              let v2' = maybe v2 id $ predSize v2
-                              case minSize v1 v2 of
-                                Just v -> return $ CoSet v
-                                Nothing -> fail $ err ++ "min" ++ show (v1,v2) ++ " does not exist"
-                            else if v1==VInfty then return $ CoSet $ succSize v2 
-                                  else fail $ err ++ "domain cannot be sized"
+       else return $ Set $ maxSize [v1,v2]
+    (CoSet v1, Set VZero)
+       | parametric   -> return $ CoSet v1
+       | v1 == VInfty -> return $ Set VZero
+       | otherwise    -> fail $ err ++ "domain cannot be sized"
+    (CoSet v1, CoSet v2)
+       | parametric   -> do
+           let v2' = maybe v2 id $ predSize v2
+           case minSize v1 v2 of
+             Just v  -> return $ CoSet v
+             Nothing -> fail $ err ++ "min" ++ show (v1,v2) ++ " does not exist"
+       | v1 == VInfty -> return $ CoSet $ succSize v2
+       | otherwise    -> fail $ err ++ "domain cannot be sized"
     _ -> return s2
-    
+
 checkOrInfer :: Dec -> Expr -> Maybe Type -> TypeCheck (TVal, EType, Kinded Extr)
 checkOrInfer dec e Nothing = do
   (tv, ke) <- applyDec dec $ inferExpr e
@@ -1194,14 +1195,14 @@ inferType :: Expr -> TypeCheck (Sort Val, Kinded Extr)
 inferType t = do
   (sv, te) <- inferExpr t
   case sv of
-    VSort s | not (s `elem` map SortC [Tm,Size]) -> return (s,te) 
+    VSort s | not (s `elem` map SortC [Tm,Size]) -> return (s,te)
     _ -> fail $ "inferExpr: expected " ++ show t ++ " to be a type!"
-  
+
 -- inferExpr e = (tv, s, ee)
 -- input : expr e | inferable e
 -- output: type tv, kind s, and erased form ee of e
 -- the kind tells whether e is a term, a size, a set, ...
-inferExpr :: Expr -> TypeCheck (TVal, Kinded Extr) 
+inferExpr :: Expr -> TypeCheck (TVal, Kinded Extr)
 inferExpr e = do
   (tv, ee) <- inferExpr' e
   case tv of
@@ -1226,13 +1227,13 @@ inferProj e1 fx p = checkingCon False $ do
                 mfs <- getFieldsAtType d vl
                 case mfs of
                   Nothing -> fail1
-                  Just ptvs -> 
+                  Just ptvs ->
                     case lookup p ptvs of
-                      Nothing -> fail2 
+                      Nothing -> fail2
                       Just tv -> do
                         tv <- piApp tv VIrr -- cut of record arg
                         return (tv, Kinded ki1 (App e1e (Proj p)))
-              _ -> fail1 
+              _ -> fail1
 -}
 
 
@@ -1240,45 +1241,45 @@ inferProj e1 fx p = checkingCon False $ do
 -- the returned kind for constructor type is computed as the union
 -- of the kinds of the non-erased arguments
 -- otherwise it is the kind of the target
-inferExpr' :: Expr -> TypeCheck (TVal, Kinded Extr) 
+inferExpr' :: Expr -> TypeCheck (TVal, Kinded Extr)
 inferExpr' e = enter ("inferExpr' " ++ show e) $
-  let returnSing (Kinded ki ee) tv = do 
+  let returnSing (Kinded ki ee) tv = do
         tv' <- sing' ee tv
         return (tv', Kinded ki ee)
-  in 
+  in
     (case e of
 
-      Var x -> do 
-        -- traceCheckM ("infer variable " ++ x) $ 
+      Var x -> do
+        -- traceCheckM ("infer variable " ++ x) $
         item <- lookupName1 x
         enterDoc (text "inferExpr: variable" <+> prettyTCM x <+> colon <+> prettyTCM (typ $ domain item) <+> text "may not occur") $ do
           let dec = decor $ domain item
           let udec = upperDec item
           let pol = polarity dec
           let upol = polarity udec
-          when (erased dec && not (erased udec)) $ 
+          when (erased dec && not (erased udec)) $
             recoverFail ", because it is marked as erased"
-          enter ", because of polarity" $ 
+          enter ", because of polarity" $
             leqPolM pol upol
            -- traceCheckM ("infer variable " ++ x ++ " : " ++ show  (typ item))
         return $ (typ $ domain item, Kinded (kind $ domain item) $ Var x)
 {-
-        let err = "inferExpr: variable " ++ x ++ " : " ++ show (typ item) ++ 
+        let err = "inferExpr: variable " ++ x ++ " : " ++ show (typ item) ++
                   " may not occur"
         let dec = decor item
         let pol = polarity dec
-        if erased dec then 
+        if erased dec then
           fail $ err ++ ", because it is marked as erased"
          else if not (leqPol pol SPos) then
           fail $ err ++ ", because it has polarity " ++ show pol
-         else do 
+         else do
            -- traceCheckM ("infer variable " ++ x ++ " : " ++ show  (typ item))
            return $ (typ item, Var x) -- TODO: (typ item, kind item, Var x)
 -}
 
       -- for constants, the kind coincides with the type!
       Sort (CoSet e) -> do
-        ee <- checkSize e 
+        ee <- checkSize e
         return (VSort (Set (VSucc VZero)), Kinded (kUniv Zero) $ Sort $ CoSet ee)
       Sort (Set e) ->  do
         (v, ee) <- checkLevel e
@@ -1298,7 +1299,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         when (checkCon && polarity dec /= Mixed) $
           fail $ "constructor arguments must be declared mixed-variant"
 -}
-        (s1, Kinded ki0 t1e) <- (if pisig==Pi then checkingDom else id) $ 
+        (s1, Kinded ki0 t1e) <- (if pisig==Pi then checkingDom else id) $
           checkingCon False $ inferType t1 -- switch off parametric Pi
         -- the kind of the bound variable is the precedessor of the kind of its type
         let ki1 = predKind ki0
@@ -1307,16 +1308,17 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         -- addBind (TBind n (Domain t1e ki1 $ coDomainDec dec)) $ do -- ignore erasure flag AND polarity in Pi! (except for irrelevant, only becomes parametric)
           (s2, Kinded ki2 t2e) <- inferType t2
           ce <- ask
-          s <- if impredicative ce && erased dec && s2 == Set VZero then return s2 else ptsRule s1 s2 -- Impredicativity!
+          let er = erased dec
+          s <- if impredicative ce && er && s2 == Set VZero then return s2 else ptsRule er s1 s2 -- Impredicativity!
           -- improve erasure annotation: irrelevant arguments can be erased!
           let (ki',dec') = if checkCon then
                  -- in case of constructor types the kind is the union
                  -- of the kinds of the constructor arguments
                  if ki0 == kTSize then (ki2, irrelevantDec)
                   else if erased dec then (ki2, dec) -- do not count erased args in
-                 else (unionKind ki0 ki2, dec)         
-                else (ki2, if argKind ki0 `irrelevantFor` (predKind ki2) 
-                            then irrelevantDec 
+                 else (unionKind ki0 ki2, dec)
+                else (ki2, if argKind ki0 `irrelevantFor` (predKind ki2)
+                            then irrelevantDec
                             else dec)
           -- the kind of the Pi-type is the kind of its target (codomain)
           return (VSort s, Kinded ki' $ Quant pisig (TBind n (Domain t1e ki1 dec')) t2e)
@@ -1337,8 +1339,8 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
       Sing e1 t -> do
         (s, Kinded ki te) <- inferType t
         tv <- whnf' te
-        Kinded ki1 e1e <- checkExpr e1 tv  
-        return (VSort $ s, Kinded (intersectKind ki $ succKind ki1) -- not sure how useful the intersection is, maybe just ki is good enough 
+        Kinded ki1 e1e <- checkExpr e1 tv
+        return (VSort $ s, Kinded (intersectKind ki $ succKind ki1) -- not sure how useful the intersection is, maybe just ki is good enough
                              $ Sing e1e te)
 
 {- Not safe to infer pairs because of irrelevance!
@@ -1352,7 +1354,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
 
       App (Proj Pre p) e  -> inferProj e Pre p
       App e (Proj Post p) -> inferProj e Post p
-              
+
       App e1 e2 -> checkingCon False $ do
         (v, Kinded ki1 e1e) <- inferExpr e1
         (Kinded ki2 (_, e2e), bv) <- checkApp e2 v
@@ -1362,7 +1364,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
             v <- force v -- if v is a corecursively defined type in Set, unfold!
             case v of
                VQuant Pi x (Domain av _ dec) env b -> do
-                  (v2,e2e) <- 
+                  (v2,e2e) <-
                     if inferable e2 then do
                   -- if e2 has a singleton type, we should not take v2 = whnf e2
                   -- but use the single value of e2
@@ -1373,7 +1375,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                               VSing v2 av'' -> do subtype av' av
                                                   return (v2,e2e)
                               _ -> do checkSubtype e2e av' av
-                                      v2 <- whnf' e2e 
+                                      v2 <- whnf' e2e
                                       return (v2, e2e)
                          else do
                            Kinded _ e2e <- applyDec dec $ checkExpr e2 av
@@ -1382,13 +1384,13 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                   bv <- whnf (update env x v2) b
                   -- the kind of the application is the kind of its head
                   return (bv, Kinded ki1 $ App e1e (if erased dec then erasedExpr e2e else e2e))
--- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e]) 
+-- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e])
                _ -> throwErrorMsg $ "inferExpr : expected Pi with expression : " ++ show e1 ++ "," ++ show v
 -}
- 
+
 --      App e1 (e2:el) -> inferExpr $ (e1 `App` [e2]) `App` el
-      -- 2012-01-22 no longer infer constructors  
-      (Def id@(DefId {idKind, name})) | not (conKind idKind) -> do -- traceCheckM ("infer defined head " ++ show n) 
+      -- 2012-01-22 no longer infer constructors
+      (Def id@(DefId {idKind, name})) | not (conKind idKind) -> do -- traceCheckM ("infer defined head " ++ show n)
          mitem <- errorToMaybe $ lookupName1 name
          case mitem of -- first check if it is also a var name
            Just item -> do -- we are inside a mutual declaration (not erased!)
@@ -1396,14 +1398,14 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
              let upol = (polarity $ upperDec item)
              mId <- asks checkingMutualName
              case mId of
-               Just srcId -> 
+               Just srcId ->
                  -- we are checking constructors or function bodies
                  addPosEdge srcId id upol
                Nothing ->
                  -- we are checking signatures
                  enter ("recursive occurrence of " ++ show name ++ " not strictly positive") $
                    leqPolM pol upol
-             return (typ $ domain item, Kinded (kind $ domain item) $ e) 
+             return (typ $ domain item, Kinded (kind $ domain item) $ e)
            Nothing -> -- otherwise, it is not the data type name just being defined
                  do sige <- lookupSymb name
                     case sige of
@@ -1412,17 +1414,17 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                       (FunSig  { symbTyp = tv }) -> return (tv, Kinded (symbolKind sige) e)
                       -- constructors are always terms
                       (ConSig  { symbTyp = tv }) -> returnSing (Kinded kTerm e) tv  -- constructors have sing.type!
-                      (LetSig  { symbTyp = tv }) -> return (tv, Kinded (symbolKind sige) e) -- return $ vSing v tv 
+                      (LetSig  { symbTyp = tv }) -> return (tv, Kinded (symbolKind sige) e) -- return $ vSing v tv
 {-
       (Con _ n) -> do sig <- gets signature
                       case (lookupSig n sig) of
-      (Let n) -> do sig <- gets signature 
+      (Let n) -> do sig <- gets signature
                     case (lookupSig n sig) of
 -}
       _ -> throwErrorMsg $ "cannot infer type of " ++ show e
-     ) >>= \ tv -> ask >>= \ ce -> 
+     ) >>= \ tv -> ask >>= \ ce ->
          traceCheck ("inferExpr: " ++ show (renaming ce) ++ ";" ++ show (context ce) ++ " |- " ++ show e ++ " :=> " ++ show tv ++ " in env" ++ show (environ ce)) $
---         traceCheck ("inferExpr: " ++ show e ++ " :=> " ++ show tv) $ 
+--         traceCheck ("inferExpr: " ++ show e ++ " :=> " ++ show tv) $
            return tv
 
 
@@ -1446,12 +1448,12 @@ checkType' e = case e of
 --        new' x (Domain (Dec False) t1v) $ do
         addBind x (Dec False) t1e $ do
           t2e <- checkType' t2
-          return $ Pi dec x t1e t2e  -- Pi (improveDec dec t1v) x t1e t2e  
+          return $ Pi dec x t1e t2e  -- Pi (improveDec dec t1v) x t1e t2e
     _ -> checkExpr' e $ VSort Set
 -}
 
 checkType :: Expr -> TypeCheck (Kinded Extr)
-checkType t = 
+checkType t =
   enter ("not a type: " ++ show t) $
     resurrect $ do
       (s, te) <- inferType t
@@ -1459,7 +1461,7 @@ checkType t =
       return te
 
 checkSmallType :: Expr -> TypeCheck (Kinded Extr)
-checkSmallType t = 
+checkSmallType t =
   enter ("not a set: " ++ show t) $
     resurrect $ do
       (s, te) <- inferType t
@@ -1479,11 +1481,11 @@ checkTele :: Telescope -> TypeCheck a -> TypeCheck (ETelescope, a)
 checkTele []                                    k = ([],) <$> k
 checkTele (tb@(TBind x (Domain t _ dec)) : tel) k = do
   Kinded ki te <- checkType t
-  let tb = TBind x (Domain te (predKind ki) dec) 
+  let tb = TBind x (Domain te (predKind ki) dec)
   (tel, a) <- addBind tb $ -- (TBind x (Domain t ki dec)) $
     checkTele tel k
   return (tb : tel, a)
-{- 
+{-
 -- check telescope and add bindings to contexts
 checkTele :: Telescope -> (ETelescope -> TypeCheck a) -> TypeCheck a
 checkTele = checkTele' []
@@ -1502,7 +1504,7 @@ checkCases = checkCases' 1
 
 checkCases' :: Int -> Val -> TVal -> [Clause] -> TypeCheck (Kinded [EClause])
 checkCases' i v tv [] = return $ Kinded NoKind []
-checkCases' i v tv (c : cl) = do 
+checkCases' i v tv (c : cl) = do
     Kinded k1 ce  <- checkCase i v tv c
     Kinded k2 cle <- checkCases' (i + 1) v tv cl
     return $ Kinded (unionKind k1 k2) $ ce : cle
@@ -1511,13 +1513,13 @@ checkCase :: Int -> Val -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkCase i v tv cl@(Clause _ [p] mrhs) =
   -- traceCheck ("checking case " ++ show i) $
     (
-    do   
+    do
       (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] [] tv p
       local (\ _ -> cxt) $ do
         mapM (checkGoal ins) flex
         tel <- getContextTele -- TODO!
         case (absp,mrhs) of
-           (True,Nothing) -> return $ Kinded NoKind (Clause tel [pe] Nothing) 
+           (True,Nothing) -> return $ Kinded NoKind (Clause tel [pe] Nothing)
            (False,Nothing) -> fail ("missing right hand side in case " ++ showCase cl)
            (True,Just rhs) -> fail ("absurd pattern requires no right hand side in case " ++ showCase cl)
            (False,Just rhs) -> do
@@ -1536,14 +1538,14 @@ checkFun :: Type -> [Clause] -> TypeCheck (Kinded [EClause])
 checkFun t cl = do
   tv <- whnf' t
   checkClauses tv cl
- 
+
 -- the integer argument is the number of the clause, used just for user feedback
 checkClauses :: TVal -> [Clause] -> TypeCheck (Kinded [EClause])
 checkClauses = checkClauses' 1
 
 checkClauses' :: Int -> TVal -> [Clause] -> TypeCheck (Kinded [EClause])
 checkClauses' i tv [] = return $ Kinded NoKind ([])
-checkClauses' i tv (c:cl) = do 
+checkClauses' i tv (c:cl) = do
     Kinded ki1 ce  <- checkClause i tv c
     Kinded ki2 cle <- checkClauses' (i + 1) tv cl
     return $ Kinded (unionKind ki1 ki2) $ (ce : cle)
@@ -1562,7 +1564,7 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
       -- TODO: insert meta var solution in dot patterns
       tel <- getContextTele -- WRONG TELE, has VGens for DotPs
       case (absp,mrhs) of
-         (True,Nothing) -> return $ Kinded NoKind (Clause tel ple Nothing) 
+         (True,Nothing) -> return $ Kinded NoKind (Clause tel ple Nothing)
          (False,Nothing) -> fail ("missing right hand side in clause " ++ show cl)
          (True,Just rhs) -> fail ("absurd pattern requires no right hand side in clause " ++ show cl)
          (False,Just rhs) -> do
@@ -1571,7 +1573,7 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
             [rhse] <- solveAndModify [rhse] env
             return $ Kinded ki (Clause tel ple (Just rhse))
 
- 
+
 -- * Pattern checking ------------------------------------------------
 
 type Substitution = [(Int,TVal)]
@@ -1580,12 +1582,12 @@ type DotFlex = (Int,(Expr,Domain))
 
 -- left over goals
 data Goal = DotFlex Int Expr Domain
-          | MaxMatches Int TVal 
+          | MaxMatches Int TVal
 
 -- checkPatterns is initially called with an empty local context
 -- in the type checking monad
 checkPatterns :: Dec -> [Goal] -> Substitution -> TVal -> [Pattern] -> TypeCheck ([Goal],Substitution,TCContext,TVal,[EPattern],[Val],Bool)
-checkPatterns dec0 flex ins v pl = 
+checkPatterns dec0 flex ins v pl =
   case v of
     VMeasured mu vb -> setMeasure mu $ checkPatterns dec0 flex ins vb pl
     VGuard beta vb -> addBoundHyp beta $ checkPatterns dec0 flex ins vb pl
@@ -1595,15 +1597,15 @@ checkPatterns dec0 flex ins v pl =
     _ -> case pl of
       [] -> do cxt <- ask
                return (flex,ins,cxt,v,[],[],False)
-      (p:pl') -> do (flex',ins',cxt',v',pe,pv,absp) <- checkPattern dec0 flex ins v p 
+      (p:pl') -> do (flex',ins',cxt',v',pe,pv,absp) <- checkPattern dec0 flex ins v p
                     local (\ _ -> cxt') $ do
-                      (flex'',ins'',cxt'',v'',ple,plv,absps) <- checkPatterns dec0 flex' ins' v' pl' 
+                      (flex'',ins'',cxt'',v'',ple,plv,absps) <- checkPatterns dec0 flex' ins' v' pl'
                       return (flex'',ins'',cxt'',v'', pe:ple, pv:plv, absp || absps) -- if pe==IrrP then ple else pe:ple)
-       
-{- 
+
+{-
 checkPattern dec0 flex subst tv p = (flex', subst', cxt', tv', pe, pv, absp)
 
-Input : 
+Input :
   dec0  : context in which pattern occurs (irrelevant, parametric, recursive)
           are we checking an erased argument? (constr. pat. needs to be forced!)
   flex  : list of pairs (flexible variable, its dot pattern + supposed type)
@@ -1617,14 +1619,14 @@ Input :
 Output
   tv'   : type of t
   pe    : erased pattern
-  pv    : value of pattern (this is in essence whnf' pe, 
+  pv    : value of pattern (this is in essence whnf' pe,
             but we cannot evaluate because of dot patterns)
   absp  : did we encounter an absurd pattern
 -}
 
 checkPattern :: Dec -> [Goal] -> Substitution -> TVal -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,TVal,EPattern,Val,Bool)
-checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, environ = rho } -> trace ("checkPattern" ++ ("\n  dot pats: " +?+ show flex) ++ ("\n  substion: " +?+ show ins) ++ ("\n  environ : " +?+ show rho) ++ ("\n  context : " +?+ show delta) ++ "\n  pattern : " ++ show p ++ "\n  at type : " ++ show tv ++ "\t<>") $ 
- enter ("pattern " ++ show p) $ do 
+checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, environ = rho } -> trace ("checkPattern" ++ ("\n  dot pats: " +?+ show flex) ++ ("\n  substion: " +?+ show ins) ++ ("\n  environ : " +?+ show rho) ++ ("\n  context : " +?+ show delta) ++ "\n  pattern : " ++ show p ++ "\n  at type : " ++ show tv ++ "\t<>") $
+ enter ("pattern " ++ show p) $ do
   tv <- force tv
   case tv of
     -- record type can be eliminated
@@ -1656,14 +1658,14 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 -}
        let decEr = dec `compose` dec0
        let domEr   =  (Domain av ki decEr)
-       case p of 
-         
+       case p of
+
          -- treat successor pattern here, because of admissibility check
-         SuccP p2 -> do  
-                 when (av /= vSize) (throwErrorMsg "checkPattern: expected type Size") 
+         SuccP p2 -> do
+                 when (av /= vSize) (throwErrorMsg "checkPattern: expected type Size")
 
                  when (isSuccessorPattern p2) $
-                   fail ("cannot match against deep successor pattern " 
+                   fail ("cannot match against deep successor pattern "
                     ++ show p ++ "; type: " ++ show tv)
 
                  co <- asks mutualCo
@@ -1677,9 +1679,9 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 
                  cxt <- ask
                  -- 2012-02-05 assume size variable in SuccP to be < #
-                 let sucTy = (vFinSize `arrow` vFinSize) 
+                 let sucTy = (vFinSize `arrow` vFinSize)
                  (flex',ins',cxt',tv',p2e,p2v,absp) <- checkPattern decEr flex ins sucTy p2
-                 -- leqVal Mixed delta' VSet VSize av -- av = VSize 
+                 -- leqVal Mixed delta' VSet VSize av -- av = VSize
                  let pe = SuccP p2e
                  let pv = VSucc p2v
 --                 pv0 <- local (\ _ -> cxt') $ whnf' $ patternToExpr pe
@@ -1690,7 +1692,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                  endsInCoind <- endsInSizedCo pv vb
                  when (not endsInCoind) $ throwErrorMsg $ "checkPattern " ++ show p ++" : cannot match on size since target " ++ show tv ++ " does not end in correct coinductive sized type"
 -}
-                 return (flex',ins',cxt',vb,pe,pv,absp) 
+                 return (flex',ins',cxt',vb,pe,pv,absp)
 
          -- other patterns: no need to know about result type
          _ -> do
@@ -1698,15 +1700,15 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
            vb  <- whnf (update env x pv) b
            vb  <- substitute ins' vb  -- from ConP case -- ?? why not first subst and then whnf?
            -- traceCheck ("Returning type " ++ show vb) $
-           return (flex',ins',cxt',vb,pe,pv,absp) 
+           return (flex',ins',cxt',vb,pe,pv,absp)
 
     _ -> throwErrorMsg $ "checkPattern: expected function type, found " ++ show tv
-         
+
 -- TODO: refactor with monad transformers
 -- put absp into writer monad
 
 turnIntoVarPatAtUnitType :: TVal -> Pattern -> TypeCheck Pattern
-turnIntoVarPatAtUnitType (VApp (VDef (DefId DatK n)) _) p@(ConP pi c []) = 
+turnIntoVarPatAtUnitType (VApp (VDef (DefId DatK n)) _) p@(ConP pi c []) =
   flip (ifM $ isUnitData n) (return p) $ do
     let x = fresh "un!t"
     return $ VarP x
@@ -1725,19 +1727,19 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
             av <- force av
             case av of
              VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
-              (flex, ins, cxt, pe1, pv1, absp1) <- 
+              (flex, ins, cxt, pe1, pv1, absp1) <-
                  checkPattern' flex ins (Domain av1 ki1 $ dec1 `compose` decEr) p1
               av2 <- whnf (update env1 y pv1) a2
-              (flex, ins, cxt, pe2, pv2, absp2) <- 
+              (flex, ins, cxt, pe2, pv2, absp2) <-
                  local (const cxt) $
-                   checkPattern' flex ins (Domain av2 ki decEr) p2 
+                   checkPattern' flex ins (Domain av2 ki decEr) p2
               return (flex, ins, cxt, PairP pe1 pe2, VPair pv1 pv2, absp1 || absp2)
              _ -> failDoc (text "pair pattern" <+> prettyTCM p <+> text "could not be checked against type" <+> prettyTCM av)
-{- 
-   (x : Sigma y:A. B) -> C  
+{-
+   (x : Sigma y:A. B) -> C
      =iso= (y : A) -> (x' : B) -> C[(y,x')/x]
 
-   (x : Sigma y:V. <B;rho1>) -> <C;rho2> 
+   (x : Sigma y:V. <B;rho1>) -> <C;rho2>
      =iso= (y : V) -> <(x': B) -> C; ?? x=(y,x')>
  -}
 {-
@@ -1753,10 +1755,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
           VarP y -> do
             new y domEr $ \ xv -> do
-              cxt' <- ask 
+              cxt' <- ask
               p' <- case av of
                        VBelow Lt v -> flip SizeP y <$> toExpr v
-                       _ -> return p 
+                       _ -> return p
               return (flex, ins, cxt', maybeErase $ p', xv, False)
 
 {- checking bounded size patterns
@@ -1785,19 +1787,19 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                ve <- whnf' e
                addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $ do
                  subtype av (VBelow Lt ve)
-                 cxt' <- ask 
+                 cxt' <- ask
                  return (flex, ins, cxt', maybeErase $ SizeP e y, xv, False)
 
           AbsurdP -> do
-                 when (isFunType av) $ fail ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)     
-                 cxt' <- ask 
+                 when (isFunType av) $ fail ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)
+                 cxt' <- ask
                  return (MaxMatches 0 av : flex, ins, cxt', maybeErase $ AbsurdP, VIrr, True)
 {-
                  cenvs <- matchingConstructors av  -- TODO: av might be MVar
-                                                   -- need to be postponed 
+                                                   -- need to be postponed
                  case cenvs of
                     [] -> do bv   <- whnf (update env x VIrr) b
-                             cxt' <- ask 
+                             cxt' <- ask
                              return (flex, ins, cxt', bv, maybeErase $ AbsurdP, True)
                     _ -> throwErrorMsg $ "type " ++ show av ++ " of absurd pattern not empty"
 -}
@@ -1814,9 +1816,9 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  enter ("can only match non parametric arguments") $
                    leqPolM (polarity dec) (pprod defaultPol)
 -}
-                 when (isFunType av) $ fail ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")     
--- TODO: ensure that matchings against erased arguments are forced 
---                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av 
+                 when (isFunType av) $ fail ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")
+-- TODO: ensure that matchings against erased arguments are forced
+--                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av
 -- WRONG:                 let flex1 = if erased' then MaxMatches 1 av : flex else flex
                  let flex1 = flex
 
@@ -1846,7 +1848,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                      fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
 
                  when (not $ decEr `elem` map Dec [Const,Rec]) $
-                   recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"  
+                   recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"
                  -- check not to match non-trivially against erased stuff
                  when (decEr == Dec Const) $ do
                    let failNotForced = recoverFail $ "checkPattern: constructor " ++ show n ++ " of non-computational argument " ++ show p ++ " : " ++ show av ++ " not forced"
@@ -1856,24 +1858,24 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                         DataSig { constructors } <- lookupSymb dataName
                         unless (length constructors == 1) $ failNotForced
                         return ()
-                      Just [] -> recoverFail $ "checkPattern: no constructor matches type " ++ show av 
+                      Just [] -> recoverFail $ "checkPattern: no constructor matches type " ++ show av
                       Just [(ci, _)] | cName ci == n -> return ()
                       _ -> failNotForced
-                 
+
                  (flex',ins',cxt',vc',ple,pvs,absp) <- checkPatterns decEr flex1 ins vc pl
-                 when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")  
+                 when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
                  let flexgen = concat $ map (\ g -> case g of
                         DotFlex i _ _ -> [i]
                         MaxMatches{} -> []) flex'
                      -- fst $ unzip flex'
---                  av1 <- sing (environ cxt') (patternToExpr p) vc' 
---                  av2 <- sing (environ cxt') (patternToExpr p) av 
+--                  av1 <- sing (environ cxt') (patternToExpr p) vc'
+--                  av2 <- sing (environ cxt') (patternToExpr p) av
 --                  subst <- local (\ _ -> cxt') $ inst flexgen VSet av1 av2
-                 
+
                  -- need to evaluate the erased pattern!
                  let pe = ConP pi n ple -- erased pattern
                  pv0 <- mkConVal co n pvs vc
-                 -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs 
+                 -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs
 {-
                  let epe = patternToExpr pe
                  pv0 <- local (\ _ -> cxt') $ whnf' epe
@@ -1892,7 +1894,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 {- moved to checkRHS
                  -- apply substitution to measures in environment
                  let mmu = (envBound . environ) cxt'
-                 mmu' <- Traversable.mapM (substitute subst) mmu    
+                 mmu' <- Traversable.mapM (substitute subst) mmu
 -}
 {-
                  ins'' <- compSubst ins' subst
@@ -1905,7 +1907,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  av  <- substitute ins'' av  -- 2010-09-22: update av
                  pv  <- up False pv0 av
 
-                 return (flex', ins'', cxt' { context = delta'' }, 
+                 return (flex', ins'', cxt' { context = delta'' },
                          maybeErase pe, pv, absp)
 {- DO NOT UPDATE measure here, its done in checkRHS
                  return (flex', ins'', cxt' { context = delta'', environ = (environ cxt') { envBound = mmu' } }, vb',
@@ -1917,10 +1919,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 {-
             -- create a unique identifier for the dot pattern
             l <- getLen
-            let xp = spaceToUnderscore (show e) ++ "#" ++ show l 
+            let xp = spaceToUnderscore (show e) ++ "#" ++ show l
 -}
             -- create an informative, but irrelevant identifier for dot pattern
-            let xp = fresh $ "." ++ case e of Var z -> suggestion z; _ -> Util.parens $ show e 
+            let xp = fresh $ "." ++ case e of Var z -> suggestion z; _ -> Util.parens $ show e
             newWithGen xp domEr $ \ k xv -> do
                        cxt' <- ask
                        -- traceCheck ("Returning type " ++ show vb) $
@@ -1931,7 +1933,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                               -- ,maybeErase $ -- AbsurdP -- VarP $ show e
                               ,xv
                               ,False) -- TODO: Erase in e/ Meta subst!
-{- original code 
+{- original code
                     do let (k, delta') = cxtPush dec av delta
                        vb <- whnf (update env x (VGen k)) b
                        return ((k,(e,Domain av dec)):flex
@@ -1941,7 +1943,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                               ,vb)
 -}
 
- 
+
 
 {- New treatment of size matching  (see examples/Sized/Cody.ma)
 
@@ -1955,17 +1957,17 @@ sized data O : Size -> Set
 fun deep : [i : Size] -> O i -> Nat -> Nat
 { deep i4 (M i3 (L j2 f) (S i2 (S i1 (S i x)))) n
   = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
-; deep i x n = n   
+; deep i x n = n
 }
 
 Explicit form:  Size variables and their constraints are noted explicitely,
 to be able to do untyped call extraction in the termination module.
 
- deep i4 
-  (M (i4 > i3) 
-       (L (i3 > j2) f) 
-       (S (i3 > i2) 
-            (S (i2 > i1) 
+ deep i4
+  (M (i4 > i3)
+       (L (i3 > j2) f)
+       (S (i3 > i2)
+            (S (i2 > i1)
                  (S (i1 > i) x)))) n
   = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
 
@@ -1989,40 +1991,40 @@ Only a size variable matches a size arguments
   match  (cons (i > j) x xs)   against   List i
   get    cons : [j : Size] -> Nat -> List j -> List ($ j)
   yield  x : Nat, xs : List j, cons j x xs : List ($ j)
-  check  List ($ j) <= List i 
+  check  List ($ j) <= List i
  -}
 
 {- RETIRED
 -- checkDot does not need to extract
 checkDot :: Substitution -> DotFlex -> TypeCheck ()
-checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $ 
+checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
   case (lookup i subst) of
     Nothing -> fail $ "not instantiated"
-    Just v -> do 
+    Just v -> do
       tv <- substitute subst (typ it)
-      ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv) 
+      ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv)
       applyDec (decor it) $ do
         checkExpr e tv
         v' <-  whnf' e -- TODO: has subst erased terms?
         enter ("inferred value " ++ show v ++ " does not match given dot pattern value " ++ show v') $
-          eqVal Pos tv v v'  
+          eqVal Pos tv v v'
 -}
 
 -- checkDot does not need to extract
 -- 2012-01-25 now we do since "extraction" turns also con.terms into records
 checkGoal :: Substitution -> Goal -> TypeCheck ()
-checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $ 
+checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $
   case (lookup i subst) of
     Nothing -> recoverFail $ "not instantiated"
-    Just v -> do 
+    Just v -> do
       tv <- substitute subst (typ it)
-      ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv) 
+      ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv)
 --      applyDec (decor it) $ do
       resurrect $ do -- consider a DotP e always as irrelevant!
         e <- valueOf <$> checkExpr e tv
         v' <-  whnf' e -- TODO: has subst erased terms?
         enterDoc (text "inferred value" <+> prettyTCM v <+> text "does not match given dot pattern value" <+> prettyTCM v') $
-          leqVal Pos tv v v' -- WAS: eqVal 
+          leqVal Pos tv v v' -- WAS: eqVal
 checkGoal subst (MaxMatches n av) = do
   traceCheckM ("checkGoal _ $ MaxMatches " ++ show n ++ " $ " ++ show av)
   av' <- substitute subst av
@@ -2032,50 +2034,50 @@ checkGoal subst (MaxMatches n av) = do
   mcenvs <- matchingConstructors av'
   traceCheckM ("checkGoal matching constructors = " ++ show mcenvs)
   maybe (recoverFail $ "not a data type: " ++ show av')
-   (\ cenvs -> 
+   (\ cenvs ->
       if length cenvs > n then recoverFail $
         if n==0 then "absurd pattern does not match since type " ++ show av' ++ " is not empty"
-         else -- n == 1 and 
+         else -- n == 1 and
            "more than one constructor matches type " ++ show av'
        else return ())
-   mcenvs  
+   mcenvs
 
 
 checkRHS :: Substitution -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkRHS ins rhs v = do
-   traceCheckM ("checking rhs " ++ show rhs ++ " : " ++ show v)  
+   traceCheckM ("checking rhs " ++ show rhs ++ " : " ++ show v)
    enter "right hand side" $ do
      -- first updated measure according to substitution for dot variables
      cxt <- ask
      let rho = environ cxt
      mmu' <- Traversable.mapM (substitute ins) (envBound rho)
      local (\ _ -> cxt { environ = rho { envBound = mmu' }}) $
-       activateFuns $ 
-         checkExpr rhs v  
+       activateFuns $
+         checkExpr rhs v
 
 
-  
+
 -- TODO type directed unification
 
 -- unifyIndices flex tv1 tv2
 -- tv1 = D pars  inds  is the type of the pattern
 -- tv2 = D pars' inds' is the type matched against
 -- Note that in this case we can unify without using the principle of
--- injective data type constructors, 
--- we are only calling unifyIndices from the constructor pattern case 
+-- injective data type constructors,
+-- we are only calling unifyIndices from the constructor pattern case
 -- in Checkpattern
 unifyIndices :: [Int] -> Val -> Val -> TypeCheck Substitution
-unifyIndices flex v1 v2 = ask >>= \ cxt -> enterDoc (text ("unifyIndices " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show Pos) <+> prettyTCM v2) $ do 
+unifyIndices flex v1 v2 = ask >>= \ cxt -> enterDoc (text ("unifyIndices " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show Pos) <+> prettyTCM v2) $ do
 -- {-
   case (v1,v2) of
-    (VSing _ v1, VApp (VDef (DefId DatK d2)) vl2) -> 
-      flip (unifyIndices flex) v2 =<< whnfClos v1 
+    (VSing _ v1, VApp (VDef (DefId DatK d2)) vl2) ->
+      flip (unifyIndices flex) v2 =<< whnfClos v1
     (VApp (VDef (DefId DatK d1)) vl1, VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 -> do
       (DataSig { numPars = np, symbTyp = tv, positivity = posl}) <- lookupSymb d1
       instList posl flex tv vl1 vl2 -- unify also parameters to solve dot patterns
-    _ -> 
+    _ ->
 -- -}
-         inst Pos flex vTopSort v1 v2 
+         inst Pos flex vTopSort v1 v2
 -- throwErrorMsg ("unifyIndices " ++ show v1 ++ " =?= " ++ show v2 ++ " failed, not applied to data types")
 
 -- unify, but first produce whnf
@@ -2087,32 +2089,32 @@ instWh pos flex tv w1 w2 = do
 
 -- match v1 against v2 by unification , yielding a substition
 inst :: Pol -> [Int] -> TVal -> Val -> Val -> TypeCheck Substitution
-inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show pos) <+> prettyTCM v2 <+> colon <+> prettyTCM tv) $ do 
+inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show pos) <+> prettyTCM v2 <+> colon <+> prettyTCM tv) $ do
 --  case tv of
---    (VPi dec x av env b) -> 
+--    (VPi dec x av env b) ->
   case (v1,v2) of
     (VGen k, VGen j) | k == j -> return []
     (VGen k,_) | elem k flex -> do
                        l <- getLen
-                       noc <- nocc l v1 v2 
-                       case noc of 
+                       noc <- nocc l v1 v2
+                       case noc of
                          True -> return [(k,v2)]
                          False -> throwErrorMsg "occurs check failed"
     (_,VGen k) | elem k flex -> do
                    l <- getLen
-                   noc <- nocc l v2 v1 
-                   case noc of 
+                   noc <- nocc l v2 v1
+                   case noc of
                          True -> return [(k,v1)]
                          False -> throwErrorMsg "occurs check failed"
 {- MOVED to unifyIndices
     -- injectivity of data type constructors is unsound in general
     (VApp (VDef (DefId Dat d1)) vl1, VApp (VDef (DefId Dat d2)) vl2) | d1 == d2 ->  do
-         sig <- gets signature 
+         sig <- gets signature
          instList flex (symbTyp (lookupSig d1 sig)) vl1 vl2
 -}
 
     (VApp (VDef (DefId DatK d1)) vl1, VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 ->  do
-         (DataSig { numPars = np, symbTyp = tv, positivity = posl }) <- lookupSymb d1 
+         (DataSig { numPars = np, symbTyp = tv, positivity = posl }) <- lookupSymb d1
          instList' np posl flex tv vl1 vl2 -- ignore parameters (first np args)
            -- this is sound because we have irrelevance for parameters
            -- we assume injectivity for indices
@@ -2138,23 +2140,23 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
 
     (VSucc v1',VSucc v2') -> instWh pos flex tv v1' v2'
     (VSucc v, VInfty) -> instWh pos flex tv v VInfty
-    (VSing v1' tv1, VSing v2' tv2) -> do 
+    (VSing v1' tv1, VSing v2' tv2) -> do
       subst <- inst pos flex tv tv1 tv2
       u1 <- substitute subst v1'
       u2 <- substitute subst v2'
       tv1' <- substitute subst tv1
       inst pos flex tv1' u1 u2 >>= compSubst subst
-      
+
 -- HACK AHEAD
     (VUp v1 _, _) -> inst pos flex tv v1 v2
     (_, VUp v2 _) -> inst pos flex tv v1 v2
 --    (VUp v1' a1, VUp v2' a2) -> instList flex [a1,v1'] [a2,v2']
 --     (VPi dec x1 av1 env1 b1, VPi dec x2 av2 env2 b2) ->
-      
+
 {- TODO: REPAIR THIS
     _ -> traceCheck ("inst: WARNING! assuming " ++ show (context cxt) ++ " |- " ++ show v1 ++ " == " ++ show v2) $
            return [] -- throwErrorMsg $ "inst: NYI"
- -}   
+ -}
     _ -> do leqVal pos tv v1 v2 `throwTrace` ("inst: leqVal " ++ show v1 ++ " ?<=" ++ show pos ++ " " ++ show v2 ++ " : " ++ show tv ++ " failed")
             return []
 
@@ -2170,9 +2172,9 @@ instList' np posl flex tv [] [] = return []
 instList' np posl flex tv (v1:vl1) (v2:vl2) = do
   v1 <- whnfClos v1
   v2 <- whnfClos v2
-  if (np <= 0 || isMeta flex v1 || isMeta flex v2) then 
+  if (np <= 0 || isMeta flex v1 || isMeta flex v2) then
     case tv of
-      (VQuant Pi x dom env b) -> do    
+      (VQuant Pi x dom env b) -> do
         subst <- inst (headPosl posl) flex (typ dom) v1 v2
         vl1' <- mapM (substitute subst) vl1
         vl2' <- mapM (substitute subst) vl2
@@ -2183,16 +2185,16 @@ instList' np posl flex tv (v1:vl1) (v2:vl2) = do
         compSubst subst subst'
    else
     case tv of
-      (VQuant Pi x dom env b) -> do    
+      (VQuant Pi x dom env b) -> do
         vb   <- whnf (update env x v2) b
         instList' (np - 1) (tailPosl posl) flex vb vl1 vl2
-instList' np pos flex tv vl1 vl2 = fail $ "internal error: instList' " ++ show (np,pos,flex,tv,vl1,vl2) ++ " not handled" 
+instList' np pos flex tv vl1 vl2 = fail $ "internal error: instList' " ++ show (np,pos,flex,tv,vl1,vl2) ++ " not handled"
 
-headPosl :: [Pol] -> Pol      
+headPosl :: [Pol] -> Pol
 headPosl [] = mixed
 headPosl (pos:_) = pos
 
-tailPosl :: [Pol] -> [Pol]      
+tailPosl :: [Pol] -> [Pol]
 tailPosl [] = []
 tailPosl (_:posl) = posl
 
@@ -2218,7 +2220,7 @@ instance Substitute (Bound Val) where
 
 -- substitute generic variable in value
 instance Substitute Val where
-  substitute subst v =  
+  substitute subst v =
     case v of
       VGen k -> case lookup k subst of
                   Nothing ->  return $ v
@@ -2228,13 +2230,13 @@ instance Substitute Val where
                        foldM app v1' vl'  -- does not do anything for empty list vl'
       VSing v1 vt -> do v1' <- substitute subst v1
                         vt' <- substitute subst vt
-                        return $ vSing v1' vt'  -- TODO: Check reevaluation necessary? 
+                        return $ vSing v1' vt'  -- TODO: Check reevaluation necessary?
 
       VSucc v1  -> succSize  <$> substitute subst v1
       VMax  vs  -> maxSize   <$> mapM (substitute subst) vs
       VPlus vs  -> plusSizes <$> mapM (substitute subst) vs
 
-      VCase v1 tv1 env cl -> do 
+      VCase v1 tv1 env cl -> do
         v1' <- substitute subst v1
         tv1' <- substitute subst tv1
         env' <- substitute subst env
@@ -2251,7 +2253,7 @@ instance Substitute Val where
 
       VBelow ltle v -> VBelow ltle <$> substitute subst v
 
-      VQuant pisig x dom env b ->  
+      VQuant pisig x dom env b ->
           do dom' <- Traversable.mapM (substitute subst) dom
              env' <- substitute subst env
              return $ VQuant pisig x dom' env' b
@@ -2268,7 +2270,7 @@ instance Substitute Val where
       VSort s   -> substitute subst s >>= return . VSort
       VZero     -> return $ v
       VInfty    -> return $ v
-      VIrr      -> return $ v 
+      VIrr      -> return $ v
       VDef id   -> return $ vDef id  -- because empty list of apps will be rem.
 --      VCon co n -> return $ v
       VMeta x env n -> do env' <- substitute subst env
@@ -2289,13 +2291,13 @@ instance Substitute Domain where
   substitute subst dom = Traversable.mapM (substitute subst) dom
 
 instance Substitute SemCxt where
-  substitute subst delta = do  
+  substitute subst delta = do
     cxt' <- mapMapM (Traversable.mapM (substitute subst)) (cxt delta)
     return $ delta { cxt = cxt' }
 {-
 instance Substitute a => Substitute (Maybe a) where
   substitute subst Nothing  = return $ Nothing
-  substitute subst (Just a) = substitute subst a >>= return . Just 
+  substitute subst (Just a) = substitute subst a >>= return . Just
 -}
 
 -- substitute in environment
@@ -2312,18 +2314,18 @@ substitute subst ((x,v):env) = do  v'   <- substitute subst v
 -}
 
 
--- "merge" substitutions by first applying the second to the first, then 
+-- "merge" substitutions by first applying the second to the first, then
 -- appending them
 compSubst :: Substitution -> Substitution -> TypeCheck Substitution
 compSubst subst1 subst2 = do
     subst1' <- mapM (\ (x,v) -> substitute subst2 v >>= return . (x,)) subst1
-    return $ subst1' ++ subst2               
+    return $ subst1' ++ subst2
 {-
 compSubst subst1 subst2 = do
     let (dom1,tg1) = unzip subst1
     tg1' <- mapM (substitute subst2) tg1
     let subst1' = zip dom1 tg1'
-    return $ subst1' ++ subst2               
+    return $ subst1' ++ subst2
 -}
 
 -- Size checking
@@ -2331,7 +2333,7 @@ compSubst subst1 subst2 = do
 
 {- TODO: From a sized data declaration
 
-  sized data D pars : Size -> t 
+  sized data D pars : Size -> t
   { c : [j : Size] -> args -> D pars $j ts
   }
 
@@ -2345,20 +2347,20 @@ compSubst subst1 subst2 = do
 
   Then replace in ConSig filed isSized :: Sized  by :: Maybe Expr
   which stores the new-style constructor type
- 
+
 -}
 
 mkConLType :: Int -> Expr -> Expr
-mkConLType npars t = 
+mkConLType npars t =
   let (sizetb:tel, t0) = typeToTele t
   in case spineView t0 of
-    (d@(Def (DefId DatK _)), args) -> 
+    (d@(Def (DefId DatK _)), args) ->
       let (pars, sizeindex : inds) = splitAt npars args
           i     = fresh "s!ze"
           args' = pars ++ Var i : inds
           core  = foldl App d args'
           tbi   = TBind i $ sizeDomain irrelevantDec
-          tbj   = sizetb { boundDom = belowDomain irrelevantDec Lt (Var i) } 
+          tbj   = sizetb { boundDom = belowDomain irrelevantDec Lt (Var i) }
           tel'  = tbi : tbj : tel
       in teleToType tel' core
     _ -> error $ "conLType " ++ show npars ++ " (" ++ show t ++ "): illformed constructor type"
@@ -2368,34 +2370,34 @@ mkConLType npars t =
 -- * check wether the data type is sized type
 
 
--- check data declaration type 
+-- check data declaration type
 -- called from typeCheckDeclaration (DataDecl{})
--- parameters : number of params, type 
+-- parameters : number of params, type
 szType :: Co -> Int -> TVal -> TypeCheck ()
 szType co p tv = doVParams p tv $ \ tv' -> do
     let polsz = if co==Ind then Pos else Neg
     case tv' of
       VQuant Pi x (Domain av ki dec) env b | isVSize av && not (erased dec) && polarity dec == polsz -> return ()
       _ -> throwErrorMsg $ "not a sized type, target " ++ show tv' ++ " must have non-erased domain " ++ show Size ++ " with polarity " ++ show polsz
-                 
+
 -- * constructors of sized type
 
 -- check data constructors
 -- called from typeCheckConstructor
 szConstructor :: Name -> Co -> Int -> TVal -> TypeCheck ()
-szConstructor n co p tv = enterDoc (text ("szConstructor " ++ show n ++ " :") <+> prettyTCM tv) $ do 
-  doVParams p tv $ \ tv' -> 
+szConstructor n co p tv = enterDoc (text ("szConstructor " ++ show n ++ " :") <+> prettyTCM tv) $ do
+  doVParams p tv $ \ tv' ->
     case tv' of
-       VQuant Pi x dom env b | isVSize (typ dom) -> 
+       VQuant Pi x dom env b | isVSize (typ dom) ->
           newWithGen x dom $ \ k xv -> do
-            bv <- whnf (update env x xv) b 
+            bv <- whnf (update env x xv) b
             szSizeVarUsage n co p k bv
        _ -> fail $ "not a valid sized constructor: expected size quantification"
 
 szSizeVarUsage :: Name -> Co -> Int -> Int -> TVal -> TypeCheck ()
-szSizeVarUsage n co p i tv = enterDoc (text "szSizeVarUsage of" <+> prettyTCM (VGen i) <+> text "in" <+> prettyTCM tv) $ 
+szSizeVarUsage n co p i tv = enterDoc (text "szSizeVarUsage of" <+> prettyTCM (VGen i) <+> text "in" <+> prettyTCM tv) $
     case tv of
-       VQuant Pi x dom env b -> do 
+       VQuant Pi x dom env b -> do
           let av = typ dom
           szSizeVarDataArgs n p i av  -- recursive calls of for D..i..
           enterDoc (text "checking" <+> prettyTCM av <+> text (" to be " ++
@@ -2405,10 +2407,10 @@ szSizeVarUsage n co p i tv = enterDoc (text "szSizeVarUsage of" <+> prettyTCM (V
           new x dom $ \ xv -> do
             bv <- whnf (update env x xv) b
             szSizeVarUsage n co p i bv
-                
+
        _ -> szSizeVarTarget p i tv
 
--- check that Target is of form D ... (Succ i) ... 
+-- check that Target is of form D ... (Succ i) ...
 szSizeVarTarget :: Int -> Int -> TVal -> TypeCheck ()
 szSizeVarTarget p i tv = enterDoc (text "szSizeVarTarget, variable" <+> prettyTCM (VGen i) <+> text ("argument no. " ++ show p ++ " in") <+> prettyTCM tv) $ do
     let err = text "expected target" <+> prettyTCM tv <+> text "of size" <+> prettyTCM (VSucc (VGen i))
@@ -2432,12 +2434,12 @@ szSizeVarTarget p i tv = enterDoc (text "szSizeVarTarget, variable" <+> prettyTC
 szSizeVarDataArgs :: Name -> Int -> Int -> TVal -> TypeCheck ()
 szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGen i) <+> text "in" <+> prettyTCM tv) $ do
    case tv of
-     
-     {- case D pars sizeArg args -} 
-     VApp (VDef (DefId DatK m)) vl | n == m -> do 
+
+     {- case D pars sizeArg args -}
+     VApp (VDef (DefId DatK m)) vl | n == m -> do
         v0 <- whnfClos $ vl !! p
         case v0 of
-          (VGen i') | i' == i  -> do 
+          (VGen i') | i' == i  -> do
               let rargs = take p vl ++ drop (p+1) vl
               k <- getLen
               mapM_ (\ v -> (nocc k (VGen i) v) >>= boolToErrorDoc (text "variable" <+> prettyTCM (VGen i) <+> text "may not occur in" <+> prettyTCM v)) rargs
@@ -2445,20 +2447,20 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
 
 -- not necessary: check for monotonicity above
 --     {- case D' pars sizeArg args -}
---     VApp (VDef m) vl | n /= m -> do 
+--     VApp (VDef m) vl | n /= m -> do
 
      VApp v1 vl -> mapM_ (\ v -> whnfClos v >>= szSizeVarDataArgs n p i) (v1:vl)
 
-     VQuant Pi x dom env b -> do 
+     VQuant Pi x dom env b -> do
        szSizeVarDataArgs n p i (typ dom)
        new x dom $ \ xv -> do
           bv <- whnf (update env x xv) b
           szSizeVarDataArgs n p i bv
-              
-     VLam x env b -> 
+
+     VLam x env b ->
        addName x $ \ xv -> do
          bv <- whnf (update env x xv) b
-         szSizeVarDataArgs n p i bv           
+         szSizeVarDataArgs n p i bv
      _ -> return ()
 
 {- REMOVED, 2009-11-28, replaced by monotonicity check
@@ -2470,15 +2472,15 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
 -- skip over parameters of type signature of a constructor/data type
 doVParams :: Int -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 doVParams 0 tv k = k tv
-doVParams p (VQuant Pi x dom env b) k = 
-  new x dom $ \ xv -> do 
+doVParams p (VQuant Pi x dom env b) k =
+  new x dom $ \ xv -> do
     bv <- whnf (update env x xv) b
     doVParams (p - 1) bv k
 
 --------------------------------------
 -- check for admissible  type
 
-{- 
+{-
 
  - admissibility needs to be check clausewise, because of Karl's example
 
@@ -2488,9 +2490,9 @@ doVParams p (VQuant Pi x dom env b) k =
    {
      diverge unit patterns = badRhs
    }
-   
- - the type must be admissible in the current position 
-   only if the size pattern is a successor.  
+
+ - the type must be admissible in the current position
+   only if the size pattern is a successor.
    If the pattern is a variable, then there is no induction on that size
    argument, so no limit case, so no upper semi-continuity necessary
    for the type.
@@ -2500,7 +2502,7 @@ doVParams p (VQuant Pi x dom env b) k =
      ... (s i) ps  admissible  (j : Size) -> A
 
    we will check
-  
+
      A  admissible in j
 
    and continue with
@@ -2513,7 +2515,7 @@ doVParams p (VQuant Pi x dom env b) k =
  - a size pattern which is not inductive (meaning there is an
     inductive type indexed by that size) nor coinductive (meaning that
     the result type is coinductive and is indexed by that size) must
-    be flagged unusable for termination checking.  
+    be flagged unusable for termination checking.
 
  - the fun/cofun distinction could be inferred by the termination checker
    or be clausewise as in Agda 2
@@ -2524,9 +2526,9 @@ doVParams p (VQuant Pi x dom env b) k =
 admFunDef :: Co -> [Clause] -> TVal -> TypeCheck [Clause]
 admFunDef co cls tv = do
   (cls, inco) <- admClauses cls tv
-  when (co==CoInd && not (co `elem` inco)) $ 
+  when (co==CoInd && not (co `elem` inco)) $
     fail $ show tv ++ " is not a type of a cofun" -- ++ if co==Ind then "fun" else "cofun"
-  return cls 
+  return cls
 
 admClauses :: [Clause] -> TVal -> TypeCheck ([Clause], [Co])
 admClauses [] tv = return ([], [])
@@ -2555,9 +2557,9 @@ admPatterns ((p,v):pvs) tv = do
 -- turn a pattern into a value
 -- extend delta by generic values but do not introduce their types
 evalPat :: Pattern -> (Val -> TypeCheck a) -> TypeCheck a
-evalPat p f = 
+evalPat p f =
     case p of
-      VarP n -> addName n f 
+      VarP n -> addName n f
       ConP co n [] -> f (VCon co n)
       ConP co n pl -> evalPats pl $ \ vl -> f (VApp (VCon co n) vl)
       SuccP p -> evalPat p $ \ v -> f (VSucc v)
@@ -2568,12 +2570,12 @@ evalPat p f =
 
 evalPats :: [Pattern] -> ([Val] -> TypeCheck a) -> TypeCheck a
 evalPats [] f = f []
-evalPats (p:ps) f = evalPat p $ \ v -> evalPats ps $ \ vs -> f (v:vs) 
+evalPats (p:ps) f = evalPat p $ \ v -> evalPats ps $ \ vs -> f (v:vs)
 -}
 
 {-
 evalPat :: Pattern -> TypeCheck (State TCContext Val)
-evalPat p = 
+evalPat p =
     case p of
       VarP n -> return $ State $ \ ce ->
         let (k, delta) = cxtPushGen (context ce)
@@ -2581,22 +2583,22 @@ evalPat p =
         in  (VGen k, TCContext { context = delta, environ = rho })
       ConP co n [] -> return (VCon co n)
       ConP co n pl -> do
-        vl <- mapM evalPat pl 
+        vl <- mapM evalPat pl
         return (VApp (VCon co n) vl)
       SuccP p -> do
        v <- evalPat p
-       return (VSucc v)   
+       return (VSucc v)
 -- TODO: does not work!
 --      DotP e -> return $ State $ \ ce ->
--}     
-         
+-}
+
 
 -- | endsInSizedCo i tv = True  if  tv = Gamma -> D pars i indexes
 endsInSizedCo :: Int -> TVal -> TypeCheck ()
 endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
-   let fail1 = failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a CoSet or codata of size" <+> prettyTCM (VGen i) <+> text "nor a tuple type" 
+   let fail1 = failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a CoSet or codata of size" <+> prettyTCM (VGen i) <+> text "nor a tuple type"
    case tv of
-      VSort (CoSet (VGen i)) -> return ()  
+      VSort (CoSet (VGen i)) -> return ()
       VMeasured mu bv -> endsInSizedCo i bv
 
       -- case forall j <= i. C j coinductive in i
@@ -2613,22 +2615,22 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
          isInd <- szUsed Ind i av
 
          unless isInd $
-           szAntitone i av `newErrorDoc` 
+           szAntitone i av `newErrorDoc`
             (text "type" <+> prettyTCM av <+> text "not lower semi continuous in" <+> prettyTCM (VGen i))
 
          bv <- whnf (update env x gen) b
          endsInSizedCo i bv
       VSing _ tv -> endsInSizedCo i =<< whnfClos tv
-      VApp (VDef (DefId DatK n)) vl -> do 
-         sige <- lookupSymb n 
+      VApp (VDef (DefId DatK n)) vl -> do
+         sige <- lookupSymb n
          case sige of
-            DataSig { numPars = np, isSized = Sized, isCo = CoInd } 
+            DataSig { numPars = np, isSized = Sized, isCo = CoInd }
               | length vl > np -> do
                  v <- whnfClos $ vl !! np
                  if isVGeni v then return () else fail1
                    where isVGeni (VGen i) = True
-                         isVGeni (VPlus vs) = and $ map isVGeni vs 
-                         isVGeni (VMax vs)  = and $ map isVGeni vs 
+                         isVGeni (VPlus vs) = and $ map isVGeni vs
+                         isVGeni (VMax vs)  = and $ map isVGeni vs
                          isVGeni VZero = True
                          isVGeni _ = False
 {- WE DO NOT HAVE SUBST ON VALUES!
@@ -2639,17 +2641,17 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
                      v <- whnf (update rho i VZero) e -- BUGGER
                      if v == VZero then return () else fail1
 -}
--- we also allow the target to be a tuple if all of its components 
+-- we also allow the target to be a tuple if all of its components
 -- fulfill "endsInSizedCo"
-            DataSig { symbTyp = dv, numPars = np, isSized = sz, 
+            DataSig { symbTyp = dv, numPars = np, isSized = sz,
                       constructors = cis, isTuple = True } -> do
               -- match target of constructor against tv to instantiate
               --  c : ... -> D ps  -- ps = snd (cPatFam ci)
               mrhoci <- Util.firstJustM $ map (\ ci -> fmap (,ci) <$> nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv) cis
               case mrhoci of
                 Nothing -> failDoc $ text "endsInSizedCo: panic: target type" <+> prettyTCM tv <+> text "is not an instance of any constructor"
-                Just (rho,ci) -> enter ("endsInSizedCo: detected tuple target, checking components") $ 
-                  fieldsEndInSizedCo i (cFields ci) rho 
+                Just (rho,ci) -> enter ("endsInSizedCo: detected tuple target, checking components") $
+                  fieldsEndInSizedCo i (cFields ci) rho
             _ -> fail1
       _ -> fail1
 {- failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a function type nor a codata nor a tuple type"
@@ -2657,17 +2659,17 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
 
 fieldsEndInSizedCo :: Int -> [FieldInfo] -> Env -> TypeCheck ()
 fieldsEndInSizedCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of tuple type " ++ show fis ++ " in environment " ++ show rho0) $
-  loop fis rho0 where  
+  loop fis rho0 where
     loop [] rho = return ()
     -- nothing to check for erased index fields
-    loop (f : fs) rho | fClass f == Index && erased (fDec f) = 
+    loop (f : fs) rho | fClass f == Index && erased (fDec f) =
       loop fs rho
     loop (f : fs) rho | fClass f == Index = do
-      tv <- whnf rho (fType f) 
+      tv <- whnf rho (fType f)
       endsInSizedCo i tv
       loop fs rho
     loop (f : fs) rho = do
-      tv <- whnf rho (fType f) 
+      tv <- whnf rho (fType f)
       when (not $ erased (fDec f)) $ endsInSizedCo i tv
       -- for non-index fields, value is not given by matching, so introduce
       -- generic value
@@ -2687,10 +2689,10 @@ endsInSizedCo v tv  = -- traceCheck ("endsInCo: " ++ show tv) $
       VPi dec x av env b -> new x (Domain av dec) $ \ gen -> do
          bv <- whnf (update env x gen) b
          endsInSizedCo v bv
-      VApp (VDef (DefId Dat n)) vl -> do 
+      VApp (VDef (DefId Dat n)) vl -> do
          sig <- gets signature
          case (lookupSig n sig) of
-            DataSig { numPars = np, isSized = Sized, isCo = CoInd } 
+            DataSig { numPars = np, isSized = Sized, isCo = CoInd }
               | length vl > np ->
                  eqValBool vSize (vl !! np) v
             _ -> return False
@@ -2706,18 +2708,18 @@ endsInCo tv  = -- traceCheck ("endsInCo: " ++ show tv) $
 
 {-
       -- if not applied, it cannot be a sized type
-      VDef (DefId Dat n) -> do 
+      VDef (DefId Dat n) -> do
          sig <- gets signature
          case (lookupSig n sig) of
-            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $ 
+            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return True
             _ -> return False
 -}
 
-      VApp (VDef (DefId DatK n)) vl -> do 
+      VApp (VDef (DefId DatK n)) vl -> do
          sige <- lookupSymb n
          case sige of
-            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $ 
+            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return True
             _ -> return False
       _ -> return False
@@ -2735,16 +2737,16 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
          bv <- whnf (update env x xv) b
   {-
          if p is successor pattern
-         check that bv is admissible in k, returning subset of [Ind, CoInd]       
-         p is usable if either CoInd or it is a var or dot pattern and Ind  
+         check that bv is admissible in k, returning subset of [Ind, CoInd]
+         p is usable if either CoInd or it is a var or dot pattern and Ind
 -}
          if isSuccessorPattern p then do
            inco <- admType k bv
            when (CoInd `elem` inco && not (shallowSuccP p)) $
-             fail ("cannot match coinductive size against deep successor pattern " 
+             fail ("cannot match coinductive size against deep successor pattern "
                     ++ show p ++ "; type: " ++ show tv)
            if (CoInd `elem` inco)
-              || (inco /= [] && completeP p) 
+              || (inco /= [] && completeP p)
             then return (p, inco)
             else return (UnusableP p, inco)
           else return (p, [])
@@ -2753,12 +2755,12 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
 
 admType :: Int -> TVal -> TypeCheck [Co]
 admType i tv = enter ("admType: checking " ++ show tv ++ " admissible in v" ++ show i) $
-    case tv of 
+    case tv of
        VQuant Pi x dom@(Domain av _ _) env b -> do
           isInd <- szUsed Ind i av
           when (not isInd) $
-            szAntitone i av `newErrorMsg` 
-             ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)  
+            szAntitone i av `newErrorMsg`
+             ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)
           new x dom $ \ gen -> do
             bv <- whnf (update env x gen) b
             inco <- admType i bv
@@ -2768,17 +2770,17 @@ admType i tv = enter ("admType: checking " ++ show tv ++ " admissible in v" ++ s
           if isCoind then return [CoInd]
            else do
             szMonotone i tv
-            return []         
+            return []
 
 szUsed :: Co -> Int -> TVal -> TypeCheck Bool
 szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++ show i) $
     case tv of
-         (VApp (VDef (DefId DatK n)) vl) -> 
+         (VApp (VDef (DefId DatK n)) vl) ->
              do sige <- lookupSymb n
                 case sige of
-                  DataSig { numPars = p 
-                          , isSized = Sized 
-                          , isCo = co' } | co == co' && length vl > p -> 
+                  DataSig { numPars = p
+                          , isSized = Sized
+                          , isCo = co' } | co == co' && length vl > p ->
                       -- p is the number of parameters
                       -- it is also the index of the size argument
                       do s <- whnfClos $ vl !! p
@@ -2791,24 +2793,24 @@ szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++
 
 
 -- for inductive fun, and for every size argument i
--- - every argument needs to be either inductive or antitone in i 
--- - the result needs to be monotone in i 
+-- - every argument needs to be either inductive or antitone in i
+-- - the result needs to be monotone in i
 
 {- szCheckIndFun admpos delta tv
 
  entry point for admissibility check for recursive functions
- - scans for the first size quantification 
+ - scans for the first size quantification
  - passes on to szCheckIndFunSize
  - currently: also continues to look for the next size quantification...
  -}
 
 szCheckIndFun :: [Int] -> TVal -> TypeCheck ()
 szCheckIndFun admpos tv = -- traceCheck ("szCheckIndFun: " ++ show delta ++ " |- " ++ show tv ++ " adm?") $
-      case tv of 
+      case tv of
        VQuant Pi x dom env b -> new x dom $ \ (VGen k) -> do
          bv <- whnf' b
-         if isVSize (typ dom) then do 
-             when (k `elem` admpos) $ 
+         if isVSize (typ dom) then do
+             when (k `elem` admpos) $
                szCheckIndFunSize k bv
              szCheckIndFun admpos bv -- this is for lexicographic induction on sizes, I suppose?  Probably should me more fine grained!  Andreas, 2008-12-01
           else szCheckIndFun admpos bv
@@ -2818,13 +2820,13 @@ szCheckIndFun admpos tv = -- traceCheck ("szCheckIndFun: " ++ show delta ++ " |-
 {- szCheckIndFunSize delta i tv
 
  checks whether type tv is admissible for recursion in index i
- - every argument needs to be either inductive or antitone in i 
- - the result needs to be monotone in i  
+ - every argument needs to be either inductive or antitone in i
+ - the result needs to be monotone in i
  -}
 
 szCheckIndFunSize :: Int -> TVal -> TypeCheck ()
-szCheckIndFunSize i tv = -- traceCheck ("szCheckIndFunSize: " ++ show delta ++ " |- " ++ show tv ++ " adm(v" ++ show i ++ ")?") $ 
-    case tv of 
+szCheckIndFunSize i tv = -- traceCheck ("szCheckIndFunSize: " ++ show delta ++ " |- " ++ show tv ++ " adm(v" ++ show i ++ ")?") $
+    case tv of
        VQuant Pi x dom env b -> do
             szLowerSemiCont i (typ dom)
             new' x dom $ do
@@ -2839,17 +2841,17 @@ szCheckIndFunSize i tv = -- traceCheck ("szCheckIndFunSize: " ++ show delta ++ "
  -}
 szLowerSemiCont :: Int -> TVal -> TypeCheck ()
 szLowerSemiCont i av = -- traceCheck ("szlowerSemiCont: checking " ++ show av ++ " lower semi continuous in v" ++ show i) $
-   ((szAntitone i av) `catchError` 
+   ((szAntitone i av) `catchError`
       (\ msg -> -- traceCheck (show msg) $
-                   szInductive i av)) 
-        `newErrorMsg` ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)  
-                                                     
+                   szInductive i av))
+        `newErrorMsg` ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)
+
 
 {- checking cofun-types for admissibility
 
 conditions:
 
-1. type must end in coinductive type or in sized coinductive type 
+1. type must end in coinductive type or in sized coinductive type
    indexed by just a variable i which has been quantified in the type
 
 2. in the second case, each argument must be inductive or antitone in i
@@ -2857,7 +2859,7 @@ conditions:
      arguments types before the quantification over i can be ignored
 -}
 
-data CoFunType 
+data CoFunType
   = CoFun             -- yes, but not sized cotermination
   | SizedCoFun Int    -- yes an admissible sized type (the Int specifies the number of the recursive size argument)
 
@@ -2869,9 +2871,9 @@ admCoFun delta tv : IsCoFunType
    endsInCo delta tv (len delta) id
 
 admEndsInCo delta tv firstVar jobs : IsCoFunType
-   
+
    traverse tv, gather continutations in jobs, check for CoInd in the end
-   
+
    if tv = (x:A) -> B
       push A on delta
       add the following task to jobs:
@@ -2892,8 +2894,8 @@ admEndsInCo delta tv firstVar jobs : IsCoFunType
 -- {- TODO: FINISH THIS!!
 
 admCoFun :: TVal -> TypeCheck CoFunType
-admCoFun tv = do 
-  l <- getLen 
+admCoFun tv = do
+  l <- getLen
   admEndsInCo tv l (\ i -> return ())
 
 admEndsInCo :: TVal -> Int -> (Int -> TypeCheck ()) -> TypeCheck CoFunType
@@ -2904,33 +2906,33 @@ admEndsInCo tv firstVar jobs = -- traceCheck ("admEndsInCo: " ++ show tv) $
          let jobs' = (addJob l (typ dom) jobs)
          new' x dom $ do
            bv <- whnf' b
-           admEndsInCo bv firstVar jobs' 
+           admEndsInCo bv firstVar jobs'
 
 {-
       -- if not applied, it cannot be a sized type
-      VDef n -> do 
+      VDef n -> do
          sig <- gets signature
          case (lookupSig n sig) of
-            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $ 
+            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return CoFun
             _ -> throwErrorMsg $ "type of cofun does not end in coinductive type"
 -}
 
-      VApp (VDef (DefId DatK n)) vl -> do 
+      VApp (VDef (DefId DatK n)) vl -> do
          sige <- lookupSymb n
          case sige of
-            DataSig { isSized = NotSized, isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $ 
+            DataSig { isSized = NotSized, isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return CoFun
             DataSig { numPars = p, isSized = Sized, isCo = CoInd } | length vl > p -> -- traceCheck ("found sized coinductive target") $
-              do 
+              do
                -- p is the number of parameters
                -- it is also the index of the size argument
                s <- whnfClos $ vl !! p
                case s of
-                  VGen i -> do 
+                  VGen i -> do
                      jobs i
-                     return $ SizedCoFun $ i - firstVar 
-                  _ -> throwErrorMsg $ "size argument in result type must be a variable" 
+                     return $ SizedCoFun $ i - firstVar
+                  _ -> throwErrorMsg $ "size argument in result type must be a variable"
             _ -> throwErrorMsg $ "type of cofun does not end in coinductive type"
 
 addJob :: Int -> TVal -> (Int -> TypeCheck ())
@@ -2946,43 +2948,43 @@ addJob l tv jobs recVar = do
 {- szCheckCoFun  OBSOLETE!!
 
  entry point for admissibility check for corecursive functions
- - scans for the first size quantification 
+ - scans for the first size quantification
  - passes on to szCheckIndFunSize
  - currently: also continues to look for the next size quantification
  - and checks in the end whether the target is a coinductive type
 
 
--- STALE COMMENT: for a cofun : arguments nocc i and result coinductive in i 
+-- STALE COMMENT: for a cofun : arguments nocc i and result coinductive in i
 szCheckCoFun :: SemCxt -> TVal -> TypeCheck ()
-szCheckCoFun delta tv = 
+szCheckCoFun delta tv =
       case tv of
        VPi dec x av env b -> do
-                let (k, delta') = cxtPush dec av delta 
+                let (k, delta') = cxtPush dec av delta
                 bv <- whnf (update env x (VGen k)) b
                 case av of
                   VSize -> do szCheckCoFunSize delta' k bv
                               szCheckCoFun delta' bv
-                  _ -> szCheckCoFun delta' bv 
-       -- result 
-       (VApp (VDef n) vl) -> 
+                  _ -> szCheckCoFun delta' bv
+       -- result
+       (VApp (VDef n) vl) ->
           do sig <- gets signature
              case (lookupSig n sig) of
-               (DataSig _ _ _ CoInd _) -> 
+               (DataSig _ _ _ CoInd _) ->
                    return ()
                _ -> throwErrorMsg $ "cofun doesn't target coinductive type"
-       (VDef n)  -> 
+       (VDef n)  ->
           do sig <- gets signature
              case (lookupSig n sig) of
-               (DataSig _ _ _ CoInd _) -> 
+               (DataSig _ _ _ CoInd _) ->
                    return ()
                _ -> throwErrorMsg $ "cofun doesn't target coinductive type"
        _ -> throwErrorMsg $ "cofun doesn't target coinductive type"
 
 szCheckCoFunSize :: SemCxt -> Int -> TVal -> TypeCheck ()
 szCheckCoFunSize delta i tv = -- traceCheck ("szco " ++ show tv) $
-      case tv of 
-       VPi dec x av env b ->  do  
-             let (k, delta') = cxtPush dec av delta 
+      case tv of
+       VPi dec x av env b ->  do
+             let (k, delta') = cxtPush dec av delta
              bv <- whnf (update env x (VGen k)) b
              szLowerSemiCont delta i av
              szCheckCoFunSize delta' i bv
@@ -2992,13 +2994,13 @@ szCheckCoFunSize delta i tv = -- traceCheck ("szco " ++ show tv) $
 -}
 
 szMono :: Co -> Int -> TVal -> TypeCheck ()
-szMono co i tv = 
+szMono co i tv =
     case co of
          Ind   -> szMonotone i tv
          CoInd -> szAntitone i tv
 
 szMonotone :: Int -> TVal -> TypeCheck ()
-szMonotone i tv = traceCheck ("szMonotone: " -- ++ show delta ++ " |- " 
+szMonotone i tv = traceCheck ("szMonotone: " -- ++ show delta ++ " |- "
                               ++ show tv ++ " mon(v" ++ show i ++ ")?") $
  do
    let si = VSucc (VGen i)
@@ -3006,34 +3008,34 @@ szMonotone i tv = traceCheck ("szMonotone: " -- ++ show delta ++ " |- "
    leqVal Pos vTopSort tv tv'
 
 szAntitone :: Int -> TVal -> TypeCheck ()
-szAntitone i tv = traceCheck ("szAntitone: " -- ++ show delta ++ " |- " 
+szAntitone i tv = traceCheck ("szAntitone: " -- ++ show delta ++ " |- "
                               ++ show tv ++ " anti(v" ++ show i ++ ")?") $
  do
    let si = VSucc (VGen i)
    tv' <- substitute [(i,si)] tv
    leqVal Neg vTopSort tv tv'
 
--- checks if tv is a sized inductive type of size i 
+-- checks if tv is a sized inductive type of size i
 szInductive :: Int -> TVal -> TypeCheck ()
 szInductive i tv = szUsed' Ind i tv
 
--- checks if tv is a sized coinductive type of size i 
+-- checks if tv is a sized coinductive type of size i
 szCoInductive :: Int -> TVal -> TypeCheck ()
 szCoInductive i tv = szUsed' CoInd i tv
-            
+
 szUsed' :: Co -> Int -> TVal -> TypeCheck ()
 szUsed' co i tv =
     case tv of
-         (VApp (VDef (DefId DatK n)) vl) -> 
+         (VApp (VDef (DefId DatK n)) vl) ->
              do sige <- lookupSymb n
                 case sige of
-                  DataSig { numPars = p, isSized = Sized, isCo =  co' } | co == co' && length vl > p -> 
+                  DataSig { numPars = p, isSized = Sized, isCo =  co' } | co == co' && length vl > p ->
                       -- p is the number of parameters
                       -- it is also the index of the size argument
                       do s <- whnfClos $ vl !! p
                          case s of
                            VGen i' | i == i' -> return ()
-                           _ -> fail $ "expected size variable" 
+                           _ -> fail $ "expected size variable"
                   _ -> fail $ "expected (co)inductive sized type"
          _ -> fail $ "expected (co)inductive sized type"
 

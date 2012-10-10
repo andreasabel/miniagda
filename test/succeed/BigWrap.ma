@@ -2,7 +2,13 @@
 
 data BigWrap : Set 1
 { inn : (out : Set) -> BigWrap
-} 
+}
+
+-- 2012-10-10: automatic irrelevance analysis (forcing)
+-- turns this into [A : Set] -> NotBig A
+data NotBig : Set -> Set
+{ notBig : (A : Set) -> NotBig A
+}
 
 data Nat : Set
 { zero : Nat
@@ -20,7 +26,7 @@ fun NATnat : NAT -> Nat
 }
 
 -- small kind
-data Exists : Set 1
+data Exists : Set
 { inEx : [A : Set] -> (outEx : A) -> Exists
 }
 

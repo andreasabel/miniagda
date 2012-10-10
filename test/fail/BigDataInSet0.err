@@ -4,6 +4,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 ty-u  BigOk : Set 1
 term  bigOk : ^(y0 : Set) -> < bigOk y0 : BigOk >
+type  BigIrr : Set
+term  bigIrr : .[y0 : Set] -> < bigIrr y0 : BigIrr >
 type  Big : Set
 error during typechecking:
 Big
