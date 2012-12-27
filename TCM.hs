@@ -1102,8 +1102,8 @@ dataView tv = do
 --   with parameters instantiated
 conType :: Name -> TVal -> TypeCheck TVal
 conType c tv = do
-  ConSig { numPars, symbTyp } <- lookupSymb c
-  instConType c numPars symbTyp tv
+  ConSig { numPars, symbTyp, dataName } <- lookupSymb c
+  instConType c numPars symbTyp dataName tv
 {-
 conType c tv = do
   dv <- dataView tv
@@ -1126,18 +1126,19 @@ conType c tv = do
 -- | Get LHS type of constructor.
 conLType :: Name -> TVal -> TypeCheck TVal
 conLType c tv = do
-  ConSig { numPars, lhsTyp, symbTyp } <- lookupSymb c
+  ConSig { numPars, lhsTyp, symbTyp, dataName } <- lookupSymb c
   case lhsTyp of
-    Nothing   -> instConType c numPars symbTyp tv
-    Just lTyp -> instConType c (numPars+1) lTyp tv
+    Nothing   -> instConType c numPars symbTyp dataName tv
+    Just lTyp -> instConType c (numPars+1) lTyp dataName tv
 
-instConType :: Name -> Int -> TVal -> TVal -> TypeCheck TVal
-instConType c numPars symbTyp tv = do
+instConType :: Name -> Int -> TVal -> Name -> TVal -> TypeCheck TVal
+instConType c numPars symbTyp dataName tv = do
   dv <- dataView tv
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv <+> text "to be a data type")
     Data n vs -> do
+      unless (n == dataName) $ fail $ "expected constructor of datatype " ++ show n ++ ", but found one of datatype " ++ show dataName
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) $
         failDoc (text ("conType " ++ show c ++ ": expected")

@@ -3038,4 +3038,3 @@ szUsed' co i tv =
                            _ -> fail $ "expected size variable"
                   _ -> fail $ "expected (co)inductive sized type"
          _ -> fail $ "expected (co)inductive sized type"
-

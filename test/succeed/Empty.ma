@@ -30,5 +30,5 @@ fun g : Unit -> Bool
 { g unit = true -- this should translate into a variable pattern
 }
 
-let test [T : Bool -> Set] (x : T (g true)) : T true 
+let test [T : Bool -> Set] (x : T (g unit)) : T true
   = x
