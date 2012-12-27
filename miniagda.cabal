@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.20120306
+version:         0.20120915
 build-type:      Simple
 cabal-version:   >= 1.8 && < 2
 license:         AllRightsReserved
@@ -26,8 +26,8 @@ description:
 executable miniagda
   hs-source-dirs:   .
   build-depends:    array >= 0.3 && < 0.5,
-                    base >= 4.2 && < 4.6,
-                    containers >= 0.3 && < 0.5,
+                    base >= 4.2 && < 4.7,
+                    containers >= 0.3 && < 0.6,
                     haskell-src-exts >= 1.9.5 && < 1.14,
                     mtl >= 2.0 && < 2.2,
                     pretty >= 1.0 && < 1.2,
