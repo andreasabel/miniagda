@@ -1,4 +1,5 @@
 -- 2010-07-13
+-- 2013-03-28 use proper bounded quantification j < i
 
 data Maybe (A : Set) : Set
 { nothing : Maybe A
@@ -15,7 +16,7 @@ sized codata Stack (A : Set) : Size -> Set
 
 -- functional to construct push action
 cofun pushFunc : [A : Set] -> [i : Size] -> |i| ->
-                 ([j : Size] -> |j| < |i| -> Stack A j -> A -> Stack A j) ->
+                 ([j < i] -> Stack A j -> A -> Stack A j) ->
                  Stack A i -> A -> Stack A i
 { pushFunc A ($ i) f s a = stack i (just a) s (f i (pushFunc A i f s a))
 }
@@ -23,7 +24,7 @@ cofun pushFunc : [A : Set] -> [i : Size] -> |i| ->
 -- tying the knot
 cofun pushFix  : [A : Set] -> [i : Size] -> |i| -> Stack A i -> A -> Stack A i
 { pushFix A ($ i) = pushFunc A ($ i) (pushFix A)
-}
+} -- cofun because of successor pattern
 
 -- constructing the empty stack
 cofun empty : [A : Set] -> [i : Size] -> |i| -> Stack A i
