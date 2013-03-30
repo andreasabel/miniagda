@@ -216,7 +216,7 @@ equal u1 u2 = traceLoop ("equal " ++ show u1 ++ " =?= " ++ show u2) $
            v1 <- whnf (update env1 x1 vx) b1
            v2 <- whnf (update env2 x2 vx) b2
            equal v1 v2
-
+    (VProj _ p, VProj _ q) -> return $ p == q
     (VPair v1 w1, VPair v2 w2) -> (equal v1 v2) `andLazy` (equal w1 w2)
     (VBelow ltle1 v1, VBelow ltle2 v2) | ltle1 == ltle2 -> equal v1 v2
     (VSing v1 tv1, VSing v2 tv2) -> (equal v1 v2) `andLazy` (equal tv1 tv2)
