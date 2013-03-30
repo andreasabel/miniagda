@@ -6,15 +6,16 @@ sized data Nat : Size -> Set
 fun minus : [i : Size] -> Nat i -> Nat # -> Nat i
 { minus i (zero (j < i))   n           = zero j
 ; minus i (succ (j < i) m) (zero .#)   = succ j m
-; minus i (succ (j < i) m) (succ .# n) = minus j m n 
+; minus i (succ (j < i) m) (succ .# n) = minus j m n
 }
 
-fun gcd : [i,j : Size] -> |i,j| -> Nat i -> Nat j -> Nat (max i j)
+-- Note 2013-03-30: not SN
+cofun gcd : [i,j : Size] -> |i,j| -> Nat i -> Nat j -> Nat (max i j)
 { gcd i j (zero (i' < i))   n                 = n
 ; gcd i j (succ (i' < i) m) (zero (j' < j))   = succ i' m
-; gcd i j (succ (i' < i) m) (succ (j' < j) n) = 
-    case minus i' m n 
-    { (zero (i'' < i'))      -> 
+; gcd i j (succ (i' < i) m) (succ (j' < j) n) =
+    case minus i' m n
+    { (zero (i'' < i'))      ->
       case minus j' n m
       { (zero (j'' < j'))    ->  -- in this case, m = n
           succ i' m
@@ -22,7 +23,7 @@ fun gcd : [i,j : Size] -> |i,j| -> Nat i -> Nat j -> Nat (max i j)
           gcd i j' (succ i' m) (succ j'' n')
       }
     ; (succ (i'' < i') m')   ->  -- in this case, m > n
-        gcd i' j (succ i'' m') (succ j' n) 
+        gcd i' j (succ i'' m') (succ j' n)
     }
 }
 

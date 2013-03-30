@@ -3,6 +3,7 @@
 module TCM where
 
 import Control.Monad
+import Control.Monad.IfElse
 import Control.Monad.Identity
 import Control.Monad.State
 import Control.Monad.Error
@@ -162,6 +163,7 @@ data TCContext = TCContext
                            -- collected from size patterns (x > y)
   , belowInfty:: [Int]     -- list of size variables < #
   , bounds    :: [Bound Val]  -- bound hyps that do not fit in sizeRels
+  , consistencyCheck :: Bool -- ^ Do we need to check that new size relations are consistent with every valuation of the current @sizeRels@? [See ICFP 2013 paper]
   , checkingConType :: Bool  -- different PTS rules for constructor types (parametric function space!)
   , assertionHandling :: AssertionHandling -- recover from errors?
   , impredicative :: Bool       -- use impredicative PTS rules
@@ -184,6 +186,7 @@ emptyContext = TCContext
   , sizeRels = TSO.empty
   , belowInfty = []
   , bounds   = []
+  , consistencyCheck = False -- initially, no consistency check, turned on when entering rhs
   , checkingConType = False
   , assertionHandling = Failure  -- default is not to ignore any errors
   , impredicative = False
@@ -741,10 +744,14 @@ instance MonadCxt TypeCheck where
       addPatterns tv' ps env $ \ tv'' vs env' ->
         cont tv'' (v:vs) env' -- (env' ++ env)
 
-  addSizeRel son dist father k =
+  addSizeRel son dist father k = do
+    let s = "v" ++ show son ++ " + " ++ show dist ++ " <= v" ++ show father
     enter -- enterTrace
-      ("adding size rel. v" ++ show son ++ " + " ++ show dist ++ " <= v" ++ show father) $ do
+      ("adding size rel. " ++ s) $ do
     let modBI belowInfty = if father `elem` belowInfty || dist > 0 then son : belowInfty else belowInfty
+    whenM (asks consistencyCheck `andLazy` do
+           TSO.increasesHeight son (dist, father) <$> asks sizeRels) $ do
+      recoverFail $ "cannot add hypothesis " ++ s ++ " because it is not satisfyable under all possible valuations of the current hypotheses"
     local (\ cxt -> cxt
       { sizeRels = TSO.insert son (dist, father) (sizeRels cxt)
       , belowInfty = modBI (belowInfty cxt)

@@ -1559,7 +1559,13 @@ checkClause :: Int -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
   -- traceCheck ("checking function clause " ++ show i) $
     (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] [] tv pl
-    local (\ _ -> cxt) $ do
+    -- 2013-03-30 When checking the rhs, we only allow new size hypotheses
+    -- if they do not break any valuation of the existing hypotheses.
+    -- See ICFP 2013 paper.
+    -- We exclude cofuns here, for experimentation.
+    -- Note that cofuns need not be SN, so the strict consistency may be
+    -- not necessary.
+    local (\ _ -> cxt { consistencyCheck = (mutualCo cxt == Ind) }) $ do
       mapM (checkGoal ins) flex
       -- TODO: insert meta var solution in dot patterns
       tel <- getContextTele -- WRONG TELE, has VGens for DotPs

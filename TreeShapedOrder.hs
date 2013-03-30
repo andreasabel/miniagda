@@ -8,13 +8,13 @@ strict inequations
           > l3 > l4
 
   m1 > m2
-  
+
   n1
 
 Checking inequalty x < y is then performed by just enumerating the
 parents of x and checking wether y is a member of it.
 
-2010-11-12 UPDATE: We generalize this to ">=" and more by attaching to 
+2010-11-12 UPDATE: We generalize this to ">=" and more by attaching to
 each link a non-negative number.
 
   0  means  >=
@@ -43,7 +43,7 @@ empty :: TSO a
 empty = TSO $ Map.empty
 
 -- | @insert a b o@  inserts a with parent b into order o.
--- It does not check whether the tree structure is preserved. 
+-- It does not check whether the tree structure is preserved.
 insert :: (Ord a, Eq a) => a -> (Int, a) -> TSO a -> TSO a
 insert a b (TSO o) = TSO $ Map.insert a b o
 
@@ -60,36 +60,42 @@ parents a (TSO o) = loop (Map.lookup a o) where
 
 -- | @parent a o@ returns the immediate parent, if it exists.
 parent :: (Ord a, Eq a) => a -> TSO a -> Maybe (Int,a)
-parent a t = headM $ parents a t 
+parent a t = headM $ parents a t
 
--- | @isAncestor a b o = Just n@ if there are n steps up from a to b.  
+-- | @isAncestor a b o = Just n@ if there are n steps up from a to b.
 isAncestor :: (Ord a, Eq a) => a -> a -> TSO a -> Maybe Int
 isAncestor a b o = loop 0 ((0,a) : parents a o)
    where loop acc [] = Nothing
          loop acc ((n,a) : ps) | a == b    = Just (acc + n)
                                | otherwise = loop (acc + n) ps
 
--- | @diff a b o = Just k@ if there are k steps up from a to b  
+-- | @diff a b o = Just k@ if there are k steps up from a to b
 -- or (-k) steps down from b to a.
 diff ::  (Ord a, Eq a) => a -> a -> TSO a -> Maybe Int
 diff a b o = maybe (fmap (\ k -> -k) $ isAncestor b a o) Just $ isAncestor a b o
 
--- | create a map from parents to list of sons, leaves have an empty list  
+-- | create a map from parents to list of sons, leaves have an empty list
 invert :: (Ord a, Eq a) => TSO a -> Map a [(Int,a)]
 invert (TSO o) = Map.foldrWithKey step Map.empty o where
-  step son (dist, parent) m = Map.insertWith (++) son [] $ 
+  step son (dist, parent) m = Map.insertWith (++) son [] $
     Map.insertWith (++) parent [(dist, son)] m
 
--- | @height a t = Just k@ if $k$ is the length of the 
+-- | @height a t = Just k@ if $k$ is the length of the
 --   longest path from @a@ to a leaf. @Nothing@ if @a@ not in @t@.
 height :: (Ord a, Eq a) => a -> TSO a -> Maybe Int
 height a t = do
   let m = invert t
   let loop parent = do
         sons <- Map.lookup parent m
-        return $ if null sons then 0 else 
+        return $ if null sons then 0 else
                   maximum $ map (\ (n,son) -> maybe 0 (n +) $ loop son) sons
   loop a
+
+-- | @increasesHeight a (n,b) t = True@ if @n > height b t@, i.e., if
+--   the insertion of a with parent b will destroy an existing
+--   minimal valuation of @t@
+increasesHeight :: (Ord a, Eq a) => a -> (Int, a) -> TSO a -> Bool
+increasesHeight a (n,b) t = n > maybe 0 id (height b t)
 
 -- | get the leaves of the TSO forest
 leaves :: (Ord a, Eq a) => TSO a -> [a]
@@ -100,7 +106,7 @@ leaves o = map fst $ filter (\ (parent,sons) -> null sons) $ Map.toList (invert 
 
 1. Create a Map from parents to their list of children.
 
-2. Keep a working set of nodes.  
+2. Keep a working set of nodes.
    Find the leafs in this working set (nodes that do not have children).
    Cluster them by their parents.
    Turn their parents into trees,
@@ -108,16 +114,16 @@ leaves o = map fst $ filter (\ (parent,sons) -> null sons) $ Map.toList (invert 
 -}
 -- | invert a tree shaped order into a forest.  This can be used for printing
 toForest :: (Ord a, Eq a) => TSO a -> Forest a
-toForest o = loop (step initialTrees) where 
+toForest o = loop (step initialTrees) where
   initialTrees = map (flip Node []) $ leaves o
   -- step :: (Ord a, Eq a) => Forest a -> [(Maybe a, Forest a)]
   step ts = map (\ l -> (fst (head l), map snd l)) $
-    groupBy (\ (p,t) (p',t') -> p == p') $ 
-    sortBy (\ (p,t) (p',t') -> compare p p') $ 
-    map (\ t -> (parent (rootLabel t) o, t)) ts 
+    groupBy (\ (p,t) (p',t') -> p == p') $
+    sortBy (\ (p,t) (p',t') -> compare p p') $
+    map (\ t -> (parent (rootLabel t) o, t)) ts
   -- loop :: (Ord a, Eq a) => [(Maybe a, Forest a)] -> Forest a
   loop [] = []
-  -- the trees whose roots have no parents are parts of the final forest 
+  -- the trees whose roots have no parents are parts of the final forest
   loop ((Nothing, roots) : nonroots) = roots ++ loop nonroots
   -- the trees whose roots have a parent are iterated
   loop nonroots = loop $ step $ map (\ (Just p, ts) -> Node p ts) nonroots
@@ -129,8 +135,8 @@ toForest o = loop (step initialTrees) where
 pathesToForest :: (Ord a, Eq a) => [[(Int,a)]] -> Forest (Int, a)
 pathesToForest [] = []
 pathesToForest ll =
-  map (\ l -> Node (head (head l)) 
-                   (pathesToForest $ filter (not . null) $ map tail l)) $ 
+  map (\ l -> Node (head (head l))
+                   (pathesToForest $ filter (not . null) $ map tail l)) $
     groupBy (\ l l' -> head l == head l') ll
 
 -- | invert a tree shaped order into a forest.  This can be used for printing.
@@ -138,11 +144,11 @@ toForest :: (Ord a, Eq a) => TSO a -> Forest (Int,a)
 toForest o = pathesToForest $ sort $ map (\ a -> reverse ((0,a) : parents a o)) $ leaves o -- lex. sort
 
 instance (Ord a, Eq a, Show a) => Show (TSO a) where
-  show o = Tree.drawForest $ map (fmap show) $ toForest o 
+  show o = Tree.drawForest $ map (fmap show) $ toForest o
 
 {-
 draw :: (Ord a, Eq a, Show a) => TSO a -> String
-draw o = Tree.drawForest $ map (fmap show) $ toForest o 
+draw o = Tree.drawForest $ map (fmap show) $ toForest o
 -}
 
 -- test

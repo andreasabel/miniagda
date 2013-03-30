@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BadSizeLambdaInductive.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  unit : < unit : Unit >
+type  Nat : +(i : Size) -> Set
+term  zero : .[i : Size] -> .[j < i] -> < zero j : Nat i >
+term  suc : .[i : Size] -> .[j < i] -> ^(n : Nat j) -> < suc j n : Nat i >
+term  apply : .[i : Size] -> (.[j < i] -> Nat $j -> Unit) -> Nat i -> Unit
+{ apply [i] f (zero [j < i]) = f [j] (zero [j])
+; apply [i] f (suc [j < i] x) = f [j] (suc [j] x)
+}
+term  caseN : .[i : Size] -> Unit -> (Nat i -> Unit) -> Nat $i -> Unit
+{ caseN [i] z s (zero [j < $i]) = z
+; caseN [i] z s (suc [j < $i] x) = s x
+}
+term  run : .[i : Size] -> Nat i -> Unit
+error during typechecking:
+run
+/// clause 1
+/// right hand side
+/// checkExpr 1 |- apply i (\ j -> caseN j unit (run j)) : Nat i -> Unit
+/// inferExpr' apply i (\ j -> caseN j unit (run j))
+/// checkExpr 1 |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
+/// checkForced fromList [(i,0)] |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
+/// new j < v0
+/// adding size rel. v1 + 1 <= v0
+/// cannot add hypothesis v1 + 1 <= v0 because it is not satisfyable under all possible valuations of the current hypotheses

@@ -1285,7 +1285,8 @@ whnf12 env12 e12 = Traversable.traverse id $ zipWith12 whnf env12 e12
 -- if two types are given (heterogeneous equality), they need to be
 -- of the same shape, otherwise they cannot contain common terms
 leqVal' :: Force -> Pol -> MT12 -> Val -> Val -> TypeCheck ()
-leqVal' f p mt12 u1' u2' = do
+leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ do
+ -- 2013-03-30 During subtyping, it is fine to add any size hypotheses.
  l <- getLen
  ren <- getRen
  enterDoc (case mt12 of

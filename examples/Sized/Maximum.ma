@@ -14,5 +14,5 @@ fun maxi : [i : Size] -> NatS i -> [j : Size] -> NatS j -> NatS (max i j)
 fun maxima : [i, j : Size] -> NatS i -> NatS j -> NatS (max i j)
 { maxima i j (zeroS (i' < i))    m                 = m
 ; maxima i j  n                 (zeroS (j' < j))   = n
-; maxima i j (succS (i' < i) n) (succS (j' < j) m) = succS _ (maxima _ _ n m)
+; maxima i j (succS (i' < i) n) (succS (j' < j) m) = succS (max i' j') (maxima i' j' n m)
 }
