@@ -1,11 +1,12 @@
 -- NOTE: insertion of polarity variables disabled here, must be done
 -- in TypeChecker
 
-{-# LANGUAGE TupleSections, DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TupleSections, DeriveFunctor, GeneralizedNewtypeDeriving,
+      FlexibleInstances, UndecidableInstances #-}
 
 module ScopeChecker (scopeCheck) where
 
-import Polarity(Pol(..)) 
+import Polarity(Pol(..))
 import qualified Polarity as A
 import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
 import qualified Abstract as A
@@ -16,6 +17,7 @@ import TraceError
 import Prelude hiding (mapM)
 
 import Control.Applicative -- <$>
+import Control.Monad.IfElse
 import Control.Monad.Identity hiding (mapM)
 import Control.Monad.Reader hiding (mapM)
 import Control.Monad.State hiding (mapM)
@@ -31,7 +33,7 @@ import Util
 
 -- * scope checker
 -- check that all identifiers are in scope and global identifiers are only used once
--- replaces Ident with Con, Def, Let or Var  
+-- replaces Ident with Con, Def, Let or Var
 -- replaces IdentP with ConP or VarP in patterns
 -- replaces Unknown by a new Meta-Variable
 -- check pattern length is equal in each clause
@@ -46,16 +48,32 @@ scopeCheck dl = runScopeCheck initCtx initSt (scopeCheckDecls dl)
 -- ** local environment of scope checker
 
 data SCCxt = SCCxt
-  { context         :: Context  -- ^ local names in scope
-  , defaultPolarity :: Pol      -- ^ replacement for @Default@ polarity.
+  { context           :: Context  -- ^ Local names in scope
+  , defaultPolarity   :: Pol      -- ^ Replacement for @Default@ polarity.
+  , constraintAllowed :: Bool     -- ^ Is a constraint @|m| < |m'|@ legal now, since we just parsed a quantifier?
   }
 
 initCtx :: SCCxt
-initCtx = SCCxt emptyCtx A.Rec -- True -- POL VARS DISABLED!!
+initCtx = SCCxt
+  { context           = emptyCtx
+  , defaultPolarity   = A.Rec -- POL VARS DISABLED!!
+  , constraintAllowed = False
+  }
+
+class LensConstraintAllowed a where
+  mapConstraintAllowed :: (Bool -> Bool) -> a -> a
+  setConstraintAllowed :: Bool -> a -> a
+  setConstraintAllowed b = mapConstraintAllowed (const b)
+
+instance LensConstraintAllowed SCCxt where
+  mapConstraintAllowed f sc = sc { constraintAllowed = f (constraintAllowed sc) }
+
+instance (LensConstraintAllowed r, MonadReader r m) => LensConstraintAllowed (m a) where
+  mapConstraintAllowed f = local (mapConstraintAllowed f)
 
 -- ** translating concrete names to abstract names
 
-type Context = [(C.Name,A.Name)] 
+type Context = [(C.Name,A.Name)]
 
 emptyCtx :: Context
 emptyCtx = []
@@ -85,18 +103,18 @@ addContext delta sc = sc { context = delta ++ context sc }
 -- * Global identifiers.
 
 -- | Kind of identifier.
-data IKind 
-  = DataK 
-  | ConK ConK 
+data IKind
+  = DataK
+  | ConK ConK
   | FunK Bool  -- ^ @False@ = inside body, @True@ = outside body
-  | ProjK      -- ^ a record projection 
+  | ProjK      -- ^ a record projection
   | LetK
 
 -- | Global identifier.
 data DefI = DefI { ikind :: IKind, aname :: A.Name }
 
 -- | Scope check signature.
-type Sig = [(C.Name,DefI)] 
+type Sig = [(C.Name,DefI)]
 
 emptySig :: Sig
 emptySig = []
@@ -107,10 +125,10 @@ lookupSig n ((x,k):xs) = if (x == n) then Just k else lookupSig n xs
 
 -- ** State of scope checker.
 
-data SCState = SCState 
+data SCState = SCState
   { signature  :: Sig
   , nextMeta   :: MVar
-  , nextPolVar :: MVar 
+  , nextPolVar :: MVar
   }
 
 initSt = SCState emptySig 0 0
@@ -122,18 +140,18 @@ initSt = SCState emptySig 0 0
 -- Reader monad for local environment of variables (used in expresssions and patterns).
 -- State monad (hidden) for global signature.
 -- Error monad for reporting scope violations.
-newtype ScopeCheck a = ScopeCheck { unScopeCheck :: 
+newtype ScopeCheck a = ScopeCheck { unScopeCheck ::
   ReaderT SCCxt (StateT SCState (ErrorT TraceError Identity)) a }
-  deriving (Functor, Applicative, Monad, 
+  deriving (Functor, Applicative, Monad,
     MonadReader SCCxt, MonadError TraceError)
 
-runScopeCheck  
+runScopeCheck
   :: SCCxt          -- ^ Local variable mapping.
   -> SCState        -- ^ Global identifier mapping.
-  -> ScopeCheck a   -- ^ The computation. 
+  -> ScopeCheck a   -- ^ The computation.
   -> Either TraceError (a, SCState)
-runScopeCheck ctx st (ScopeCheck sc) = runIdentity $ runErrorT $ 
-  runStateT (runReaderT sc ctx) st 
+runScopeCheck ctx st (ScopeCheck sc) = runIdentity $ runErrorT $
+  runStateT (runReaderT sc ctx) st
 
 -- ** Local state.
 
@@ -141,25 +159,25 @@ runScopeCheck ctx st (ScopeCheck sc) = runIdentity $ runErrorT $
 -- | Add a local identifier.
 addBind :: Show e => e -> C.Name -> ScopeCheck a -> ScopeCheck a
 addBind e n k = do -- checkInSig e n $ do -- NO PROBLEM TO SHADOW SIG!
-  ctx <- asks context 
-  case (lookupCtx n ctx) of 
+  ctx <- asks context
+  case (lookupCtx n ctx) of
     True  -> errorAlreadyInContext e n
     False -> local (addCtxs [n]) k
 -}
--- | Add a local identifier.  
+-- | Add a local identifier.
 --   (Not tail recursive, since it also returns the generate id.)
 addBind' :: Show e => e -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck (A.Name, a)
 addBind' e n k = do
   ctx <- ask
   do
 {-
-  case (lookupCtx n (context ctx)) of              -- TODO: remove no shadowing 
+  case (lookupCtx n (context ctx)) of              -- TODO: remove no shadowing
     Just _  -> errorAlreadyInContext e n
     Nothing -> do
 -}
       let (x, ctx') = addCtx' n ctx
-      a <- local (const ctx') $ k x 
-      return (x, a)                
+      a <- local (const ctx') $ k x
+      return (x, a)
 
 addBind :: Show e => e -> C.Name -> ScopeCheck a -> ScopeCheck (A.Name, a)
 addBind e n k = addBind' e n $ const k
@@ -207,8 +225,8 @@ addName k n = do
 
 -- | Add an already translated global identifier.
 addAName :: IKind -> C.Name -> A.Name -> ScopeCheck ()
-addAName k n x = ScopeCheck $ modify $ \ st -> 
-  st { signature = (n, DefI k x) : signature st }  
+addAName k n x = ScopeCheck $ modify $ \ st ->
+  st { signature = (n, DefI k x) : signature st }
 
 {- UNUSED
 addDecl :: C.Declaration -> ScopeCheck A.Name
@@ -220,7 +238,7 @@ addFunDecl :: Bool -> C.Declaration -> ScopeCheck A.Name
 addFunDecl b (C.FunDecl _ ts _) = addTypeSig (FunK b) ts
 -}
 
-addTypeSig :: IKind -> C.TypeSig -> A.TypeSig -> ScopeCheck () 
+addTypeSig :: IKind -> C.TypeSig -> A.TypeSig -> ScopeCheck ()
 addTypeSig kind (C.TypeSig n _) (A.TypeSig x _) = addAName kind n x
 
 {- UNUSED
@@ -232,7 +250,7 @@ addGlobal d k n = enter n $ do
     Just _  -> errorAlreadyInSignature d n
     Nothing -> addName k n
 -}
-  
+
 -- | Create a meta variable.
 nextMVar :: (MVar -> ScopeCheck a) -> ScopeCheck a
 nextMVar f = ScopeCheck $ do
@@ -259,19 +277,19 @@ insertingPolVars b = local (\ sccxt -> sccxt { insertPolVars = b })
 
 -- | Insert polarity variables for omitted polarities.
 generalizeDec :: A.Dec -> ScopeCheck A.Dec
-generalizeDec dec = 
+generalizeDec dec =
   if (polarity dec == Default) then do
     p0 <- asks defaultPolarity
     case p0 of
-      PVar{} -> nextPVar $ \ i -> 
+      PVar{} -> nextPVar $ \ i ->
                   return $ dec { polarity = PVar i }
       _      -> return $ dec { polarity = p0 }
    else return dec
 
 generalizeTBind :: C.TBind -> ScopeCheck C.TBind
 generalizeTBind tb@C.TMeasure{} = return tb
-generalizeTBind tb = do 
-  dec' <- generalizeDec (C.boundDec tb)  
+generalizeTBind tb = do
+  dec' <- generalizeDec (C.boundDec tb)
   return $ tb { C.boundDec = dec' }
 
 -- | Insert polarity variables in telescope.
@@ -282,8 +300,8 @@ generalizeTel = mapM generalizeTBind
 ----------------------------------------------------------------------
 
 scopeCheckDecls :: [C.Declaration] -> ScopeCheck [A.Declaration]
-scopeCheckDecls = mapM scopeCheckDeclaration 
-                       
+scopeCheckDecls = mapM scopeCheckDeclaration
+
 scopeCheckDeclaration :: C.Declaration -> ScopeCheck A.Declaration
 
 scopeCheckDeclaration (C.OverrideDecl Check ds) = ScopeCheck $ do
@@ -295,7 +313,7 @@ scopeCheckDeclaration (C.OverrideDecl Check ds) = ScopeCheck $ do
 scopeCheckDeclaration (C.OverrideDecl Fail ds) = ScopeCheck $ do
   st <- get
   as <- unScopeCheck $ scopeCheckDecls ds
-               `catchError` (const $ return [])  --on error discard block 
+               `catchError` (const $ return [])  --on error discard block
   put st
   return $ A.OverrideDecl Fail as
 {-
@@ -304,7 +322,7 @@ scopeCheckDeclaration (C.OverrideDecl Fail ds) = do
   (as,st') <- (do as  <- scopeCheckDecls ds
                   st' <- get
                   return (as,st'))
-               `catchError` (const $ return ([],st))  --on error discard block 
+               `catchError` (const $ return ([],st))  --on error discard block
   put st'
   return $ A.OverrideDecl Fail as
 -}
@@ -315,28 +333,28 @@ scopeCheckDeclaration (C.OverrideDecl override ds) = do -- TrustMe,Impredicative
 scopeCheckDeclaration (C.RecordDecl n tel t c fields) =
   scopeCheckRecordDecl n tel t c fields
 
-scopeCheckDeclaration d@(C.DataDecl{}) = 
+scopeCheckDeclaration d@(C.DataDecl{}) =
   scopeCheckDataDecl d -- >>= return . (:[])
 
-scopeCheckDeclaration d@(C.FunDecl co _ _) = 
+scopeCheckDeclaration d@(C.FunDecl co _ _) =
   scopeCheckFunDecls co [d] -- >>= return . (:[])
-                                               
+
 scopeCheckDeclaration (C.LetDecl eval letdef@C.LetDef{ C.letDefDec = dec, C.letDefName = n }) = do
   unless (dec == A.defaultDec) $
     throwErrorMsg $ "polarity annotation not supported in global let definition of " ++ show n
-  (tel, mt, e) <- scopeCheckLetDef letdef 
+  (tel, mt, e) <- scopeCheckLetDef letdef
   x <- addName LetK n
   return $ A.LetDecl eval x tel mt e
 
-{-                                    
-scopeCheckDeclaration (C.LetDecl eval n tel mt e) = setDefaultPolarity A.Rec $ do 
+{-
+scopeCheckDeclaration (C.LetDecl eval n tel mt e) = setDefaultPolarity A.Rec $ do
   tel <- generalizeTel tel
   (tel, (mt, e)) <- scopeCheckTele tel $ do
-     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e 
+     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e
   x <- addName LetK n
   return $ A.LetDecl eval x tel mt e
-                                  
-scopeCheckDeclaration (C.LetDecl eval n tel0 mt0 e0) = setDefaultPolarity A.Rec $ do 
+
+scopeCheckDeclaration (C.LetDecl eval n tel0 mt0 e0) = setDefaultPolarity A.Rec $ do
   tel <- generalizeTel tel0
   let mt = fmap (C.teleToType tel) mt0
       ns = C.teleNames tel
@@ -346,7 +364,7 @@ scopeCheckDeclaration (C.LetDecl eval n tel0 mt0 e0) = setDefaultPolarity A.Rec 
   x <- addName LetK n
   return $ A.LetDecl eval x mt' e'
 
-scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ do 
+scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ do
   tel <- generalizeTel tel0
   let ts = (C.TypeSig n $ C.teleToType tel t)
       ns = C.teleNames tel
@@ -355,8 +373,8 @@ scopeCheckDeclaration (C.LetDecl eval n tel0 t e0) = setDefaultPolarity A.Rec $ 
   e'  <- scopeCheckExpr e
   addTypeSig LetK ts ts'
   return $ A.LetDecl eval ts' e'
-                           
-scopeCheckDeclaration (C.LetDecl eval ts e) = do 
+
+scopeCheckDeclaration (C.LetDecl eval ts e) = do
   ts' <- scopeCheckTypeSig ts
   e'  <- setDefaultPolarity A.Rec $ scopeCheckExpr e
   addTypeSig LetK ts ts'
@@ -364,7 +382,7 @@ scopeCheckDeclaration (C.LetDecl eval ts e) = do
 -}
 
 scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
-  let errorHead = "invalid pattern declaration\n" ++ C.prettyDecl d ++ "\n" 
+  let errorHead = "invalid pattern declaration\n" ++ C.prettyDecl d ++ "\n"
   -- check pattern
   (p, delta) <- runStateT (scopeCheckPattern p) emptyCtx
   p <- local (addContext delta) $ scopeCheckDotPattern p
@@ -373,38 +391,38 @@ scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
     let usedNames = map fst delta
         unusedNames = ns \\ usedNames
         undeclaredNames = usedNames \\ ns
-    when (not (null unusedNames)) $ throwErrorMsg $ 
-      errorHead ++ "unsed variables in pattern: " 
+    when (not (null unusedNames)) $ throwErrorMsg $
+      errorHead ++ "unsed variables in pattern: "
         ++ Util.showList " " id unusedNames
-    when (not (null undeclaredNames)) $ throwErrorMsg $ 
-      errorHead ++ "undeclared variables in pattern: " 
+    when (not (null undeclaredNames)) $ throwErrorMsg $
+      errorHead ++ "undeclared variables in pattern: "
         ++ Util.showList " " id undeclaredNames
   --  when (n `elem` ns) $ throwErrorMsg $ errorHead ++ "pattern"
   x <- addName (ConK DefPat) n
   let xs = map (fromJust . flip lookup delta) ns
   return (A.PatternDecl x xs p)
-    
+
 --  (xs, e) <- addBinds ns $ scopeCheckExpression e
-  
+
 -- we support
 -- - mutual (co)funs
 -- - mutual (co)data
 
 scopeCheckDeclaration (C.MutualDecl []) = throwErrorMsg "empty mutual block"
-scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl{}:xl)) = 
+scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl{}:xl)) =
   scopeCheckMutual l
-scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl  co _ _:xl)) = 
+scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl  co _ _:xl)) =
   scopeCheckFunDecls co l  -- >>= return . (:[])
 scopeCheckDeclaration (C.MutualDecl _) = throwErrorMsg "mutual combination not supported"
 
 scopeCheckLetDef :: C.LetDef -> ScopeCheck (A.Telescope, Maybe (A.Type), A.Expr)
-scopeCheckLetDef (C.LetDef dec n tel mt e) =  setDefaultPolarity A.Rec $ do 
+scopeCheckLetDef (C.LetDef dec n tel mt e) =  setDefaultPolarity A.Rec $ do
   tel <- generalizeTel tel
   (tel, (mt, e)) <- scopeCheckTele tel $ do
-     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e 
+     (,) <$> mapM scopeCheckExpr mt <*> scopeCheckExpr e
   return (tel, mt, e)
 
-{- scopeCheck Mutual block 
+{- scopeCheck Mutual block
 first check signatures
 then bodies
 -}
@@ -426,7 +444,7 @@ scopeCheckMutual ds0 = do
   let funNames = [ n | (FunK _ , A.TypeSig n _) <- ktsigs ] -- internal fun names
 {- SAME W/O COMPR
   let funNames = map (\ (_, C.TypeSig n _) -> n) $ filter aux ktsigs where
-                   aux (FunK _, _) = True 
+                   aux (FunK _, _) = True
                    aux _ = False
 -}
   mapM_ (addName (FunK False)) funNames -- TODO
@@ -447,23 +465,27 @@ scopeCheckTele (tb : tel) cont = do
 
 scopeCheckTBind :: C.TBind -> ScopeCheck a -> ScopeCheck ([A.TBind], a)
 scopeCheckTBind tb cont = do
+  let contYes = setConstraintAllowed True  cont
+      contNo  = setConstraintAllowed False cont
   case tb of
     C.TBind dec [] t -> do -- non-dependent function type
       t       <- scopeCheckExpr t
-      ([A.noBind $ A.Domain t A.defaultKind dec],) <$> cont
+      ([A.noBind $ A.Domain t A.defaultKind dec],) <$> contNo
     C.TBind dec ns t -> do
       t       <- scopeCheckExpr t
-      (xs, a) <- addBinds tb ns $ cont
+      (xs, a) <- addBinds tb ns $ contYes
       return (map (\ x -> A.TBind x (A.Domain t A.defaultKind dec)) xs, a)
     C.TBounded dec n ltle e -> do
       e <- scopeCheckExpr e
-      (x, a) <- addBind tb n $ cont
+      (x, a) <- addBind tb n $ contYes
       return ([A.TBind x (A.Domain (A.Below ltle e) A.defaultKind dec)], a)
     C.TMeasure mu -> do
       mu <- scopeCheckMeasure mu
       ([A.TMeasure mu],) <$> cont
 --    C.TMeasure mu -> throwErrorMsg $ "measure not allowed in telescope"
     C.TBound beta -> do
+      unlessM (asks constraintAllowed) $
+        errorConstraintNotAllowed beta
       beta <- scopeCheckBound beta
       ([A.TBound beta],) <$> cont
 
@@ -472,13 +494,13 @@ checkBody :: (A.TypeSig, C.Declaration) -> ScopeCheck A.Declaration
 checkBody (A.TypeSig n ts, C.LetDecl b _ e) = do
   e' <- scopeCheckExpr e -- problem: n may not appear, but is already in signature !!
 -}
-checkBody (A.TypeSig x tt, C.DataDecl n sz co tel _ cs fields) = 
+checkBody (A.TypeSig x tt, C.DataDecl n sz co tel _ cs fields) =
   checkDataBody tt n x sz co tel cs fields
 checkBody (ts@(A.TypeSig n t), d@(C.FunDecl co tsig cls)) = do
   (ar,cls') <- scopeCheckFunClauses d
   let n' = A.mkExtName n
   return $ A.FunDecl co $ A.Fun ts n' ar cls'
- 
+
 mutualFlattenDecls :: [C.Declaration] -> ScopeCheck [C.Declaration]
 mutualFlattenDecls ds = mapM mutualFlattenDecl ds >>= return . concat
 
@@ -492,28 +514,28 @@ mutualFlattenDecl (C.LetDecl{}) = fail $ "let in mutual block not supported"
 mutualFlattenDecl d = return $ [d]
 
 -- extract type sigs of a mutual block in order, error on nested mutual
-mutualGetTypeSig :: C.Declaration -> (IKind, C.TypeSig)            
-mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) = 
+mutualGetTypeSig :: C.Declaration -> (IKind, C.TypeSig)
+mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) =
   (DataK, C.TypeSig n (C.teleToType tel t))
-mutualGetTypeSig (C.FunDecl co tsig cls) = 
+mutualGetTypeSig (C.FunDecl co tsig cls) =
   (FunK False, tsig) -- fun id for use inside defining body
-mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel Nothing e)) = 
-  error $ "let declaration of " ++ show n ++ ": type required in mutual block"  
-mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel (Just t) e)) = 
+mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel Nothing e)) =
+  error $ "let declaration of " ++ show n ++ ": type required in mutual block"
+mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel (Just t) e)) =
   (LetK, C.TypeSig n (C.teleToType tel t))
-{- mutualGetTypeSig (C.LetDecl ev tsig e) = 
+{- mutualGetTypeSig (C.LetDecl ev tsig e) =
   (LetK, tsig) -}
-mutualGetTypeSig (C.OverrideDecl _ [d]) = 
+mutualGetTypeSig (C.OverrideDecl _ [d]) =
   mutualGetTypeSig d
 
 {-
 -- extract type sigs of a mutual block in order, error on nested mutual
-mutualGetTypeSig :: C.Declaration -> ScopeCheck [(IKind, C.TypeSig)]            
-mutualGetTypeSig (C.DataDecl n sz co tel t cs) = 
+mutualGetTypeSig :: C.Declaration -> ScopeCheck [(IKind, C.TypeSig)]
+mutualGetTypeSig (C.DataDecl n sz co tel t cs) =
   [(DataK, C.TypeSig n (C.teleToType tel t))]
-mutualGetTypeSig (C.FunDecl co tsig cls) = 
+mutualGetTypeSig (C.FunDecl co tsig cls) =
   [(FunK True, tsig)] -- fun id for use outside defining body
-mutualGetTypeSig (C.LetDecl ev tsig e) = 
+mutualGetTypeSig (C.LetDecl ev tsig e) =
   [(LetK, tsig)]
 mutualGetTypeSig (C.MutualDecl _) = fail $ "nested mutual not supported"
 mutualGetTypeSig (C.OverrideDecl Fail _) = fail $ "fail declaration not supported in mutual block"
@@ -535,14 +557,14 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     addAName DataK n x
     let names = collectTelescopeNames tel
         target = C.App (C.Ident n) (map C.Ident names)  -- R pars
-        (tel',t') = A.typeToTele' (length names) tt'   
+        (tel',t') = A.typeToTele' (length names) tt'
     c' <- addTel tel tel' $ scopeCheckConstructor A.CoInd target c
     let delta = contextFromConstructors c c'
     afields <- addFields ProjK delta cfields
 {-
     afields <- mapM (scopeCheckField delta) cfields
 --    let afields = map A.boundName $ fst $ A.typeToTele' (length cfields) at
-    mapM (uncurry $ addAName ProjK) $ zip cfields afields 
+    mapM (uncurry $ addAName ProjK) $ zip cfields afields
 -}
     return $ A.RecordDecl x tel' t' c' afields
 
@@ -567,9 +589,9 @@ scopeCheckField delta n =
     Just x  -> return $ x
 
 addFields :: IKind -> Context -> [C.Name] -> ScopeCheck [A.Name]
-addFields kind delta cfields = do 
+addFields kind delta cfields = do
     afields <- mapM (scopeCheckField delta) cfields
-    mapM (uncurry $ addAName kind) $ zip cfields afields 
+    mapM (uncurry $ addAName kind) $ zip cfields afields
     return afields
 
 scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
@@ -588,7 +610,7 @@ checkDataBody tt' n x sz co tel cs fields = do
           target = C.App (C.Ident n) $ map C.Ident cnames  -- D pars
           (tel',t') = A.typeToTele' (length cnames) tt'
       cs' <- addTel tel tel' (mapM (scopeCheckConstructor co target) cs)
-{- NO LONGER INFER DESTRUCTORS 
+{- NO LONGER INFER DESTRUCTORS
       -- traceM ("constructors: " ++ show cs')
 --      when (t' == A.Sort A.Set && length cs' == 1) $ do
 --      when (length cs' == 1) $ do  -- TOO STRICT, DOES NOT TREAT Vec right
@@ -599,11 +621,11 @@ checkDataBody tt' n x sz co tel cs fields = do
         -- TODO Check for recursive occurrence!
         -- when (A.etaExpandable fields) $
         let destrNames =  A.destructorNames fields
-        --when (not (null (destrNames))) $ 
+        --when (not (null (destrNames))) $
         -- traceM ("fields: " ++ show fields)
-        -- traceM ("destructors: " ++ show destrNames) 
+        -- traceM ("destructors: " ++ show destrNames)
         mapM_ (addName (FunK True)) $ destrNames -- destructors are also upped
- {- 
+ {-
         let (ctel,_) = A.typeToTele (A.typePart (head cs'))
         let destrNames = map (\(_,x,_) -> x) ctel
         when (all (/= "") destrNames) $
@@ -618,7 +640,7 @@ checkDataBody tt' n x sz co tel cs fields = do
       let pos = map (A.polarity . A.decor . A.boundDom) tel'
       return $ A.DataDecl x sz co pos tel' t' cs' fields
 
--- check whether all declarations in mutual block are (co)funs 
+-- check whether all declarations in mutual block are (co)funs
 checkFunMutual :: Co -> [C.Declaration] -> ScopeCheck ()
 checkFunMutual co [] = return ()
 checkFunMutual co (C.FunDecl co' _ _:xl) | co == co' = checkFunMutual co xl
@@ -626,7 +648,7 @@ checkFunMutual _ _ = throwErrorMsg "mutual combination not supported"
 
 scopeCheckFunDecls :: Co -> [C.Declaration] -> ScopeCheck A.Declaration
 scopeCheckFunDecls co l = do
-  -- check for uniformity of mutual block (all funs/all cofuns) 
+  -- check for uniformity of mutual block (all funs/all cofuns)
   checkFunMutual co l
   -- check signatures and look for measures
   r <- mapM (\ (C.FunDecl _ tysig _) -> scopeCheckFunSig tysig) l
@@ -646,58 +668,60 @@ scopeCheckFunDecls co l = do
   mapM (uncurry $ addAName (LetK)) nxs'
 --  mapM (uncurry $ addAName (FunK True)) nxs'
   return $ A.MutualFunDecl (isJust ml) co $
-    zipWith3 (\ ts (_, x') (ar, cls) -> A.Fun ts x' ar cls) tsl' nxs' arcll' 
-  
+    zipWith3 (\ ts (_, x') (ar, cls) -> A.Fun ts x' ar cls) tsl' nxs' arcll'
+
 -- | Does not add name to signature.
-scopeCheckFunSig :: C.TypeSig -> ScopeCheck (Maybe Int, A.TypeSig) 
-scopeCheckFunSig d@(C.TypeSig n t) = checkInSig d n $ \ x -> do 
-    (ml, t') <- scopeCheckFunType t 
+scopeCheckFunSig :: C.TypeSig -> ScopeCheck (Maybe Int, A.TypeSig)
+scopeCheckFunSig d@(C.TypeSig n t) = checkInSig d n $ \ x -> do
+    (ml, t') <- scopeCheckFunType t
     return (ml, A.TypeSig x t')
 
 -- scope check type of mutual function, return length of measure (if present)
 -- a fun type is a telescope followed by (maybe) a measure and a type expression
 scopeCheckFunType :: C.Expr -> ScopeCheck (Maybe Int, A.Expr)
-scopeCheckFunType t = 
+scopeCheckFunType t =
   case t of
 
       -- found a measure: continue normal scope checking
-      C.Quant A.Pi [C.TMeasure mu] e1 -> do 
-        mu' <- scopeCheckMeasure mu 
+      C.Quant A.Pi [C.TMeasure mu] e1 -> do
+        mu' <- scopeCheckMeasure mu
         e1' <- scopeCheckExpr e1
         return (Just $ length (measure mu'), A.pi (A.TMeasure mu') e1')
 
-      C.Quant A.Pi [C.TBound beta] e1 -> do 
+      -- bounds are allowed here, since we check a function type
+      C.Quant A.Pi [C.TBound beta] e1 -> do
         beta'     <- scopeCheckBound beta
         (ml, e1') <- scopeCheckFunType e1
         return (ml, A.pi (A.TBound beta') e1')
 
       C.Quant A.Pi tel e -> do
         tel <- generalizeTel tel
-        (tel, (ml, e)) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ scopeCheckFunType e
+        (tel, (ml, e)) <- setDefaultPolarity A.Rec $ setConstraintAllowed False $
+          scopeCheckTele tel $ setConstraintAllowed True $ scopeCheckFunType e
         ml' <- findMeasure tel
         ml <- case (ml,ml') of
                  (Nothing,ml') -> return ml'
                  (ml, Nothing) -> return ml
                  (Just{}, Just{}) -> errorOnlyOneMeasure
         return (ml, A.teleToType tel e)
-      
+
 {-
-      C.Quant A.Pi (C.TBounded dec n ltle eb) e1 -> do 
+      C.Quant A.Pi (C.TBounded dec n ltle eb) e1 -> do
         eb'            <- setDefaultPolarity A.Rec $ scopeCheckExpr eb
         (n, (ml, e1')) <- addBind t n $ scopeCheckFunType e1 -- t is just for printing an error message
         dec'      <- generalizeDec dec
-        
+
         return (ml, A.pi (A.TBind n $ A.belowDomain dec ltle eb') $ e1')
-      
+
       -- empty list of names in TBind means non-dep fun
-      C.Quant A.Pi (C.TBind dec [] t) e1 -> do 
+      C.Quant A.Pi (C.TBind dec [] t) e1 -> do
         t'        <- setDefaultPolarity A.Rec $ scopeCheckExpr t -- non-dep. function type
         (ml, e1') <- scopeCheckFunType e1
         dec'      <- generalizeDec dec
         return (ml, A.funType (A.Domain t' A.defaultKind dec') e1')
 
       -- interesting cases
-      C.Quant A.Pi (C.TBind dec ns t) e1 -> do 
+      C.Quant A.Pi (C.TBind dec ns t) e1 -> do
         t'              <- setDefaultPolarity A.Rec $ scopeCheckExpr t
         (ns, (ml, e1')) <- addBinds t ns $ scopeCheckFunType e1
         dec'            <- generalizeDec dec
@@ -707,13 +731,13 @@ scopeCheckFunType t =
       t -> (Nothing,) <$> scopeCheckExpr t -- no measure found
 
 findMeasure :: A.Telescope -> ScopeCheck (Maybe Int)
-findMeasure tel = 
+findMeasure tel =
   case [ mu | A.TMeasure mu <- tel ] of
     []           -> return Nothing
     [Measure mu] -> return $ Just $ length mu
     _            -> errorOnlyOneMeasure
 
--- | Check whether concrete name is already in signature.  
+-- | Check whether concrete name is already in signature.
 --   If yes, fail. If no, create abstract name and continue.
 checkInSig :: Show d => d -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck a
 checkInSig d n k = enter n $ do
@@ -722,7 +746,7 @@ checkInSig d n k = enter n $ do
     Just _  -> errorAlreadyInSignature d n
     Nothing -> k (A.fresh n)
 
-scopeCheckFunClauses :: C.Declaration -> ScopeCheck (Arity, [A.Clause]) 
+scopeCheckFunClauses :: C.Declaration -> ScopeCheck (Arity, [A.Clause])
 scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) cl) = enter n $ do
   cl <- mapM (scopeCheckClause (Just n)) cl
   let m = if null cl then 0 else
@@ -731,33 +755,33 @@ scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) cl) = enter n $ do
 {-
        let b = checkPatternLength cl
        case b of
-          Just m  -> return $ (A.Arity m Nothing, cl) 
+          Just m  -> return $ (A.Arity m Nothing, cl)
           Nothing -> throwErrorMsg $ " pattern length differs"
 -}
 
 -- | Check the type of a signature and generate abstract name.
 --   Does not add abstract name to signature.
-scopeCheckTypeSig :: C.TypeSig -> ScopeCheck A.TypeSig 
-scopeCheckTypeSig d@(C.TypeSig n t) = checkInSig d n $ \ x -> do 
-    t' <- scopeCheckExpr t 
-    return $ A.TypeSig x t'         
+scopeCheckTypeSig :: C.TypeSig -> ScopeCheck A.TypeSig
+scopeCheckTypeSig d@(C.TypeSig n t) = checkInSig d n $ \ x -> do
+    t' <- scopeCheckExpr t
+    return $ A.TypeSig x t'
 
 -- | Results:
--- 
+--
 --     @Nothing@            Not a function declaration.
 --
 --     @Just (n, Nothing)@  Unmeasured function.
 --
 --     @Just (n, Just m)@   Function with measure of length m
-checkAndAddTypeSig :: (IKind, C.TypeSig) -> ScopeCheck (Maybe (C.Name, Maybe Int), A.TypeSig) 
+checkAndAddTypeSig :: (IKind, C.TypeSig) -> ScopeCheck (Maybe (C.Name, Maybe Int), A.TypeSig)
 checkAndAddTypeSig (kind, ts@(C.TypeSig n _)) = do
-  (mm, ts'@(A.TypeSig x _)) <- 
+  (mm, ts'@(A.TypeSig x _)) <-
     case kind of
-      FunK _ -> mapPair (Just . (n,)) id <$> scopeCheckFunSig ts 
+      FunK _ -> mapPair (Just . (n,)) id <$> scopeCheckFunSig ts
 {-
-        do 
-        (mi, ts) <- scopeCheckFunSig ts 
-        return (Just mi, ts) 
+        do
+        (mi, ts) <- scopeCheckFunSig ts
+        return (Just mi, ts)
 -}
       _ -> (Nothing,) <$> scopeCheckTypeSig ts
   addAName kind n x  -- or: addTypeSig kind ts ts'
@@ -769,16 +793,16 @@ collectTelescopeNames = concat . map C.boundNames
 scopeCheckConstructor :: Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
 scopeCheckConstructor co t0 a@(C.Constructor n tel mt) = checkInSig a n $ \ x -> do
     let t = maybe t0 id mt
-    t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t 
-    t <- adjustTopDecsM defaultToParam t 
+    t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t
+    t <- adjustTopDecsM defaultToParam t
     addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
 
 {- OLD CODE
 scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
 scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
-    t <- setDefaultPolarity A.Param $ scopeCheckExpr t 
-    t <- adjustTopDecsM defaultToParam t 
+    t <- setDefaultPolarity A.Param $ scopeCheckExpr t
+    t <- adjustTopDecsM defaultToParam t
     addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
 -}
@@ -786,9 +810,9 @@ scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
     do sig <- getSig
        case (lookupSig n sig) of
          Just _ -> errorAlreadyInSignature a n
-         Nothing -> do 
-           t <- setDefaultPolarity A.Param $ scopeCheckExpr t 
-           t <- adjustTopDecsM defaultToParam t 
+         Nothing -> do
+           t <- setDefaultPolarity A.Param $ scopeCheckExpr t
+           t <- adjustTopDecsM defaultToParam t
            addName (ConK co) n
            return $ A.TypeSig n t
 -}
@@ -800,8 +824,11 @@ scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
           _         -> fail $ "illegal polarity " ++ show (polarity dec) ++ " in type of constructor " ++ show a
 
 scopeCheckExpr :: C.Expr -> ScopeCheck A.Expr
-scopeCheckExpr e = 
-    case e of 
+scopeCheckExpr e = setConstraintAllowed False $ scopeCheckExpr' e
+
+scopeCheckExpr' :: C.Expr -> ScopeCheck A.Expr
+scopeCheckExpr' e =
+    case e of
       -- replace underscore by next meta-variable
       C.Unknown -> nextMVar (return . A.Meta)
 {-
@@ -815,11 +842,11 @@ scopeCheckExpr e =
                       return $ A.Succ e1'
       C.Zero -> return A.Zero
       C.Infty -> return A.Infty
-      C.Plus e1 e2 -> do 
+      C.Plus e1 e2 -> do
         e1 <- scopeCheckExpr e1
         e2 <- scopeCheckExpr e2
         return $ A.Plus [e1, e2]
-      C.Pair e1 e2 -> do 
+      C.Pair e1 e2 -> do
         e1 <- scopeCheckExpr e1
         e2 <- scopeCheckExpr e2
         return $ A.Pair e1 e2
@@ -832,7 +859,7 @@ scopeCheckExpr e =
       C.App e1 el -> do e1' <- scopeCheckExpr e1
                         el' <- mapM scopeCheckExpr el
                         return $ foldl A.App e1' el'
-      C.Case e mt cl -> do 
+      C.Case e mt cl -> do
         e'  <- scopeCheckExpr e
         mt' <- mapM scopeCheckExpr mt
         cl' <- mapM (scopeCheckClause Nothing) cl
@@ -842,25 +869,26 @@ scopeCheckExpr e =
       -- measures can only appear in fun sigs!
       C.Quant pisig [C.TMeasure mu] e1 -> do
         fail $ "measure not allowed in expression " ++ show e
-{- 
-        mu' <- scopeCheckMeasure mu 
+{-
+        mu' <- scopeCheckMeasure mu
         e1' <- scopeCheckExpr e1
         return $ A.pi (A.TMeasure mu') e1'
 -}
       -- measure bound mu < mu'
-      C.Quant A.Pi [C.TBound beta] e1 -> do 
+      C.Quant A.Pi [C.TBound beta] e1 -> do
+        unlessM (asks constraintAllowed) $ errorConstraintNotAllowed beta
         beta' <- scopeCheckBound beta
-        e1'   <- scopeCheckExpr e1
+        e1'   <- scopeCheckExpr' e1
         return $ A.pi (A.TBound beta') e1'
 
-      C.Quant A.Sigma [C.TBound beta] e1 -> fail $ 
+      C.Quant A.Sigma [C.TBound beta] e1 -> fail $
         "measure bound not allowed in expression " ++ show e
-      
+
       C.Quant pisig tel e -> do
         tel <- generalizeTel tel
         pol <- asks defaultPolarity
-        (tel, e) <- setDefaultPolarity A.Rec $ scopeCheckTele tel $ do
-                      setDefaultPolarity pol $ scopeCheckExpr e
+        (tel, e) <- setDefaultPolarity A.Rec $ setConstraintAllowed False $ scopeCheckTele tel $
+           setDefaultPolarity pol $ scopeCheckExpr' e
         return $ quant pisig tel e where
 --          quant A.Sigma [tb] = A.Quant A.Sigma tb
           quant A.Sigma tel e = foldr (A.Quant A.Sigma) e tel
@@ -868,30 +896,30 @@ scopeCheckExpr e =
 
 {-
       -- bounded quantification
-      C.Quant pisig (C.TBounded dec n ltle eb) e1 -> do 
+      C.Quant pisig (C.TBounded dec n ltle eb) e1 -> do
         eb'      <- setDefaultPolarity A.Rec $ scopeCheckExpr eb
         (n, e1') <- addBind e n $ scopeCheckExpr e1 -- e is just for printing an error message
         dec'  <- generalizeDec dec
         return $ A.Quant pisig (A.TBind n $ A.belowDomain dec ltle eb') e1'
-      
+
       -- empty list of names in TBind means non-dep fun
-      C.Quant pisig (C.TBind dec [] t) e1 -> do 
+      C.Quant pisig (C.TBind dec [] t) e1 -> do
         t'   <- setDefaultPolarity A.Rec $ scopeCheckExpr t -- non-dep. function type
         e1'  <- scopeCheckExpr e1
         dec' <- generalizeDec dec
         return $ A.Quant pisig (A.noBind $ A.Domain t' A.defaultKind dec') e1'
 
       -- interesting cases
-      C.Quant pisig (C.TBind dec ns t) e1 -> do 
+      C.Quant pisig (C.TBind dec ns t) e1 -> do
         t'        <-  setDefaultPolarity A.Rec $ scopeCheckExpr t
         (ns, e1') <- addBinds e ns $ scopeCheckExpr e1
         dec'      <- generalizeDec dec
         return $ foldr (\ n e -> A.Quant pisig (A.TBind n $ A.Domain t' A.defaultKind dec') e) e1' ns
 -}
 
-      C.Lam n e1 -> do 
+      C.Lam n e1 -> do
         (n, e1') <- addBind e n $ scopeCheckExpr e1
-        return $ A.Lam A.defaultDec n e1' -- dec. in Lam is ignored in t.c. 
+        return $ A.Lam A.defaultDec n e1' -- dec. in Lam is ignored in t.c.
 
       C.LLet letdef e2 -> do
         let dec = C.letDefDec letdef
@@ -914,26 +942,26 @@ scopeCheckExpr e =
 
       C.Proj n -> A.Proj Post <$> scopeCheckProj n
 {-
-      C.Proj n -> ifM (isProjIdent n) 
-                    (return $ A.Proj n) 
+      C.Proj n -> ifM (isProjIdent n)
+                    (return $ A.Proj n)
                     (errorUnknownProjection n)
 -}
-      C.Ident n -> do 
+      C.Ident n -> do
         ctx <- asks context
-        sig <- getSig 
+        sig <- getSig
         case (lookupCtx n ctx) of
           Just n -> return $ A.Var n
           Nothing -> case (lookupSig n sig) of
              Just (DefI k x) -> case k of
                (ConK co)  -> return $ A.con co x
                LetK       -> return $ A.letdef x
-               -- references to recursive functions are coded differently 
+               -- references to recursive functions are coded differently
                -- outside the mutual block
                FunK True  -> return $ A.fun x -- A.letdef x -- A.mkExtRef x
                FunK False -> return $ A.fun x
-               DataK      -> return $ A.dat x  
+               DataK      -> return $ A.dat x
                ProjK      -> return $ A.Proj A.Pre x -- errorProjectionUsedAsExpression n
-             Nothing -> errorIdentifierUndefined n 
+             Nothing -> errorIdentifierUndefined n
       _ -> fail $ "NYI: scopeCheckExpr " ++ show e
 
 scopeCheckLocalVar :: C.Name -> ScopeCheck A.Name
@@ -941,7 +969,7 @@ scopeCheckLocalVar n = do
   ctx <- asks context
   case (lookupCtx n ctx) of
     Just n -> return n
-    Nothing -> errorIdentifierUndefined n 
+    Nothing -> errorIdentifierUndefined n
 
 scopeCheckRecordLine :: ([C.Name], C.Expr) -> ScopeCheck (A.Name, A.Expr)
 scopeCheckRecordLine (n : ns, e) = do
@@ -976,12 +1004,12 @@ isProjIdent n = do
 isProjection :: C.Expr -> ScopeCheck (Maybe A.Name)
 isProjection (C.Ident n) = isProjIdent n
 isProjection _           = return Nothing
-    
+
 scopeCheckMeasure :: A.Measure C.Expr -> ScopeCheck (A.Measure A.Expr)
 scopeCheckMeasure (A.Measure es) = do
   es' <- mapM scopeCheckExpr es
   return $ A.Measure es'
-    
+
 scopeCheckBound :: A.Bound C.Expr -> ScopeCheck (A.Bound A.Expr)
 scopeCheckBound (A.Bound ltle e1 e2) = do
   [e1',e2'] <- mapM scopeCheckMeasure [e1,e2]
@@ -1011,7 +1039,7 @@ scopeCheckClause mname' (C.Clause mname pl mrhs) = do
   when (mname /= mname') $ errorClauseIdentifier mname mname'
   pl' <- mapM scopeCheckPattern pl
   names <- collectVarPNames pl'
-  pl'' <- local (addCtxs names) (zipWithM scopeCheckDotPattern pl pl') 
+  pl'' <- local (addCtxs names) (zipWithM scopeCheckDotPattern pl pl')
   case mrhs of
     Nothing -> return $ A.clause pl'' Nothing
     Just rhs -> do
@@ -1029,14 +1057,14 @@ collectVarPNames pl = cvp pl [] where
                        A.ConP _ n pl2 -> cvp (pl2++pl) acc
                        A.PairP p1 p2 -> cvp (p1:p2:pl) acc
                        A.VarP "" -> cvp pl acc -- will be dot pattern
-                       A.VarP n ->  if (elem n acc) then 
+                       A.VarP n ->  if (elem n acc) then
                                       errorPatternNotLinear n
-                                    else 
+                                    else
                                         cvp pl (n:acc)
-                       A.SizeP m n ->  
-                                    if (elem n acc) then 
+                       A.SizeP m n ->
+                                    if (elem n acc) then
                                       errorPatternNotLinear n
-                                    else 
+                                    else
                                         cvp pl (n:acc)
 -}
 
@@ -1044,19 +1072,19 @@ type PatCtx = Context
 type SPS = StateT PatCtx ScopeCheck
 
 scopeCheckPattern :: C.Pattern -> SPS (A.Pat C.Name C.Expr)
-scopeCheckPattern p = 
+scopeCheckPattern p =
   case p of
 
     -- case n
-    C.IdentP n -> do 
+    C.IdentP n -> do
       sig <- lift $ getSig
       case lookupSig n sig of
-        Just (DefI (ConK co) n) -> return $ A.ConP (A.PatternInfo co False) n [] 
+        Just (DefI (ConK co) n) -> return $ A.ConP (A.PatternInfo co False) n []
                              -- a nullary constructor
         Just _  -> errorPatternNotConstructor n
         Nothing -> A.VarP <$> addUnique n
- 
-    -- case (i > j):  
+
+    -- case (i > j):
     C.SizeP m n -> do
       -- m   <- lift $ scopeCheckLocalVar m
       A.SizeP m <$> addUnique n
@@ -1068,17 +1096,17 @@ scopeCheckPattern p =
     C.PairP p1 p2 -> A.PairP <$> scopeCheckPattern p1 <*> scopeCheckPattern p2
 
     -- case c ps
-    C.ConP  n pl -> do 
+    C.ConP  n pl -> do
       sig <- lift $ getSig
       case lookupSig n sig of
-        Just (DefI (ConK co) n) -> 
-          A.ConP (A.PatternInfo co False) n <$> mapM scopeCheckPattern pl  
-        _  -> errorPatternNotConstructor n 
+        Just (DefI (ConK co) n) ->
+          A.ConP (A.PatternInfo co False) n <$> mapM scopeCheckPattern pl
+        _  -> errorPatternNotConstructor n
 
     -- case .e
     C.DotP e  -> do
       isProj <- lift $ isProjection e
-      case isProj of 
+      case isProj of
        Just n  -> return $ A.ProjP n
        Nothing -> return $ A.DotP e -- dot patterns checked later
 
@@ -1086,7 +1114,7 @@ scopeCheckPattern p =
     C.AbsurdP -> return $ A.AbsurdP
 
   where
-    -- add to pattern context 
+    -- add to pattern context
     addUnique :: C.Name -> SPS A.Name
     addUnique n = do
       delta <- get
@@ -1096,30 +1124,30 @@ scopeCheckPattern p =
           let (x, delta') = insertCtx n delta
           put delta'
           return x
-  
+
 scopeCheckDotPattern :: A.Pat C.Name C.Expr -> ScopeCheck A.Pattern
-scopeCheckDotPattern p = 
-    case p of 
+scopeCheckDotPattern p =
+    case p of
       A.DotP e -> A.DotP <$> scopeCheckExpr e
       A.PairP p1 p2 -> A.PairP <$> scopeCheckDotPattern p1 <*>  scopeCheckDotPattern p2
       A.SuccP p -> A.SuccP <$> scopeCheckDotPattern p
       A.ConP co n pl -> A.ConP co n <$> mapM scopeCheckDotPattern pl
 --      A.SizeP m n -> flip A.SizeP n <$> scopeCheckLocalVar m -- return $ A.SizeP m n
       A.SizeP e n    -> flip A.SizeP n <$> scopeCheckExpr e
-      A.VarP n       -> return $ A.VarP n  -- even though p = A.VarP n, it has wront type!!
+      A.VarP n       -> return $ A.VarP n  -- even though p = A.VarP n, it has wrong type!!
       A.ProjP n      -> return $ A.ProjP n
       A.AbsurdP      -> return $ A.AbsurdP
       -- impossible cases: ErasedP, UnusableP
 
 
 
-{-          
+{-
 type ForbiddenVars = [C.Name]
 
 
 
-scopeCheckPattern :: 
-     ForbiddenVars                -- ^ names already seen (for linearity check) 
+scopeCheckPattern ::
+     ForbiddenVars                -- ^ names already seen (for linearity check)
   -> C.Pattern                    -- ^ the pattern to check
   -> (ForbiddenVars -> A.Pattern -> ScopeCheck a)  -- ^ the continuation
   -> ScopeCheck a
@@ -1130,43 +1158,43 @@ scopeCheckPattern forbidden p k =
   case p of
 
     -- case n
-    C.IdentP n -> do 
+    C.IdentP n -> do
       sig <- getSig
       case lookupSig n sig of
-        Just (ConK co) -> k forbidden $ A.ConP (A.PatternInfo co False) n [] 
+        Just (ConK co) -> k forbidden $ A.ConP (A.PatternInfo co False) n []
                              -- a nullary constructor
         Just _  -> errorPatternNotConstructor n
         Nothing -> contVar n A.VarP
- 
-    -- case (i > j):  
+
+    -- case (i > j):
     C.SizeP m n -> do
       m   <- scopeCheckLocalVar m
       contVar n $ A.SizeP m
 
-    C.SuccP p2 -> scopeCheckPattern forbidden p2 $  
+    C.SuccP p2 -> scopeCheckPattern forbidden p2 $
                      return $ A.SuccP p2'
-    C.PairP p1 p2 -> do 
+    C.PairP p1 p2 -> do
       p1' <- scopeCheckPattern p1
       p2' <- scopeCheckPattern p2
       return $ A.PairP p1' p2'
     C.ConP n pl -> do sig <- getSig
                       case (lookupSig n sig) of
                         Just (ConK co) -> do
-                            pl' <- mapM scopeCheckPattern pl 
+                            pl' <- mapM scopeCheckPattern pl
                             return $ A.ConP pi n pl' where
                               pi = A.PatternInfo co False
-                        Just _ -> errorPatternNotConstructor n 
-                        Nothing -> errorPatternNotConstructor n 
+                        Just _ -> errorPatternNotConstructor n
+                        Nothing -> errorPatternNotConstructor n
     C.DotP e  -> do
       isProj <- isProjection e
-      case isProj of 
+      case isProj of
        Just n  -> return $ A.ProjP n
        Nothing -> return $ A.VarP "" -- dot patterns checked later
     C.AbsurdP -> return $ A.AbsurdP
 -}
 {-
 scopeCheckPattern :: C.Pattern -> ScopeCheck A.Pattern
-scopeCheckPattern p = 
+scopeCheckPattern p =
     case p of
       C.IdentP n -> do sig <- getSig
                        ctx <- asks context
@@ -1184,31 +1212,31 @@ scopeCheckPattern p =
                          Nothing -> return $ A.SizeP m n
       C.SuccP p2 -> do p2' <- scopeCheckPattern p2
                        return $ A.SuccP p2'
-      C.PairP p1 p2 -> do 
+      C.PairP p1 p2 -> do
         p1' <- scopeCheckPattern p1
         p2' <- scopeCheckPattern p2
         return $ A.PairP p1' p2'
       C.ConP n pl -> do sig <- getSig
                         case (lookupSig n sig) of
                           Just (ConK co) -> do
-                              pl' <- mapM scopeCheckPattern pl 
+                              pl' <- mapM scopeCheckPattern pl
                               return $ A.ConP pi n pl' where
                                 pi = A.PatternInfo co False
-                          Just _ -> errorPatternNotConstructor n 
-                          Nothing -> errorPatternNotConstructor n 
+                          Just _ -> errorPatternNotConstructor n
+                          Nothing -> errorPatternNotConstructor n
       C.DotP e  -> do
         isProj <- isProjection e
-        case isProj of 
+        case isProj of
          Just n  -> return $ A.ProjP n
          Nothing -> return $ A.VarP "" -- dot patterns checked later
       C.AbsurdP -> return $ A.AbsurdP
-    
+
 -- scopeCheckDotPattern cp ap
 -- ap is the pattern produced from cp by scopeCheckPattern
 -- ap = scopeCheckPattern cp
 scopeCheckDotPattern :: C.Pattern -> A.Pattern -> ScopeCheck A.Pattern
-scopeCheckDotPattern p1 p2 = 
-    case p1 of 
+scopeCheckDotPattern p1 p2 =
+    case p1 of
       C.SizeP m n -> do cxt <- asks context
                         when (not $ lookupCtx m cxt) $
                           errorIdentifierUndefined m
@@ -1219,7 +1247,7 @@ scopeCheckDotPattern p1 p2 =
       C.SuccP p1' -> do let (A.SuccP p2') = p2
                         p2'' <- scopeCheckDotPattern p1' p2'
                         return $ A.SuccP p2''
-      (C.ConP _ pl) -> 
+      (C.ConP _ pl) ->
             do let (A.ConP co n pl') = p2
                pl'' <- zipWithM scopeCheckDotPattern pl pl'
                return $ A.ConP co n pl''
@@ -1246,8 +1274,11 @@ errorProjectionUsedAsExpression n = throwErrorMsg $ "projection " ++ n ++ " used
 
 errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ n ++ " undefined"
 
-errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ n 
+errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ n
 
 errorClauseIdentifier (Just n) (Just n') = throwErrorMsg $ "Expected identifier " ++ show n' ++ " as clause head, found " ++ show n
 
 errorOnlyOneMeasure = throwErrorMsg "only one measure allowed in a function type"
+
+errorConstraintNotAllowed beta = throwErrorMsg $
+  show beta ++ ": constraints must follow a quantifier"

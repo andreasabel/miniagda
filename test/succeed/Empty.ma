@@ -12,7 +12,7 @@ let toEmp [A, B : Set] (x : A -> B) : Empty -> B = x
 data Unit { unit }
 
 let abort3 (x : Empty) : Unit = x
-let abort4 (x : Empty) : |0| < |0| -> Unit = x
+-- let abort4 (x : Empty) : |0| < |0| -> Unit = x -- constraint disallowed here
 let abort5 (x : Empty) : [i < 0] -> Unit = x
 
 -- unit type as the biggest type

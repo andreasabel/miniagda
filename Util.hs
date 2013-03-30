@@ -69,6 +69,14 @@ mapMapM f = Map.foldrWithKey step (return $ Map.empty)
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM c d e = do { b <- c ; if b then d else e }
 
+{- Control.Monad.IfElse
+whenM :: Monad m => m Bool -> m () -> m ()
+whenM c d = do { b <- c; if b then d else return () }
+
+unlessM :: Monad m => m Bool -> m () -> m ()
+unlessM c e = do { b <- c; if b then return () else e }
+-}
+
 andLazy :: Monad m => m Bool -> m Bool -> m Bool
 andLazy ma mb = ifM ma mb $ return False
 
