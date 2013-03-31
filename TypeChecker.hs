@@ -1114,6 +1114,15 @@ checkApp :: Expr -> TVal -> TypeCheck (Kinded (Name, Extr), TVal)
 checkApp e2 v = do
   v <- force v -- if v is a corecursively defined type in Set, unfold!
   case v of
+    VQuant Pi x dom@(Domain av@(VBelow Lt VInfty) _ dec) env b -> do
+      upperSemi <- newWithGen x dom $ \ i xv -> do
+        bv <- whnf (update env x xv) b
+        upperSemiCont i bv
+      continue $ if upperSemi then VQuant Pi x dom{ typ = VBelow Le VInfty} env b
+                 else v
+    _ -> continue v
+ where
+  continue v = case v of
     VQuant Pi x (Domain av _ dec) env b -> do
        (ki, v2, e2e) <- do
          if inferable e2 then do
@@ -2599,22 +2608,82 @@ evalPat p =
 -}
 
 
--- | endsInSizedCo i tv = True  if  tv = Gamma -> D pars i indexes
+
+
+{- 2013-03-31 On instantiation of quantifiers [i < #] - F i
+
+If F is upper semi-continuous then
+
+  [i < #] -> F i   is a sub"set" of   F #
+
+so we can instantiate i to #.  (Hughes et al., POPL 96; Abel, LMCS 08)
+
+1) Consider the special case
+
+  F i = [j < i] -> G i
+
+Because # is a limit, thus, j < i < #  iff j < #, we reason:
+
+  F # = [j < #] -> G j
+
+  [i < #] -> F i
+      = [i < #] -> [j < i] -> G j  (since # is a limit)
+      = [j < #] -> G j
+
+2) Consider the special case
+
+  F i = [j <= i] -> G j
+
+We have
+
+  F # = [j <= #] -> G j
+      = G # /\ ([j < #] -> G j)
+
+  [i < #] -> F i
+      = [i < #] -> [j <= i] -> G j
+      = [j < #] -> G j
+
+So if G is upper semi-continuous, so is F.
+
+-}
+
+-- | Check whether a type is upper semi-continuous.
+upperSemiCont :: Int -> TVal -> TypeCheck Bool
+upperSemiCont i tv = errorToBool $ endsInSizedCo' False i tv
+  -- 2013-03-30
+  -- endsInSizedCo needs tv[0/i] = Top
+  -- upperSemiCont does not need this, the target can also be constant in i
+
+-- | @endsInSizedCo i tv@ checks that @tv@ is lower semi-continuous in @i@
+--   and that @tv[0/i] = Top@.
 endsInSizedCo :: Int -> TVal -> TypeCheck ()
-endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
-   let fail1 = failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a CoSet or codata of size" <+> prettyTCM (VGen i) <+> text "nor a tuple type"
+endsInSizedCo = endsInSizedCo' True
+
+-- | @endsInSizedCo' False i tv@ checks that @tv@ is lower semi-continuous in @i@.
+--   @endsInSizedCo' True i tv@ additionally checks that @tv[0/i] = Top@.
+endsInSizedCo' :: Bool -> Int -> TVal -> TypeCheck ()
+endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
+   let fallback
+         | endInCo = failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a CoSet or codata of size" <+> prettyTCM (VGen i) <+> text "nor a tuple type"
+         | otherwise = szMonotone i tv
    case tv of
       VSort (CoSet (VGen i)) -> return ()
-      VMeasured mu bv -> endsInSizedCo i bv
+      VMeasured mu bv -> endsInSizedCo' endInCo i bv
 
       -- case forall j <= i. C j coinductive in i
       VGuard (Bound Le (Measure [VGen j]) (Measure [VGen i'])) bv | i == i' ->
-        endsInSizedCo j bv
+        endsInSizedCo' endInCo j bv
+      -- same case again, written as j < i+1. C j
       VGuard (Bound Lt (Measure [VGen j]) (Measure [VSucc (VGen i')])) bv | i == i' ->
-        endsInSizedCo j bv
+        endsInSizedCo' endInCo j bv
+
       -- case forall j < i. C j:  already coinductive in i !!
+      -- Trivially, forall j < 0. C j is the top type.
+      -- And, forall i < # forall j < i  is equivalent to forall j < #
+      -- so we can instantiate i to #.
       VGuard (Bound Lt (Measure [VGen j]) (Measure [VGen i'])) bv | i == i' ->
         return ()
+      VQuant Pi x dom@Domain{ typ = VBelow Lt (VGen i') } env b | i == i' -> return ()
 
       VQuant Pi x dom env b -> new x dom $ \ gen -> do
          let av = typ dom
@@ -2625,15 +2694,15 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
             (text "type" <+> prettyTCM av <+> text "not lower semi continuous in" <+> prettyTCM (VGen i))
 
          bv <- whnf (update env x gen) b
-         endsInSizedCo i bv
-      VSing _ tv -> endsInSizedCo i =<< whnfClos tv
+         endsInSizedCo' endInCo i bv
+      VSing _ tv -> endsInSizedCo' endInCo i =<< whnfClos tv
       VApp (VDef (DefId DatK n)) vl -> do
          sige <- lookupSymb n
          case sige of
             DataSig { numPars = np, isSized = Sized, isCo = CoInd }
               | length vl > np -> do
                  v <- whnfClos $ vl !! np
-                 if isVGeni v then return () else fail1
+                 if isVGeni v then return () else fallback
                    where isVGeni (VGen i) = True
                          isVGeni (VPlus vs) = and $ map isVGeni vs
                          isVGeni (VMax vs)  = and $ map isVGeni vs
@@ -2649,22 +2718,21 @@ endsInSizedCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
 -}
 -- we also allow the target to be a tuple if all of its components
 -- fulfill "endsInSizedCo"
-            DataSig { symbTyp = dv, numPars = np, isSized = sz,
-                      constructors = cis, isTuple = True } -> do
+            DataSig { symbTyp = dv, constructors = cis, isTuple = True } -> do
               -- match target of constructor against tv to instantiate
               --  c : ... -> D ps  -- ps = snd (cPatFam ci)
               mrhoci <- Util.firstJustM $ map (\ ci -> fmap (,ci) <$> nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv) cis
               case mrhoci of
                 Nothing -> failDoc $ text "endsInSizedCo: panic: target type" <+> prettyTCM tv <+> text "is not an instance of any constructor"
                 Just (rho,ci) -> enter ("endsInSizedCo: detected tuple target, checking components") $
-                  fieldsEndInSizedCo i (cFields ci) rho
-            _ -> fail1
-      _ -> fail1
+                  fieldsEndInSizedCo endInCo i (cFields ci) rho
+            _ -> fallback
+      _ -> fallback
 {- failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a function type nor a codata nor a tuple type"
 -}
 
-fieldsEndInSizedCo :: Int -> [FieldInfo] -> Env -> TypeCheck ()
-fieldsEndInSizedCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of tuple type " ++ show fis ++ " in environment " ++ show rho0) $
+fieldsEndInSizedCo :: Bool -> Int -> [FieldInfo] -> Env -> TypeCheck ()
+fieldsEndInSizedCo endInCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of tuple type " ++ show fis ++ " in environment " ++ show rho0) $
   loop fis rho0 where
     loop [] rho = return ()
     -- nothing to check for erased index fields
@@ -2672,11 +2740,11 @@ fieldsEndInSizedCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of t
       loop fs rho
     loop (f : fs) rho | fClass f == Index = do
       tv <- whnf rho (fType f)
-      endsInSizedCo i tv
+      endsInSizedCo' endInCo i tv
       loop fs rho
     loop (f : fs) rho = do
       tv <- whnf rho (fType f)
-      when (not $ erased (fDec f)) $ endsInSizedCo i tv
+      when (not $ erased (fDec f)) $ endsInSizedCo' endInCo i tv
       -- for non-index fields, value is not given by matching, so introduce
       -- generic value
       new (fName f) (Domain tv defaultKind (fDec f)) $ \ xv -> do
@@ -2685,25 +2753,6 @@ fieldsEndInSizedCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of t
         loop fs rho'
 
 
-
-{-
--- | endsInSizedCo v tv = True  if  tv = Gamma -> D pars v' indexes
--- for v = v' : Size
-endsInSizedCo :: Val -> TVal -> TypeCheck Bool
-endsInSizedCo v tv  = -- traceCheck ("endsInCo: " ++ show tv) $
-   case tv of
-      VPi dec x av env b -> new x (Domain av dec) $ \ gen -> do
-         bv <- whnf (update env x gen) b
-         endsInSizedCo v bv
-      VApp (VDef (DefId Dat n)) vl -> do
-         sig <- gets signature
-         case (lookupSig n sig) of
-            DataSig { numPars = np, isSized = Sized, isCo = CoInd }
-              | length vl > np ->
-                 eqValBool vSize (vl !! np) v
-            _ -> return False
-      _ -> return False
--}
 
 endsInCo :: TVal -> TypeCheck Bool
 endsInCo tv  = -- traceCheck ("endsInCo: " ++ show tv) $
