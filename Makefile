@@ -13,7 +13,7 @@ distdirs=test/succeed test/fail examples
 
 cabalp=cabal install -p --enable-executable-profiling
 
-.PHONY : test examples lib current default all clean veryclean
+.PHONY : test succeed fail examples lib current default all clean veryclean
 
 default : Main test
 all : Main test examples lib
@@ -75,11 +75,15 @@ Lexer.hs : Lexer.x
 %arser.hs : %arser.y Lexer.hs
 	happy --info=$<-grm.txt $<
 
-test : Main         
+test : Main succeed fail
+
+succeed : 
 	@echo "======================================================================"
 	@echo "===================== Suite of successfull tests ====================="
 	@echo "======================================================================"
 	make -C test/succeed
+
+fail : 
 	@echo "======================================================================"
 	@echo "======================= Suite of failing tests ======================="
 	@echo "======================================================================"
