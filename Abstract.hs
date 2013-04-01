@@ -1,7 +1,7 @@
 -- Some optimizations (-O) destroy the expected behavior of unsafePerformIO
 -- So, special options are needed, plus NOINLINE for the affected functions.
 {-# OPTIONS -fno-cse -fno-full-laziness #-}
-  
+
 {-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving, TypeSynonymInstances,
       DeriveFunctor, DeriveFoldable, DeriveTraversable, NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -39,14 +39,14 @@ import {-# SOURCE #-} Value (TeleVal)
 -- * Names carry a name suggestion and a unique identifier
 
 -- | Each Name is classified as "User", "EtaAlias", or "Quote".
-data WhatName 
-  = UserName 
-  | EtaAliasName -- ^ a name for the eta-expanded name of a definition 
+data WhatName
+  = UserName
+  | EtaAliasName -- ^ a name for the eta-expanded name of a definition
   | QuoteName
     deriving (Eq, Ord, Show)
 
-data Name = Name 
-  { suggestion :: String    -- ^ suggestion for printing the name. 
+data Name = Name
+  { suggestion :: String    -- ^ suggestion for printing the name.
   , what       :: WhatName
   , uid        :: Unique -- !Unique
   }
@@ -62,7 +62,7 @@ instance Show Name where
   show (Name n _ u) = n -- n ++ "`" ++ show (hashUnique u `mod` 13)
 
 -- | @fresh s@ generates a new name with 'suggestion' @s@.
---   
+--
 --   To a void a monad here, we use imperative features (@unsafePerformIO@).
 fresh :: String -> Name
 fresh n = Name n UserName $ unsafePerformIO newUnique
@@ -106,17 +106,17 @@ internal n = freshen n
 -- internal names are prefixed by a double underscore (not legal concrete syntax)
 
 -- | Convert a dot pattern into an identifier which should not look too confusing.
-spaceToUnderscore = List.map (\ c -> if c==' ' then '_' else c) 
+spaceToUnderscore = List.map (\ c -> if c==' ' then '_' else c)
 {-
 exprToName e = spaceToUnderscore $ show e
 patToName p  = spaceToUnderscore $ show p
 -}
 
 
-data Sized = Sized | NotSized 
+data Sized = Sized | NotSized
              deriving (Eq,Ord,Show)
 
-data Co = Ind 
+data Co = Ind
         | CoInd
           deriving (Eq,Ord,Show)
 
@@ -170,7 +170,7 @@ compDec dec udec = compose (fmap pprod dec) udec
 
 {-
 instance Show pos => Show (Decoration pos) where
-    show p = 
+    show p =
       (if erased p then Util.brackets else Util.parens) $ show $ polarity p
 -}
 
@@ -194,8 +194,8 @@ resurrectDec d = d { erased = False }
 -- inverse composition of decoration, used when type checking arguments
 -- of functions decorated with dec
 invCompDec :: Dec -> Dec -> Dec
-invCompDec (Dec er pol) (Dec er' pol') = Dec 
-  (if er then False else er') 
+invCompDec (Dec er pol) (Dec er' pol') = Dec
+  (if er then False else er')
   (invComp pol pol')
 -}
 
@@ -203,12 +203,12 @@ invCompDec (Dec er pol) (Dec er' pol') = Dec
 -- composition of decoration, used when type checking arguments
 -- of functions decorated with dec
 compDec :: Dec -> UDec -> UDec
-compDec (Dec er pol) (Dec er' pol') = Dec 
-  (er || er')      -- erasing once is sufficient 
+compDec (Dec er pol) (Dec er' pol') = Dec
+  (er || er')      -- erasing once is sufficient
   (polProd (pprod pol) pol')
 
 instance Show pos => Show (Decoration pos) where
-    show (Dec erased polarity) = 
+    show (Dec erased polarity) =
       (if erased then Util.brackets else Util.parens) $ show polarity
 -}
 
@@ -245,13 +245,13 @@ maxSizeE e1 e2 = Max [e1, e2]
 flattenMax :: Expr -> [Expr] -> [Expr]
 flattenMax Infty          acc = [Infty]
 flattenMax Zero           acc = acc
-flattenMax (Max [])       acc = acc 
-flattenMax (Max (e : es)) acc = flattenMax e $ flattenMax (Max es) acc 
+flattenMax (Max [])       acc = acc
+flattenMax (Max (e : es)) acc = flattenMax e $ flattenMax (Max es) acc
 flattenMax e              acc = e : acc
 
 -- smart constructor for MAX
 maxE :: [Expr] -> Expr
-maxE es = Max $ foldr flattenMax [] es 
+maxE es = Max $ foldr flattenMax [] es
 
 sizeVarsToInfty :: Expr -> Expr
 sizeVarsToInfty Zero = Zero
@@ -277,7 +277,7 @@ data Class
   | TSize   -- sort of Size
   -- | Type    -- no longer used
     deriving (Eq, Ord, Show)
-             
+
 predClass :: Class -> Class
 -- predClass Ty    = Tm
 predClass TSize = Size
@@ -285,7 +285,7 @@ predClass Tm    = Tm
 predClass Size  = Size
 
 data Sort a
-  = SortC Class -- sort constant (Size, TSize) 
+  = SortC Class -- sort constant (Size, TSize)
   | Set a       -- Set 0 = CoSet #, Set 1 = Type 1, Set 2 = Type 2, ...
   | CoSet a     -- sized version of Set
     deriving (Eq, Ord, Functor, Foldable, Traversable)
@@ -324,7 +324,7 @@ predSort (Set Zero)     = SortC Tm
 predSort (Set (Succ e)) = Set e
 predSort (Set Infty)    = Set Infty
 predSort s@(Set Var{})  = s
-predSort s = error $ "internal error: predSort " ++ show s    
+predSort s = error $ "internal error: predSort " ++ show s
 
 -- only for sorts appearing in kinds:
 
@@ -368,7 +368,7 @@ maxSort s s' = error $ "maxSort (" ++ show s ++ ") (" ++ show s' ++ ") not imple
 leSort :: Sort -> Sort -> Bool
 leSort _ Type = True
 leSort Type _ = False
-leSort s s'   = s == s' 
+leSort s s'   = s == s'
 -}
 
 -- s `irrSortFor` s' if a variable of kind s cannot compuationally
@@ -387,7 +387,7 @@ irrSortFor (Set e) (Set e')      = not $ leqSizeE e e'
 -- kinds classify expressions into terms, types, universes, ...
 -- since the analysis is not precise, we give an interval of classes
 
-data Kind 
+data Kind
   = Kind { lowerKind :: Sort Expr , upperKind :: Sort Expr }
   | NoKind   -- absurd clauses, neutral wrt. union
   | AnyKind  -- not yet classified, neutral wrt. intersection
@@ -406,7 +406,7 @@ kUniv e = preciseKind (Set (Succ (sizeVarsToInfty e)))
 instance Show Kind where
   show NoKind = "()"
   show AnyKind = "?"
---  show k | k == defaultKind = "?" 
+--  show k | k == defaultKind = "?"
   show (Kind kl ku) | kl == ku = show kl
   show (Kind kl ku) = show kl ++ ".." ++ show ku
 
@@ -459,7 +459,7 @@ intersectKind NoKind ki = ki -- NoKind means here "intersection is not happening
 intersectKind ki NoKind = ki
 intersectKind AnyKind ki = ki
 intersectKind ki AnyKind = ki
-intersectKind (Kind x1 x2) (Kind y1 y2) = 
+intersectKind (Kind x1 x2) (Kind y1 y2) =
   Kind (maxSort x1 y1) (minSort x2 y2)
 
 unionKind :: Kind -> Kind -> Kind
@@ -480,7 +480,7 @@ irrelevantFor _ NoKind = False
 irrelevantFor AnyKind _ = False
 irrelevantFor _ AnyKind = False
 irrelevantFor (Kind s _) (Kind _ s') = irrSortFor s s'
--- worst case szenario: the least kind of the argument is still 
+-- worst case szenario: the least kind of the argument is still
 -- irrelevant for the biggest kind of the result
 
 data Kinded a = Kinded { kindOf :: Kind, valueOf :: a }
@@ -492,7 +492,7 @@ instance Show a => Show (Kinded a) where
 
 -- function domains --------------------------------------------------
 
-data Dom a = Domain { typ :: a, kind :: Kind, decor :: Dec } 
+data Dom a = Domain { typ :: a, kind :: Kind, decor :: Dec }
              deriving (Eq, Ord, Functor, Foldable, Traversable)
 
 instance Show a => Show (Dom a) where
@@ -512,7 +512,7 @@ belowDomain dec ltle e = Domain (Below ltle e) kTSize dec
 instance Functor Dom where
   fmap f dom = dom { typ = f (typ dom) }
 
--- traverse :: Applicative f => (a -> f b) -> t a -> f (t b)	
+-- traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
 instance Traversable Dom where
   traverse f dom = (\ ty -> dom { typ = ty }) <$> f (typ dom)
 -}
@@ -526,10 +526,10 @@ data ConK
   | DefPat  -- ^ a defined pattern
     deriving (Eq, Ord, Show)
 
-data IdKind 
-  = DatK       -- ^ data/codata 
-  | ConK ConK  -- ^ constructor (ind/coind/defined) 
-  | FunK       -- ^ fun/cofun 
+data IdKind
+  = DatK       -- ^ data/codata
+  | ConK ConK  -- ^ constructor (ind/coind/defined)
+  | FunK       -- ^ fun/cofun
   | LetK       -- ^ let definition
     deriving (Eq, Ord)
 
@@ -545,7 +545,7 @@ conKind _        = False
 coToConK Ind = Cons
 coToConK CoInd = CoCons
 
-data DefId = DefId { idKind :: IdKind, name :: Name } 
+data DefId = DefId { idKind :: IdKind, name :: Name }
            deriving (Eq, Ord)
 
 instance Show DefId where
@@ -555,12 +555,12 @@ type MVar = Int -- metavariables are numbered
 
 -- typed bindings in Pi, LLet, Telescope -----------------------------
 
-data TBinding a = TBind 
-  { boundName :: Name -- "" if no name is given 
+data TBinding a = TBind
+  { boundName :: Name -- "" if no name is given
   , boundDom  :: Dom a       -- ^ @x : T@ or @i < j@
-  } 
+  }
   | TMeasure (Measure Expr)  -- ^ measure @|m|@
-  | TBound   (Bound Expr)    -- ^ constraint @|m| <(=) |m'|@ 
+  | TBound   (Bound Expr)    -- ^ constraint @|m| <(=) |m'|@
     deriving (Eq,Ord,Show,Functor,Foldable,Traversable)
 
 type LBind = TBinding (Maybe Type)
@@ -577,13 +577,13 @@ mapDec f (TBind x dom) = TBind x (dom { decor = f (decor dom) })
 mapDec f tb = tb
 
 mapDecM :: (Applicative m) => (Dec -> m Dec) -> TBind -> m TBind
-mapDecM f (TBind x dom) = 
+mapDecM f (TBind x dom) =
   (\ dec -> TBind x (dom { decor = dec })) <$> f (decor dom)
 mapDecM f tb = pure tb
 {-
 mapDecM :: (Monad m) => (Dec -> m Dec) -> TBind -> m TBind
 mapDecM f (TBind x dom) = do
-  dec <- f (decor dom) 
+  dec <- f (decor dom)
   return $ TBind x (dom { decor = dec })
 -}
 -- measures ----------------------------------------------------------
@@ -598,14 +598,14 @@ succMeasure :: (a -> a) -> Measure a -> Measure a
 succMeasure succ mu = maybe (error "cannot take successor of empty measure") id $ applyLastM (Just . succ) mu
 
 {-
-succMeasure succ (Measure mu) = Measure (succMeas mu) 
+succMeasure succ (Measure mu) = Measure (succMeas mu)
   where succMeas []     = error "cannot take successor of empty measure"
         succMeas [e]    = [succ e]
         succMeas (e:es) = e : succMeas es
 -}
 
 applyLastM :: Monad m => (a -> m a) -> Measure a -> m (Measure a)
-applyLastM f (Measure mu) = loop mu >>= return . Measure  
+applyLastM f (Measure mu) = loop mu >>= return . Measure
   where loop []     = fail "empty measure"
         loop [e]    = f e >>= return . (:[])
         loop (e:es) = loop es >>= return . (e:)
@@ -622,17 +622,17 @@ instance Show a => Show (Bound a) where
 
 {-
 instance (HasPred a, Show a) => Show (Bound a) where
-    show (Bound mu1 mu2) = case predecessor mu2 of  
+    show (Bound mu1 mu2) = case predecessor mu2 of
       Just mu2 -> show mu1 ++ " <= " ++ show mu2
       Nothing  -> show mu1 ++ " < " ++ show mu2
 -}
 
--- TODO: properly implement bounds mu <= mu' such that mu <= # is 
+-- TODO: properly implement bounds mu <= mu' such that mu <= # is
 -- represented correctly
 
 -- tagging expressions -----------------------------------------------
 
-data Tag 
+data Tag
   = Erased -- ^ Expression will be erased.
   | Cast   -- ^ Expression will need to be casted.
   deriving (Eq,Ord,Show)
@@ -648,7 +648,7 @@ data Tagged a = Tagged { tags :: Tags , unTag :: a }
   deriving (Eq,Ord,Functor,Foldable,Traversable)
 
 instance Show a => Show (Tagged a) where
-  show (Tagged tags a) = 
+  show (Tagged tags a) =
    bracketsIf (Erased `inTags` tags) $
      showCast (Cast `inTags` tags) $
        show  a
@@ -659,7 +659,7 @@ showCast False s = s
 
 instance Pretty a => Pretty (Tagged a) where
   prettyPrec k (Tagged []   a) = prettyPrec k a
-  prettyPrec _ (Tagged tags a) = 
+  prettyPrec _ (Tagged tags a) =
     prettyErased (Erased `inTags` tags) $
       prettyCast (Cast `inTags` tags) $
         pretty a
@@ -672,7 +672,7 @@ prettyCast False doc = doc
 
 -- expressions -------------------------------------------------------
 
-data Expr 
+data Expr
   = Sort (Sort Expr)   -- Size Set CoSet
   -- sizes
   | Zero
@@ -680,7 +680,7 @@ data Expr
   | Infty
   | Max [Expr]   -- list has at least 2 elements
   | Plus [Expr]  -- list has at least 2 elements
-  -- identifiers 
+  -- identifiers
   | Meta MVar    -- meta-variable
   | Var Name     -- variables are named
   | Def DefId    -- identifiers in the signature
@@ -700,7 +700,7 @@ data Expr
   | Quant PiSigma TBind Expr
   | Sing Expr Expr  -- <t : A> singleton type
   -- instead of bounded quantification, a type for subsets
-  -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@ 
+  -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@
   | Below LtLe Expr --  <(a : Size) or <=(a : Size)
   -- for extraction
   | Ann (Tagged Expr) -- annotated expr, e.g. with Erased tag
@@ -716,8 +716,8 @@ instance Show PiSigma where
 
 -- | Optional constructor name of a record value.
 data RecInfo
-  = AnonRec                           -- ^ anonymous record 
-  | NamedRec { recConK :: ConK      
+  = AnonRec                           -- ^ anonymous record
+  | NamedRec { recConK :: ConK
              , recConName :: Name     -- ^ record constructor
              , recNamedFields :: Bool -- ^ print field names?
              }
@@ -746,9 +746,9 @@ succView e = (0, e)
 
 -- Clauses and patterns ----------------------------------------------
 
-data Clause = Clause 
+data Clause = Clause
   { clTele     :: TeleVal      -- top-level telescope of type values for PVars
-  , clPatterns :: [Pattern]    
+  , clPatterns :: [Pattern]
   , clExpr     :: Maybe Expr   -- Nothing if absurd clause
   } deriving (Eq,Ord,Show)
 
@@ -773,26 +773,26 @@ data Pat n e
   | DotP e                          -- ^ .e
   | AbsurdP                         -- ^ ()
   | ErasedP (Pat n e)               -- ^ pattern which got erased
-  | UnusableP (Pat n e)  
+  | UnusableP (Pat n e)
 {- ^ a pattern which results from matching a coinductive type and
 the corresponding size index is not in the coinductive result type of
 the function.  Such a pattern is not usable for termination
 checking. -}
-{- 
+{-
              | IrrefutableP (Pat e) -- pattern made from record constructors
                                     -- can be matched by applying destructors
   NOT GOOD ENOUGH.  Irrefutable constructors might be mixed with others, e.g.
 
-    pair x refl 
+    pair x refl
 
   The whole pattern is not irrefutable, but still you want the pair destructed
   lazily by projections.
--} 
+-}
 --  | IrrP -- pattern which got erased
                deriving (Eq,Ord)
 
 {-
--- which pattern shapes are irrefutable?  
+-- which pattern shapes are irrefutable?
 -- only ConP and SuccP might be refutable
 irrefutable :: Pattern -> Bool
 irrefutable ConP{} = False
@@ -840,7 +840,7 @@ size = Sort Size
 -}
 
 isErasedExpr :: Expr -> (Bool, Expr)
-isErasedExpr (Ann (Tagged tags e)) = 
+isErasedExpr (Ann (Tagged tags e)) =
   let (b, e') = isErasedExpr e
   in  (b || Erased `inTags` tags, e')
 isErasedExpr e = (False, e)
@@ -850,19 +850,19 @@ type EType = Type -- extracted types
 
 -- declarations --------------------------------------------------
 
-data Declaration 
+data Declaration
   = DataDecl Name Sized Co [Pol] Telescope Type [Constructor] [Name] -- data/codata
   | RecordDecl Name Telescope Type Constructor [Name] -- record
-  | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured 
-  | FunDecl Co Fun  -- fun, possibly inside MutualDecl   
-  | LetDecl Bool Name Telescope (Maybe Type) Expr 
-      -- ^ Bool for eval.  After t.c., tel. is empty and type is Just. 
+  | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured
+  | FunDecl Co Fun  -- fun, possibly inside MutualDecl
+  | LetDecl Bool Name Telescope (Maybe Type) Expr
+      -- ^ Bool for eval.  After t.c., tel. is empty and type is Just.
   | PatternDecl Name [Name] Pattern
   | MutualDecl Bool [Declaration]  -- mutual data/fun block, bool for measured
   | OverrideDecl Override [Declaration]    -- expect/ignore some type error
     deriving (Eq,Ord,Show)
 
-data Override 
+data Override
   = Fail            -- ^ expect an error, ignore block
   | Check           -- ^ expect no error, still ignore block
   | TrustMe         -- ^ ignore recoverable errors
@@ -879,7 +879,7 @@ type Constructor = TypeSig
 
 type Telescope = [TBind]
 
-data Arity = Arity 
+data Arity = Arity
   { fullArity    :: Int        -- ^ arity of the function
   , isProjection :: Maybe Int  -- ^ projection? then number of parameters
   } deriving (Eq, Ord, Show)
@@ -931,7 +931,7 @@ inferable Infty{} = True
 --inferable Con{}   = True
 -- 2012-01-22 constructors are no longer inferable, since parameters are missing
 inferable (Def (DefId { idKind = ConK{} }))  = False
-inferable Def{} = True 
+inferable Def{} = True
 inferable (App f e) = inferable f
 -- inferable (Pair f e) = inferable f && inferable e  -- pairs are not inferable due to irrelevant sigma!
 -- inferable Sing{}  = True  -- not with universes
@@ -950,8 +950,8 @@ freeVars (Var name)   = Set.singleton name
 --freeVars Con{}        = Set.empty
 freeVars Def{}        = Set.empty
 --freeVars Let{}        = Set.empty
-freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls) 
-freeVars (LLet (TBind x dom) [] t u) 
+freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls)
+freeVars (LLet (TBind x dom) [] t u)
   = maybe Set.empty freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
 freeVars (Pair f e)   = freeVars f `Set.union` freeVars e
 freeVars (App f e)    = freeVars f `Set.union` freeVars e
@@ -961,7 +961,7 @@ freeVars (Plus es)    = Set.unions (List.map freeVars es)
 freeVars (Lam _ x e)  = Set.delete x (freeVars e)
 freeVars (Quant pisig (TBind x dom) b) = freeVars (typ dom) `Set.union` Set.delete x (freeVars b)
 freeVars (Sing e t)   = freeVars e `Set.union` freeVars t
-freeVars (Below _ e)  = freeVars e 
+freeVars (Below _ e)  = freeVars e
 freeVars (Ann te)  = freeVars (unTag te)
 freeVars Irr          = Set.empty
 freeVars e            = error $ "freeVars " ++ show e ++ " not implemented"
@@ -999,7 +999,7 @@ usedDefs (Quant Pi (TMeasure mu) b) = Foldable.foldMap usedDefs mu ++ usedDefs b
 usedDefs (Quant Pi (TBound beta) b) = Foldable.foldMap usedDefs beta ++ usedDefs b
 usedDefs (LLet (TBind x dom) [] e1 e2) = Foldable.foldMap usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
 usedDefs (Succ e) = usedDefs e
-usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls) 
+usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls)
 usedDefs (Ann e) = usedDefs (unTag e)
 usedDefs (Sort (CoSet e)) = usedDefs e
 usedDefs Sort{} = []
@@ -1012,7 +1012,7 @@ usedDefs (Record ri rs) = Foldable.foldMap (usedDefs . snd) rs
 -- usedDefs Con{} = []
 -- usedDefs Let{} = []
 usedDefs e            = error $ "usedDefs " ++ show e ++ " not implemented"
-         
+
 rhsDefs :: [Clause] -> [Name]
 rhsDefs cls = List.foldl (\ ns (Clause _ ps e) -> maybe [] usedDefs e ++ ns) [] cls
 
@@ -1039,12 +1039,12 @@ instance Pretty Expr where
   prettyPrec _ (Def id)    = pretty id
 --  prettyPrec _ (Let n)     = text n
   prettyPrec _ (Sing e t)  = angleBrackets $ pretty e <+> colon <+> pretty t
-  prettyPrec k e@Succ{}    = 
+  prettyPrec k e@Succ{}    =
     case succView e of
       (n, Zero) -> text $ show n
-      (n, e)    -> text (replicate n '$') <> prettyPrec precAppR e  
---  prettyPrec k (Succ e)    = text "$" <> prettyPrec precAppR e  
-{-  prettyPrec k (Succ e)    = parensIf (precAppR <= k) $ 
+      (n, e)    -> text (replicate n '$') <> prettyPrec precAppR e
+--  prettyPrec k (Succ e)    = text "$" <> prettyPrec precAppR e
+{-  prettyPrec k (Succ e)    = parensIf (precAppR <= k) $
                               text "$" <+> prettyPrec precAppR e   -}
   prettyPrec k (Max es)  = parensIf (precAppR <= k) $
     List.foldl (\ d e -> d <+> prettyPrec precAppR e) (text "max") es
@@ -1052,69 +1052,69 @@ instance Pretty Expr where
     List.foldl (\ d e -> d <+> text "+" <+> prettyPrec 1 e) (prettyPrec 1 e) es
   prettyPrec k (Proj Pre n)   = pretty n
   prettyPrec k (Proj Post n)  = text "." <> pretty n
-  prettyPrec k (Record AnonRec []) = text "record" <+> braces empty 
+  prettyPrec k (Record AnonRec []) = text "record" <+> braces empty
   prettyPrec k (Record AnonRec rs) = text "record" <+> prettyRecFields rs
   prettyPrec k (Record (NamedRec _ n _) []) = pretty n
   prettyPrec k (Record (NamedRec _ n True) rs) = pretty n <+> prettyRecFields rs
-  prettyPrec k (Record (NamedRec _ n False) rs) = 
-   parensIf (not (null rs) && precAppR <= k) $ 
+  prettyPrec k (Record (NamedRec _ n False) rs) =
+   parensIf (not (null rs) && precAppR <= k) $
      pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
   prettyPrec k (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
   prettyPrec k (App f e)  = parensIf (precAppR <= k) $
-    prettyPrec precAppL f <+> prettyPrec precAppR e 
+    prettyPrec precAppL f <+> prettyPrec precAppR e
 --   prettyPrec k (App e [])  = prettyPrec k e
 --   prettyPrec k (App e es)  = parensIf (precAppR <= k) $
 --     List.foldl (\ d e -> d <+> prettyPrec precAppR e) (prettyPrec precAppL e) es
   prettyPrec k (Case e mt cs) = parensIf (0 < k) $
     (text "case" <+> pretty e) <+> (maybe empty (\ t -> colon <+> pretty t) mt) $$ (vlist $ List.map prettyCase cs)
-  prettyPrec k (Lam dec x e) = parensIf (0 < k) $ 
-    (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->") 
+  prettyPrec k (Lam dec x e) = parensIf (0 < k) $
+    (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->")
       <+> pretty e
   prettyPrec k (LLet (TBind n (Domain mt ki dec)) [] e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
-       pretty n <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt 
-                           <> (if erased dec then rbrack else PP.empty) 
+       pretty n <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
+                           <> (if erased dec then rbrack else PP.empty)
                        , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
   prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) = parensIf (0 < k) $
     (text "let" <+> hsep (((if erased dec then brackets else id) $ pretty n)
                          : List.map pretty tel)
-                <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt 
+                <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
                          , equals <+> pretty e1 ])
     $$ (text "in" <+> pretty e2)
 {-
   prettyPrec k (LLet (TBind n (Domain Nothing ki dec)) e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
-       pretty n <+> vcat [ if erased dec then rbrack else PP.empty 
+       pretty n <+> vcat [ if erased dec then rbrack else PP.empty
                          , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
 -}
   prettyPrec k (Below ltle e) = pretty ltle <+> prettyPrec k e
-  prettyPrec k (Quant Pi (TMeasure mu) t2) = parensIf (precArrL <= k) $ 
+  prettyPrec k (Quant Pi (TMeasure mu) t2) = parensIf (precArrL <= k) $
     (pretty mu <+> text "->" <+> pretty t2)
-  prettyPrec k (Quant Pi (TBound beta) t2) = parensIf (precArrL <= k) $ 
+  prettyPrec k (Quant Pi (TBound beta) t2) = parensIf (precArrL <= k) $
     (pretty beta <+> text "->" <+> pretty t2)
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) | null (suggestion x) = parensIf (precArrL <= k) $ 
-    ((if erased dec then ppol <> brackets (pretty t1) 
-       else ppol <+> prettyPrec precArrL t1) 
+  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) | null (suggestion x) = parensIf (precArrL <= k) $
+    ((if erased dec then ppol <> brackets (pretty t1)
+       else ppol <+> prettyPrec precArrL t1)
       <+> pretty pisig <+> pretty t2)
     where pol = polarity dec
-          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+          ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain (Below ltle t1) ki dec)) t2) = parensIf (precArrL <= k) $ 
+  prettyPrec k (Quant pisig (TBind x (Domain (Below ltle t1) ki dec)) t2) = parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> pretty ltle <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
-          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+          ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) = parensIf (precArrL <= k) $ 
+  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) = parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> colon <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
-          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+          ppol = if pol==defaultPol then PP.empty else text $ show pol
 
   prettyPrec k (Ann e) = pretty e
 
@@ -1127,21 +1127,21 @@ instance Pretty TBind where
     ((if erased dec then brackets else parens) $
       pretty x <+> pretty ltle <+> pretty t1)
     where pol = polarity dec
-          ppol = if pol==defaultPol then PP.empty else text $ show pol 
+          ppol = if pol==defaultPol then PP.empty else text $ show pol
 
   prettyPrec k (TBind x (Domain t1 ki dec)) =
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> colon <+> pretty t1)
     where pol = polarity dec
-          ppol = if pol==defaultPol then PP.empty else text $ show pol 
-  
+          ppol = if pol==defaultPol then PP.empty else text $ show pol
+
 
 prettyRecFields rs =
-    let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs 
+    let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs
     in  cat $ (lbrace <+> l) : List.map (semi <+>) ls ++ [empty <+> rbrace]
 
-prettyCase (Clause _ [p] Nothing)  = pretty p 
+prettyCase (Clause _ [p] Nothing)  = pretty p
 prettyCase (Clause _ [p] (Just e)) = pretty p <+> text "->" <+> pretty e
 
 instance Pretty PiSigma where
@@ -1153,7 +1153,7 @@ vlist [] = lbrace <> rbrace
 vlist ds = (vcat $ zipWith (<+>) (lbrace : repeat semi) ds) $$ rbrace
 
 instance Pretty (Measure Expr) where
-  pretty (Measure es) = text "|" <> hsepBy comma (List.map pretty es) <> text "|" 
+  pretty (Measure es) = text "|" <> hsepBy comma (List.map pretty es) <> text "|"
 
 instance Pretty LtLe where
   pretty Lt = text "<"
@@ -1173,10 +1173,10 @@ instance Pretty (Bound Expr) where
 instance Pretty (Sort Expr) where
   prettyPrec k (SortC c)  = text $ show c
   prettyPrec k (Set Zero) = text "Set" -- print as Set for backwards compat.
-  prettyPrec k (Set e) =  parensIf (precAppR <= k) $ 
-    text "Set" <+> prettyPrec precAppR e 
-  prettyPrec k (CoSet e) = parensIf (precAppR <= k) $ 
-    text "CoSet" <+> prettyPrec precAppR e 
+  prettyPrec k (Set e) =  parensIf (precAppR <= k) $
+    text "Set" <+> prettyPrec precAppR e
+  prettyPrec k (CoSet e) = parensIf (precAppR <= k) $
+    text "CoSet" <+> prettyPrec precAppR e
 
 instance Pretty Pattern where
   prettyPrec k (VarP x)       = pretty x
@@ -1201,10 +1201,10 @@ instance Show Pattern where
 
 {- OBSOLETE
 showExpr :: Expr -> String
-showExpr e = 
+showExpr e =
     case e of
       Set -> "Set"
-      Size -> "Size" 
+      Size -> "Size"
       Succ e -> "($ " ++ showExpr e ++ ")"
       Infty -> "#"
       Meta i -> "?" ++ show i
@@ -1214,16 +1214,16 @@ showExpr e =
       Let n -> n
       Case e cs -> "case " ++ showExpr e ++ " { " ++ showCases cs ++ " } "
       LLet n t1 e1 e2 ->
-          "(let " ++ n ++ " : " ++ showExpr t1 ++ " = " ++ showExpr e1 ++ " in " ++ showExpr e2 ++ ")"  
+          "(let " ++ n ++ " : " ++ showExpr t1 ++ " = " ++ showExpr e1 ++ " in " ++ showExpr e2 ++ ")"
       App e1 el -> "(" ++ showExprs (e1:el) ++ ")"
       Lam _ x e1 -> "(\\" ++ x ++ " -> " ++ showExpr e1 ++ ")"
       Sing e t -> "<" ++ showExpr e ++ " : " ++ showExpr t ++ ">"
       Pi dec x t1 t2 -> Util.parens $ (if erased dec then Util.brackets binding
-                                    else if x=="" then s1 else Util.parens binding) 
+                                    else if x=="" then s1 else Util.parens binding)
                                   ++ " -> " ++ showExpr t2
          where s1 = showExpr t1
                binding = if x == "" then s1 else x ++ " : " ++ s1
-      Erased e -> Util.brackets $ showExpr e 
+      Erased e -> Util.brackets $ showExpr e
 
 
 showExprs :: [Expr] -> String
@@ -1237,11 +1237,11 @@ showPattern (SuccP p) = Util.parens $ "$ " ++ showPattern p
 showPattern (DotP e)  = "." ++ showExpr e
 showPattern (VarP x) = x
 -}
--}               
+-}
 
 showCase (Clause _ [p] Nothing) = render (prettyPrec precAppR p)
 showCase (Clause _ [p] (Just e)) = render (prettyPrec precAppR p) ++ " -> " ++ show e
-showCases = showList "; " showCase 
+showCases = showList "; " showCase
 
 
 
@@ -1264,15 +1264,15 @@ patSubst phi p =
     VarP n -> maybe p id $ lookup n phi
     ConP pi n ps -> ConP pi n $ List.map (patSubst phi) ps
     SuccP p      -> SuccP $ patSubst phi p
-    SizeP e y    -> SizeP (parSubst phi' e) y 
+    SizeP e y    -> SizeP (parSubst phi' e) y
     PairP p1 p2  -> PairP (patSubst phi p1) (patSubst phi p2)
     ProjP x      -> p
-    DotP e       -> DotP $ parSubst phi' e                    
+    DotP e       -> DotP $ parSubst phi' e
     AbsurdP      -> p
     ErasedP p    -> ErasedP $ patSubst phi p
     UnusableP p   -> UnusableP $ patSubst phi p
 
--- parallel substitution (CAUTION! NOT CAPTURE AVOIDING!) 
+-- parallel substitution (CAUTION! NOT CAPTURE AVOIDING!)
 -- only needed to generate destructors
 -- does not substitute into patterns of a Case
 parSubst :: (Name -> Expr) -> Expr -> Expr
@@ -1287,7 +1287,7 @@ parSubst phi (Var x)        = phi x
 -- parSubst phi e@Con{}        = e
 parSubst phi e@Def{}        = e
 -- parSubst phi e@Let{}        = e
-parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $ 
+parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $
   List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (parSubst phi) t)) cls
 parSubst phi (LLet (TBind x dom) [] b c) = LLet (TBind x $ fmap (fmap (parSubst phi)) dom) [] (parSubst phi b) (parSubst phi c)
 parSubst phi (Pair f e)     = Pair (parSubst phi f) (parSubst phi e)
@@ -1309,7 +1309,7 @@ sgSubst x t u = parSubst (\ y -> if x == y then t else Var y) u
 -}
 
 
--- metavariable substitution (BY INTENTION NOT CAPTURE AVOIDING!) 
+-- metavariable substitution (BY INTENTION NOT CAPTURE AVOIDING!)
 -- does not substitute in patterns!
 subst :: Subst -> Expr -> Expr
 subst phi (Sort (CoSet e)) = Sort (CoSet (subst phi e))
@@ -1318,7 +1318,7 @@ subst phi e@Sort{}       = e
 subst phi (Succ e)       = Succ (subst phi e)
 subst phi e@Zero         = e
 subst phi e@Infty        = e
-subst phi e@(Meta i) = 
+subst phi e@(Meta i) =
   case Map.lookup i phi of
     Just e' -> e'
     _ -> e
@@ -1361,41 +1361,41 @@ prettyFun :: Name -> [Clause] -> Doc
 prettyFun f cls = vlist $ List.map (prettyClause f) cls
 
 prettyClause f (Clause _ ps Nothing) = pretty f <+> hsep (List.map (prettyPrec precAppR) ps)
-prettyClause f (Clause _ ps (Just e)) = pretty f 
+prettyClause f (Clause _ ps (Just e)) = pretty f
   <+> hsep (List.map (prettyPrec precAppR) ps)
   <+> equals <+> pretty e
 
 -- Constructor analysis ----------------------------------------------
 
-data FieldClass 
+data FieldClass
   = Index                               -- like the length in Vector
   | NotErasableIndex                    -- c : (index : A) -> D (f index)
   | Field (Maybe (Type, Arity, Clause)) -- not free in the target
-    deriving (Eq, Show)  
+    deriving (Eq, Show)
   -- maybe type and def of destructor
 
-data FieldInfo = FieldInfo 
+data FieldInfo = FieldInfo
   { fDec :: Dec
   , fName  :: Name        -- "" for anonymous fields
   , fType  :: Type
 --  , fLazy  :: Bool        -- lazy (coinductive occ) or strict (everything else) -- see TCM.hs ConSig
-  , fClass :: FieldClass 
-  } 
+  , fClass :: FieldClass
+  }
 
 instance Show FieldInfo where
-  show (FieldInfo dec name t fcl) = 
+  show (FieldInfo dec name t fcl) =
     (if fcl == Index then "index " else "field ") ++
-    bracketsIf (erased dec) (show name ++ " : " -- ++ (if lazy then "?" else "") 
-                                      ++ show t) 
+    bracketsIf (erased dec) (show name ++ " : " -- ++ (if lazy then "?" else "")
+                                      ++ show t)
 
-data PatternsType 
+data PatternsType
   = NotPatterns        -- at least "pattern" is none
   | LinearPatterns     -- the patterns do not share a common var
   | NonLinearPatterns  -- the patterns share a common var
     deriving (Eq, Ord, Show)
 
-data ConstructorInfo = ConstructorInfo 
-  { cName   :: Name 
+data ConstructorInfo = ConstructorInfo
+  { cName   :: Name
 --  , cType   :: TVal
   , cFields :: [FieldInfo]
   , cTyCore :: Type
@@ -1406,14 +1406,14 @@ data ConstructorInfo = ConstructorInfo
 corePat :: ConstructorInfo -> [Pattern]
 corePat = snd . cPatFam
 
-{- Old comment:  
+{- Old comment:
 a record type is a data type that fulfills 3 conditions
    1. non-recursive
    2. exactly 1 constructor
    3. constructor carries names for each of its arguments
 
 Non-indexed case: generate destructors
-  
+
   data Sigma (A : Set) (B : A -> Set) : Set
   { pair : (fst : A) -> (snd : B fst) -> Sigma A B
   }
@@ -1432,19 +1432,19 @@ cName   = "vcons"
 cFields = [("n",Nat,Index),("head",A,Field),("tail",Vec A n,Field)]
 cTyCore = Vec A (suc n)
 cPatFam = (True, [A, suc n])
-cEtaExp = True, but may be set to False later since the constructor is recursive 
+cEtaExp = True, but may be set to False later since the constructor is recursive
 
 We generate the destructors
-  
+
   head : (A : Set) -> (n : Nat) -> (x : Vec A (suc n)) -> A
   head A n (vcons .n _head _tail) = _head
-  
+
   tail : (A : Set) -> (n : Nat) -> (x : Vec A (suc n)) -> Vec A n
   tail A n (vcons .n _head _tail) = _tail
 
 in the implementation we use "constructed_by_head" for "x"
 
-discriminate index arguments from fields  
+discriminate index arguments from fields
   - split constructor type into telescope and core
     [(n : Nat),(head : A),(tail : Vec A n)], Vec A (suc n)
   - find free variables of core: [A,n]
@@ -1452,37 +1452,37 @@ discriminate index arguments from fields
     where classification in {index,field}
 
 -}
-    
+
 -- TODO: analyze value, not expression!
 -- get all the variables which are under injective functions
 injectiveVars :: Expr -> Set Name
-injectiveVars e = 
+injectiveVars e =
   case spineView e of
     (Var name           , []) -> Set.singleton name
     (Def (DefId DatK{} _), es) -> Set.unions $ List.map injectiveVars es
     (Def (DefId ConK{} _), es) -> Set.unions $ List.map injectiveVars es
     (Record ri rs        , []) -> Set.unions $ List.map (injectiveVars . snd) rs
-    (Succ e             , []) -> injectiveVars e 
+    (Succ e             , []) -> injectiveVars e
     (Lam _ x e          , []) -> Set.delete x (injectiveVars e)
-    (Quant _ (TBind x dom) b , []) -> injectiveVars (typ dom) `Set.union` 
+    (Quant _ (TBind x dom) b , []) -> injectiveVars (typ dom) `Set.union`
                                         Set.delete x (injectiveVars b)
     (Sort (CoSet e)     , []) -> injectiveVars e
     (Sort (Set e)       , []) -> injectiveVars e
     (Ann e              , []) -> injectiveVars (unTag e)
     _                         -> Set.empty
 
-classifyFields :: Co -> Name -> Type -> [FieldInfo] 
+classifyFields :: Co -> Name -> Type -> [FieldInfo]
 classifyFields co dataName ty = List.map (classifyField fvs) tele
   where (tele, core) = typeToTele ty
-        fvs = freeVars core 
+        fvs = freeVars core
         ivs = injectiveVars core
         classifyField fvs (TBind name (Domain ty ki dec)) = FieldInfo
           { fDec = dec
           , fName  = name
           , fType  = ty
 --          , fLazy  = co == CoInd && maybeRecursiveOccurrence dataName ty
-          , fClass = if name `Set.member` fvs then 
-                       if name `Set.member` ivs then Index else NotErasableIndex 
+          , fClass = if name `Set.member` fvs then
+                       if name `Set.member` ivs then Index else NotErasableIndex
                       else Field Nothing
           }
 
@@ -1497,7 +1497,7 @@ destructorNames :: [FieldInfo] -> [Name]
 destructorNames fields = List.map fName $ filter isNamedField fields
 
 analyzeConstructor :: Co -> Name -> Telescope -> Constructor -> ConstructorInfo
-analyzeConstructor co dataName pars (TypeSig constrName ty) = 
+analyzeConstructor co dataName pars (TypeSig constrName ty) =
   let (_, core) = typeToTele ty
       fields = classifyFields co dataName ty
       -- freshenFieldName fi = fi { fName = freshen $ fName fi }
@@ -1513,27 +1513,27 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
       parNames = List.map boundName pars
       parAndIndexNames = parNames ++ indexNames
       -- substitute variable "fst" by application "fst A B p"
-      phi x = if x `elem` destrNames 
+      phi x = if x `elem` destrNames
                 then List.foldl App ({-fun x-} letdef x) (List.map Var (parAndIndexNames ++ [recName]))
                 else Var x
       -- prefix d =  "destructor_argument_" ++ d
       prefix d = d { suggestion = "#" ++ suggestion d }
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
-      pattern = ConP (PatternInfo (coToConK co) False) -- to bootstrap destructor, not irrefutable 
-          constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++ 
-            List.map (\ fi -> (case fClass fi of 
+      pattern = ConP (PatternInfo (coToConK co) False) -- to bootstrap destructor, not irrefutable
+          constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++
+            List.map (\ fi -> (case fClass fi of
                             Index   -> DotP . Var
-                            Field{} -> VarP . prefix) 
-                         (fName fi)) 
+                            Field{} -> VarP . prefix)
+                         (fName fi))
               fields)
-      destrType t = -- teleToTypeErase (pars ++ indexTele) 
-                    teleToTypeErase pars $ teleToType indexTele  
+      destrType t = -- teleToTypeErase (pars ++ indexTele)
+                    teleToTypeErase pars $ teleToType indexTele
                       $ (Quant Pi (TBind recName (defaultDomain core)) . parSubst phi) t
       destrBody (dn) = clause (List.map VarP parAndIndexNames ++ [pattern]) (Just (Var dn))
-      fields' = mapOver fields $ 
+      fields' = mapOver fields $
         \ f -> if isNamedField f then
-                  f { fClass = Field $ Just 
+                  f { fClass = Field $ Just
                          ( destrType (fType f)
                          , let npars = length pars
                            in  Arity { fullArity = npars + length indexTele + 1
@@ -1543,15 +1543,15 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
                 else f
       computeLinearity :: (Bool, [Pattern]) -> (PatternsType, [Pattern])
       computeLinearity (False, ps) = (NotPatterns, ps)
-      computeLinearity (True , ps) = (if linear then LinearPatterns else NonLinearPatterns, ps) where 
+      computeLinearity (True , ps) = (if linear then LinearPatterns else NonLinearPatterns, ps) where
         linear = List.null ps || (List.null $ List.foldl1 List.intersect $ List.map patternVars ps)
 
-      result = ConstructorInfo 
+      result = ConstructorInfo
        { cName = constrName
        , cFields = fields'
        , cTyCore = core
        -- check whether core is D ps and store pats; also compute whether ps are linear
-       , cPatFam = computeLinearity $ fromAllWriter $ isPatIndFamC core 
+       , cPatFam = computeLinearity $ fromAllWriter $ isPatIndFamC core
        , cEtaExp = destructorNamesPresent fields
        }
    in -- trace ("analyzeConstructor returns " ++ show result) $
@@ -1559,21 +1559,21 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
 
 -- can only eta expand if I can generate all destructors
 destructorNamesPresent :: [FieldInfo] -> Bool
-destructorNamesPresent fields = 
+destructorNamesPresent fields =
   all (\ f -> fClass f /= NotErasableIndex &&  -- no bad index
-              (fClass f == Index || 
-               not (erased $ fDec f) && not (emptyName $ fName f))) -- no erased or unnamed field 
+              (fClass f == Index ||
+               not (erased $ fDec f) && not (emptyName $ fName f))) -- no erased or unnamed field
     fields
 
 -- analyze all constructors of a data type at once
 -- so that we can also check which constructors patterns are irrefutable
 analyzeConstructors :: Co -> Name -> Telescope -> [Constructor] -> [ConstructorInfo]
-analyzeConstructors co dataName pars cs = 
+analyzeConstructors co dataName pars cs =
   let cis = List.map (analyzeConstructor co dataName pars) cs
       -- check if patterns overlaps with any other
       overlapList = zipWith (\ ci n -> any (overlaps (corePat ci)) $ List.map corePat $ take n cis ++ drop (n+1) cis) cis [0..] -- worst case quadratic, could be improved by exploiting symmetry
       result = zipWith (\ ci ov -> if ov then ci { cEtaExp = False } else ci) cis overlapList
-  in result 
+  in result
 
 {-
   where classifyField fvs (dec, name, ty) = FieldInfo
@@ -1590,7 +1590,7 @@ reassembleConstructor :: ConstructorInfo -> Constructor
 reassembleConstructor ci = TypeSig (cName ci) (reassembleConstructorType ci)
 
 reassembleConstructorType :: ConstructorInfo -> Type
-reassembleConstructorType ci = buildPi (cFields ci) where 
+reassembleConstructorType ci = buildPi (cFields ci) where
   buildPi [] = cTyCore ci
   buildPi (f:fs) = Quant Pi (TBind (fName f) $ Domain (fType f) defaultKind (decor (fDec f) (fClass f))) $ buildPi fs
     where decor dec Index = irrelevantDec -- DONE: SWITCH ON!
@@ -1605,13 +1605,13 @@ reassembleConstructorType ci = buildPi (cFields ci) where
 -- type parameters are dropped
 {-
 isPatIndFam :: Int -> [Constructor] -> Maybe [(Name,[Pattern])]
-isPatIndFam numPars= mapM (\ tysig -> 
+isPatIndFam numPars= mapM (\ tysig ->
                              fmap (\ ps -> (namePart tysig, drop numPars ps))
                                   (isPatIndFamC (typePart tysig)))
 -}
 
--- isPatIndFamC checks whether an expression (the type of s constructor) 
--- is of the form 
+-- isPatIndFamC checks whether an expression (the type of s constructor)
+-- is of the form
 --   Gamma -> D ps
 -- and returns the list ps of patterns if it is the case
 isPatIndFamC :: Expr -> Writer All [Pattern]
@@ -1644,7 +1644,7 @@ tsoFromPatterns ps = TSO.fromList $ List.concat $ List.map loop ps where
   loop VarP{}             = []
   loop DotP{}             = []
   loop UnusableP{}        = []
-  
+
 -- for non-dot patterns, patterns overlap if one matches against the other
 -- infinity size is represented as (DotP Infty)
 -- I reprogram it here, since it does not need a monad
@@ -1721,7 +1721,7 @@ exprToDotPat' (Infty)    = return $ DotP Infty
 exprToDotPat' (Succ e)   = exprToDotPat' e >>= return . SuccP
 exprToDotPat' e@(App f e') = do
   pf <- exprToDotPat' f
-  case pf of 
+  case pf of
      (ConP co c ps) -> do pe <- exprToDotPat' e'
                           return $ ConP co c (ps ++ [pe])
      _ -> tell (All False) >> return (DotP e)
@@ -1729,7 +1729,7 @@ exprToDotPat' e = tell (All False) >> return (DotP e)
 -- exprToDotPat' e@(App f []) = exprToDotPat' f
 -- exprToDotPat' e@(App f es) = do
 --   p <- exprToDotPat' f
---   case p of 
+--   case p of
 --      (ConP co c ps) -> do ps' <- mapM exprToDotPat' es
 --                           return $ ConP co c (ps ++ ps')
 --      _ -> tell (All False) >> return (DotP e)
@@ -1796,20 +1796,20 @@ shallowSuccP p = case p of
 
 -- telescopes --------------------------------------------------------
 
----- construction 
+---- construction
 
 -- | typeToTele ((x : A) -> (y : B) -> C) = ([(x,A),(y,B)], C)
 typeToTele :: Type -> (Telescope, Type)
 typeToTele = typeToTele' (-1) -- take all Pis into the telescope
 
--- typeToTele' k t 
+-- typeToTele' k t
 -- if k > 0 it takes at most k leading Pis into the telescope
 typeToTele' :: Int -> Type -> (Telescope, Type)
 typeToTele' k t = ttt k t []
-    where 
+    where
       ttt :: Int -> Type -> Telescope -> (Telescope,Type)
       ttt k (Quant Pi tb t2) tel | k /= 0 = ttt (k-1) t2 (tb : tel)
-      ttt k t tel = (reverse tel, t)                          
+      ttt k t tel = (reverse tel, t)
 
 ---- modification
 {-
@@ -1819,7 +1819,7 @@ resurrectTele = List.map (mapDec resurrectDec)
 ---- destruction
 
 teleLam :: Telescope -> Expr -> Expr
-teleLam tel e = foldr (uncurry Lam) e $ 
+teleLam tel e = foldr (uncurry Lam) e $
   List.map (\ tb -> (decor $ boundDom tb, boundName tb)) tel
 
 teleToType' :: (Dec -> Dec) -> Telescope -> Type -> Type
@@ -1840,7 +1840,7 @@ adjustTopDecs f t = teleToType' f tel core where
   (tel, core) = typeToTele t
 
 teleToTypeM :: (Applicative m) => (Dec -> m Dec) -> Telescope -> Type -> m Type
-teleToTypeM mod tel t = 
+teleToTypeM mod tel t =
   foldr (\ tb mt -> Quant Pi <$> mapDecM mod tb <*> mt) (pure t) tel
 
 adjustTopDecsM :: (Applicative m) => (Dec -> m Dec) -> Type -> m Type
@@ -1856,7 +1856,7 @@ f (zero, (x, (y, z))) true (x', false) = rhs
  translates to
 
 f (zero, xyz) true (x', false) rhs'  where rhs = subst
-  [ fst xyz       / x, 
+  [ fst xyz       / x,
     fst (snd xyz) / y,
     snd (snd xyz) / z,
     x' / x'
