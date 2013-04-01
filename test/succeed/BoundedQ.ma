@@ -13,13 +13,12 @@ sized data Nat : Size -> Set
 ; succ : [i : Size] -> Nat i -> Nat $i
 }
 
-let mySucc : [i : Size] -> [j : Size] -> |j| < |i| -> Nat j -> Nat i
- = \ i j n -> succ j n 
+fun mySucc : [i : Size] -> [j < i] -> Nat j -> Nat i
+{ mySucc i j n = succ j n  }
 
-let boundedId : [i : Size] -> [j : Size] -> |j| <= |i| -> Nat j -> Nat j
-  = \ i j n -> n
+let boundedId [i : Size] [j <= i] (n : Nat j) : Nat j = n
 
-let explicitCast : [i : Size] -> [j : Size] -> |j| <= |i| -> Nat j -> Nat i
+let explicitCast : [i : Size] -> [j <= i] -> Nat j -> Nat i
   = \ i j n -> n
 
 fun explicitCast' : [i : Size] -> [j : Size] -> |j| <= |i| -> Nat j -> Nat i

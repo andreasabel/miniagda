@@ -21,9 +21,11 @@ offDia
 /// inferExpr' Id (Id A B a b) (f A B a b) (Id A a A a)
 /// inferExpr' Id (Id A B a b) (f A B a b)
 /// inferExpr' Id (Id A B a b)
+/// checkApp (^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set 1) eliminated by Id A B a b
 /// inferExpr' Id A B a b
 /// inferExpr' Id A B a
 /// inferExpr' Id A B
+/// checkApp (^(a : v1::Tm) -> ^(B : Set) -> ^ B -> Set 1{A = v1}) eliminated by B
 /// leqVal' (subtyping)  < B : Set >  <=+  A
 /// leqVal' (subtyping)  Set  <=+  A
 /// leqApp: head mismatch Set != A

@@ -866,7 +866,11 @@ checkLet dec x tel mt1 e1 e2 v = do
 
 -- | checkLetDef @.x tel : t = e@ becomes @.x : tel -> t = \ tel -> e@
 checkLetDef :: Dec -> Telescope -> Maybe Type -> Expr -> TypeCheck (TVal, EType, Kinded Extr)
-checkLetDef dec tel mt e = do
+checkLetDef dec tel mt e = local (\ cxt -> cxt {consistencyCheck = True}) $ do
+  -- 2013-04-01
+  -- since a let telescope is treated like a lambda abstraction
+  -- and the let-defined symbol reduces by itself, we need to
+  -- do the context consistency check at each introduction.
   (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer dec e mt
   te <- return $ teleToType tel te
   ee <- return $ teleLam tel ee
@@ -1113,6 +1117,7 @@ maybeErase dec = if erased dec then erasedExpr else id
 checkApp :: Expr -> TVal -> TypeCheck (Kinded (Name, Extr), TVal)
 checkApp e2 v = do
   v <- force v -- if v is a corecursively defined type in Set, unfold!
+  enter ("checkApp " ++ show v ++ " eliminated by " ++ show e2) $ do
   case v of
     VQuant Pi x dom@(Domain av@(VBelow Lt VInfty) _ dec) env b -> do
       upperSemi <- newWithGen x dom $ \ i xv -> do
@@ -2663,6 +2668,7 @@ endsInSizedCo = endsInSizedCo' True
 --   @endsInSizedCo' True i tv@ additionally checks that @tv[0/i] = Top@.
 endsInSizedCo' :: Bool -> Int -> TVal -> TypeCheck ()
 endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv) $ do
+   tv <- force tv
    let fallback
          | endInCo = failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a CoSet or codata of size" <+> prettyTCM (VGen i) <+> text "nor a tuple type"
          | otherwise = szMonotone i tv

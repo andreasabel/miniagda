@@ -16,11 +16,13 @@ error during typechecking:
 delta
 /// checkExpr 0 |- abs (\ x -> sapp x) : D
 /// checkForced fromList [] |- abs (\ x -> sapp x) : D
+/// checkApp (^(y0 : (^D::() -> D)::()) -> < abs y0 : D >) eliminated by \ x -> sapp x
 /// checkExpr 0 |- \ x -> sapp x : ^ D -> D
 /// checkForced fromList [] |- \ x -> sapp x : ^ D -> D
 /// new x : D
 /// checkExpr 1 |- sapp x : D
 /// inferExpr' sapp x
+/// checkApp (D::Tm -> D) eliminated by x
 /// inferExpr' x
 /// inferExpr: variable x : D may not occur
 /// , because of polarity

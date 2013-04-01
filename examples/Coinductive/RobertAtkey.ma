@@ -24,7 +24,7 @@ cofun Nat : +Size -> Set
 pattern zero j   = (j, nothing)
 pattern succ j n = (j, just n)
 let suc [i : Size] (n : Nat i) : Nat $i = succ i n
-  
+
 
 -- Number Streams
 mutual {
@@ -42,7 +42,7 @@ fun mergef : ([i : Size] -> Nat # -> Nat # -> Str i -> Str $i) ->
   [i : Size] -> |i| -> Str i -> Str i -> Str i
 { mergef f i s1 s2 (j < i) = case (s1 j, s2 j) : Front j & Front j
   { (cons x xs, cons y ys) -> f j x y (mergef f j xs ys) j }
-} 
+}
 
 -- "A bad choice of argument yields non-productive definitions"
 fail
@@ -63,9 +63,9 @@ let test_f' = mergef (\ i x y s j -> cons x (map (suc #) i s))
 -- Clock Variables
 ----------------------------------------------------------------------
 
--- "Tomorrow": the |> operator 
-let Tri -(k : Size) +(S : (j < k) -> Set) : Set
-  = [j < k] -> S j
+-- "Tomorrow": the |> operator
+cofun Tri : -(k : Size) +(S : (j < k) -> Set) -> Set
+{ Tri k S = [j < k] -> S j }
 
 -- Front Streams: the head is always visible
 
@@ -74,8 +74,8 @@ cofun Stream : -(k : Size) -> |k| -> Set
 }
 
 -- "|>^k removes one unit of time remaining in k"
-let delay [A : -Size -> Set] [k : Size] : A k -> Tri k A -- waste
-  = \ a j -> a
+fun delay : [A : -Size -> Set] [k : Size] (a : A k) -> Tri k A -- waste
+{ delay A k a j = a }
 -- Comment: delay wastes one unit, more precise is  Tri $k A
 --          Should be called "waste"
 -- Need A to be contravariant here
@@ -83,11 +83,12 @@ let delay [A : -Size -> Set] [k : Size] : A k -> Tri k A -- waste
 let Arr -(A : Size -> Set) +(B : Size -> Set) : Size -> Set
   = \ i -> A i -> B i
 
-let app [k : Size] [A, B : Size -> Set] 
-    (f : Tri k (Arr A B)) (a : Tri k A) : Tri k B
-  = \ j -> f j (a j)
+fun app :
+    [k : Size] [A, B : Size -> Set]
+    (f : Tri k (Arr A B)) (a : Tri k A) -> Tri k B
+{ app k A B f a j = f j (a j) }
 
-fun fix : [A : Size -> Set] -> (f : [j : Size] -> Tri j A -> A j) -> 
+fun fix : [A : Size -> Set] -> (f : [j : Size] -> Tri j A -> A j) ->
   [k : Size] -> |k| -> A k
 { fix A f i = f i (fix A f)
 }

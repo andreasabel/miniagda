@@ -19,6 +19,7 @@ length
 /// right hand side
 /// checkExpr 5 |- succ n : Nat
 /// checkForced fromList [(.(succ n),1),(A,0),(x,2),(n,3),(xs,4)] |- succ n : Nat
+/// checkApp (^(y0 : Nat::()) -> < succ y0 : Nat >) eliminated by n
 /// inferExpr' n
 /// inferExpr: variable n : Nat may not occur
 /// , because it is marked as erased

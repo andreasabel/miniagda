@@ -13,8 +13,8 @@ sized data Nat : Size -> Set
 ; succ : [i : Size] -> Nat i -> Nat $i
 }
 
-let mySucc : [i : Size] -> [j : Size] -> |j| < |i| -> Nat j -> Nat i
- = \ i j n -> succ j n 
+fun mySucc : [i : Size] -> [j : Size] -> |j| < |i| -> Nat j -> Nat i
+{ mySucc i j n = succ j n }
 
 let bla : [i : Size] -> [j : Size] -> |j| <= |i| -> Nat j -> Nat i
   = \ i j n -> mySucc i j n

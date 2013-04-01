@@ -49,11 +49,12 @@ So if G is upper semi-continuous, so is F.
 
 -}
 
-let inf (F : Size -> Set) -(i : Size) = [j < i] -> F j
+cofun Inf : (F : Size -> Set) -(i : Size) -> Set
+{ Inf F i = [j < i] -> F j }
 
 -- uses that  [j < i] -> F j  is upper semi-continuous in i
-let uppersemi [F : Size -> Set] (f : inf (inf F) #) : inf F #
-  = f #
+fun uppersemi : [F : Size -> Set] (f : Inf (Inf F) #) -> Inf F #
+{ uppersemi F f j  = f # j }
 {-
    have f   : [i < #] -> [j < i] -> F j
    show f # : [j < #] -> F j
@@ -80,12 +81,13 @@ data Front +(A : Set) -(i : Size)
 { cons (head : A) (tail : [j < i] -> Front A j)
 } fields head, tail
 
-let eta [F : Size -> Set] [i : Size] (f : [j < i] -> F j) : [j < i] -> F j
-  = \ j -> f j
+fun eta : [F : Size -> Set] [i : Size] (f : [j < i] -> F j) [j < i] -> F j
+{ eta F i f j = f j }
 
 fun repeat : [A : Set] (a : A) [i : Size] |i| -> Front A i
 { repeat A a i = cons a (repeat A a)
-  -- Note: not SN: (eta (Front A) i (repeat A a))
+  -- Or:
+; repeat A a i = cons a (eta (Front A) i (repeat A a))
 }
 
 let tailInf [A : Set] (s : Front A #) : Front A #

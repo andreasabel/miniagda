@@ -7,21 +7,14 @@ term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
 term  zero : .[i : Size] -> < zero i : Nat $i >
 term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
 term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
+term  mySucc : .[i : Size] -> .[j < i] -> Nat i -> Nat j
 block fails as expected, error message:
 mySucc
-/// checkExpr 0 |- \ i -> \ j -> \ n -> succ j n : .[i <= #] -> .[j : Size] -> |j| < |i| -> Nat i -> Nat j
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> succ j n : .[i <= #] -> .[j : Size] -> |j| < |i| -> Nat i -> Nat j
-/// new i <= #
-/// checkExpr 1 |- \ j -> \ n -> succ j n : .[j <= #] -> |j| < |i| -> Nat i -> Nat j
-/// checkForced fromList [(i,0)] |- \ j -> \ n -> succ j n : .[j <= #] -> |j| < |i| -> Nat i -> Nat j
-/// new j <= #
-/// checkExpr 2 |- \ n -> succ j n : |j| < |i| -> Nat i -> Nat j
-/// adding size rel. v1 + 1 <= v0
-/// checkExpr 2 |- \ n -> succ j n : Nat i -> Nat j
-/// checkForced fromList [(j,1),(i,0)] |- \ n -> succ j n : Nat i -> Nat j
-/// new n : (Nat v0)
+/// clause 1
+/// right hand side
 /// checkExpr 3 |- succ j n : Nat j
 /// checkForced fromList [(j,1),(i,0),(n,2)] |- succ j n : Nat j
+/// checkApp (^(y1 : (Nat v1)::()) -> < succ i y1 : Nat $i >{i = v1}) eliminated by n
 /// leqVal' (subtyping)  < n : Nat i >  <=+  Nat j
 /// leqVal' (subtyping)  Nat i  <=+  Nat j
 /// leqVal'  i  <=+  j : <= #
@@ -30,13 +23,12 @@ mySucc
 /// bound not entailed
 error during typechecking:
 explicitCast
-/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j : Size] -> |j| <= |i| -> Nat i -> Nat j
+/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j <= i] -> Nat i -> Nat j
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j <= i] -> Nat i -> Nat j
 /// new i <= #
-/// checkExpr 1 |- \ j -> \ n -> n : .[j <= #] -> |j| <= |i| -> Nat i -> Nat j
-/// checkForced fromList [(i,0)] |- \ j -> \ n -> n : .[j <= #] -> |j| <= |i| -> Nat i -> Nat j
-/// new j <= #
-/// checkExpr 2 |- \ n -> n : |j| <= |i| -> Nat i -> Nat j
+/// checkExpr 1 |- \ j -> \ n -> n : .[j <= i] -> Nat i -> Nat j
+/// checkForced fromList [(i,0)] |- \ j -> \ n -> n : .[j <= i] -> Nat i -> Nat j
+/// new j <= v0
 /// adding size rel. v1 + 0 <= v0
 /// checkExpr 2 |- \ n -> n : Nat i -> Nat j
 /// checkForced fromList [(j,1),(i,0)] |- \ n -> n : Nat i -> Nat j

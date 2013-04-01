@@ -14,8 +14,8 @@ sized data Nat : Size -> Set
 }
 
 fail
-let mySucc : [i : Size] -> [j : Size] -> |j| < |i| -> Nat i -> Nat j
- = \ i j n -> succ j n 
+fun mySucc : [i : Size] -> [j < i] -> Nat i -> Nat j
+{ mySucc i j n = succ j n }
 
-let explicitCast : [i : Size] -> [j : Size] -> |j| <= |i| -> Nat i -> Nat j
+let explicitCast : [i : Size] -> [j <= i] -> Nat i -> Nat j
   = \ i j n -> n

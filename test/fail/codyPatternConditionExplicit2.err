@@ -40,11 +40,15 @@ deep
 /// checkExpr 9 |- deep (max $$$i $$j2) (M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n))) (succ (succ (succ n))) : Nat
 /// inferExpr' deep (max $$$i $$j2) (M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n))) (succ (succ (succ n)))
 /// inferExpr' deep (max $$$i $$j2) (M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n)))
+/// checkApp ((O (max ($ ($ ($ v6))) ($ ($ v2))))::Tm -> Nat -> Nat{i = (max ($ ($ ($ v6))) ($ ($ v2)))}) eliminated by M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n))
 /// checkExpr 9 |- M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n)) : O (max $$$i $$j2)
 /// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- M (max $$i $j2) (L $i (pre $$i f)) (S j2 (f n)) : O (max $$$i $$j2)
+/// checkApp (^(y1 : (O (max ($ ($ v6)) ($ v2)))::()) -> ^(y2 : O i) -> < M i y1 y2 : O $i >{i = (max ($ ($ v6)) ($ v2))}) eliminated by L $i (pre $$i f)
 /// checkExpr 9 |- L $i (pre $$i f) : O (max $$i $j2)
 /// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- L $i (pre $$i f) : O (max $$i $j2)
+/// checkApp (^(y1 : (Nat::Tm -> O i{i = ($ v6)})::()) -> < L i y1 : O $i >{i = ($ v6)}) eliminated by pre $$i f
 /// inferExpr' pre $$i f
+/// checkApp ((Nat::Tm -> O $$i{i = ($ ($ v6))})::Tm -> Nat -> O $i{i = ($ ($ v6))}) eliminated by f
 /// leqVal' (subtyping)  (xSing# : Nat) -> < f xSing# : O j2 >  <=+  Nat -> O $$$$i
 /// new xSing# : Nat
 /// comparing codomain < vSing# xSing# : O i > with O $$i

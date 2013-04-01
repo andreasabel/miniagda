@@ -20,8 +20,8 @@ let two2 [A : Set] (f : A -> A) (a : A)
   = f (f a)
 
 -- telescopes can also contain bounded size variables
-
-let boundedSize (j <= #) (i < j) = i
+-- 2013-04-01 however, these may violate the context consistency check.
+fail let boundedSize (j <= #) (i < j) = i
 
 -- Untyped local let
 ----------------------------------------------------------------------

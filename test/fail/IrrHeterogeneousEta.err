@@ -24,6 +24,7 @@ etaFun'
 /// new h : ((a : Bool::Tm) -> F [true] (\ x -> \ y -> x y) a{g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {true {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))})
 /// checkExpr 3 |- g (h true) : Bool
 /// inferExpr' g (h true)
+/// checkApp ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {true {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}) eliminated by h true
 /// leqVal' (subtyping)  < h true : F true (\ x -> \ y -> x y) true >  <=+  F false (\ x -> x) true
 /// leqVal' (subtyping)  F true (\ x -> \ y -> x y) true  <=+  F false (\ x -> x) true
 /// leqVal'  \ x -> \ y -> x y : (Bool -> Bool) -> T true  <=*  \ x -> x : Bool -> T false
@@ -43,6 +44,7 @@ etaFun
 /// new a : (v0 {true {g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> \ y -> x y {g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})
 /// checkExpr 3 |- g a : Bool
 /// inferExpr' g a
+/// checkApp ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}) eliminated by a
 /// leqVal' (subtyping)  < a : F true (\ x -> \ y -> x y) >  <=+  F false (\ x -> x)
 /// leqVal' (subtyping)  F true (\ x -> \ y -> x y)  <=+  F false (\ x -> x)
 /// leqVal'  \ x -> \ y -> x y : (Bool -> Bool) -> T true  <=*  \ x -> x : Bool -> T false
@@ -66,6 +68,7 @@ etaUnit'
 /// new h : ((a : Bool::Tm) -> F [true] (\ x -> unit) a{g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {true {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))})
 /// checkExpr 3 |- g (h true) : Bool
 /// inferExpr' g (h true)
+/// checkApp ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {true {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}) eliminated by h true
 /// leqVal' (subtyping)  < h true : F true (\ x -> unit) true >  <=+  F false (\ x -> x) true
 /// leqVal' (subtyping)  F true (\ x -> unit) true  <=+  F false (\ x -> x) true
 /// leqVal'  \ x -> unit : Unit -> U true  <=*  \ x -> x : Bool -> U false
@@ -85,6 +88,7 @@ etaUnit
 /// new a : (v0 {true {g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> unit {g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})
 /// checkExpr 3 |- g a : Bool
 /// inferExpr' g a
+/// checkApp ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}) eliminated by a
 /// leqVal' (subtyping)  < a : F true (\ x -> unit) >  <=+  F false (\ x -> x)
 /// leqVal' (subtyping)  F true (\ x -> unit)  <=+  F false (\ x -> x)
 /// leqVal'  \ x -> unit : Unit -> U true  <=*  \ x -> x : Bool -> U false

@@ -29,7 +29,9 @@ loop
 /// right hand side
 /// checkExpr 4 |- loop j n (shift j f) : Unit
 /// inferExpr' loop j n (shift j f)
+/// checkApp (((SNat #)::Tm -> Maybe (SNat i){i = v1})::Tm -> Unit{i = v1}) eliminated by shift j f
 /// inferExpr' shift j f
+/// checkApp (((SNat #)::Tm -> Maybe (SNat $i){i = v1})::Tm -> Nat -> Maybe (SNat i){i = v1}) eliminated by f
 /// leqVal' (subtyping)  (xSing# : SNat #) -> < f xSing# : Maybe (SNat i) >  <=+  SNat # -> Maybe (SNat $j)
 /// new xSing# : (SNat #)
 /// comparing codomain < vSing# xSing# : Maybe (SNat i) > with Maybe (SNat $i)

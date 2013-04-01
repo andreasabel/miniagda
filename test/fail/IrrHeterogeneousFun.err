@@ -38,6 +38,7 @@ bad2
 /// new h : ((n : Nat::Tm) -> F [true] (\ x -> f true x) n{g = (v1 Up ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
 /// checkExpr 3 |- g (h zero) : Bool
 /// inferExpr' g (h zero)
+/// checkApp ((v0 {false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}) eliminated by h zero
 /// leqVal' (subtyping)  < h zero : F true (\ x -> f true x) zero >  <=+  F false (\ x -> f false x) zero
 /// leqVal' (subtyping)  F true (\ x -> f true x) zero  <=+  F false (\ x -> f false x) zero
 /// leqVal'  \ x -> f true x : Nat -> T true  <=*  \ x -> f false x : Bool -> T false

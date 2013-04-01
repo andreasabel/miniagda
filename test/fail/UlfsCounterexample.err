@@ -19,6 +19,7 @@ bad
 /// right hand side
 /// checkExpr 4 |- h (g zero) : Bool
 /// inferExpr' h (g zero)
+/// checkApp ((v0 {f [false] false {g = (v2 Up ((n : Nat::Tm) -> F (f [true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}})::Tm -> Bool{g = (v2 Up ((n : Nat::Tm) -> F (f [true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}) eliminated by g zero
 /// leqVal' (subtyping)  < g zero : F (f [true] zero) >  <=+  F (f [false] false)
 /// leqVal' (subtyping)  F (f [true] zero)  <=+  F (f [false] false)
 /// leqVal'  f true zero  <=*  f false false : Nat

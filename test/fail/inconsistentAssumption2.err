@@ -21,6 +21,7 @@ type of h
 /// inferExpr' Eq Size $i i
 /// inferExpr' Eq Size $i
 /// inferExpr' Eq Size
+/// checkApp (^(A : Set) -> ^(a : A) -> ^ A -> Set) eliminated by Size
 /// leqVal' (subtyping)  < Size : TSize >  <=+  Set
 /// leqVal' (subtyping)  TSize  <=+  Set
 /// universe test TSize <= Set failed

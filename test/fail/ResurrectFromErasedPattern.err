@@ -15,8 +15,10 @@ f
 /// right hand side
 /// checkExpr 2 |- succ false (succ b n) : Nat false
 /// checkForced fromList [(n,1),(b,0)] |- succ false (succ b n) : Nat false
+/// checkApp (^(y1 : (Nat false{})::()) -> < succ b y1 : Nat false >{b = false{}}) eliminated by succ b n
 /// checkExpr 2 |- succ b n : Nat false
 /// checkForced fromList [(n,1),(b,0)] |- succ b n : Nat false
+/// checkApp (^(y1 : (Nat v0)::()) -> < succ b y1 : Nat false >{b = v0}) eliminated by n
 /// inferExpr' n
 /// inferExpr: variable n : Nat b may not occur
 /// , because it is marked as erased

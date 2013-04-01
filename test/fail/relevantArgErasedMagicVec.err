@@ -26,6 +26,7 @@ Vec
 /// checkExpr 2 |- Sigma A (\ z -> Vec A n) : Set
 /// inferExpr' Sigma A (\ z -> Vec A n)
 /// inferExpr' Sigma A
+/// checkApp (^(A : Set) -> ^(B : A -> Set) -> Set) eliminated by A
 /// inferExpr' A
 /// inferExpr: variable A : Set may not occur
 /// , because it is marked as erased
