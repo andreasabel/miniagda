@@ -29,4 +29,4 @@ bla
 /// checkPattern $i : matching on size, checking that target .[i <= #] -> EmptyOr (Stream A i) false ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: EmptyOr (Stream A i) false
-/// endsInSizedCo: panic: target type EmptyOr (Stream A i) false is not an instance of any constructor
+/// allTypesOfTuple: panic: target type EmptyOr (Stream A i) false is not an instance of any constructor

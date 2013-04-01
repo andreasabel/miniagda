@@ -31,7 +31,7 @@ idAndLast
 /// endsInSizedCo: BStr i -> Prod Bool (BStr i)
 /// new  : (BStr v0)
 /// endsInSizedCo: Prod Bool (BStr i)
-/// endsInSizedCo: detected tuple target, checking components
-/// fieldsEndInSizedCo: checking fields of tuple type [field fst : A,field snd : B] in environment Environ {envMap = [(B,{BStr i {i = v0}}),(A,{Bool {i = v0}})], envBound = Nothing}
+/// allTypesOfTuple: detected tuple target, checking components
+/// allComponentTypes: checking fields of tuple type [field fst : A,field snd : B] in environment Environ {envMap = [(B,{BStr i {i = v0}}),(A,{Bool {i = v0}})], envBound = Nothing}
 /// endsInSizedCo: Bool
 /// endsInSizedCo: target Bool of corecursive function is neither a CoSet or codata of size i nor a tuple type

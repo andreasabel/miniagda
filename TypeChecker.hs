@@ -14,6 +14,7 @@ import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
+import qualified Data.Foldable as Foldable
 import qualified Data.Traversable as Traversable
 
 import Debug.Trace
@@ -354,8 +355,9 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      let isPatIndFam = all (\ ci -> fst (cPatFam ci) /= NotPatterns && cEtaExp ci) cis
 --                    && not (or overlapList)
      -- do not eta-expand recursive constructors (might not terminate)
-     let disableRec ci {-ov-} rec' = ci { cEtaExp
-           =  cEtaExp ci                      -- all destructors present
+     let disableRec ci {-ov-} rec' = ci
+          { cRec    = rec'
+          , cEtaExp =  cEtaExp ci               -- all destructors present
            && fst (cPatFam ci) /= NotPatterns -- proper pattern to compute indices
 --           && not ov                          -- non-overlapping
            && not (co==Ind && rec') }         -- non-recursive
@@ -914,6 +916,25 @@ checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
 --            checkExpr (update rho n v_e1) (v_t1 : delta) e2 v
 -}
 
+-- | @checkPair e1 e2 y dom env b@ checks @Pair e1 e2@ against
+--   @VQuant Sigma y dom env b@.
+checkPair :: Expr -> Expr -> Name -> Domain -> Env -> Expr -> TypeCheck (Kinded Expr)
+checkPair e1 e2 y dom@(Domain av ki dec) env b = do
+  case av of
+    VBelow Lt VInfty -> do
+      lowerSemi <- newWithGen y dom $ \ i xv -> do
+        bv <- whnf (update env y xv) b
+        lowerSemiCont i bv
+      continue $ if lowerSemi then VBelow Le VInfty else av
+    _ -> continue av
+  where
+    continue av = do
+      Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
+      v1 <- whnf' e1
+      bv <- whnf (update env y v1) b
+      Kinded k2 e2 <- checkExpr e2 bv
+      return $ Kinded (unionKind k1 k2) $ Pair (maybeErase dec e1) e2
+
 -- check expression after forcing the type
 checkForced :: Expr -> TVal -> TypeCheck (Kinded Expr)
 checkForced e v = do
@@ -929,12 +950,8 @@ checkForced e v = do
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkForced e bv
 
-      (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) -> do
-         Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
-         v1 <- whnf' e1
-         bv <- whnf (update env y v1) b
-         Kinded k2 e2 <- checkExpr e2 bv
-         return $ Kinded (unionKind k1 k2) $ Pair (maybeErase dec e1) e2
+      (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) ->
+        checkPair e1 e2 y dom env b
 
       (Record ri rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
          let fail1 = failDoc (text "expected" <+> prettyTCM t <+> text "to be a record type")
@@ -2652,6 +2669,72 @@ So if G is upper semi-continuous, so is F.
 
 -}
 
+
+-- | Check whether a type is upper semi-continuous.
+lowerSemiCont :: Int -> TVal -> TypeCheck Bool
+lowerSemiCont i tv = errorToBool $ lowerSemiContinuous i tv
+
+lowerSemiContinuous :: Int -> TVal -> TypeCheck ()
+lowerSemiContinuous i av = do
+  av <- force av
+  let fallback = szAntitone i av `newErrorDoc`
+            (text "type" <+> prettyTCM av <+> text "not lower semi continuous in" <+> prettyTCM (VGen i))
+  case av of
+
+    -- [j < i] & F j  is lower semi-cont in i
+    -- because [i < #] & [j < i] & F j is the same as [j < #] & F j
+    -- [but what if i in FV(F j)? should not matter!] 2013-04-01
+    VQuant Sigma x dom@Domain{ typ = VBelow Lt (VGen i') } env b | i == i' -> return ()
+
+    -- [j <= i] & F j  is lower semi-cont in i if F is
+    VQuant Sigma x dom@Domain{ typ = VBelow Le (VGen i') } env b | i == i' -> do
+      newWithGen x dom $ \ j xv -> lowerSemiContinuous j =<< whnf (update env x xv) b
+
+    -- Sigma-type general case
+    VQuant Sigma x dom@Domain{ typ = av } env b -> do
+      lowerSemiContinuous i av
+      new x dom $ \ xv -> lowerSemiContinuous i =<< whnf (update env x xv) b
+
+    VApp (VDef (DefId DatK n)) vl -> do
+      sige <- lookupSymb n
+      case sige of
+
+        -- finite tuple type
+        DataSig { symbTyp = dv, constructors = cis, isTuple = True } -> do
+          -- match target of constructor against tv to instantiate
+          --  c : ... -> D ps  -- ps = snd (cPatFam ci)
+          mrhoci <- Util.firstJustM $ map (\ ci -> fmap (,ci) <$> nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv) cis
+          case mrhoci of
+            Nothing -> fallback
+            Just (rho,ci) -> if (cRec ci) then fallback else do
+              -- infinite tuples (recursive constructor) are not lower semi cont
+              enter ("lowerSemiContinuous: detected tuple type, checking components") $
+                allComponentTypes (cFields ci) rho (lowerSemiContinuous i)
+
+       -- i-sized inductive types are lower semi-cont in i
+        DataSig { numPars, isSized = Sized, isCo = Ind } | length vl > numPars -> do
+          s <- whnfClos $ vl !! numPars -- the size argument is the first fgter the parameters
+          case s of
+            VGen i' | i == i' -> return ()
+            _ -> fallback
+
+        -- finite inductive type
+        DataSig { symbTyp = dv, constructors = cis, isCo = Ind } ->
+          -- if any cRec cis then fallback else do -- we loop on recursive data, so exclude
+          -- check that we do not loop on the same data names...
+          ifM ((n `elem`) <$> asks callStack) fallback $ do
+          local (\ ce -> ce { callStack = n : callStack ce }) $ do
+          -- match target of constructor against tv to instantiate
+          --  c : ... -> D ps  -- ps = snd (cPatFam ci)
+          forM_ cis $ \ ci -> do
+            match <- nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv
+            Foldable.forM_ match $ \ rho -> do
+                enter ("lowerSemiContinuous: detected tuple type, checking components") $
+                  allComponentTypes (cFields ci) rho (lowerSemiContinuous i)
+
+        _ -> fallback
+    _ -> fallback
+
 -- | Check whether a type is upper semi-continuous.
 upperSemiCont :: Int -> TVal -> TypeCheck Bool
 upperSemiCont i tv = errorToBool $ endsInSizedCo' False i tv
@@ -2691,16 +2774,11 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
         return ()
       VQuant Pi x dom@Domain{ typ = VBelow Lt (VGen i') } env b | i == i' -> return ()
 
-      VQuant Pi x dom env b -> new x dom $ \ gen -> do
-         let av = typ dom
-         isInd <- szUsed Ind i av
-
-         unless isInd $
-           szAntitone i av `newErrorDoc`
-            (text "type" <+> prettyTCM av <+> text "not lower semi continuous in" <+> prettyTCM (VGen i))
-
-         bv <- whnf (update env x gen) b
+      VQuant Pi x dom env b -> new x dom $ \ xv -> do
+         lowerSemiContinuous i $ typ dom
+         bv <- whnf (update env x xv) b
          endsInSizedCo' endInCo i bv
+
       VSing _ tv -> endsInSizedCo' endInCo i =<< whnfClos tv
       VApp (VDef (DefId DatK n)) vl -> do
          sige <- lookupSymb n
@@ -2725,6 +2803,8 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
 -- we also allow the target to be a tuple if all of its components
 -- fulfill "endsInSizedCo"
             DataSig { symbTyp = dv, constructors = cis, isTuple = True } -> do
+              allTypesOfTuple tv vl dv cis (endsInSizedCo' endInCo i)
+{-
               -- match target of constructor against tv to instantiate
               --  c : ... -> D ps  -- ps = snd (cPatFam ci)
               mrhoci <- Util.firstJustM $ map (\ ci -> fmap (,ci) <$> nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv) cis
@@ -2732,12 +2812,29 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
                 Nothing -> failDoc $ text "endsInSizedCo: panic: target type" <+> prettyTCM tv <+> text "is not an instance of any constructor"
                 Just (rho,ci) -> enter ("endsInSizedCo: detected tuple target, checking components") $
                   fieldsEndInSizedCo endInCo i (cFields ci) rho
+-}
             _ -> fallback
       _ -> fallback
 {- failDoc $ text "endsInSizedCo: target" <+> prettyTCM tv <+> text "of corecursive function is neither a function type nor a codata nor a tuple type"
 -}
 
+-- | @allTypesOfTyples args dv cis check@ performs @check@ on all component
+--   types of tuple type @tv = d args@ where @dv@ is the type of @d@.
+allTypesOfTuple :: TVal -> [Val] -> TVal -> [ConstructorInfo] -> (TVal -> TypeCheck ()) -> TypeCheck ()
+allTypesOfTuple tv vl dv cis check = do
+  -- match target of constructor against tv to instantiate
+  --  c : ... -> D ps  -- ps = snd (cPatFam ci)
+  mrhoci <- Util.firstJustM $
+    map (\ ci -> fmap (,ci) <$> nonLinMatchList False emptyEnv (snd $ cPatFam ci) vl dv) cis
+  -- we know that only one constructor can match, otherwise it would not be a tuple type
+  case mrhoci of
+    Nothing -> failDoc $ text "allTypesOfTuple: panic: target type" <+> prettyTCM tv <+> text "is not an instance of any constructor"
+    Just (rho,ci) -> enter ("allTypesOfTuple: detected tuple target, checking components") $
+      allComponentTypes (cFields ci) rho check
+
+{-
 fieldsEndInSizedCo :: Bool -> Int -> [FieldInfo] -> Env -> TypeCheck ()
+fieldsEndInSizedCo endInCo i fis rho0 = allComponentTypes fis rho0 (endsInSizedCo' endInCo i)
 fieldsEndInSizedCo endInCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fields of tuple type " ++ show fis ++ " in environment " ++ show rho0) $
   loop fis rho0 where
     loop [] rho = return ()
@@ -2757,6 +2854,34 @@ fieldsEndInSizedCo endInCo i fis rho0 = enter ("fieldsEndInSizedCo: checking fie
         let rho' = update rho (fName f) xv
         -- do not need to check erased fields?
         loop fs rho'
+-}
+
+-- | @allComponentTypes fis env check@ applies @check@ to all field types
+--   in @fis@ (evaluated wrt to environment @env@).
+--   Erased fields are skipped.  (Is this correct?)
+allComponentTypes :: [FieldInfo] -> Env -> (TVal -> TypeCheck ()) -> TypeCheck ()
+allComponentTypes fis rho0 check = enter ("allComponentTypes: checking fields of tuple type " ++ show fis ++ " in environment " ++ show rho0) $
+  loop fis rho0 where
+    loop [] rho = return ()
+
+    -- nothing to check for erased index fields
+    loop (f : fs) rho | fClass f == Index && erased (fDec f) =
+      loop fs rho
+
+    -- ordinary index field types are checked
+    loop (f : fs) rho | fClass f == Index = do
+      check =<< whnf rho (fType f)
+      loop fs rho
+
+    -- proper fields
+    loop (f : fs) rho = do
+      tv <- whnf rho (fType f)
+      -- do not need to check erased fields?
+      when (not $ erased (fDec f)) $ check tv
+      -- for non-index fields, value is not given by matching, so introduce
+      -- generic value
+      new (fName f) (Domain tv defaultKind (fDec f)) $ \ xv -> do
+        loop fs $ update rho (fName f) xv
 
 
 

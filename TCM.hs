@@ -172,6 +172,7 @@ data TCContext = TCContext
   , mutualFuns :: Map Name SigDef -- types of mutual funs while checking body
   , mutualCo :: Co                -- mutual block (co)recursive ?
   , checkingMutualName :: Maybe DefId -- which body of a mutual block am I checking?
+  , callStack :: [Name] -- ^ Used to avoid looping when going into recursive data definitions.
   }
 
 instance Show TCContext where
@@ -194,6 +195,7 @@ emptyContext = TCContext
   , mutualFuns = Map.empty
   , mutualCo = Ind
   , checkingMutualName = Nothing
+  , callStack = []
   }
 
 -- state monad for global signature

@@ -1401,6 +1401,7 @@ data ConstructorInfo = ConstructorInfo
   , cTyCore :: Type
   , cPatFam :: (PatternsType, [Pattern])
   , cEtaExp :: Bool -- all destructors are defined, family pattern is non-overlapping with family patterns of other constructors
+  , cRec    :: Bool -- constructor has recursive fields
   } deriving Show
 
 corePat :: ConstructorInfo -> [Pattern]
@@ -1553,6 +1554,7 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
        -- check whether core is D ps and store pats; also compute whether ps are linear
        , cPatFam = computeLinearity $ fromAllWriter $ isPatIndFamC core
        , cEtaExp = destructorNamesPresent fields
+       , cRec    = True  -- we don't know here, assume the worst
        }
    in -- trace ("analyzeConstructor returns " ++ show result) $
         result
