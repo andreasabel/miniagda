@@ -2,6 +2,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE CPP #-}
 
+-- Activate this flag if i < $i should only hold for i < #.
+-- #define STRICTINFTY
+
 module Eval where
 
 import Util
