@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
- 
+
+-- Activate this switch if $# should be distinct from #
+-- #define SUCINF
+
 module Value where
 
 import Control.Applicative
@@ -19,7 +22,7 @@ import TraceError -- orM
 
 data Val
   -- sizes
-  = VInfty
+  = VInfty Int                   -- Omega + n (n-fold successor of infty)
   | VZero
   | VSucc Val
   | VMax [Val]
@@ -71,12 +74,15 @@ data MeasVal = MeasVal [Val]  -- lexicographic termination measure
 
 -- smart constructors ------------------------------------------------
 
+vInfty :: Val
+vInfty = VInfty 0
+
 -- | The value representing type Size.
 vSize :: Val
-vSize = VBelow Le VInfty -- 2012-01-28 non-termination bug I have not found
+vSize = VBelow Le vInfty -- 2012-01-28 non-termination bug I have not found
 -- vSize = VSort $ SortC Size
 
-vFinSize = VBelow Lt VInfty
+vFinSize = VBelow Lt vInfty
 
 -- | Ensure we construct the correct value representing Size.
 vSort :: Sort Val -> Val
@@ -84,14 +90,17 @@ vSort (SortC Size) = vSize
 vSort s            = VSort s
 
 isVSize :: Val -> Bool
-isVSize (VSort (SortC Size)) = True
-isVSize (VBelow Le VInfty)   = True
-isVSize _                    = False
+isVSize (VSort (SortC Size))   = True
+isVSize (VBelow Le (VInfty _)) = True
+#ifdef SUCINF
+isVSize (VBelow Lt (VInfty n)) = n >= 1
+#endif
+isVSize _                      = False
 
 vTSize = VSort $ SortC TSize
 
 vTopSort :: Val
-vTopSort = VSort $ Set VInfty
+vTopSort = VSort $ Set vInfty
 
 mkClos :: Env -> Expr -> Val
 mkClos rho Infty       = VInfty
@@ -161,20 +170,29 @@ quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (
 -- max i i         = i                Idempotency of max
 succSize :: Val -> Val
 succSize v = case v of
-            VInfty -> VInfty
-            VMax vs -> maxSize $ map succSize vs
-            VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
-            _ -> VSucc v 
+  VInfty n      -> VInfty (n+1)
+  VMax vs       -> maxSize $ map succSize vs
+  VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
+  _             -> VSucc v
 vSucc = succSize
+
+plusInfty :: Int -> Val -> Val
+plusInfty n v = case v of
+  VZero    -> VInfty n
+  VSucc v  -> plusInfty (n+1) v
+  VInfty m -> VPlus $ [VInfty n, VInfty m]
+    -- error "don't know what # + # should be"
+  VMax vs  -> maxSize $ map (plusInfty n) vs
+  VPlus vs -> VPlus $ VInfty n : vs
 
 -- "multiplication" of sizes
 plusSize :: Val -> Val -> Val
 plusSize VZero v = v
 plusSize v VZero = v
-plusSize VInfty v = VInfty
-plusSize v VInfty = VInfty
-plusSize (VMax vs) v = maxSize $ map (plusSize v) vs
-plusSize v (VMax vs) = maxSize $ map (plusSize v) vs
+plusSize (VInfty n) v = plusInfty n v
+plusSize v (VInfty n) = plusInfty n v
+plusSize (VMax vs) v  = maxSize $ map (plusSize v) vs
+plusSize v (VMax vs)  = maxSize $ map (plusSize v) vs
 plusSize (VSucc v) v' = succSize $ plusSize v v'
 plusSize v' (VSucc v) = succSize $ plusSize v v'
 plusSize (VPlus vs) (VPlus vs') = VPlus $ List.sort (vs ++ vs') -- every summand is a var!  -- TODO: more efficient sorting!
@@ -191,17 +209,20 @@ plusSizes (v:vs) = v `plusSize` (plusSizes vs)
 --            = VMax (sort (nub (flatten vs)) else
 -- precondition vs
 
+#ifdef SUCINF
+#else
 maxSize :: [Val] -> Val
 maxSize vs = case Set.toList . Set.fromList <$> flatten vs of
-   Nothing -> VInfty
+   Nothing -> vInfty
    Just [] -> VZero
    Just [v] -> v
    Just vs' -> VMax vs'
-  where flatten (VZero:vs) = flatten vs
-        flatten (VInfty:_) = Nothing
-        flatten (VMax vs:vs') = flatten vs' >>= return . (vs++)
+  where flatten (VZero    : vs ) = flatten vs
+        flatten (VInfty _ : _  ) = Nothing
+        flatten (VMax vs  : vs') = flatten vs' >>= return . (vs++)
         flatten (v:vs) = flatten vs >>= return . (v:)
         flatten [] = return []
+#endif
 
 {-
 maxSize :: [Val] -> Val
