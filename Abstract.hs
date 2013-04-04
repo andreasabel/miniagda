@@ -401,7 +401,7 @@ kSize   = preciseKind (SortC Size)
 kTSize  = preciseKind (SortC TSize)
 kTerm   = preciseKind (SortC Tm)
 kType   = preciseKind (Set Zero)
-kUniv e = preciseKind (Set (Succ (sizeVarsToInfty e)))
+kUniv e = preciseKind (Set (Succ (sizeVarsToInfty e))) -- used in TypeChecker
 
 instance Show Kind where
   show NoKind = "()"

@@ -754,6 +754,10 @@ instance MonadCxt TypeCheck where
     whenM (asks consistencyCheck `andLazy` do
            TSO.increasesHeight son (dist, father) <$> asks sizeRels) $ do
       recoverFail $ "cannot add hypothesis " ++ s ++ " because it is not satisfyable under all possible valuations of the current hypotheses"
+    -- if the new son is an ancestor of the father, we are cyclic
+    awhenM (TSO.isAncestor father son <$> asks sizeRels) $ \ n -> -- n steps from father up to son
+      when (dist > - n) $ -- still ok if dist == n == 0, otherwise fail
+        recoverFail$ "cannot add hypothesis " ++ s ++ " because it makes the set of hyptheses unsatisfiable"
     local (\ cxt -> cxt
       { sizeRels = TSO.insert son (dist, father) (sizeRels cxt)
       , belowInfty = modBI (belowInfty cxt)

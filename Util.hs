@@ -57,6 +57,10 @@ traceM msg = trace msg $ return ()
 liftMaybe :: (Monad m) => Maybe a -> m a
 liftMaybe = maybe (fail "Util.liftMaybe: unexpected Nothing") return
 
+whenJust :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
+whenJust (Just a) k = k a
+whenJust Nothing  k = return ()
+
 lookupM :: (Monad m, Show k, Ord k) => k -> Map k v -> m v
 lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
 
