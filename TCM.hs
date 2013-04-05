@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns, DeriveFunctor, DeriveFoldable, DeriveTraversable, TupleSections #-}
 
 module TCM where
 
@@ -1133,6 +1133,9 @@ conLType c tv = do
 --      instConType c n ((x1:A1..xn:An) -> B) d (d v1..vn ws) = B[vs/xs]
 --   @@
 instConType :: Name -> Int -> TVal -> Name -> TVal -> TypeCheck TVal
+instConType c numPars symbTyp dataName tv =
+  instConLType' c numPars symbTyp Nothing (Just dataName) tv
+{-
 instConType c numPars symbTyp dataName tv = do
   dv <- dataView tv
   case dv of
@@ -1147,6 +1150,7 @@ instConType c numPars symbTyp dataName tv = do
                    <+> text ("to be a data type applied to all of its " ++
                      show numPars ++ " parameters"))
       piApps symbTyp pars
+-}
 
 -- | Get correct lhs type for constructor pattern.
 --
@@ -1159,7 +1163,12 @@ instConType c numPars symbTyp dataName tv = do
 --   the size argument is flexible (because then it wants to be
 --   unified with the successor pattern of the rhs type.
 instConLType :: Name -> Int -> TVal -> Maybe TVal -> (Val -> Bool) -> TVal -> TypeCheck TVal
-instConLType c numPars symbTyp isSized isFlex tv = do
+instConLType c numPars rhsTyp lhsTyp isFlex dataTyp =
+  instConLType' c numPars rhsTyp (fmap (,isFlex) lhsTyp) Nothing dataTyp
+
+-- | The common pattern behind @instConType@ and @instConLType@.
+instConLType' :: Name -> Int -> TVal -> Maybe (TVal, Val -> Bool) -> Maybe Name -> TVal -> TypeCheck TVal
+instConLType' c numPars symbTyp isSized md tv = do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv
                    <+> text ("to be a data type applied to all of its " ++
@@ -1168,13 +1177,15 @@ instConLType c numPars symbTyp isSized isFlex tv = do
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv <+> text "to be a data type")
-    Data _ vs -> do
+    Data d vs -> do
+      whenJust md $ \ d' ->
+        unless (d == d') $ fail $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show d'
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) failure
       case (isSized, inds) of
-        (Just ltv, [])                               -> failure
+        (Just _, []) -> failure
         -- if size index not flexible, use lhs type
-        (Just ltv, sizeInd:_) | not (isFlex sizeInd) ->
+        (Just (ltv, isFlex), sizeInd:_) | not (isFlex sizeInd) ->
           piApps ltv (pars ++ [sizeInd])
         -- otherwise, use rhs type
         _ -> piApps symbTyp pars
