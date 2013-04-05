@@ -988,7 +988,7 @@ matchPatType (p,v) dom cont =
           _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show (p,v)
 
 
--- signature -----------------------------------------------------
+-- Signature -----------------------------------------------------
 
 -- input to and output of the type-checker
 
@@ -1083,22 +1083,13 @@ symbKind DataSig{} = kType          -- data types are never universes
 
 emptySig = Map.empty
 
--- Signature specification -------------------------------------------
-
-class MonadCxt m => MonadSig m where
-  lookupSymbTyp :: Name -> m TVal
-  lookupSymb    :: Name -> m SigDef
-  addSig        :: Name -> SigDef -> m ()
-  modifySig     :: Name -> (SigDef -> SigDef) -> m ()
-  setExtrTyp    :: Name -> Expr -> m ()
-
--- Signature implementation ------------------------------------------
+-- Handling constructor types  ------------------------------------------
 
 data DataView
   = Data Name [Clos]
   | NoData
 
--- | Find datatype @D vs@ in type @Tel -> D vs@.
+-- | Check if type @tv@ is a datatype @D vs@.
 dataView :: TVal -> TypeCheck DataView
 dataView tv = do
   tv <- force tv
@@ -1112,31 +1103,19 @@ dataView tv = do
     _                             -> return $ NoData
 
 -- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
---   with parameters instantiated
+--   with parameters instantiated.
 conType :: Name -> TVal -> TypeCheck TVal
 conType c tv = do
   ConSig { numPars, symbTyp, dataName } <- lookupSymb c
   instConType c numPars symbTyp dataName tv
-{-
-conType c tv = do
-  dv <- dataView tv
-  case dv of
-    NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv <+> text "to be a data type")
-    Data n vs -> do
-      -- DataSig { numPars } <- lookupSymb n
-      ConSig { numPars, symbTyp } <- lookupSymb c
-      let (pars, inds) = splitAt numPars vs
-      unless (length pars == numPars) $
-        failDoc (text ("conType " ++ show c ++ ": expected")
-                   <+> prettyTCM tv
-                   <+> text ("to be a data type applied to all of its " ++
-                     show numPars ++ " parameters"))
-      piApps symbTyp pars
--}
-
 
 -- | Get LHS type of constructor.
+--
+--   Constructors or sized data types internally have a lhs type
+--   that differs from its rhs type.  E.g.,
+--   rhs @suc : [i : Size] -> Nat i -> Nat $i@
+--   lhs @suc : [i : Size] [j < i] -> Nat j -> Nat i@.
+--   In the lhs type, @i@ turns into an additional parameter.
 conLType :: Name -> TVal -> TypeCheck TVal
 conLType c tv = do
   ConSig { numPars, lhsTyp, symbTyp, dataName } <- lookupSymb c
@@ -1144,14 +1123,23 @@ conLType c tv = do
     Nothing   -> instConType c numPars symbTyp dataName tv
     Just lTyp -> instConType c (numPars+1) lTyp dataName tv
 
+-- | Instantiate type of constructor to parameters obtained from
+--   the data type.
+--
+--   @instConType c n symbTyp dataName tv@
+--   instantiates type @symbTyp@ of constructor @c@ with first @n@ arguments
+--   that @dataName@ is applied to in @tv@.
+--   @@
+--      instConType c n ((x1:A1..xn:An) -> B) d (d v1..vn ws) = B[vs/xs]
+--   @@
 instConType :: Name -> Int -> TVal -> Name -> TVal -> TypeCheck TVal
 instConType c numPars symbTyp dataName tv = do
   dv <- dataView tv
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv <+> text "to be a data type")
-    Data n vs -> do
-      unless (n == dataName) $ fail $ "expected constructor of datatype " ++ show n ++ ", but found one of datatype " ++ show dataName
+    Data d vs -> do
+      unless (d == dataName) $ fail $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show dataName
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) $
         failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1161,6 +1149,15 @@ instConType c numPars symbTyp dataName tv = do
       piApps symbTyp pars
 
 -- | Get correct lhs type for constructor pattern.
+--
+--   @instConLType c numPars symbTyp Nothing isFlex tv@ behaves like
+--   @instConLType c numPars symbType _ tv@.
+--
+--   But if the data types is sized and the constructor has a lhs type,
+--   @instConLType c numPars symbTyp (Just ltv) isFlex tv@
+--   uses the lhs type @ltv@ unless the variable instantiated for
+--   the size argument is flexible (because then it wants to be
+--   unified with the successor pattern of the rhs type.
 instConLType :: Name -> Int -> TVal -> Maybe TVal -> (Val -> Bool) -> TVal -> TypeCheck TVal
 instConLType c numPars symbTyp isSized isFlex tv = do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1171,15 +1168,35 @@ instConLType c numPars symbTyp isSized isFlex tv = do
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv <+> text "to be a data type")
-    Data n vs -> do
+    Data _ vs -> do
       let (pars, inds) = splitAt numPars vs
-      when (length pars < numPars) $ failure
+      unless (length pars == numPars) failure
+      case (isSized, inds) of
+        (Just ltv, [])                               -> failure
+        -- if size index not flexible, use lhs type
+        (Just ltv, sizeInd:_) | not (isFlex sizeInd) ->
+          piApps ltv (pars ++ [sizeInd])
+        -- otherwise, use rhs type
+        _ -> piApps symbTyp pars
+{-
       case isSized of
         Nothing  -> piApps symbTyp pars
         Just ltv -> do
           when (null inds) failure
           let sizeInd = head inds
           if isFlex sizeInd then piApps symbTyp pars else piApps ltv (pars ++ [sizeInd])
+-}
+
+-- Signature specification -------------------------------------------
+
+class MonadCxt m => MonadSig m where
+  lookupSymbTyp :: Name -> m TVal
+  lookupSymb    :: Name -> m SigDef
+  addSig        :: Name -> SigDef -> m ()
+  modifySig     :: Name -> (SigDef -> SigDef) -> m ()
+  setExtrTyp    :: Name -> Expr -> m ()
+
+-- Signature implementation ------------------------------------------
 
 instance MonadSig TypeCheck where
 
