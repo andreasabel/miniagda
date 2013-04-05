@@ -24,18 +24,18 @@ import qualified SparseMatrix as M
 import TreeShapedOrder (TSO)
 import qualified TreeShapedOrder as TSO
 
-traceTerm msg a = a -- trace msg a 
+traceTerm msg a = a -- trace msg a
 traceTermM msg = return () -- traceM msg
 {-
-traceTerm msg a = trace msg a 
+traceTerm msg a = trace msg a
 traceTermM msg = traceM msg
 -}
 
 
-traceProg msg a =  a 
+traceProg msg a =  a
 traceProgM msg = return ()
 {-
-traceProg msg a = trace msg a 
+traceProg msg a = trace msg a
 traceProgM msg = traceM msg
 -}
 
@@ -63,12 +63,12 @@ data Order = Decr Int -- positive numbers: decrease, neg. numbers: increase
 instance HasZero Order where
   zeroElement = Un
 
--- smart constructor 
+-- smart constructor
 orderMat :: Matrix Order -> Order
 orderMat m | M.isEmpty m                = Decr 0
-           | Just o <- M.isSingleton m  = o 
+           | Just o <- M.isSingleton m  = o
            | otherwise                  = Mat m
-{-   
+{-
 orderMat []    = Decr 0   -- 0x0 Matrix = neutral element
 orderMat [[o]] = o        -- 1x1 Matrix
 orderMat oss   = Mat oss  -- nxn Matrix
@@ -90,8 +90,8 @@ abstract (Mat m) = Mat $ absCM m
 
 absCM :: Matrix Order -> Matrix Order
 absCM = fmap abstract
--- absCM = map (map abstract) 
-                  
+-- absCM = map (map abstract)
+
 -- the one is never needed for matrix multiplication
 ordRing :: (?cutoff :: Int) => Semiring Order
 ordRing = Semiring { add = maxO , mul = comp , zero = Un } -- , one = Decr 0 }
@@ -111,7 +111,7 @@ comp o (Mat m) = comp o (collapse m)
 comp (Mat m) o = comp (collapse m) o
 
 maxO :: (?cutoff :: Int) => Order -> Order -> Order
-maxO o1 o2 = case (o1,o2) of 
+maxO o1 o2 = case (o1,o2) of
                (Un,_) -> o2
                (_,Un) -> o1
                (Decr k, Decr l) -> Decr (max k l) -- cutoff not needed
@@ -137,7 +137,7 @@ minO o1 o2 = case (o1,o2) of
 {-
 -- for non empty lists:
 minimumO :: (?cutoff :: Int) => [Order] -> Order
-minimumO = foldl1 minO 
+minimumO = foldl1 minO
 -}
 
 -- | pointwise minimum
@@ -151,15 +151,15 @@ minM m1 m2 = [ minV x y | (x,y) <- zip m1 m2]
 -}
 
 maxL :: (?cutoff :: Int) => [Order] -> Order
-maxL = foldl1 maxO 
+maxL = foldl1 maxO
 
 minL :: (?cutoff :: Int) => [Order] -> Order
-minL = foldl1 minO 
+minL = foldl1 minO
 
 {- collapse m
 
 We assume that m codes a permutation:  each row has at most one column
-that is not Un. 
+that is not Un.
 
 To collapse a matrix into a single value, we take the best value of
 each column and multiply them.  That means if one column is all Un,
@@ -198,15 +198,15 @@ collapse m = case M.toLists (M.transpose m) of
 type Vector a = [a]
 type NaiveMatrix a = [Vector a]
 
---- 
+---
 -- matrix stuff
 
 {-
-data Semiring a = Semiring { add :: (a -> a -> a) , mul :: (a -> a -> a) , one :: a , zero :: a } 
+data Semiring a = Semiring { add :: (a -> a -> a) , mul :: (a -> a -> a) , one :: a , zero :: a }
 -}
 
 ssum :: Semiring a -> Vector a -> a
-ssum sem v = foldl (add sem) (zero sem) v 
+ssum sem v = foldl (add sem) (zero sem) v
 
 vadd :: Semiring a -> Vector a -> Vector a -> Vector a
 vadd sem v1 v2 = [ (add sem) x y | (x,y) <- zip v1 v2]
@@ -217,19 +217,19 @@ scalarProdukt sem xs ys = ssum sem [(mul sem) x y  | (x,y) <- zip xs ys]
 madd :: Semiring a -> NaiveMatrix a -> NaiveMatrix a -> NaiveMatrix a
 madd sem m1 m2 = [ vadd sem x y | (x,y) <- zip m1 m2]
 
-transp :: NaiveMatrix a -> NaiveMatrix a 
+transp :: NaiveMatrix a -> NaiveMatrix a
 transp [] = []
 transp y = [[ z!!j | z<-y] | j<-[0..s]]
     where
     s = length (head y)-1
 
 mmul :: Show a => Semiring a -> NaiveMatrix a -> NaiveMatrix a -> NaiveMatrix a
-mmul sem m1 m2 = let m = 
+mmul sem m1 m2 = let m =
                          [[scalarProdukt sem r c | c <- transp m2] | r<-m1 ]
-                 in m 
+                 in m
 diag :: NaiveMatrix a -> Vector a
 diag [] = []
-diag m = [ (m !! j) !! j | j <- [ 0..s] ] 
+diag m = [ (m !! j) !! j | j <- [ 0..s] ]
    where
      s = length (head m) - 1
 
@@ -238,7 +238,7 @@ elems m = concat m
 
 {-
 ok :: Matrix a -> Matrix a -> Bool
-ok m1 m2 = (length m1) == length m2 
+ok m1 m2 = (length m1) == length m2
 -}
 
 sameSize :: Matrix a -> Matrix a -> Bool
@@ -255,39 +255,39 @@ composable m1 m2 = M.rows (M.size m1) == M.cols (M.size m2)
 compareArgs :: (?cutoff :: Int) => TSO Name -> [Pattern] -> [Expr] -> Arity -> Matrix Order
 compareArgs tso _ [] _ = empty
 compareArgs tso [] _ _ = empty
-compareArgs tso pl el ar_g = 
+compareArgs tso pl el ar_g =
   M.fromLists (M.Size { M.rows = fullArity ar_g , M.cols = length pl }) $
-    map (\ e -> map (\ p -> --traceTerm ("comparing " ++ show e ++ " to " ++ show p) $ 
+    map (\ e -> map (\ p -> --traceTerm ("comparing " ++ show e ++ " to " ++ show p) $
                                     compareExpr tso e p) pl) el
 {-
-compareArgs tso pl el ar_g = 
-        let 
-            diff = ar_g - length el 
+compareArgs tso pl el ar_g =
+        let
+            diff = ar_g - length el
             fill = if diff > 0 then
                        replicate diff (replicate (length pl) Un)
                    else []
-            cmp = map (\ e -> (map (\ p -> --traceTerm ("comparing " ++ show e ++ " to " ++ show p) $ 
+            cmp = map (\ e -> (map (\ p -> --traceTerm ("comparing " ++ show e ++ " to " ++ show p) $
                                     compareExpr tso e p) pl)) el
         in
           cmp ++ fill
 -}
-            
-{-             
+
+{-
 compareExpr :: (?cutoff :: Int) => Expr -> Pattern -> Order
-compareExpr e p =  
-   case (e,p) of 
-      (_,UnusableP _) -> Un  
+compareExpr e p =
+   case (e,p) of
+      (_,UnusableP _) -> Un
       (_,DotP e') -> case exprToPattern e' of
                        Nothing -> if e == e' then Decr 0 else Un
                        Just p' -> compareExpr e p'
-      (Var i,p) -> traceTerm ("compareVar " ++ show i ++ " " ++ show p) $ compareVar i p 
-      (App (Var i) _,p) -> compareVar i p 
+      (Var i,p) -> traceTerm ("compareVar " ++ show i ++ " " ++ show p) $ compareVar i p
+      (App (Var i) _,p) -> compareVar i p
       (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Decr 0
-      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr e1 p1 
-      (App (Con _ n1) args,ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
+      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr e1 p1
+      (App (Con _ n1) args,ConP _ n2 pl) | n1 == n2 && length args == length pl ->
               Mat (map (\ e -> (map (compareExpr e) pl)) args)
               -- without extended order :  minL $ zipWith compareExpr args pl
-      (Succ e2,SuccP p2) -> compareExpr e2 p2     
+      (Succ e2,SuccP p2) -> compareExpr e2 p2
       -- new cases for counting constructors
       (Succ e2,p) -> Decr (-1) `comp` compareExpr e2 p
       (App (Con _ n1) args@(_:_), p) -> Decr (-1) `comp` minL (map (\e -> compareExpr e p) args)
@@ -295,37 +295,37 @@ compareExpr e p =
 -}
 
 
-             
+
 compareExpr :: (?cutoff :: Int) => TSO Name -> Expr -> Pattern -> Order
-compareExpr tso e p =  
+compareExpr tso e p =
   let ret o = traceTerm ("comparing expression " ++ show e ++ " to pattern " ++ show p ++ " returns " ++ show o) o in
     ret $ compareExpr' tso e p
 
 compareExpr' :: (?cutoff :: Int) => TSO Name -> Expr -> Pattern -> Order
-compareExpr' tso (Ann e) p = compareExpr' tso (unTag e) p  
-compareExpr' tso e p =  
-   case (conView $ spineView e, p) of 
+compareExpr' tso (Ann e) p = compareExpr' tso (unTag e) p
+compareExpr' tso e p =
+   case (conView $ spineView e, p) of
       (_,UnusableP _) -> Un
---      (Erased e,_)    -> compareExpr' tso e p  
-      (_,ErasedP p)   -> compareExpr' tso e p  
+--      (Erased e,_)    -> compareExpr' tso e p
+      (_,ErasedP p)   -> compareExpr' tso e p
       (_,DotP e') -> case exprToPattern e' of
                        Nothing ->  if e == e' then Decr 0 else Un
                        Just p' -> compareExpr' tso e p'
-      ((Var i,_), p) -> -- traceTerm ("compareVar " ++ show i ++ " " ++ show p) $ 
-                         compareVar tso i p 
+      ((Var i,_), p) -> -- traceTerm ("compareVar " ++ show i ++ " " ++ show p) $
+                         compareVar tso i p
 --      (Con _ n1,ConP _ n2 [])  | n1 == n2 -> Decr 0
---      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr' tso e1 p1 
-      ((Def (DefId (ConK _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl -> 
-          let os = zipWith (compareExpr' tso) args pl 
+--      (App (Con _ n1) [e1],ConP _ n2 [p1]) | n1 == n2 -> compareExpr' tso e1 p1
+      ((Def (DefId (ConK _) n1),args),ConP _ n2 pl) | n1 == n2 && length args == length pl ->
+          let os = zipWith (compareExpr' tso) args pl
           in  trace ("compareExpr (con/con case): os = " ++ show os) $
               if null os then Decr 0 else minL os
 {- 2011-12-16 deactivate structured (matrix) orders
-          orderMat $ 
+          orderMat $
             M.fromLists (M.Size { M.rows = length args, M.cols = length pl }) $
                map (\ e -> map (compareExpr' tso e) pl) args
               -- without extended order :  minL $ zipWith compareExpr' tso args pl
 -}
-      ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2     
+      ((Succ e2,_),SuccP p2) ->  compareExpr' tso e2 p2
       -- new cases for counting constructors
       ((Succ e2,_),p) ->  Decr (-1) `comp` compareExpr' tso e2 p
       ((Def (DefId (ConK Cons) n1),args@(_:_)), p) ->  Decr (-1) `comp` minL (map (\e -> compareExpr' tso e p) args)
@@ -336,22 +336,22 @@ conView (Record (NamedRec co n _) rs, es) = (Def (DefId (ConK co) n), map snd rs
 conView p = p
 
 compareVar :: (?cutoff :: Int) => TSO Name -> Name -> Pattern -> Order
-compareVar tso n p = 
+compareVar tso n p =
   let ret o = o in -- traceTerm ("comparing variable " ++ n ++ " to " ++ show p ++ " returns " ++ show o) o in
     case p of
       UnusableP _ -> ret Un
       ErasedP p   -> compareVar tso n p
-      VarP n2 -> if n == n2 then Decr 0 else  
+      VarP n2 -> if n == n2 then Decr 0 else
         case TSO.diff n n2 tso of -- if n2 is the k-th father of n, then it is a decrease by k
           Nothing -> ret Un
           Just k -> ret $ decr k
-      SizeP n1 n2 -> if n == n2 then Decr 0 else  
+      SizeP n1 n2 -> if n == n2 then Decr 0 else
         case TSO.diff n n2 tso of -- if n2 is the k-th father of n, then it is a decrease by k
           Nothing -> ret Un
           Just k -> ret $ decr k
       PairP p1 p2 -> maxL (map (compareVar tso n) [p1,p2])
          -- no decrease in pair:  ALT: comp (Decr 1) (...)
-      ConP pi c (p:pl) | coPat pi == Cons -> 
+      ConP pi c (p:pl) | coPat pi == Cons ->
         comp (Decr 1) (maxL (map (compareVar tso n) (p:pl)))
       ConP{}   -> ret Un
       ProjP{}   -> ret Un
@@ -360,35 +360,12 @@ compareVar tso n p =
                     Nothing -> ret $ Un
                     Just p' -> compareVar tso n p'
       _ -> error $ "NYI: compareVar " ++ show n ++ " to " ++ show p -- ret $ Un
-      
-{- REIMPLEMENTED in Abstract.hs
-exprToPattern :: Expr -> Maybe Pattern
-exprToPattern e = 
-    case e of
-      Var n -> Just $ VarP n
-      (Succ e) -> case exprToPattern e of
-                    Nothing -> Nothing
-                    Just p -> Just $ SuccP p
-      (App (Con co n) el) -> case exprsToPatterns el of
-                               Nothing -> Nothing
-                               Just pl -> Just $ ConP co n pl
-      (Con co n) -> Just $ ConP co n []
-      _ -> Nothing
-
-exprsToPatterns :: [Expr] -> Maybe [Pattern]
-exprsToPatterns [] = Just []
-exprsToPatterns (e:el) = case exprToPattern e of
-                           Nothing -> Nothing
-                           Just p -> case exprsToPatterns el of
-                                       Nothing -> Nothing
-                                       Just pl -> Just (p:pl)
--}
 
 ---
 
 type Index = Name
 
-data Call = Call { source :: Index , target :: Index , matrix :: CallMatrix }  
+data Call = Call { source :: Index , target :: Index , matrix :: CallMatrix }
             deriving (Eq,Show,Ord)
 
 -- call matrix:
@@ -398,7 +375,7 @@ data Call = Call { source :: Index , target :: Index , matrix :: CallMatrix }
 type CallMatrix = Matrix Order
 
 -- for two matrices m m' of the same dimensions,
--- m `subsumes` m'  if  pointwise the entries of m are smaller than of m' 
+-- m `subsumes` m'  if  pointwise the entries of m are smaller than of m'
 subsumes :: Matrix Order -> Matrix Order -> Bool
 subsumes m m' = M.all (uncurry leq) mm'
   where mm' = M.zip m m' -- create one matrix of pairs
@@ -414,8 +391,8 @@ leq (Decr k) (Decr l) = k <= l
 leq (Mat m) (Mat m') = subsumes m m'
 leq _ _ = False
 
--- for two matrices m m' such that m `subsumes` m' 
--- m `progress` m'  any positive entry in m' is smaller in m 
+-- for two matrices m m' such that m `subsumes` m'
+-- m `progress` m'  any positive entry in m' is smaller in m
 progress :: Matrix Order -> Matrix Order -> Bool
 progress m m' = M.any (uncurry decrToward0) mm'
   where mm' = M.zip m m' -- create one matrix of pairs
@@ -425,14 +402,14 @@ progress m m' = any (any (uncurry decrToward0)) mm'
 -}
 
 decrToward0 :: Order -> Order -> Bool
-decrToward0 Un (Decr l) = True && l >= 0 
+decrToward0 Un (Decr l) = True && l >= 0
 decrToward0 (Decr k) (Decr l) = k < l  && l >= 0
 decrToward0 (Mat m) (Mat m') = progress m m'
 decrToward0 _ _ = False
 
 
-{- call pathes 
- 
+{- call pathes
+
   are lists of names of length >=2
 
   [f,g,h] = f --> g --> h
@@ -451,8 +428,8 @@ mkCP :: Name -> Name -> CallPath
 mkCP src tgt = CallPath [src, tgt]
 
 mulCP :: CallPath -> CallPath -> CallPath
-mulCP cp1@(CallPath one) cp2@(CallPath (g:two)) = 
-  if last one == g then CallPath (one ++ two) 
+mulCP cp1@(CallPath one) cp2@(CallPath (g:two)) =
+  if last one == g then CallPath (one ++ two)
   else error ("internal error: Termination.mulCP: trying to compose callpath " ++ show cp1 ++ " with " ++ show cp2)
 
 compatibleCP :: CallPath -> CallPath -> Bool
@@ -476,7 +453,7 @@ mulCC :: (?cutoff :: Int) => CompCall -> CompCall -> CompCall
 mulCC cc1@(cp1, m1) cc2@(cp2, m2) = zipPair mulCP (flip (M.mul ordRing)) cc1 cc2
 
 subsumesCC :: CompCall -> CompCall -> Bool
-subsumesCC cc1@(cp1, m1) cc2@(cp2, m2) = 
+subsumesCC cc1@(cp1, m1) cc2@(cp2, m2) =
   if compatibleCP cp1 cp2 then m1 `subsumes` m2
    else error ("internal error: Termination.subsumesCC: trying to compare composed call " ++ show cc2 ++ " with " ++ show cc1)
 
@@ -487,10 +464,10 @@ progressCC cc1@(cp1, m1) cc2@(cp2, m2) = progress m1 m2
 {- call graph completion
 
 organize call graph as a square matrix
- 
+
   Name * Name -> Set CallMatrix
 
-the completion process finds new calls by composing old calls.  
+the completion process finds new calls by composing old calls.
 There are two qualities of new calls.
 
   1) a completely new call or a call matrix in which one cell
@@ -499,17 +476,17 @@ There are two qualities of new calls.
 
   2) a negative entry got smaller
 
-As long as 1-calls are found, continue completion.  
+As long as 1-calls are found, continue completion.
 [ I think 2-calls can be ignored when deciding whether to cont. ]
 
- -}                        
+ -}
 
 -- sets of call matrices
 
 type CMSet    = [CompCall]  -- normal form: no CM subsumes another
 
 cmRing :: (?cutoff :: Int) => Semiring CMSet
-cmRing = Semiring { add = unionCMSet , mul = mulCMSet , zero = [] } -- one = undefined , 
+cmRing = Semiring { add = unionCMSet , mul = mulCMSet , zero = [] } -- one = undefined ,
 
 type Progress = Writer Any
 type ProgressH = Writer (Any, Any)
@@ -527,14 +504,14 @@ addCMh :: CompCall -> CMSet -> ProgressH CMSet
 addCMh m [] = traceProg ("adding new call " ++ show m) $ do
   tell firstHalf
   return $ [m]
-addCMh m (m':ms) = 
+addCMh m (m':ms) =
   if m' `subsumesCC` m then traceTerm ("discarding new call " ++ show m) $
      return $ m':ms -- terminate early
    else do (ms', (Any h1, Any h2)) <- listen $ addCMh m ms
            when (h1 && not h2 && m `progressCC` m') $ do
              traceProgM ("progress made by " ++ show m ++ " over " ++ show m')
              tell secondHalf -- $ Any True
-           if m `subsumesCC` m' then traceTerm ("discarding old call " ++ show m') $ 
+           if m `subsumesCC` m' then traceTerm ("discarding old call " ++ show m') $
                  return ms'
             else return $ m' : ms'
 
@@ -564,9 +541,9 @@ mulCMSet ms ms' = foldl (flip addCM) [] $ [ mulCC m m' | m <- ms, m' <- ms' ]
 type CGEntry = (CallPath, CMSet)
 
 cgeRing :: Semiring CGEntry
-cgeRing = Semiring { add = zipPair addCP unionCMSet, 
-                     mul = zipPair mulCP mulCMSet, 
-                     one = undefined, 
+cgeRing = Semiring { add = zipPair addCP unionCMSet,
+                     mul = zipPair mulCP mulCMSet,
+                     one = undefined,
                      zero = (emptyCP, []) }
 
 addCGEntry' :: CGEntry -> CGEntry -> Progress CGEntry
@@ -585,7 +562,7 @@ stepCG :: (?cutoff :: Int) => CallGraph -> Progress CallGraph
 stepCG cg = do
   traceProgM ("next iteration")
   traceProgM ("old cg " ++ show cg)
-  traceProgM ("composed calls " ++ show cg') 
+  traceProgM ("composed calls " ++ show cg')
   traceProgM ("adding new calls to callgraph...")
   zipWithM (zipWithM unionCMSet') cg' cg
   where cg' = mmul cmRing cg cg
@@ -598,7 +575,7 @@ stepCG cg = do
    those that only have <, <=, ? and are not counting.
  -}
 complCGraph :: (?cutoff :: Int) => CallGraph -> CallGraph
-complCGraph cg = 
+complCGraph cg =
   let (cg', Any prog) = runWriter $ stepCG cg
   in  if prog && checkAll cg' then complCGraph cg' else cg'
 
@@ -609,9 +586,9 @@ checkAll cg = all (all (checkIdem . snd)) $ diag cg
 checkIdem :: (?cutoff :: Int) => CallMatrix -> Bool
 checkIdem cm =
   let cm'   = M.mul ordRing cm cm
-      eqAbs = (absCM cm) == (absCM cm') 
+      eqAbs = (absCM cm) == (absCM cm')
       d     = M.diagonal cm
-  in  traceTerm ("checkIdem: cm = " ++ show cm ++ " cm' = " ++ show cm ++ " eqAbs = " ++ show eqAbs ++ " d = " ++ show d) $ 
+  in  traceTerm ("checkIdem: cm = " ++ show cm ++ " cm' = " ++ show cm ++ " eqAbs = " ++ show eqAbs ++ " d = " ++ show d) $
       -- if cm `subsumes` cm'
       if eqAbs
        then any isDecr d else True
@@ -623,12 +600,12 @@ checkIdem cm =
 {- THIS IS WRONG:
 makeCG :: [Name] -> [Call] -> CallGraph
 makeCG names calls = map (\ tgt -> mkRow tgt [ c | c <- calls, target c == tgt ]) names
-  where mkRow tgt calls = map (\ src ->  unionCMSet [ (mkCP src tgt, matrix c) | c <- calls, source c == src ] []) names 
+  where mkRow tgt calls = map (\ src ->  unionCMSet [ (mkCP src tgt, matrix c) | c <- calls, source c == src ] []) names
 -}
 
 makeCG :: [Name] -> [Call] -> CallGraph
 makeCG names calls = map (\ src -> mkRow src [ c | c <- calls, source c == src ]) names
-  where mkRow src calls = map (\ tgt ->  unionCMSet [ (mkCP src tgt, matrix c) | c <- calls, target c == tgt ] []) names 
+  where mkRow src calls = map (\ tgt ->  unionCMSet [ (mkCP src tgt, matrix c) | c <- calls, target c == tgt ] []) names
 
 {-
 callComb :: Call -> Call -> Call
@@ -637,16 +614,16 @@ callComb (Call s1 t1 m1) (Call s2 t2 m2) = Call s2 t1 (mmul ordRing m1 m2)
 cgComb :: [Call] -> [Call] -> [Call]
 cgComb cg1 cg2 = [ callComb c1 c2 | c1 <- cg1 , c2 <- cg2 , (source c1 == target c2)]
 
-complete :: [Call] -> [Call] 
+complete :: [Call] -> [Call]
 complete cg = traceTerm ("call graph: " ++ show cg) $
-  let cg' = complete' cg -- $ Set.fromList cg 
-  in -- traceTerm ("complete " ++ show cg') 
+  let cg' = complete' cg -- $ Set.fromList cg
+  in -- traceTerm ("complete " ++ show cg')
        cg' -- Set.toList cg'
 
 complete' :: [Call] -> [Call]  -- Set Call -> Set Call
 complete' cg =
               let cgs = Set.fromList cg
-                  cgs' = Set.union cgs (Set.fromList $ cgComb cg cg ) 
+                  cgs' = Set.union cgs (Set.fromList $ cgComb cg cg )
                   cg' = Set.toList cgs'
               in
                 if (cgs == cgs') then cg else complete' cg'
@@ -667,7 +644,7 @@ isDecr o = case o of
              (Mat m) -> any isDecr (M.diagonal m)
              _ -> False
 
-    
+
 -------------------
 
 -- top level function
@@ -682,9 +659,9 @@ terminationCheck funs = do
        case (and bl) of
             True -> return ()
             False -> case nl of
-                    [f] -> recoverFail ("Termination check for function " ++ show f ++ " fails ") 
-                    _   -> recoverFail ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2) 
-                                   
+                    [f] -> recoverFail ("Termination check for function " ++ show f ++ " fails ")
+                    _   -> recoverFail ("Termination check for mutual block " ++ show nl ++ " fails for " ++ show nl2)
+
 
 terminationCheckFuns :: (?cutoff :: Int) => [Fun] -> [(Name,Bool)]
 terminationCheckFuns funs =
@@ -692,30 +669,30 @@ terminationCheckFuns funs =
                -- collectNames funs
        names = map fst namar
        cg0 = collectCGFunDecl namar funs
-   in sizeChangeTermination names cg0  
+   in sizeChangeTermination names cg0
 
 sizeChangeTermination :: (?cutoff :: Int) => [Name] -> [Call] -> [(Name,Bool)]
 sizeChangeTermination names cg0 =
    let cg1 = makeCG names cg0
        cg = complCGraph $ cg1
-       beh = zip names $ map (all (checkIdem . snd)) $ diag cg 
+       beh = zip names $ map (all (checkIdem . snd)) $ diag cg
    in traceTerm ("collected names: " ++ show names) $
       traceTerm ("call graph: " ++ show cg0) $
       traceTerm ("normalized call graph: " ++ show cg1) $
       traceTerm ("completed call graph: " ++ show cg) $
       traceTerm ("recursion behaviours" ++ show beh) $
-      beh  
+      beh
 
 
 {-
 terminationCheckFuns :: [ (TypeSig,[Clause]) ] -> [(Name,Bool)]
 terminationCheckFuns funs =
-    let beh = recBehaviours funs 
+    let beh = recBehaviours funs
     in
       traceTerm ("recursion behaviours" ++ show beh) $
         zip (map fst beh) (map (checkAll . snd ) beh )
 
--- This is the main driver.         
+-- This is the main driver.
 recBehaviours :: [ (TypeSig,[Clause]) ] -> [(Name,[Call])]
 recBehaviours funs = let names = map fst $ collectNames funs
                          cg0 = collectCGFunDecl funs
@@ -744,8 +721,8 @@ collectCGFunDecl names funs =
             collectClause :: [(Name,Arity)] -> Name -> [Clause] -> [Call]
             collectClause names n ((Clause _ pl Nothing):rest) = collectClause names n rest
             collectClause names n ((Clause _ pl (Just rhs)):rest) =
-              traceTerm ("collecting calls in " ++ show rhs) $ 
-                (collectCallsExpr names n pl rhs) ++ (collectClause names n rest) 
+              traceTerm ("collecting calls in " ++ show rhs) $
+                (collectCallsExpr names n pl rhs) ++ (collectClause names n rest)
             collectClause names n [] = []
 
 {- RETIRED
@@ -756,11 +733,11 @@ arity (Clause pl e:l) = length pl
 
 {- RETIRED (map)
 collectNames :: [Fun] -> [(Name,Arity)]
-collectNames [] = []                
+collectNames [] = []
 collectNames (Fun (TypeSig n _) ar cls : rest) = (n,ar) : (collectNames rest)
 -}
 
--- | harvest i > j  from  case i { $ j -> ...} 
+-- | harvest i > j  from  case i { $ j -> ...}
 tsoCase :: TSO Name -> Expr -> [Clause] -> TSO Name
 tsoCase tso (Var x) [Clause _ [SuccP (VarP y)] _] = TSO.insert y (1,x) tso
 tsoCase tso _ _ = tso
@@ -778,14 +755,14 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
     tso = tsoFromPatterns pl
     loop tso (Ann e) = loop tso (unTag e)
     loop tso e = headcalls ++ argcalls where
-      (hd, args) = spineView e -- $ ignoreTopErasure e  
+      (hd, args) = spineView e -- $ ignoreTopErasure e
       argcalls = concatMap (loop tso) args
       headcalls = case hd of
-          (Def (DefId FunK g)) -> 
+          (Def (DefId FunK g)) ->
               case lookup g nl of
                 Nothing -> []
-                Just ar_g -> 
-                  traceTerm ("found call from " ++ show f ++ " to " ++ show g) $ 
+                Just ar_g ->
+                  traceTerm ("found call from " ++ show f ++ " to " ++ show g) $
                              let (Just ar_f) = lookup f nl
                                  (Just f') = List.elemIndex (f,ar_f) nl
                                  (Just g') = List.elemIndex (g,ar_g) nl
@@ -793,14 +770,14 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
                                  cg = Call { source = f
                                            , target = g
                                            , matrix = m }
-                             in 
-                               traceTerm ("found call " ++ show cg) $ 
+                             in
+                               traceTerm ("found call " ++ show cg) $
                                  [cg]
           (Case e _ cls) -> loop tso e ++ concatMap (loop (tsoCase tso e cls)) (map (maybe Irr id . clExpr) cls)
           (Lam _ _ e1) -> loop tso e1
-          (LLet tb [] e1 e2) ->  
-             (loop tso e1) ++ -- type won't get evaluated 
-             (loop tso e2) 
+          (LLet tb [] e1 e2) ->
+             (loop tso e1) ++ -- type won't get evaluated
+             (loop tso e2)
           (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)
           (Quant _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
           (Quant _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
@@ -828,12 +805,12 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
 
 {-
 collectCallsExpr :: (?cutoff :: Int) => [(Name,Int)] -> Name -> [Pattern] -> Expr -> [Call]
-collectCallsExpr nl f pl e = 
+collectCallsExpr nl f pl e =
   traceTerm ("collectCallsExpr " ++ show e) $
     case e of
-      (App (Def g) args) -> 
+      (App (Def g) args) ->
         let calls = concatMap (collectCallsExpr nl f pl) args
-            gIn = lookup g nl 
+            gIn = lookup g nl
         in
          traceTerm ("found call from " ++ f ++ " to " ++ g) $
           case gIn of
@@ -845,15 +822,15 @@ collectCallsExpr nl f pl e =
                              cg = Call { source = f
                                        , target = g
                                        , matrix = m }
-                         in 
-                           traceTerm ("found call " ++ show cg) $ 
+                         in
+                           traceTerm ("found call " ++ show cg) $
                              cg:calls
-      (Def g) ->  collectCallsExpr nl f pl (App (Def g) []) 
+      (Def g) ->  collectCallsExpr nl f pl (App (Def g) [])
       (App e args) -> concatMap (collectCallsExpr nl f pl) (e:args)
       (Case e cls) -> concatMap (collectCallsExpr nl f pl) (e:map clExpr cls)
       (Lam _ _ e1) -> collectCallsExpr nl f pl e1
-      (LLet _ e1 t1 e2) ->  (collectCallsExpr nl f pl e1) ++ -- type won't get evaluated 
-                            (collectCallsExpr nl f pl e2) 
+      (LLet _ e1 t1 e2) ->  (collectCallsExpr nl f pl e1) ++ -- type won't get evaluated
+                            (collectCallsExpr nl f pl e2)
       (Pi _ _ e1 e2) -> (collectCallsExpr nl f pl e1) ++
                               (collectCallsExpr nl f pl e2)
       (Sing e1 e2) -> (collectCallsExpr nl f pl e1) ++
