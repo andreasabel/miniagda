@@ -137,7 +137,7 @@ translateDataDecl n tel k cs = do
   return [H.mkDataDecl n tel k' cs]
 
 translateConstructor :: FConstructor -> Translate H.GadtDecl
-translateConstructor (TypeSig n t) = do
+translateConstructor (Constructor n pars t) = do
   n  <- hsName (DefId (ConK Cons) n)
   t' <- translateType t
   return $ H.mkConDecl n t'

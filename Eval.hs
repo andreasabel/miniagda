@@ -7,26 +7,7 @@
 
 module Eval where
 
-import Util
-
-import Abstract
-import Polarity as Pol
-import Value
-import TCM
-import PrettyTCM
-import Warshall  -- positivity checking
-
--- import CallStack
-import TraceError
-
 import Prelude hiding (mapM)
-import qualified Data.Array as Array
-import Data.Maybe -- fromMaybe
-import Data.List as List -- find
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Traversable (Traversable,mapM)
-import qualified Data.Traversable as Traversable
 
 import Control.Applicative
 import Control.Monad.Identity hiding (mapM)
@@ -36,7 +17,25 @@ import Control.Monad.Reader hiding (mapM)
 import Control.Monad.IfElse  -- unlessM
 -- import Control.Monad.HT      -- andLazy  -- because liftM2 (&&) is NOT lazy!
 
+import qualified Data.Array as Array
+import Data.Maybe -- fromMaybe
+import Data.List as List -- find
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Traversable (Traversable,mapM)
+import qualified Data.Traversable as Traversable
+
 import Debug.Trace
+
+import Abstract hiding (conType)
+import Polarity as Pol
+import Value
+import TCM
+import PrettyTCM
+import Warshall  -- positivity checking
+
+import TraceError
+import Util
 
 
 traceEta msg a = a -- trace msg a

@@ -199,14 +199,13 @@ addLocal n k = do
   local (const ctx') $ k x
 
 addTel :: C.Telescope -> A.Telescope -> ScopeCheck a -> ScopeCheck a
-addTel ctel atel = local (addContext nxs) -- local (\ sc -> sc { context = nxs ++ context sc })
-  where nxs = reverse $ matchTels ctel atel
+addTel ctel atel = local (addContext nxs)
+  where nxs = reverse $ zipTels ctel atel
 
-matchTels :: C.Telescope -> A.Telescope -> [(C.Name,A.Name)]
-matchTels ctel atel = nxs
+zipTels :: C.Telescope -> A.Telescope -> [(C.Name,A.Name)]
+zipTels ctel atel = zip ns xs
   where ns = collectTelescopeNames ctel
         xs = map A.boundName atel
-        nxs = zip ns xs
 
 -- ** Global state.
 
@@ -558,7 +557,7 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     let names = collectTelescopeNames tel
         target = C.App (C.Ident n) (map C.Ident names)  -- R pars
         (tel',t') = A.typeToTele' (length names) tt'
-    c' <- addTel tel tel' $ scopeCheckConstructor A.CoInd target c
+    c' <- scopeCheckConstructor n (zipTels tel tel') A.CoInd target c
     let delta = contextFromConstructors c c'
     afields <- addFields ProjK delta cfields
 {-
@@ -569,18 +568,10 @@ scopeCheckRecordDecl n tel t c cfields = enter n $ do
     return $ A.RecordDecl x tel' t' c' afields
 
 contextFromConstructors :: C.Constructor -> A.Constructor -> Context
-contextFromConstructors (C.Constructor _ ctel0 mct) (A.TypeSig _ at) = delta
+contextFromConstructors (C.Constructor _ ctel0 mct) (A.Constructor _ _ at) = delta
   where ctel = maybe [] (fst . C.typeToTele) mct
         (atel, _) = A.typeToTele at
-        delta = matchTels (ctel0 ++ ctel) atel
-
-{- OLD
-contextFromConstructors :: C.Constructor -> A.Constructor -> Context
-contextFromConstructors (C.TypeSig _ ct) (A.TypeSig _ at) = delta
-  where (ctel, _) = C.typeToTele ct
-        (atel, _) = A.typeToTele at
-        delta = matchTels ctel atel
--}
+        delta = zipTels (ctel0 ++ ctel) atel
 
 scopeCheckField :: Context -> C.Name -> ScopeCheck A.Name
 scopeCheckField delta n =
@@ -609,7 +600,7 @@ checkDataBody tt' n x sz co tel cs fields = do
       let cnames = collectTelescopeNames tel         -- parameters
           target = C.App (C.Ident n) $ map C.Ident cnames  -- D pars
           (tel',t') = A.typeToTele' (length cnames) tt'
-      cs' <- addTel tel tel' (mapM (scopeCheckConstructor co target) cs)
+      cs' <- mapM (scopeCheckConstructor n (zipTels tel tel') co target) cs
 {- NO LONGER INFER DESTRUCTORS
       -- traceM ("constructors: " ++ show cs')
 --      when (t' == A.Sort A.Set && length cs' == 1) $ do
@@ -790,33 +781,60 @@ checkAndAddTypeSig (kind, ts@(C.TypeSig n _)) = do
 collectTelescopeNames :: C.Telescope -> [C.Name]
 collectTelescopeNames = concat . map C.boundNames
 
-scopeCheckConstructor :: Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
-scopeCheckConstructor co t0 a@(C.Constructor n tel mt) = checkInSig a n $ \ x -> do
+{-
+scopeCheckConstructor :: C.Name -> C.Telescope -> A.Telescope -> Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor d ctel atel co t0 a@(C.Constructor n tel mt) =
+-}
+-- | @cxt@ is the data telescope.
+scopeCheckConstructor :: C.Name -> Context -> Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor d cxt co t0 a@(C.Constructor n tel mt) =
+  checkInSig a n $ \ x -> do
+
+  let finish t mcxt = local (addContext $ maybe cxt id mcxt) $ do
+       t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t
+       t <- adjustTopDecsM defaultToParam t
+       addAName (ConK $ A.coToConK co) n x
+       return $ A.Constructor x (fmap (map snd) mcxt) t
+
+  case mt of
+
+    -- no target given, then add the data tel to the scope
+    Nothing -> finish t0 Nothing
+
+    -- target given, then the target binds the parameter names
+    Just t -> do
+      -- get the final target
+      let (_, target) = C.typeToTele t
+
+          fallback = finish t Nothing
+          continue d' es = do
+            -- unless (d == d') $ errorWrongTarget n d d'
+            if (d /= d') then fallback else do
+            -- get the parameters of target
+            let (pars, inds) = splitAt (length cxt) es
+            unless (length pars == length cxt) $ errorNotEnoughParameters n target
+            -- if parameters are just data parameters, do it old style
+            if and (zipWith isTelPar cxt pars) then fallback else do
+            -- scopeCheck the parameters as patterns
+            finish t . Just =<< parameterVariables pars
+
+      case target of
+        C.Ident d'            -> continue d' []
+        C.App (C.Ident d') es -> continue d' es
+        _ -> fallback -- errorTargetMustBeAppliedName n target
+
+{- OLD CODE
+scopeCheckConstructor :: C.Telescope -> A.Telescope -> Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor ctel atel co t0 a@(C.Constructor n tel mt) = addTel ctel atel $ checkInSig a n $ \ x -> do
     let t = maybe t0 id mt
     t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t
     t <- adjustTopDecsM defaultToParam t
     addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
-
-{- OLD CODE
-scopeCheckConstructor :: Co -> C.Constructor -> ScopeCheck A.Constructor
-scopeCheckConstructor co a@(C.TypeSig n t) = checkInSig a n $ \ x -> do
-    t <- setDefaultPolarity A.Param $ scopeCheckExpr t
-    t <- adjustTopDecsM defaultToParam t
-    addAName (ConK $ A.coToConK co) n x
-    return $ A.TypeSig x t
 -}
-{-
-    do sig <- getSig
-       case (lookupSig n sig) of
-         Just _ -> errorAlreadyInSignature a n
-         Nothing -> do
-           t <- setDefaultPolarity A.Param $ scopeCheckExpr t
-           t <- adjustTopDecsM defaultToParam t
-           addName (ConK co) n
-           return $ A.TypeSig n t
--}
-  where defaultToParam dec = case (A.polarity dec) of
+  where isTelPar (c,_) (C.Ident x) = c == x
+        isTelPar _     _           = False
+        defaultToParam dec = case (A.polarity dec) of
           A.Default -> return $ dec { A.polarity = A.Param }
           A.Param   -> return dec
           A.Const   -> return dec
@@ -1113,17 +1131,16 @@ scopeCheckPattern p =
     -- case ()
     C.AbsurdP -> return $ A.AbsurdP
 
-  where
-    -- add to pattern context
-    addUnique :: C.Name -> SPS A.Name
-    addUnique n = do
-      delta <- get
-      case lookupCtx n delta of
-        Just{} -> errorPatternNotLinear n
-        Nothing -> do
-          let (x, delta') = insertCtx n delta
-          put delta'
-          return x
+-- | Add pattern variable to pattern context, must not be present yet.
+addUnique :: C.Name -> SPS A.Name
+addUnique n = do
+  delta <- get
+  case lookupCtx n delta of
+    Just{} -> errorPatternNotLinear n
+    Nothing -> do
+      let (x, delta') = insertCtx n delta
+      put delta'
+      return x
 
 scopeCheckDotPattern :: A.Pat C.Name C.Expr -> ScopeCheck A.Pattern
 scopeCheckDotPattern p =
@@ -1254,6 +1271,46 @@ scopeCheckDotPattern p1 p2 =
       _ -> return p2
 -}
 
+-- * Scope checking parameters
+
+parameterVariables :: [C.Expr] -> ScopeCheck Context
+parameterVariables es = do
+  execStateT (mapM_ scopeCheckParameter es) emptyCtx
+
+-- | Extract variables bound by data parameters.
+--   We consider a more liberal set of patterns, everything
+--   that is injective and does not bind variables.
+scopeCheckParameter :: C.Expr -> SPS ()
+scopeCheckParameter e =
+  case e of
+    C.Set e'             -> scopeCheckParameter e'
+    C.CoSet e'           -> scopeCheckParameter e'
+    C.Size               -> return ()
+    C.Succ e'            -> scopeCheckParameter e'
+    C.Zero               -> return ()
+    C.Infty              -> return ()
+    C.Pair e1 e2         -> scopeCheckParameter e1 >> scopeCheckParameter e2
+    C.Record fs          -> mapM_ (scpField e) fs
+    C.Ident n            -> scpApp e n []
+    C.App (C.Ident n) es -> scpApp e n es
+    C.App C.App{} es     -> fail $ "scopeCheckParameter " ++ show e ++ ": internal invariant violated"
+    _ -> errorInvalidParameter e
+  where
+    -- we can only treat a record expression as pattern
+    -- if it does not bind any variables
+    scpField :: C.Expr -> ([C.Name], C.Expr) -> SPS ()
+    scpField e ([f], e') = scopeCheckParameter e'
+    scpField e _         = errorInvalidParameter e
+
+    scpApp :: C.Expr -> C.Name -> [C.Expr] -> SPS ()
+    scpApp e n es = do
+      sig <- lift $ getSig
+      case lookupSig n sig of
+        Just (DefI ConK{} n) -> mapM_ scopeCheckParameter es
+        Just (DefI DataK  n) -> mapM_ scopeCheckParameter es
+        Just _  -> errorInvalidParameter e
+        Nothing -> void $ addUnique n
+
 -- * Scope checking errors
 
 errorAlreadyInSignature s n = throwErrorMsg $ show s  ++ ": Identifier " ++ n ++ " already in signature"
@@ -1282,3 +1339,15 @@ errorOnlyOneMeasure = throwErrorMsg "only one measure allowed in a function type
 
 errorConstraintNotAllowed beta = throwErrorMsg $
   show beta ++ ": constraints must follow a quantifier"
+
+errorTargetMustBeAppliedName n t = throwErrorMsg $
+  "constructor " ++ n ++ ": target must be data/record type applied to parameters and indices; however, I found " ++ show t
+
+errorWrongTarget c d d' = throwErrorMsg $
+  "constructor " ++ c ++ " should target data/record type " ++ d ++ "; however, I found " ++ d'
+
+errorNotEnoughParameters c t = throwErrorMsg $
+  "constructor " ++ c ++ ": target " ++ show t ++ " is missing parameters"
+
+errorInvalidParameter e = throwErrorMsg $
+  "expression " ++ show e ++ " is not valid in a parameter"

@@ -24,7 +24,7 @@ import qualified Text.PrettyPrint as PP
 import Util
 import qualified Util as Util
 
-import Abstract
+import Abstract hiding (conType)
 import Polarity as Pol
 import Value
 import TCM
@@ -376,9 +376,11 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
 
    ) -- `throwTrace` n  -- in case of an error, add name n to the trace
 
--- returns True if constructor has recursive argument
+-- | @typeCheckConstructor d dt sz co pols tel (TypeSig c t)@
+--
+--   returns True if constructor has recursive argument
 typeCheckConstructor :: Name -> Type -> Sized -> Co -> [Pol] -> Telescope -> Constructor -> TypeCheck (Bool, Kinded EConstructor)
-typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++ show n) $ do
+typeCheckConstructor d dt sz co pos tel (Constructor n cpars t) = enter ("constructor " ++ show n) $ do
   sig <- gets signature
   let telE = map (mapDec (const irrelevantDec)) tel -- need kinded tel!!
     -- parameters are erased in types of constructors
@@ -432,7 +434,7 @@ typeCheckConstructor d dt sz co pos tel (TypeSig n t) = enter ("constructor " ++
   echoKindedTySig kTerm n tte
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki)
 --  echoTySigE n tte
-  return (isRec, Kinded ki $ TypeSig n te)
+  return (isRec, Kinded ki $ Constructor n cpars te)
 
 typeCheckMeasuredFuns :: Co -> [Fun] -> TypeCheck [EFun]
 typeCheckMeasuredFuns co funs0 = do
@@ -1859,7 +1861,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -- WRONG:                 let flex1 = if erased' then MaxMatches 1 av : flex else flex
                  let flex1 = flex
 
-                 (ConSig nPars sz recOccs vc dataName _) <- lookupSymb n
+                 ConSig {numPars = nPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName} <- lookupSymb n
 
                  -- the following is a hack to still support old-style
                  --   add .($ i) (zero i) ...

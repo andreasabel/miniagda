@@ -875,7 +875,12 @@ type TypeSig = TySig Type
 
 type Type = Expr
 
-type Constructor = TypeSig
+-- | Constructor declaration.  Top-level scope (independent of data pars).
+data Constructor = Constructor
+ { conName :: Name             -- ^ Name of the constructor.
+ , conPars :: Maybe [Name]     -- ^ Names bound by constructor parameters (if unequal to data telescope).
+ , conType :: Type             -- ^ Constructor type (@fields -> target@).
+ } deriving (Eq, Ord, Show)
 
 type Telescope = [TBind]
 
@@ -1397,6 +1402,7 @@ data PatternsType
 data ConstructorInfo = ConstructorInfo
   { cName   :: Name
 --  , cType   :: TVal
+  , cPars   :: Maybe [Name]       -- ^ Constructor parameters if unequal to data parameters.
   , cFields :: [FieldInfo]
   , cTyCore :: Type
   , cPatFam :: (PatternsType, [Pattern])
@@ -1498,7 +1504,7 @@ destructorNames :: [FieldInfo] -> [Name]
 destructorNames fields = List.map fName $ filter isNamedField fields
 
 analyzeConstructor :: Co -> Name -> Telescope -> Constructor -> ConstructorInfo
-analyzeConstructor co dataName pars (TypeSig constrName ty) =
+analyzeConstructor co dataName pars (Constructor constrName conPars ty) =
   let (_, core) = typeToTele ty
       fields = classifyFields co dataName ty
       -- freshenFieldName fi = fi { fName = freshen $ fName fi }
@@ -1548,7 +1554,8 @@ analyzeConstructor co dataName pars (TypeSig constrName ty) =
         linear = List.null ps || (List.null $ List.foldl1 List.intersect $ List.map patternVars ps)
 
       result = ConstructorInfo
-       { cName = constrName
+       { cName   = constrName
+       , cPars   = conPars
        , cFields = fields'
        , cTyCore = core
        -- check whether core is D ps and store pats; also compute whether ps are linear
@@ -1589,7 +1596,7 @@ analyzeConstructors co dataName pars cs =
 -- build constructor type from constructor info
 -- erasing all indices
 reassembleConstructor :: ConstructorInfo -> Constructor
-reassembleConstructor ci = TypeSig (cName ci) (reassembleConstructorType ci)
+reassembleConstructor ci = Constructor (cName ci) (cPars ci) (reassembleConstructorType ci)
 
 reassembleConstructorType :: ConstructorInfo -> Type
 reassembleConstructorType ci = buildPi (cFields ci) where

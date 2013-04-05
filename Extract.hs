@@ -270,7 +270,7 @@ extractDataDecl n co tel ty cs = do
   return [DataDecl n NotSized co [] tel' core cs []]
   
 extractConstructor :: Telescope -> Constructor -> TypeCheck FConstructor
-extractConstructor tel0 (TypeSig n t) = do
+extractConstructor tel0 (Constructor n pars t) = do
 {- fails for HEq
   -- 2012-01-22: remove irrelevant parameters
   let tel = filter (\ (TBind _ dom) -> not $ erased $ decor dom)  tel0
@@ -280,7 +280,7 @@ extractConstructor tel0 (TypeSig n t) = do
   t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t) 
   setExtrTyp n t'
   let (tel',core) = typeToTele' (length tel) t'
-  return $ TypeSig n core
+  return $ Constructor n pars core
   -- compute type minus telescope
   -- TypeSig n <$> (extractType =<< whnf' t)
 

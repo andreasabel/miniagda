@@ -22,7 +22,7 @@ import qualified Data.Maybe as Maybe
 
 import Debug.Trace
 
-import Abstract
+import Abstract hiding (conType)
 import Polarity
 import Value
 import {-# SOURCE #-} Eval -- (up,whnf')
