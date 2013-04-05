@@ -1642,7 +1642,7 @@ tsoFromPatterns ps = TSO.fromList $ List.concat $ List.map loop ps where
   loop (PairP p p')       = loop p ++ loop p'
   loop (SuccP   p)        = loop p
   loop (ErasedP p)        = loop p
-  loop ProjP{}             = []
+  loop ProjP{}            = []
   loop VarP{}             = []
   loop DotP{}             = []
   loop UnusableP{}        = []
@@ -1674,67 +1674,52 @@ overlap (DotP Infty) (DotP Infty) = True
 overlaps :: [Pattern] -> [Pattern] -> Bool
 overlaps ps ps' = and $ zipWith overlap ps ps'
 
-
--- exprToPattern is used to check whether an ind.fam. is a pattern ind.fam.
+-- | @exprToPattern@ is used in the termination checker to convert
+--   dot patterns into proper patterns.
 exprToPattern :: Expr -> Maybe Pattern
-exprToPattern (Var n)    = return $ VarP n
-exprToPattern (Def (DefId (ConK co) n)) = return $ ConP pi n [] where
-  pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
--- exprToPattern (Infty)    = return $ DotP Infty -- leads to non-term in compareExpr
-exprToPattern (Pair e e') = do
-  p  <- exprToPattern e
-  p' <- exprToPattern e'
-  return $ PairP p p'
-exprToPattern (Succ e)      = exprToPattern e >>= return . SuccP
+exprToPattern (Def (DefId (ConK co) n)) = return $ ConP pi n []
+  where pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
+exprToPattern (Var n)       = return $ VarP n
+exprToPattern (Pair e e')   = PairP <$> exprToPattern e <*> exprToPattern e'
+exprToPattern (Succ e)      = SuccP <$> exprToPattern e
 exprToPattern (Proj Post n) = return $ ProjP n
-exprToPattern (App f e)     = do
-  (ConP co n ps) <- exprToPattern f
-  pe <- exprToPattern e
-  return $ (ConP co n (ps ++ [pe]))
--- exprToPattern (App e es) = do
---   p <- exprToPattern e
---   ps <- mapM exprToPattern es
---   p `patApps` ps
+exprToPattern (App f e)     = patApp ==<< (exprToPattern f, exprToPattern e)
+-- exprToPattern (Infty)    = return $ DotP Infty -- leads to non-term in compareExpr
 exprToPattern _ = fail "exprToPattern"
 
-{- RETIRED
-patApps :: (Monad m) => Pattern -> [Pattern] -> m Pattern
-patApps p [] = return p
-patApps (ConP co n ps) ps' = return $ ConP co n (ps ++ ps')
-patApps _ _ = fail "patApps"
--}
+-- | Only constructor patterns can be applied to a pattern.
+patApp :: Pattern -> Pattern -> Maybe Pattern
+patApp (ConP co n ps) p = Just $ ConP co n (ps ++ [p])
+patApp _              _ = Nothing
 
--- turn an expression into a pattern
--- the Bool is True if the pattern is proper, i.e., does not contain
--- DotP except (DotP Infty)
+-- | @exprToDotPat@ turns an expression into a pattern.
+-- The @Bool@ is @True@ if the pattern is proper, i.e., does not contain
+-- @DotP@ except @DotP Infty@.
 exprToDotPat :: Expr -> (Bool, Pattern)
 exprToDotPat = fromAllWriter . exprToDotPat'
 
 exprToDotPat' :: Expr -> Writer All Pattern
-exprToDotPat' (Proj Post n) = return $ ProjP n
-exprToDotPat' (Var n)       = return $ VarP n
-exprToDotPat' (Def (DefId (ConK co) n)) = return $ ConP pi n [] where
-  pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
-exprToDotPat' (Pair e e') = do
-  p  <- exprToDotPat' e
-  p' <- exprToDotPat' e'
-  return $ PairP p p'
-exprToDotPat' (Infty)    = return $ DotP Infty
-exprToDotPat' (Succ e)   = exprToDotPat' e >>= return . SuccP
-exprToDotPat' e@(App f e') = do
-  pf <- exprToDotPat' f
-  case pf of
-     (ConP co c ps) -> do pe <- exprToDotPat' e'
-                          return $ ConP co c (ps ++ [pe])
-     _ -> tell (All False) >> return (DotP e)
-exprToDotPat' e = tell (All False) >> return (DotP e)
--- exprToDotPat' e@(App f []) = exprToDotPat' f
--- exprToDotPat' e@(App f es) = do
---   p <- exprToDotPat' f
---   case p of
---      (ConP co c ps) -> do ps' <- mapM exprToDotPat' es
---                           return $ ConP co c (ps ++ ps')
---      _ -> tell (All False) >> return (DotP e)
+exprToDotPat' e = do
+  let fallback = tell (All False) >> return (DotP e)
+  case e of
+    Def (DefId (ConK co) n) -> return $ ConP pi n [] where
+      pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
+    Proj Post n -> return $ ProjP n
+    Var n       -> return $ VarP n
+    Pair e e'   -> PairP <$> exprToDotPat' e <*> exprToDotPat' e'
+    Infty       -> return $ DotP Infty
+    Succ e      -> SuccP <$> exprToDotPat' e
+    App f e     -> maybe fallback return =<< do
+      patApp <$> exprToDotPat' f <*> exprToDotPat' e
+{-
+    (App f e') -> do
+      pf <- exprToDotPat' f
+      case pf of
+         (ConP co c ps) -> do pe <- exprToDotPat' e'
+                              return $ ConP co c (ps ++ [pe])
+         _ -> fallback
+-}
+    _ -> fallback
 
 patternToExpr :: Pattern -> Expr
 patternToExpr (VarP n)       = Var n

@@ -93,6 +93,10 @@ findM p []       = return Nothing
 findM p (x : xs) = do b <- p x
                       if b then return (Just x) else findM p xs
 
+-- | Binary version of @=<<@.
+(==<<) :: Monad m => (a -> b -> m c) -> (m a, m b) -> m c
+f ==<< (ma, mb) = do { a <- ma; f a =<< mb }
+
 parens :: String -> String
 parens s = "(" ++ s ++ ")"
 
