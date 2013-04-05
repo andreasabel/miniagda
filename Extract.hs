@@ -11,20 +11,20 @@ MiniAgda
 
   data Vec (A : Set) : Nat -> Set
   { vnil  : Vec A zero
-  ; vcons : [n : Nat] -> (head : A) -> (tail : Vec A n) -> Vec A (suc n) 
+  ; vcons : [n : Nat] -> (head : A) -> (tail : Vec A n) -> Vec A (suc n)
   } fields head, tail
 
   fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
   { length .A .zero    (vnil A)         = zero
   ; length .A .(suc n) (vcons A n a as) = suc (length A n as)
-  } 
+  }
 
 Fomega
 
   data Vec (A : Set) : Set
   { vnil  : Vec A
   ; vcons : (head : A) -> (tail : Vec A) -> Vec A
-  } 
+  }
 
   fun head : [A : Set] -> Vec A -> A
   { head (vcons 'head 'tail) = 'head
@@ -37,17 +37,17 @@ Fomega
   fun length : [A : Set] -> Vec A -> Nat
   { length [A]  vnil             = zero
   ; length [A] (vcons [.A] a as) = suc (length [A] as)
-  } 
+  }
 
 
 Bidirectional extraction
 ========================
 
-Types 
+Types
 
   Base ::= D As         data type
-         | ?            inexpressible type 
-                        
+         | ?            inexpressible type
+
   A,B ::= Base | A -> B | [x:K] -> B | [] -> B  with erasure markers
   A0, B0 ::= Base | A0 -> B0 | [x:K0] -> B0     without erasure markers
 
@@ -66,7 +66,7 @@ Checking mode:
   Kind extraction:  Gamma |- U <: [] --> K    |Gamma| |- K : []
 
 Type and kind extraction keep erasure markers!
-  
+
 Checking abstraction:
 
   Relevant abstraction:
@@ -90,17 +90,17 @@ Checking abstraction:
   Gamma, x:? |- t : ? --> e
   --------------------------
   Gamma |- \x.t : ? --> \x.e
-  
+
   Irrelevant abstraction at unknown type:
   Gamma |- t : ? --> e
   -------------------------
   Gamma |- \[x].t : ? --> e
-  
+
 Checking by inference:
-  
+
   Gamma |- t :> A --> e    e : |A| <: |B| --> e'
   ----------------------------------------------
-  Gamma |- t <: B --> e' : B0 
+  Gamma |- t <: B --> e' : B0
 
 Casting:
 
@@ -111,7 +111,7 @@ Casting:
   e : A0 <: B0 --> cast e
 
 Inferring variable:
-  
+
   ----------------------------
   Gamma |- x :> Gamma(x) --> x
 
@@ -125,9 +125,9 @@ Inferring application:
   Type application:
   Gamma |- t :> [x:K] -> B --> f   Gamma |- u <: K --> A
   ------------------------------------------------------
-  Gamma |- t [u] :> : B[A/x] --> f [A] 
-      also  t u 
-  
+  Gamma |- t [u] :> : B[A/x] --> f [A]
+      also  t u
+
   Irrelevant application:
   Gamma |- t :> [] -> B --> f
   ---------------------------
@@ -157,7 +157,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
 
-import Data.Traversable (Traversable) 
+import Data.Traversable (Traversable)
 import qualified Data.Traversable as Traversable
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -194,12 +194,12 @@ extractDecls :: [EDeclaration] -> TypeCheck [FDeclaration]
 extractDecls ds = concat <$> mapM extractDecl ds
 
 extractDecl :: EDeclaration -> TypeCheck [FDeclaration]
-extractDecl d = 
+extractDecl d =
   case d of
-    MutualDecl _ ds -> extractDecls ds -- TODO! 
+    MutualDecl _ ds -> extractDecls ds -- TODO!
     OverrideDecl{} -> fail $ "extractDecls internal error: overrides impossible"
     MutualFunDecl _ co funs -> extractFuns co funs
-    FunDecl co fun -> extractFun co fun 
+    FunDecl co fun -> extractFun co fun
     LetDecl evl x [] (Just t) e -> extractLet evl x t e
     PatternDecl{}    -> return []
     DataDecl n _ co _ tel ty cs fields -> extractDataDecl n co tel ty cs
@@ -247,8 +247,8 @@ extractLet :: Bool -> Name -> Type -> Expr -> TypeCheck [FDeclaration]
 extractLet evl n t e = extractIfTerm n $ do
   TypeSig n t <- extractTypeSig (TypeSig n t)
   e <- extractCheck e =<< whnf' t
-  return [LetDecl evl n [] (Just t) e] 
-  
+  return [LetDecl evl n [] (Just t) e]
+
 extractTypeSig :: TypeSig -> TypeCheck FTypeSig
 extractTypeSig (TypeSig n t) = do
   t <- extractType =<< whnf' t
@@ -264,11 +264,11 @@ extractDataDecl :: Name -> Co -> Telescope -> Type -> [Constructor] -> TypeCheck
 extractDataDecl n co tel ty cs = do
   -- k    <- extrTyp <$> lookupSymb n
   tel' <- extractKindTel tel
-  Just core <- addBinds tel $ extractKind =<< whnf' ty 
-  -- (_, core) = typeToTele' (length tel') k 
-  cs   <- mapM (extractConstructor tel) cs  
+  Just core <- addBinds tel $ extractKind =<< whnf' ty
+  -- (_, core) = typeToTele' (length tel') k
+  cs   <- mapM (extractConstructor tel) cs
   return [DataDecl n NotSized co [] tel' core cs []]
-  
+
 extractConstructor :: Telescope -> Constructor -> TypeCheck FConstructor
 extractConstructor tel0 (Constructor n pars t) = do
 {- fails for HEq
@@ -277,7 +277,7 @@ extractConstructor tel0 (Constructor n pars t) = do
 -}
   let tel = tel0
   -- compute full extracted constructor type and add to the signature
-  t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t) 
+  t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t)
   setExtrTyp n t'
   let (tel',core) = typeToTele' (length tel) t'
   return $ Constructor n pars core
@@ -287,13 +287,13 @@ extractConstructor tel0 (Constructor n pars t) = do
 extractClause :: Name -> FTVal -> Clause -> TypeCheck [FClause]
 extractClause f tv (Clause _ pl Nothing) = return [] -- discard absurd clauses
 extractClause f tv cl@(Clause vtel pl (Just rhs)) = do
-  traceM ("extracting clause " ++ render (prettyClause f cl)  
+  traceM ("extracting clause " ++ render (prettyClause f cl)
           ++ "\n at type " ++ showVal tv)
 {-
   tel <- introPatterns pl tv0 $ \ _ _ -> do
            vtel <- getContextTele
            extractTeleVal vtel
-  addBinds tel $ 
+  addBinds tel $
 -}
   introPatVars pl $
     extractPatterns tv pl $ \ pl tv -> do
@@ -301,15 +301,15 @@ extractClause f tv cl@(Clause vtel pl (Just rhs)) = do
       return [Clause vtel pl (Just rhs)] -- TODO: return FTelescope (type!)
 
 -- the pattern variables are already in context
-extractPatterns :: FTVal -> [Pattern] -> 
+extractPatterns :: FTVal -> [Pattern] ->
                    ([FPattern] -> FTVal -> TypeCheck a) -> TypeCheck a
 extractPatterns tv [] cont = cont [] tv
-extractPatterns tv (p:ps) cont = 
-  extractPattern tv p $ \ pl tv -> 
-    extractPatterns tv ps $ \ ps tv -> 
+extractPatterns tv (p:ps) cont =
+  extractPattern tv p $ \ pl tv ->
+    extractPatterns tv ps $ \ ps tv ->
       cont (pl ++ ps) tv
 
-extractPattern :: FTVal -> Pattern -> 
+extractPattern :: FTVal -> Pattern ->
                   ([FPattern] -> FTVal -> TypeCheck a) -> TypeCheck a
 extractPattern tv p cont = do
   traceM ("extracting pattern " ++ render (pretty p) ++ " at type " ++ showVal tv)
@@ -329,11 +329,11 @@ extractPattern tv p cont = do
 -}
     Arrow av bv -> extractPattern' av p (flip cont bv)
 
-extractPattern' :: FTVal -> Pattern -> 
+extractPattern' :: FTVal -> Pattern ->
                   ([FPattern] -> TypeCheck a) -> TypeCheck a
 extractPattern' av p cont =
       case p of
-        VarP y -> setTypeOfName y (defaultDomain av) $ 
+        VarP y -> setTypeOfName y (defaultDomain av) $
           cont [VarP y]
         PairP p1 p2 -> do
           view <- prodView av
@@ -342,18 +342,18 @@ extractPattern' av p cont =
                              Prod av1 av2 -> (av1, av2)
                              _ -> (av, av) -- HACK
           extractPattern' av1 p1 $ \ ps1 -> do
-            extractPattern' av2 p2 $ \ ps2 -> 
+            extractPattern' av2 p2 $ \ ps2 ->
                let ps [] ps2    = ps2
                    ps ps1 []    = ps1
                    ps [p1] [p2] = [PairP p1 p2]
                in  cont $ ps ps1 ps2
-            
+
 {-
           case view of
             Prod av1 av2 ->
               extractPattern' av1 p1 $ \ [p1] -> do
                 extractPattern' av2 p2 $ \ [p2] -> cont [PairP p1 p2]
-            _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++ 
+            _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++
                           show p ++ " : " ++ show av
 -}
         ConP pi n ps -> do
@@ -401,15 +401,15 @@ extractInfer e = do
       fv <- funView tv
       case fv of
         EraseArg bv -> return (f,bv)
-        Forall x dom env b -> do 
+        Forall x dom env b -> do
           e <- extractTypeAt e (typ dom)
-          bv <- (\ xv -> whnf (update env x xv) b) =<< whnf' e 
-          return $ (App f (erasedExpr e), bv) 
+          bv <- (\ xv -> whnf (update env x xv) b) =<< whnf' e
+          return $ (App f (erasedExpr e), bv)
         Arrow av bv -> return (if er then f else App f e, bv)
         NotFun -> return (if er then f else castExpr f `App` e, VIrr)
- 
+
     Def f -> (Def f,) <$> do (whnf' . extrTyp) =<< lookupSymb (name f)
- 
+
     Pair{} -> fail $ "extractInfer: IMPOSSIBLE: pair " ++ show e
     -- other expressions are erased or types
 
@@ -422,23 +422,23 @@ extractCheck e tv = do
       fv <- funView tv
       case fv of
         EraseArg bv        -> extractCheck e bv -- discard lambda
-        Forall x dom env b -> 
+        Forall x dom env b ->
           Lam (decor dom) y <$> do
-            newWithGen y dom $ \ i _ -> 
+            newWithGen y dom $ \ i _ ->
               extractCheck e =<< whnf (update env x (VGen i)) b
         Arrow av bv        ->
           if erased dec then extractCheck e bv
            else Lam dec y <$> do
              new' y (defaultDomain av) $
                extractCheck e bv
-        NotFun            -> castExpr <$> 
+        NotFun            -> castExpr <$>
           if erased dec then extractCheck e VIrr
            else Lam dec y <$> do
              new' y (defaultDomain VIrr) $
                extractCheck e VIrr
 
     LLet (TBind x dom0) [] e1 e2 -> do
-      let dom = fmap Maybe.fromJust dom0 
+      let dom = fmap Maybe.fromJust dom0
       if erased (decor dom) then extractCheck e2 tv else do -- discard let
        vdom <- Traversable.mapM whnf' dom         -- MiniAgda type val
        dom  <- Traversable.mapM extractType vdom  -- Fomega type
@@ -462,7 +462,7 @@ extractCheck e tv = do
     -- TODO: case
 
     _ -> fallback
-  where 
+  where
     fallback = do
       (e,tv') <- extractInfer e
       insertCast e tv tv'
@@ -474,15 +474,15 @@ insertCast e tv1 tv2 = loop tv1 tv2 where
       (VIrr,_) -> return $ castExpr e
       (_,VIrr) -> return $ castExpr e
       _  -> return e -- TODO!
- 
+
 funView :: FTVal -> TypeCheck FunView
-funView tv = 
+funView tv =
   case tv of
     -- erasure mark
-    VQuant Pi x dom env e | erased (decor dom) && typ dom == VIrr -> 
+    VQuant Pi x dom env e | erased (decor dom) && typ dom == VIrr ->
       EraseArg <$> whnf (update env x VIrr) e
     -- forall
-    VQuant Pi x dom env e | erased (decor dom) -> 
+    VQuant Pi x dom env e | erased (decor dom) ->
       return $ Forall x dom env e
     -- function type
     VQuant Pi x dom env e ->
@@ -490,7 +490,7 @@ funView tv =
     -- any other type can be a function type, but this needs casts!
     _ -> return NotFun -- $ Arrow VIrr VIrr
 
-data FunView 
+data FunView
   = Arrow    FTVal FTVal            -- A -> B
   | Forall   Name Domain Env FType  -- forall X:K. A
   | EraseArg FTVal                  -- [] -> B
@@ -514,7 +514,7 @@ star :: FKind
 star = Sort $ Set Zero
 
 extractSet :: Sort Val -> Maybe FKind
-extractSet s = 
+extractSet s =
   case s of
     SortC _ -> Nothing
     Set _   -> Just $ star
@@ -525,13 +525,13 @@ extractKindTel :: Telescope -> TypeCheck FTelescope
 extractKindTel [] = return []
 extractKindTel (TBind x dom : tel) = do
   dom  <- Traversable.mapM whnf' dom
-  dom' <- extractKindDom dom 
+  dom' <- extractKindDom dom
   if erased (decor dom') then
-    newIrr x $  
+    newIrr x $
       (TBind x dom' :) <$> extractKindTel tel
    else newTyVar x (typ dom') $ \ i -> do
       x <- nameOfGen i
-      (TBind x dom' :) <$> extractKindTel tel 
+      (TBind x dom' :) <$> extractKindTel tel
 
 {-
 -- keep irrelevant entries
@@ -546,13 +546,13 @@ extractKindTel tel = do
 -}
 
 extractKindDom :: Domain -> TypeCheck (Dom FKind)
-extractKindDom dom = 
+extractKindDom dom =
   maybe (defaultIrrDom Irr) defaultDomain <$>
-    if erased (decor dom) then return Nothing 
+    if erased (decor dom) then return Nothing
      else extractKind (typ dom)
 
 extractKind :: TVal -> TypeCheck (Maybe FKind)
-extractKind tv = 
+extractKind tv =
   case tv of
     VSort s -> return $ extractSet s
     VMeasured mu vb -> extractKind vb
@@ -561,16 +561,16 @@ extractKind tv =
        bv  <- whnf (update env x VIrr) b
        mk' <- extractKind bv
        case mk' of
-         Nothing -> return Nothing     
+         Nothing -> return Nothing
          Just k' -> do
            dom' <- extractKindDom dom
            let x = fresh ""
-           return $ Just $ Quant Pi (TBind x dom') k' 
+           return $ Just $ Quant Pi (TBind x dom') k'
     _ -> return Nothing
 
 -- extracting a type constructor from a value ------------------------
 
-type FType = Expr 
+type FType = Expr
 {- FType ::= Irr                 -- not expressible in Fomega
            | D FTypes            -- data type
            | X FTypes            -- type variable
@@ -582,19 +582,19 @@ type FType = Expr
 -- tyVarName i = fresh $ "a" ++ show i
 
 newTyVar :: Name -> FKind -> (Int -> TypeCheck a) -> TypeCheck a
-newTyVar x k cont = newWithGen x (defaultDomain (VClos emptyEnv k)) $ 
+newTyVar x k cont = newWithGen x (defaultDomain (VClos emptyEnv k)) $
   \ i _ -> cont i                  -- store kinds unevaluated
 
 addFKindTel :: FTelescope -> TypeCheck a -> TypeCheck a
 addFKindTel [] cont = cont
-addFKindTel (TBind x dom : tel) cont = newTyVar x (typ dom) $ const $ 
-  addFKindTel tel cont 
+addFKindTel (TBind x dom : tel) cont = newTyVar x (typ dom) $ const $
+  addFKindTel tel cont
 
 extractTeleVal :: TeleVal -> TypeCheck FTelescope
 extractTeleVal [] = return []
 extractTeleVal (tb : vtel) = do
   tb <- Traversable.mapM extractType tb
-  addBind tb $ do 
+  addBind tb $ do
     (tb :) <$> extractTeleVal vtel
 
 extractType :: TVal -> TypeCheck FType
@@ -609,64 +609,64 @@ extractTypeAt k tv = do
 
     -- relevant function space / sigma type --> non-dependent
     (VQuant piSig x dom env b,_) | not (erased (decor dom)) -> do
-      a <- extractType (typ dom) 
+      a <- extractType (typ dom)
       -- new' x dom $ do
       bv <- whnf (update env x VIrr) b
-      b  <- extractType bv 
+      b  <- extractType bv
       let x = fresh ""
       return $ Quant piSig (TBind x (defaultDomain a)) b
 
-    -- irrelevant function space --> forall or erasure marker  
+    -- irrelevant function space --> forall or erasure marker
     (VQuant Pi x dom env b,_) | erased (decor dom) -> do
       mk <- extractKind (typ dom)
       case mk of
         Nothing -> do -- new' x dom $ do
           bv <- whnf (update env x VIrr) b
-          b  <- extractType bv 
+          b  <- extractType bv
           let x = fresh ""
           return $ Quant Pi (TBind x (defaultIrrDom Irr)) b
         Just k' -> do
           newTyVar x k' $ \ i -> do
             bv <- whnf (update env x (VGen i)) b
-            b  <- extractType bv 
+            b  <- extractType bv
             x  <- nameOfGen i
-            return $ Quant Pi (TBind x (defaultIrrDom k')) b 
+            return $ Quant Pi (TBind x (defaultIrrDom k')) b
 
     (VApp (VDef (DefId DatK n)) vs, _) -> do
       k  <- extrTyp <$> lookupSymb n  -- get kind of dname from signature
       as <- extractTypes k vs  -- turn vs into types as at kind k
       return $ foldl App (Def (DefId DatK n)) as
 
-    (VGen i,_) -> do     
+    (VGen i,_) -> do
 --      VClos _ k <- (typ . fromOne . domain) <$> lookupGen i  -- get kind of var from cxt
       Var <$> nameOfGen i
       -- return $ Var (tyVarName i)
 
-    (VApp (VGen i) vs,_) -> do     
+    (VApp (VGen i) vs,_) -> do
       VClos _ k <- (typ . fromOne . domain) <$> lookupGen i  -- get kind of var from cxt
       as <- extractTypes k vs  -- turn vs into types as at kind k
       x <- nameOfGen i
       return $ foldl App (Var x) as
 
-    (VLam x env e, Quant Pi (TBind _ dom) k) | erased (decor dom) -> do 
+    (VLam x env e, Quant Pi (TBind _ dom) k) | erased (decor dom) -> do
       tv <- whnf (update env x VIrr) e
-      extractTypeAt k tv 
- 
+      extractTypeAt k tv
+
     (VLam x env e, Quant Pi (TBind _ dom) k) -> newTyVar x (typ dom) $ \ i -> do
       tv <- whnf (update env x (VGen i)) e
       x  <- nameOfGen i
-      Lam defaultDec x <$> extractTypeAt k tv 
- 
+      Lam defaultDec x <$> extractTypeAt k tv
+
     (VLam{},_) -> error $ "panic! extractTypeAt " ++ show (tv,k)
- 
-    (VSing _ tv,_) -> extractTypeAt k tv 
- 
-    (VUp v _,_)    -> extractTypeAt k v 
- 
+
+    (VSing _ tv,_) -> extractTypeAt k tv
+
+    (VUp v _,_)    -> extractTypeAt k v
+
     _ -> return Irr
- 
+
 extractTypes :: FKind -> [TVal] -> TypeCheck [FType]
-extractTypes k vs = 
+extractTypes k vs =
   case (k,vs) of
     (_, []) -> return []
     (Quant Pi (TBind _ dom) k, v:vs) | erased (decor dom) -> extractTypes k vs

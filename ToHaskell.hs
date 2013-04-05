@@ -9,13 +9,13 @@ MiniAgda
 
   data Vec (A : Set) : Nat -> Set
   { vnil  : Vec A zero
-  ; vcons : [n : Nat] -> (head : A) -> (tail : Vec A n) -> Vec A (suc n) 
+  ; vcons : [n : Nat] -> (head : A) -> (tail : Vec A n) -> Vec A (suc n)
   }
 
   fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
   { length .A .zero    (vnil A)         = zero
   ; length .A .(suc n) (vcons A n a as) = suc (length A n as)
-  } 
+  }
 
 Haskell
 
@@ -23,8 +23,8 @@ Haskell
   module Main where
   import qualified Text.Show as Show
 
-  data Vec (a :: *) 
-    = Vec_vnil 
+  data Vec (a :: *)
+    = Vec_vnil
     | Vec_vcons { vec_head :: a , vec_tail :: Vec a }
       deriving Show.Show
 
@@ -95,12 +95,12 @@ translateDecls :: [EDeclaration] -> Translate [H.Decl]
 translateDecls ds = concat <$> mapM translateDecl ds
 
 translateDecl :: EDeclaration -> Translate [H.Decl]
-translateDecl d = 
+translateDecl d =
   case d of
     MutualDecl _ ds -> translateDecls ds
     OverrideDecl{} -> fail $ "translateDecls internal error: overrides impossible"
     MutualFunDecl _ _ funs -> translateFuns funs
-    FunDecl _ fun -> translateFun fun 
+    FunDecl _ fun -> translateFun fun
     LetDecl _ x [] (Just t) e -> translateLet x t e
     DataDecl n _ _ _ tel fkind cs _ -> translateDataDecl n tel fkind cs
 
@@ -114,7 +114,7 @@ translateFun (Fun ts@(TypeSig n t) n' ar cls) = do
   return [ts, H.FunBind cls]
 
 translateLet :: Name -> Type -> FExpr -> Translate [H.Decl]
-translateLet n t e 
+translateLet n t e
   | isEtaAlias n = return []  -- skip internal decls
   | otherwise = do
       ts <- translateTypeSig $ TypeSig n t
@@ -159,11 +159,11 @@ translateTBind (TBind x dom) = do
   return $ H.KindedVar x $ translateKind (typ dom)
 
 translateKind :: FKind -> H.Kind
-translateKind k = 
+translateKind k =
   case k of
     k | k == star -> H.KindStar
     Quant Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
-    Quant Pi (TBind _ dom) k' -> 
+    Quant Pi (TBind _ dom) k' ->
       translateKind (typ dom) `H.mkKindFun` translateKind k'
 
 translateType :: FType -> Translate H.Type
@@ -172,7 +172,7 @@ translateType t =
 
     Irr -> return $ H.unit_tycon
 
-    Quant piSig (TBind _ dom) b | not (erased (decor dom)) -> 
+    Quant piSig (TBind _ dom) b | not (erased (decor dom)) ->
       H.mkTyPiSig piSig <$> translateType (typ dom) <*> translateType b
 
     Quant Pi (TBind _ dom) b | typ dom == Irr -> translateType b
@@ -185,7 +185,7 @@ translateType t =
       return $ H.mkForall x k t
 
     App f a -> H.mkTyApp <$> translateType f <*> translateType a
- 
+
     Def d@(DefId DatK n) -> (H.TyCon . H.UnQual) <$> hsName d
 
     Var x -> H.TyVar <$> hsVarName x
@@ -197,9 +197,9 @@ translateType t =
  -}
 
 translateExpr :: FExpr -> Translate H.Exp
-translateExpr e = 
+translateExpr e =
   case e of
-    
+
     Var x -> H.mkVar <$> hsVarName x
 
     -- constructors
@@ -208,9 +208,9 @@ translateExpr e =
     -- function identifiers
     Def f@(DefId _ n) -> H.mkVar <$> hsName f
 
-    -- discard type arguments   
+    -- discard type arguments
     App f e0 -> do
-      f <- translateExpr f 
+      f <- translateExpr f
       let (er, e) = isErasedExpr e0
       if er then return f else H.mkApp f <$> translateExpr e
 
@@ -222,7 +222,7 @@ translateExpr e =
 
     LLet (TBind x dom) [] e1 e2 -> do
       x  <- hsVarName x
-      e2 <- translateExpr e2 
+      e2 <- translateExpr e2
       if erased (decor dom) then return e2 else do
         t  <- Trav.mapM translateType (typ dom)
         e1 <- translateExpr e1
@@ -234,15 +234,15 @@ translateExpr e =
 
     Ann (Tagged [Cast] e) -> H.mkCast <$> translateExpr e
 
-    _ -> return $ H.unit_con 
+    _ -> return $ H.unit_con
 
 translatePattern :: Pattern -> Translate H.Pat
-translatePattern p = 
+translatePattern p =
   case p of
     VarP y       -> H.PVar <$> hsVarName y
     PairP p1 p2  -> H.PTuple <$> mapM translatePattern [p1,p2]
-    ConP pi n ps -> 
-       H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n)) 
+    ConP pi n ps ->
+       H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n))
               <*> mapM translatePattern ps
 
 {-
@@ -265,7 +265,7 @@ hsName id = enter ("error translating identifier " ++ show id) $
   case id of
   (DefId DatK x) -> do
     let n = suggestion x
-    unless (isUpper $ head n) $ 
+    unless (isUpper $ head n) $
       fail $ "data names need to be capitalized"
     return $ H.Ident n
   (DefId (ConK co) x) -> do
@@ -284,4 +284,4 @@ hsName id = enter ("error translating identifier " ++ show id) $
 
 -- getDataName constructorName = return dataNamec
 getDataName :: Name -> Translate String
-getDataName n = return "DATA" 
+getDataName n = return "DATA"
