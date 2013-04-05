@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ConorMcBrideCalco09inflationary.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Map : (F : Set -> Set) -> Set (max 1)
+type  Map = \ F -> .[A : Set] -> .[B : Set] -> (A -> B) -> F A -> F B
+type  Nu : (F : + Set -> Set) -> -(i : Size) -> Set
+{ Nu F i = .[j < i] -> F (Nu F j)
+}
+error during typechecking:
+out
+/// new F : (+Set -> Set)
+/// new i <= #
+/// new r : (Nu (v0 Up (+Set -> Set)) {$i {i = v1, F = (v0 Up (+Set -> Set))}})
+/// checkExpr 3 |- r i : F (Nu F i)
+/// inferExpr' r i
+/// leqVal' (subtyping) [(i,1),(F,0),(r,2)] |- < i : <= # >  <=+  < $i
+/// leSize v1 <+ ($ v1)
+/// leSize' v1 < ($ v1)
+/// leSize'': i + -1 < i failed

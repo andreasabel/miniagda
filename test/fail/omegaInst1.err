@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "omegaInst1.ma" ---
+--- scope checking ---
+--- type checking ---
+term  fix : .[F : Size -> Set] -> (phi : .[i <= #] -> (f : .[j < i] -> F j) -> F i) -> .[i <= #] -> F i
+{ fix [F] phi [i] = phi [i] (fix [F] phi)
+}
+type  Bot : +(i : Size) -> Set
+{ Bot i = .[j < i] & Bot j
+}
+type  Top : -(i : Size) -> Set
+{ Top i = .[j < i] -> Top j
+}
+error during typechecking:
+out
+/// new i <= #
+/// new r : (Top {$i {i = v0}})
+/// checkExpr 2 |- \ j -> r $j j : Top i
+/// checkForced fromList [(i,0),(r,1)] |- \ j -> r $j j : .[j < i] -> Top j
+/// new j < v0
+/// adding size rel. v2 + 1 <= v0
+/// cannot add hypothesis v2 + 1 <= v0 because it is not satisfyable under all possible valuations of the current hypotheses

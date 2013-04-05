@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "CoNotLowerSemi.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : +(i : Size) -> Set
+term  zero : .[i : Size] -> < zero : Nat i >
+term  suc : .[i : Size] -> ^(jn : .[j < i] & Nat j) -> < suc jn : Nat i >
+type  Stream : ++(A : Set) -> -(i : Size) -> Set
+term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : .[j < i] -> Stream A j) -> < cons head tail : Stream A i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A i) -> A
+{ head [A] [i] (cons #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A i) -> .[j < i] -> Stream A j
+{ tail [A] [i] (cons #head #tail) = #tail
+}
+term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> Stream A i
+{ repeat [A] a [i] = cons a ([\ j ->] repeat [A] a [j])
+}
+error during typechecking:
+lsc
+/// new s : (Stream (Nat #) #)
+/// checkExpr 1 |- (# , s) : .[j < #] & Stream (Nat j) #
+/// checkForced fromList [(s,0)] |- (# , s) : .[j < #] & Stream (Nat j) #
+/// checkExpr 1 |- # : < #
+/// leqVal' (subtyping)  < # : <= # >  <=+  < #
+/// leSize # <+ #
+/// leSize: # < # failed

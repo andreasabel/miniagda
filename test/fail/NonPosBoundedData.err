@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NonPosBoundedData.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : +(i : Size) -> Set
+{ D i = .[j < i] & D j -> D j
+}
+type  D : +(i : Size) -> Set
+error during typechecking:
+D
+/// clause 1
+/// right hand side
+/// checkExpr 1 |- (.[j < i] & D j) -> .[j < i] & D j : Set
+/// checkForced fromList [(i,0)] |- (.[j < i] & D j) -> .[j < i] & D j : Set
+/// inferExpr' (.[j < i] & D j) -> .[j < i] & D j
+/// inferExpr' .[j < i] & D j
+/// inferExpr' < i
+/// inferExpr' i
+/// inferExpr: variable i : <= # may not occur
+/// , because of polarity
+/// polarity check + <= - failed
