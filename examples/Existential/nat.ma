@@ -1,7 +1,4 @@
-data Maybe ++(A : Set) : Set
-{ nothing : Maybe A
-; just    : A -> Maybe A
-}
+data Maybe ++(A : Set) { nothing ; just (a : A) }
 
 -- sized type and constructors
 
@@ -24,12 +21,15 @@ fun succ : [i : Size] -> Nat i -> Nat $i
 
 -- Fact :       [j < $i] & Maybe (Nat j) -> Nat $i
 -- subtype of   Maybe (Nat i) -> Nat $i
--- 
+--
 -- General case:
 --   T i = [j < i] & F (T j)
--- 
+--
 -- Is  F (T i) <= [j <= i] & F (T j)  ?
 -- Clearly, if F is monotone!
+
+let zeroInf             : Nat # = pzero #
+let succInf (n : Nat #) : Nat # = psucc # n
 
 -- using infinity
 
@@ -39,7 +39,7 @@ fun add : [i : Size] -> |i| -> Nat i -> Nat # -> Nat #
 }
 
 fun pred : [i : Size] -> Nat i -> Nat i
-{ pred i (pzero j)   = zero j  
+{ pred i (pzero j)   = zero j
 ; pred i (psucc j n) = n
 }
 

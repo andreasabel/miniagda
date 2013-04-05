@@ -8,7 +8,7 @@ record Unit : Set
 
 -- * Booleans
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -28,17 +28,17 @@ pattern right b = (false , b)
 
 -- * lazy pair
 
-record Prod ++(A, B : Set) : Set 
-{ pair : (fst : A) -> (snd : B) -> Prod A B
+record Prod ++(A, B : Set)
+{ pair (fst : A) (snd : B)
 } fields fst, snd
 
-cofun mapProd : [A1, A2 : Set] -> (A1 -> A2) -> 
+cofun mapProd : [A1, A2 : Set] -> (A1 -> A2) ->
                 [B1, B2 : Set] -> (B1 -> B2) -> Prod A1 B1 -> Prod A2 B2
 { mapProd A1 A2 f B1 B2 g p .fst = f (p .fst)
 ; mapProd A1 A2 f B1 B2 g p .snd = g (p .snd)
 }
 
-cofun mapFst : [A1, A2 : Set] -> (A1 -> A2) -> 
+cofun mapFst : [A1, A2 : Set] -> (A1 -> A2) ->
                [B : Set] -> Prod A1 B -> Prod A2 B
 { mapFst A1 A2 f B p .fst = f (p .fst)
 ; mapFst A1 A2 f B p .snd = p .snd
@@ -60,14 +60,14 @@ pattern cons x xs = pair x xs
 {-
 cofun build : [A, S : Set] -> (S -> Prod A S) -> [i : Size] -> S -> Stream A i
 { build A S step i start (j < i) .fst = step start .fst
-; build A S step i start (j < i) .snd = build A S step j (step start .snd) 
+; build A S step i start (j < i) .snd = build A S step j (step start .snd)
 }
 -}
 
-cofun build : [A : Set] -> [S : -Size -> Set] -> 
+cofun build : [A : Set] -> [S : -Size -> Set] ->
   ([j : Size] -> S $j -> Prod A (S j)) -> [i : Size] -> S i -> Stream A i
 { build A S step i start (j < i) .fst = step j start .fst
-; build A S step i start (j < i) .snd = build A S step j (step j start .snd) 
+; build A S step i start (j < i) .snd = build A S step j (step j start .snd)
 }
 
 let map : [A, B : Set] -> (A -> B) -> [i : Size] -> Stream A i -> Stream B i
@@ -84,20 +84,20 @@ cofun repeat' : [A : Set] -> A -> [i : Size] -> Stream A i
 
 -- * Infinity streams
 
-let head : [A : Set] -> Stream A # -> A
-  = \ A s -> s 0 .fst
+let head [A : Set] (s : Stream A #) : A
+  = s 0 .fst
 
 cofun tail' : [A : Set] -> [i : Size] -> Stream A $i -> Stream A i
 { tail' A i s = s i .snd
-} 
+}
 
-let tail : [A : Set] -> Stream A # -> Stream A #
-  = \ A s -> tail' A # s
+let tail [A : Set] (s : Stream A #) : Stream A #
+  = s # .snd -- 2013-04-05, WAS: tail' A # s
 
 {- BUG j < # not handled correctly!
 cofun tail_ : [A : Set] -> Stream A # -> Stream A #
 { tail_ A s j = s $j .snd
-} 
+}
 -}
 
 let split' : [A : Set] -> [i : Size] -> Stream A $i -> Prod A (Stream A i)
@@ -117,7 +117,7 @@ fun B : Set {}
 
 cofun SP' : ++(X : Set) -> +(i : Size) -> Set
 { SP' X i = [j < i] & Either (A -> SP' X j) X
-} 
+}
 
 pattern get f = left f
 pattern out x = right x
@@ -135,9 +135,8 @@ fun run' : [i : Size] -> (SP i -> Stream A # -> Stream B i) ->
 }
 
 cofun run : [i : Size] -> SP i -> Stream A # -> Stream B i
-{ run i sp as (j < i) = mapSnd B (SP' (SP j) #) (Stream B j) 
-   (\ sp -> run' j (run j) # sp as) 
+{ run i sp as (j < i) = mapSnd B (SP' (SP j) #) (Stream B j)
+   (\ sp -> run' j (run j) # sp as)
    (sp j)
 
 }
-
