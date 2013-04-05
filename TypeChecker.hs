@@ -2760,9 +2760,16 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
       VMeasured mu bv -> endsInSizedCo' endInCo i bv
 
       -- case forall j <= i. C j coinductive in i
+      VQuant Pi x dom@Domain{ typ = VBelow Le (VGen i') } env b | i == i' ->
+        newWithGen x dom $ \ j xv ->
+          endsInSizedCo' endInCo j =<< whnf (update env x xv) b
       VGuard (Bound Le (Measure [VGen j]) (Measure [VGen i'])) bv | i == i' ->
         endsInSizedCo' endInCo j bv
+
       -- same case again, written as j < i+1. C j
+      VQuant Pi x dom@Domain{ typ = VBelow Lt (VSucc (VGen i')) } env b | i == i' ->
+        newWithGen x dom $ \ j xv ->
+          endsInSizedCo' endInCo j =<< whnf (update env x xv) b
       VGuard (Bound Lt (Measure [VGen j]) (Measure [VSucc (VGen i')])) bv | i == i' ->
         endsInSizedCo' endInCo j bv
 
