@@ -1007,26 +1007,31 @@ data SigDef
             , arity         :: Arity
             , clauses       :: [Clause]
             , isTypeChecked :: Bool
-            , extrTyp       :: Expr   -- Fomega type
-            } --type , co , clauses , whether its type checked
+            , extrTyp       :: Expr   -- ^ Fomega type.
+            }
   | LetSig  { symbTyp       :: TVal
             , symbolKind    :: Kind
             , definingVal   :: Val
 --            , definingExpr  :: Expr
-            , extrTyp       :: Expr   -- Fomega type
-            }-- type , expr
+            , extrTyp       :: Expr   -- ^ Fomega type.
+            }
   | PatSig  { patVars       :: [Name]
             , definingPat   :: Pattern
             , definingVal   :: Val
             }
   | ConSig  { numPars       :: Int
-            , lhsTyp        :: Maybe TVal -- lhs type of construcor for pattern matching, e.g.
-   -- cons : [A : Set] -> [i : Size] -> [j < i] -> A -> List A j -> List A i
-            , recOccs       :: [Bool] -- which of the arguments contain rec.occs.of the (co)data type?
-            , symbTyp       :: TVal   -- type, e.g
-   -- cons : [A : Set] -> [i : Size] -> A -> List A i -> List A $i
-            , dataName      :: Name
-            , extrTyp       :: Expr   -- Fomega type
+              -- ^ No. of parameters.
+              --   Can differ from @dataPars@ if pattern parameters are used.
+            , lhsTyp        :: Maybe TVal
+              -- ^ LHS type of constructor for pattern matching, e.g.
+   -- rhs @cons : [A : Set] [i : Size]         -> A -> List A i -> List A $i@
+   -- lhs @cons : [A : Set] [i : Size] [j < i] -> A -> List A j -> List A i@
+            , recOccs       :: [Bool]
+              -- ^ @True@ if argument contains rec.occs.of the (co)data type?
+            , symbTyp       :: TVal   -- ^ (RHS) type, includs parameter tel.
+            , dataName      :: Name   -- ^ Its datatype.
+            -- , dataPars      :: Int    -- ^ No. of parameters of its datatype.
+            , extrTyp       :: Expr   -- ^ Fomega type.
             }
   | DataSig { numPars       :: Int
             , positivity    :: [Pol]
