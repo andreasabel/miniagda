@@ -1,4 +1,5 @@
 data Unit { unit }
+data Bool { false ; true }
 
 data Nat { zero ; suc (n : Nat) }
 
@@ -8,6 +9,8 @@ fun plus : Nat -> Nat -> Nat
 }
 
 data List ++(A : Set) { nil ; cons (x : A) (xs : List A) }
+
+-- * Vectors
 
 data OldVec ++(A : Set) : (n : Nat) -> Set
 { oldvnil                                                   : OldVec A zero
@@ -55,13 +58,15 @@ fun subst : (n : Nat) [m : Nat] -> Tm n -> Subst n m -> Tm m
 }
 -}
 
+-- * Simply typed lambda terms.
+
 data Ty { nat ; arr (a, b : Ty) }
 
 let Cxt = List Ty
 
-data Var (cxt : Cxt) : (a : Ty) -> Set
-{ vzero                          : Var (cons a cxt) a
-; vsuc  (b : Ty) (x : Var cxt b) : Var (cons a cxt) b
+data Var (cxt : Cxt) (a : Ty)
+{ vzero                 : Var (cons a cxt) a -- non-linearity ok!
+; vsuc  (x : Var cxt b) : Var (cons a cxt) b
 }
 
 data Tm (cxt : Cxt) (a : Ty)
@@ -80,9 +85,9 @@ fun Env : Cxt -> Set
 ; Env (cons a as) = Sem a & Env as
 }
 
-fun val : (cxt : Cxt) (a : Ty) -> Var cxt a -> Env cxt -> Sem a
-{ val (cons a cxt) .a vzero      (v, vs) = v
-; val (cons a cxt) b (vsuc .b x) (v, vs) = val cxt b x vs
+fun val : (cxt : Cxt) [a : Ty] -> Var cxt a -> Env cxt -> Sem a
+{ val (cons a cxt) .a vzero   (v, vs) = v
+; val (cons a cxt) b (vsuc x) (v, vs) = val cxt b x vs
 }
 
 fun sem : (cxt : Cxt) (a : Ty) -> Tm cxt a -> Env cxt -> Sem a
@@ -90,6 +95,15 @@ fun sem : (cxt : Cxt) (a : Ty) -> Tm cxt a -> Env cxt -> Sem a
 ; sem cxt b         (app a r s) rho = sem cxt (arr a b) r rho (sem cxt a s rho)
 ; sem cxt (arr a b) (abs t)     rho v = sem (cons a cxt) b t (v, rho)
 }
+
+-- * Identity type.
+
+data Id (A : Set) (x, y : A) { refl : Id A x x }
+
+fun subst : [A : Set] [P : A -> Set] [x, y : A] -> Id A x y -> P x -> P y
+{ subst A P x .x refl h = h }
+
+fail let trueIsFalse : Id Bool true false = refl
 
 {- How to check a data constructor
 

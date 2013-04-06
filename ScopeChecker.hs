@@ -955,10 +955,16 @@ scopeCheckPattern p =
 
 -- | Add pattern variable to pattern context, must not be present yet.
 addUnique :: C.Name -> SPS A.Name
-addUnique n = do
+addUnique = addPatVar True
+
+addNonUnique :: C.Name -> SPS A.Name
+addNonUnique = addPatVar False
+
+addPatVar :: Bool -> C.Name -> SPS A.Name
+addPatVar linear n = do
   delta <- get
   case retrieve n delta of
-    Just{} -> errorPatternNotLinear n
+    Just x -> if linear then errorPatternNotLinear n else return x
     Nothing -> do
       let (x, delta') = newLocal n delta
       put delta'
@@ -1017,7 +1023,7 @@ scopeCheckParameter e =
         Just (DefI ConK{} n) -> mapM_ scopeCheckParameter es
         Just (DefI DataK  n) -> mapM_ scopeCheckParameter es
         Just _  -> errorInvalidParameter e
-        Nothing -> void $ addUnique n
+        Nothing -> void $ addNonUnique n -- allow non-linearity
 
 -- * Scope checking errors
 

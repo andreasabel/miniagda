@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NonLinearParameter.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Prod : ^(A : Set) -> ^(B : Set) -> Set
+term  pair : .[A : Set] -> .[B : Set] -> ^(a : A) -> ^(b : B) -> < pair a b : Prod A B >
+term  a : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ a [A] [B] (pair #a #b) = #a
+}
+term  b : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ b [A] [B] (pair #a #b) = #b
+}
+type  D : ^(A : Set 1) -> Set
+error during typechecking:
+D
+/// expected parameter to be a pattern, but I found [Prod A A]

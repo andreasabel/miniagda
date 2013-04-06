@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NonLinearParameterPattern.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  false : < false : Bool >
+term  true : < true : Bool >
+type  D : ^(x : Bool) -> ^(y : Bool) -> Set
+term  c : .[x : Bool] -> .[x : Bool] -> < c : D x x >
+type  g : D true true -> Set
+{ g c = Bool
+}
+type  f : D true false -> Set
+block fails as expected, error message:
+f
+/// clause 1
+/// pattern c
+/// unifyIndices [] |- < c : D false false > ?<=+ D true false
+/// unifyIndices [] |- D false false ?<=+ D true false
+/// inst [] |- false ?<=^ true : Bool
+/// inst: leqVal false{} ?<=^ true{} : Bool failed
+/// leqVal'  false  <=^  true : Bool
+/// leqVal': head mismatch false{} != true{}
+error during typechecking:
+v
+/// checkExpr 0 |- c : D true false
+/// checkForced fromList [] |- c : D true false
+/// leqVal' (subtyping)  < c : D false false >  <=+  D true false
+/// leqVal' (subtyping)  D false false  <=+  D true false
+/// leqVal'  false  <=^  true : Bool
+/// leqVal': head mismatch false{} != true{}
