@@ -1102,12 +1102,19 @@ nonLinMatch symm env p v0 tv = do
     (ConP _ c pl, VRecord (NamedRec _ c' _) rs) | c == c' -> do
       vc <- conLType c tv
       nonLinMatchList symm env pl (map snd rs) vc
-    (PairP p1 p2, VPair v1 v2) -> fail $ "nonLinMatch of pairs: NYI"
+    (PairP p1 p2, VPair v1 v2) -> do
+      tv <- force tv
+      case tv of
+        VQuant Sigma x dom rho b -> do
+          nonLinMatch symm env p1 v1 (typ dom) `bindMaybe` \ env -> do
+          nonLinMatch symm env p2 v2 =<< whnf (update rho x v1) b
+        _ -> failDoc $ text "nonLinMatch: expected" <+> prettyTCM tv <+> text "to be a Sigma-type (&)"
     (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` \ v' ->
       nonLinMatch symm env p' v' tv
     _ -> return Nothing
   where
-    -- check that the previous solution for @x@ is equal to @v@
+    -- Check that the previous solution for @x@ is equal to @v@.
+    -- Here, we need the type!
     matchVarP x v =
       case find ((x ==) . fst) $ envMap env of
         Nothing     -> return $ Just (update env x v)
