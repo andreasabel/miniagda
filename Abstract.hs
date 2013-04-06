@@ -142,6 +142,17 @@ newtype Decoration pos = Dec { polarity :: pos }
 type Dec = Decoration Pol
 type UDec = Decoration PProd
 
+class LensPol a where
+  getPol :: a -> Pol
+  setPol :: Pol -> a -> a
+  setPol = mapPol . const
+  mapPol :: (Pol -> Pol) -> a -> a
+  mapPol f a = setPol (f (getPol a)) a
+
+instance LensPol Dec where
+  getPol = polarity
+  setPol p dec = dec { polarity = p }
+
 udec :: Dec -> UDec
 udec = fmap pprod
 
@@ -518,6 +529,10 @@ class LensDec a where
 instance LensDec (Dom a) where
   getDec = decor
   setDec d dom = dom { decor = d }
+
+instance LensPol (Dom a) where
+  getPol = getPol . getDec
+  mapPol = mapDec . mapPol
 
 {-
 instance Functor Dom where

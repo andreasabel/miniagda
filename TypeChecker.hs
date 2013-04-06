@@ -2212,40 +2212,24 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
                    case noc of
                          True -> return [(k,v1)]
                          False -> throwErrorMsg "occurs check failed"
-{- MOVED to unifyIndices
-    -- injectivity of data type constructors is unsound in general
-    (VApp (VDef (DefId Dat d1)) vl1, VApp (VDef (DefId Dat d2)) vl2) | d1 == d2 ->  do
-         sig <- gets signature
-         instList flex (symbTyp (lookupSig d1 sig)) vl1 vl2
--}
 
-    (VApp (VDef (DefId DatK d1)) vl1, VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 ->  do
-         (DataSig { numPars = np, symbTyp = tv, positivity = posl }) <- lookupSymb d1
-         instList' np posl flex tv vl1 vl2 -- ignore parameters (first np args)
+    -- injectivity of data type constructors is unsound in general
+    (VApp (VDef (DefId DatK d1)) vl1,
+     VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 ->  do
+         (DataSig { numPars, symbTyp = tv, positivity = posl }) <- lookupSymb d1
+         instList' numPars posl flex tv vl1 vl2
+           -- ignore parameters (first numPars args)
            -- this is sound because we have irrelevance for parameters
            -- we assume injectivity for indices
 
-
-    (VRecord (NamedRec _ c1 _) rs1, VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
+    -- Constructor applications are represented as VRecord
+    (VRecord (NamedRec _ c1 _) rs1,
+     VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
          sige <- lookupSymb c1
          instList [] flex (symbTyp sige) (map snd rs1) (map snd rs2)
 
-{- RETIRED
-    (VRecord (NamedRec _ c1 _) rs1, VApp (VDef (DefId (ConK _) c2)) vl2) | c1 == c2 -> do
-         sige <- lookupSymb c1
-         instList [] flex (symbTyp sige) (map snd rs1) vl2
-
-    (VApp (VDef (DefId (ConK _) c1)) vl1, VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
-         sige <- lookupSymb c1
-         instList [] flex (symbTyp sige) vl1 (map snd rs2)
-
-    (VApp (VDef (DefId (ConK _) c1)) vl1, VApp (VDef (DefId (ConK _) c2)) vl2) | c1 == c2 -> do
-         sige <- lookupSymb c1
-         instList [] flex (symbTyp sige) vl1 vl2
--}
-
-    (VSucc v1',VSucc v2') -> instWh pos flex tv v1' v2'
-    (VSucc v, VInfty) -> instWh pos flex tv v VInfty
+    (VSucc v1',     VSucc v2')     -> instWh pos flex tv v1' v2'
+    (VSucc v,       VInfty)        -> instWh pos flex tv v   VInfty
     (VSing v1' tv1, VSing v2' tv2) -> do
       subst <- inst pos flex tv tv1 tv2
       u1 <- substitute subst v1'
@@ -2267,10 +2251,7 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
             return []
 
 instList :: [Pol] -> [Int] -> TVal -> [Val] -> [Val] -> TypeCheck Substitution
-instList posl flex tv vl1 vl2 = do
-  -- vl1 <- mapM whnfClos vl1
-  -- vl2 <- mapM whnfClos vl2
-  instList' 0 posl flex tv vl1 vl2
+instList = instList' 0
 
 -- unify lists, ignoring the first np items
 instList' :: Int -> [Pol] -> [Int] -> TVal -> [Val] -> [Val] -> TypeCheck Substitution
@@ -2281,7 +2262,8 @@ instList' np posl flex tv (v1:vl1) (v2:vl2) = do
   if (np <= 0 || isMeta flex v1 || isMeta flex v2) then
     case tv of
       (VQuant Pi x dom env b) -> do
-        subst <- inst (headPosl posl) flex (typ dom) v1 v2
+        let pol = getPol dom  -- WAS: (headPosl posl)
+        subst <- inst pol flex (typ dom) v1 v2
         vl1' <- mapM (substitute subst) vl1
         vl2' <- mapM (substitute subst) vl2
         v    <- substitute subst v1
