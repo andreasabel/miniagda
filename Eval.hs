@@ -794,10 +794,13 @@ matchingConstructors' n vl = do
 -- this is also for use in upData
 matchingConstructors'' :: Bool -> [Val] -> Val -> [ConstructorInfo] -> TypeCheck [(ConstructorInfo,Env)]
 matchingConstructors'' symm vl dv cs = do
-      vl <- mapM whnfClos vl
-      cenvs <- mapM (\ ci -> let ps = snd (cPatFam ci) -- list of patterns ps where D ps is the constructor target
-                             in liftM (fmap ((,) ci)) $ nonLinMatchList symm emptyEnv ps vl dv) cs
-      return $ compressMaybes cenvs
+  vl <- mapM whnfClos vl
+  compressMaybes <$> do
+    forM cs $ \ ci -> do
+      let ps = snd (cPatFam ci)
+          -- list of patterns ps where D ps is the constructor target
+      fmap (ci,) <$> nonLinMatchList symm emptyEnv ps vl dv
+
 
 data MatchingConstructors a
   = NoConstructor
@@ -1030,18 +1033,20 @@ matchClauses env cl vl0 = do
                    Nothing -> loop cl2 vl
                    Just v -> return $ Just v
 
+bindMaybe :: Monad m => m (Maybe a) -> (a -> m (Maybe b)) -> m (Maybe b)
+bindMaybe mma k = mma >>= maybe (return Nothing) k
+
 matchClause :: Env -> [Pattern] -> Expr -> [Val] -> TypeCheck (Maybe Val)
-matchClause env [] rhs vl = do v <- whnf env rhs
-                               v2 <- foldM app v vl
-                               return $ Just v2
-matchClause env (p:pl) rhs (v:vl) =
-  do m <- match env p v
-     case m of
-       Just env' ->
-         matchClause env' pl rhs vl
-       Nothing -> return Nothing
--- too few arguments
-matchClause _ _ _ [] = return Nothing
+matchClause env pl rhs vl =
+  case (pl, vl) of
+    (p:pl, v:vl) -> match env p v `bindMaybe` \ env' -> matchClause env' pl rhs vl
+
+    -- done matching: eval clause body in env and apply it to remaining arsg
+    ([], _)      -> Just <$> do flip (foldM app) vl =<< whnf env rhs
+
+    -- too few arguments to fire clause: give up
+    (_, [])      -> return Nothing
+
 
 match :: Env -> Pattern -> Val -> TypeCheck (Maybe Env)
 match env p v0 = --trace (show env ++ show v0) $
@@ -1061,71 +1066,52 @@ match env p v0 = --trace (show env ++ show v0) $
       (ProjP x, VProj Post y) | x == y -> return $ Just env
       (PairP p1 p2, VPair v1 v2) -> matchList env [p1,p2] [v1,v2]
       (ConP _ x [],VDef (DefId (ConK _) y)) -> failValInv v -- | x == y -> return $ Just env
+--  The following case is NOT IMPOSSIBLE:
+--      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) -> failValInv v
       (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
       (ConP _ x pl,VRecord (NamedRec _ y _) rs) | x == y -> matchList env pl $ map snd rs
-      (SuccP p',v) -> do
-         v <- whnfClos v
-         case predSize v of
-            Nothing -> return Nothing
-            Just v' -> match env p' v'
---      (SuccP p',VInfty) -> match env p' VInfty
---      (SuccP p',VSucc v') -> match env p' v'
+      (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` match env p'
       (UnusableP p,_) -> throwErrorMsg ("internal error: match " ++ show (p,v))
       _ -> return Nothing
 
 matchList :: Env -> [Pattern] -> [Val] -> TypeCheck (Maybe Env)
-matchList env [] [] = return $ Just env
-matchList env (p:pl) (v:vl) = do m <- match env p v
-                                 case m of
-                                   Just env' -> matchList env' pl vl
-                                   Nothing -> return Nothing
-matchList env pl vl = fail $ "matchList internal error: inequal length while trying to match patterns " ++ show pl ++ " against values " ++ show vl
+matchList env []     []     = return $ Just env
+matchList env (p:pl) (v:vl) =
+  match env p v `bindMaybe` \ env' ->
+  matchList env' pl vl
+matchList env pl     vl     = fail $ "matchList internal error: inequal length while trying to match patterns " ++ show pl ++ " against values " ++ show vl
 
--- typed non-linear matching -----------------------------------------
+-- * Typed Non-linear Matching -----------------------------------------
 
--- nonLinMatch True  allows also instantiation in v0
+-- @nonLinMatch True@ allows also instantiation in v0
 -- this is useful for finding all matching constructors
 -- for an erased argument in checkPattern
 nonLinMatch :: Bool -> Env -> Pattern -> Val -> TVal -> TypeCheck (Maybe Env)
 nonLinMatch symm env p v0 tv = do
-    -- force against constructor pattern
-      v <- case p of
-             (ConP _ _ _) -> force v0
-             _ -> return v0
-      case (p,v) of
-        (ErasedP _,_) -> return $ Just env
-        (DotP _,_) -> return $ Just env
-        (_, VGen _) | symm -> return $ Just env -- no check in case of non-lin!
-        (VarP x,_) -> case find (\ (y,v') -> x == y) (envMap env) of
-                        Nothing -> return $ Just (update env x v)
-                        Just (y,v') -> do
-                          b <- eqValBool tv v v'
-                          if b then return $ Just env else return Nothing
-        (SizeP _ x,_) -> {- CUT-AND-PASTE-CODE, BAD! -}
-                      case find (\ (y,v') -> x == y) (envMap env) of
-                        Nothing -> return $ Just (update env x v)
-                        Just (y,v') -> do
-                          b <- eqValBool tv v v'
-                          if b then return $ Just env else return Nothing
-        (ProjP x, VProj Post y) | x == y -> return $ Just env
-        (ConP _ c pl,VRecord (NamedRec _ c' _) rs) | c == c' -> do
-           vc <- conLType c tv
-           nonLinMatchList symm env pl (map snd rs) vc
-{- 2012-01-25 RETIRED
-        (ConP _ c [],VDef (DefId (ConK _) c')) -> failValInv v -- | c == c' -> return $ Just env
-        (ConP _ c pl,VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
-           sy <- lookupSymb c
-           nonLinMatchList symm env pl vl (symbTyp sy)
--}
-        (PairP p1 p2, VPair v1 v2) -> fail $ "nonLinMatch of pairs: NYI"
-        (SuccP p',v) -> do
-           v <- whnfClos v
-           case predSize v of
-              Nothing -> return Nothing
-              Just v' -> nonLinMatch symm env p' v' tv
---        (SuccP p',VInfty) -> nonLinMatch symm env p' VInfty tv
---        (SuccP p',VSucc v') -> nonLinMatch symm env p' v' tv
-        _ -> return Nothing
+  -- force against constructor pattern
+  v <- case p of
+         (ConP _ _ _) -> force v0
+         _ -> return v0
+  case (p,v) of
+    (ErasedP{}, _) -> return $ Just env
+    (DotP{}   , _) -> return $ Just env
+    (_,    VGen _) | symm -> return $ Just env -- no check in case of non-lin!
+    (VarP    x, _) -> matchVarP x v
+    (SizeP _ x, _) -> matchVarP x v
+    (ProjP x,     VProj Post y) | x == y -> return $ Just env
+    (ConP _ c pl, VRecord (NamedRec _ c' _) rs) | c == c' -> do
+      vc <- conLType c tv
+      nonLinMatchList symm env pl (map snd rs) vc
+    (PairP p1 p2, VPair v1 v2) -> fail $ "nonLinMatch of pairs: NYI"
+    (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` \ v' ->
+      nonLinMatch symm env p' v' tv
+    _ -> return Nothing
+  where
+    -- check that the previous solution for @x@ is equal to @v@
+    matchVarP x v =
+      case find ((x ==) . fst) $ envMap env of
+        Nothing     -> return $ Just (update env x v)
+        Just (y,v') -> ifM (eqValBool tv v v') (return $ Just env) (return Nothing)
 
 -- nonLinMatchList symm env ps vs tv
 -- typed non-linear matching of patterns ps against values vs at type tv
@@ -1134,13 +1120,9 @@ nonLinMatchList :: Bool -> Env -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe
 nonLinMatchList symm env [] [] tv = return $ Just env
 nonLinMatchList symm env (p:pl) (v:vl) tv =
   case tv of
-    VQuant Pi x dom rho b -> do
-      m <- nonLinMatch symm env p v (typ dom)
-      case m of
-         Just env' -> do
-            vb <- whnf (update rho x v) b
-            nonLinMatchList symm env' pl vl vb
-         Nothing -> return Nothing
+    VQuant Pi x dom rho b ->
+      nonLinMatch symm env p v (typ dom) `bindMaybe` \ env' ->
+      nonLinMatchList symm env' pl vl =<< whnf (update rho x v) b
     _ -> fail $ "nonLinMatchList: cannot match in absence of pi-type"
 nonLinMatchList _ _ _ _ _ = return Nothing
 
