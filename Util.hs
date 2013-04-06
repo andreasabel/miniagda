@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 
 module Util where
 
@@ -149,6 +149,9 @@ headM :: Monad m => [a] -> m a
 headM [] = fail "headM"
 headM (a:as) = return a
 
+firstJust :: [Maybe a] -> Maybe a
+firstJust = headMaybe . compressMaybes
+
 firstJustM :: Monad m => [m (Maybe a)] -> m (Maybe a)
 firstJustM [] = return Nothing
 firstJustM (mm : mms) = do
@@ -173,3 +176,30 @@ compAssoc xs ys = [ (a,c) | (a,b) <- xs, (b',c) <- ys, b == b' ]
 fmapM :: (Functor f) => (a -> m b) -> f a -> m (f b)
 fmapM = Traversable.traverse
 -}
+
+-- * Lists and stacks of lists
+
+class Push a b where
+  push    :: a -> b -> b
+
+instance Push a [a] where
+  push = (:)
+
+instance Push a [[a]] where
+  push a (b:bs) = (a : b) : bs
+
+-- TOO HARD for ghc:
+-- instance Push a b => Push a [b] where
+--   push a (b:bs) = push a b : bs
+
+class Retrieve a b c | b -> c where
+  retrieve :: Eq a => a -> b -> Maybe c
+
+instance Retrieve a [(a,b)] b where
+  retrieve = lookup
+
+instance Retrieve a [[(a,b)]] b where
+  retrieve a = retrieve a . concat
+
+-- instance Retrieve a b c => Retrieve a [b] c where
+--   retrieve a = firstJust . map (retrieve a)
