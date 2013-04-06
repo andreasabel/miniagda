@@ -61,6 +61,10 @@ whenJust :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
 whenJust (Just a) k = k a
 whenJust Nothing  k = return ()
 
+whenNothing :: (Monad m) => Maybe a -> m () -> m ()
+whenNothing Nothing m = m
+whenNothing Just{}  m = return ()
+
 lookupM :: (Monad m, Show k, Ord k) => k -> Map k v -> m v
 lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
 
@@ -124,6 +128,12 @@ hasDuplicate (x : xs) = x `elem` xs || hasDuplicate xs
 
 compressMaybes :: [Maybe a] -> [a]
 compressMaybes = concat . map (maybe [] (\ a -> [a]))
+
+mapFst :: (a -> c) -> (a,d) -> (c,d)
+mapFst f (a,b) = (f a, b)
+
+mapSnd :: (b -> d) -> (a,b) -> (a,d)
+mapSnd f (a,b) = (a, f b)
 
 mapPair :: (a -> c) -> (b -> d) -> (a,b) -> (c,d)
 mapPair f g (a,b) = (f a, g b)

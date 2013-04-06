@@ -27,7 +27,7 @@ import qualified Data.Traversable as Traversable
 
 import Debug.Trace
 
-import Abstract hiding (conType)
+import Abstract
 import Polarity as Pol
 import Value
 import TCM

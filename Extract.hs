@@ -365,9 +365,10 @@ extractPattern' av p cont =
 
 extrConType :: Name -> FTVal -> TypeCheck FTVal
 extrConType c av = do
-  ConSig { numPars, extrTyp } <- lookupSymb c
+  ConSig { conPars, extrTyp, dataPars } <- lookupSymb c
   traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
   tv <- whnf' extrTyp
+  numPars <- maybe (return dataPars) (const $ fail $ "NYI: extrConType for pattern parameters") conPars
   case numPars of
    0 -> return tv
    _ -> do

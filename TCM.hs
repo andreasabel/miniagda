@@ -22,7 +22,7 @@ import qualified Data.Maybe as Maybe
 
 import Debug.Trace
 
-import Abstract hiding (conType)
+import Abstract
 import Polarity
 import Value
 import {-# SOURCE #-} Eval -- (up,whnf')
@@ -1019,18 +1019,19 @@ data SigDef
             , definingPat   :: Pattern
             , definingVal   :: Val
             }
-  | ConSig  { numPars       :: Int
-              -- ^ No. of parameters.
-              --   Can differ from @dataPars@ if pattern parameters are used.
-            , lhsTyp        :: Maybe TVal
+  | ConSig  { conPars       :: ConPars
+              -- ^ Parameter patterns and no. of variable they bind.
+              --   @Nothing@ if old-style parameters.
+            , lhsTyp        :: LHSType
               -- ^ LHS type of constructor for pattern matching, e.g.
    -- rhs @cons : [A : Set] [i : Size]         -> A -> List A i -> List A $i@
    -- lhs @cons : [A : Set] [i : Size] [j < i] -> A -> List A j -> List A i@
+   -- @Name@ is the name of the size parameter.
             , recOccs       :: [Bool]
               -- ^ @True@ if argument contains rec.occs.of the (co)data type?
             , symbTyp       :: TVal   -- ^ (RHS) type, includs parameter tel.
             , dataName      :: Name   -- ^ Its datatype.
-            -- , dataPars      :: Int    -- ^ No. of parameters of its datatype.
+            , dataPars      :: Int    -- ^ No. of parameters of its datatype.
             , extrTyp       :: Expr   -- ^ Fomega type.
             }
   | DataSig { numPars       :: Int
@@ -1057,6 +1058,12 @@ data SigDef
 -}
             } -- # parameters, positivity of parameters  , sized , co , type
               deriving (Show)
+
+-- | Parameter patterns and no. of variables they bind.
+type ConPars = Maybe ([Name], [Pattern])
+
+-- | LHS type plus name of size index.
+type LHSType = Maybe (Name, TVal)
 
 isEmptyData :: Name -> TypeCheck Bool
 isEmptyData n = do
@@ -1111,8 +1118,8 @@ dataView tv = do
 --   with parameters instantiated.
 conType :: Name -> TVal -> TypeCheck TVal
 conType c tv = do
-  ConSig { numPars, symbTyp, dataName } <- lookupSymb c
-  instConType c numPars symbTyp dataName tv
+  ConSig { conPars, symbTyp, dataName, dataPars } <- lookupSymb c
+  instConType c conPars symbTyp dataName dataPars tv
 
 -- | Get LHS type of constructor.
 --
@@ -1123,10 +1130,11 @@ conType c tv = do
 --   In the lhs type, @i@ turns into an additional parameter.
 conLType :: Name -> TVal -> TypeCheck TVal
 conLType c tv = do
-  ConSig { numPars, lhsTyp, symbTyp, dataName } <- lookupSymb c
+  ConSig { conPars, lhsTyp, symbTyp, dataName, dataPars } <- lookupSymb c
   case lhsTyp of
-    Nothing   -> instConType c numPars symbTyp dataName tv
-    Just lTyp -> instConType c (numPars+1) lTyp dataName tv
+    Nothing        -> instConType c conPars symbTyp dataName dataPars tv
+    Just (x, lTyp) -> instConType c (fmap (inc x) conPars) lTyp dataName (dataPars+1) tv
+  where inc x (xs, ps) = (xs ++ [x], ps ++ [VarP x])
 
 -- | Instantiate type of constructor to parameters obtained from
 --   the data type.
@@ -1137,9 +1145,9 @@ conLType c tv = do
 --   @@
 --      instConType c n ((x1:A1..xn:An) -> B) d (d v1..vn ws) = B[vs/xs]
 --   @@
-instConType :: Name -> Int -> TVal -> Name -> TVal -> TypeCheck TVal
-instConType c numPars symbTyp dataName tv =
-  instConLType' c numPars symbTyp Nothing (Just dataName) tv
+instConType :: Name -> ConPars -> TVal -> Name -> Int -> TVal -> TypeCheck TVal
+instConType c conPars symbTyp dataName dataPars tv =
+  instConLType' c conPars symbTyp Nothing (Just dataName) dataPars tv
 {-
 instConType c numPars symbTyp dataName tv = do
   dv <- dataView tv
@@ -1167,17 +1175,17 @@ instConType c numPars symbTyp dataName tv = do
 --   uses the lhs type @ltv@ unless the variable instantiated for
 --   the size argument is flexible (because then it wants to be
 --   unified with the successor pattern of the rhs type.
-instConLType :: Name -> Int -> TVal -> Maybe TVal -> (Val -> Bool) -> TVal -> TypeCheck TVal
-instConLType c numPars rhsTyp lhsTyp isFlex dataTyp =
-  instConLType' c numPars rhsTyp (fmap (,isFlex) lhsTyp) Nothing dataTyp
+instConLType :: Name -> ConPars -> TVal -> LHSType -> (Val -> Bool) -> Int -> TVal -> TypeCheck TVal
+instConLType c conPars rhsTyp lhsTyp isFlex dataPars dataTyp =
+  instConLType' c conPars rhsTyp (fmap (,isFlex) lhsTyp) Nothing dataPars dataTyp
 
 -- | The common pattern behind @instConType@ and @instConLType@.
-instConLType' :: Name -> Int -> TVal -> Maybe (TVal, Val -> Bool) -> Maybe Name -> TVal -> TypeCheck TVal
-instConLType' c numPars symbTyp isSized md tv = do
+instConLType' :: Name -> ConPars -> TVal -> Maybe ((Name, TVal), Val -> Bool) -> Maybe Name -> Int -> TVal -> TypeCheck TVal
+instConLType' c conPars symbTyp isSized md dataPars tv = do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv
                    <+> text ("to be a data type applied to all of its " ++
-                     show numPars ++ " parameters"))
+                     show dataPars ++ " parameters"))
   dv <- dataView tv
   case dv of
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1185,15 +1193,29 @@ instConLType' c numPars symbTyp isSized md tv = do
     Data d vs -> do
       whenJust md $ \ d' ->
         unless (d == d') $ fail $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show d'
-      let (pars, inds) = splitAt numPars vs
-      unless (length pars == numPars) failure
+      -- whenJust conPars $ fail $ "NYI: constructor with pattern parameters"
+      let (pars, inds) = splitAt dataPars vs
+      unless (length pars == dataPars) failure
       case (isSized, inds) of
         (Just _, []) -> failure
         -- if size index not flexible, use lhs type
-        (Just (ltv, isFlex), sizeInd:_) | not (isFlex sizeInd) ->
-          piApps ltv (pars ++ [sizeInd])
+        (Just ((x,ltv), isFlex), sizeInd:_) | not (isFlex sizeInd) ->
+          continue [x] ltv (pars ++ [sizeInd])
         -- otherwise, use rhs type
-        _ -> piApps symbTyp pars
+        _ -> continue [] symbTyp pars
+  where
+    continue ys tv pars = case conPars of
+      Nothing      -> piApps tv pars
+      Just (xs, ps) -> do
+        let failure = failDoc $ do text "instConType: Panic: cannot match parameters" <+> prettyTCM pars <+> text "against patterns" <+> prettyTCM ps <+> text "when instantiating type" <+> prettyTCM tv <+> text ("of constructor " ++ show c)
+        menv <- matchList emptyEnv ps pars
+        case menv of
+          Nothing  -> failure
+          Just Environ{ envMap = env } -> if length env /= length xs then failure else do
+            vs <- forM (xs ++ ys) $ \ x -> maybe failure return $ lookup x env
+            piApps tv vs
+
+
 {-
       case isSized of
         Nothing  -> piApps symbTyp pars

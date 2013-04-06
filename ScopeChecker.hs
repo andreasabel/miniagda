@@ -794,7 +794,10 @@ scopeCheckConstructor d cxt co t0 a@(C.Constructor n tel mt) =
        t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t
        t <- adjustTopDecsM defaultToParam t
        addAName (ConK $ A.coToConK co) n x
-       return $ A.Constructor x (fmap (map snd) mcxt) t
+       let dummyDom = A.Domain A.Irr A.NoKind $ A.Dec Param
+           mtel     = fmap (map (\ (n,x) -> A.TBind x dummyDom)) mcxt
+           ps       = [] -- patterns computed during type checking
+       return $ A.Constructor x (fmap (,ps) mtel) t
 
   case mt of
 

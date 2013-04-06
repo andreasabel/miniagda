@@ -24,7 +24,7 @@ import qualified Text.PrettyPrint as PP
 import Util
 import qualified Util as Util
 
-import Abstract hiding (conType)
+import Abstract
 import Polarity as Pol
 import Value
 import TCM
@@ -278,7 +278,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
        te <- checkSmallType t
        return (teleToType tele te)
       -}
-     -- get the target sort dsof the datatype
+     -- get the target sort ds of the datatype
      Kinded ki0 (ds, dte) <- checkDataType p' dt -- TODO?: use above code?
      let ki = dataKind ki0
      echoKindedTySig ki n dte
@@ -286,7 +286,9 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      v <- whnf emptyEnv dte
      Just fkind <- extractKind v
      -- get the updated telescope which contains the kinds
-     let (tel, _) = typeToTele' params dte
+     let (tel, dtcore) = typeToTele' params dte
+     -- compute the constructor telescopes
+     cs0 <- mapM (insertConstructorTele tel dtcore) cs0
      let cis = analyzeConstructors co n tel cs0
      let cs  = map reassembleConstructor cis
      addSig n (DataSig { numPars = params
@@ -327,7 +329,12 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
      resetConstraints
 
      -- add destructors only for the constructors that are non-overlapping
-     let mkDestr fi =
+     let decls = concat $ map mkDestrs cis
+         -- cEtaExp = True means that all field names are present
+         -- and constructor is not overlapping with others
+         mkDestrs ci | cEtaExp ci = concat $ map mkDestr (cFields ci)
+                     | otherwise  = []
+         mkDestr fi =
           case (fClass fi) of
              Field (Just (ty, arity, cl)) | not (erased $ fDec fi) && not (emptyName $ fName fi) ->
                let n' = fName fi
@@ -335,12 +342,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
                in
                [MutualFunDecl False Ind [Fun (TypeSig n ty) n' arity [cl]]]
              _ -> []
-     -- cEtaExp = True means that all field names are present
-     -- and constructor is not overlapping with others
-     let mkDestrs ci | cEtaExp ci
-            = concat $ map mkDestr (cFields ci)
-         mkDestrs ci = []
-     let decls = concat $ map mkDestrs cis
+
      when (not (null decls)) $
         traceCheckM $ "generated destructors: " ++ show decls
      declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) n' ar cls]) -> do
@@ -376,13 +378,72 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
 
    ) -- `throwTrace` n  -- in case of an error, add name n to the trace
 
+
+insertConstructorTele :: Telescope -> Type -> Constructor -> TypeCheck Constructor
+insertConstructorTele dtel dt c@(Constructor n Nothing t) = return c
+insertConstructorTele dtel dt c@(Constructor n Just{}  t) = do
+  res <- computeConstructorTele dtel dt t
+  return $ Constructor n (Just res) t
+
+-- | @computeConstructorTele dtel t = return ctel@
+--   Computes the constructor telescope from the target.
+computeConstructorTele :: Telescope -> Type -> Type -> TypeCheck (Telescope, [Pattern])
+computeConstructorTele dtel dt t = do
+  -- target is data name applied to parameters and indices
+  let (_, target) = typeToTele t
+      (_, es)     = spineView target
+      pars = take (length dtel) es
+  (cxt, ps) <- checkConstructorParams pars  =<< whnf' (teleToType dtel dt)
+  (,ps) . setDec (Dec Param) <$> do local (const cxt) $ contextToTele cxt
+
+-- | @checkConstructorParams pars tv = return cxt@
+--   Checks that parameters @pars@ are patterns elimating the datatype @tv@.
+--   Returns a context @cxt@ that binds the pattern variables in
+--   left-to-right order.
+checkConstructorParams :: [Expr] -> TVal -> TypeCheck (TCContext, [Pattern])
+checkConstructorParams es tv = do
+  -- for now, we only allow patterns in parameters
+  -- could be extended to unifyable expressions in general
+  ps <- mapM (\ e -> maybe (errorParamNotPattern e) return $ exprToPattern e) es
+  -- no goals from dot patterns, no absurd pattern
+  ([],_,cxt,_,_,_,False) <- checkPatterns defaultDec [] [] tv ps
+  return (cxt, ps)
+
+  where
+    errorParamNotPattern e = fail $
+      "expected parameter to be a pattern, but I found " ++ show es
+
+-- |
+--   Precondition: @ce@ is included in the current context.
+contextToTele :: TCContext -> TypeCheck Telescope
+contextToTele ce = do
+  let n     :: Int
+      n     = len (context ce)           -- context length
+      delta :: Map Int (OneOrTwo Domain)
+      delta = cxt (context ce)           -- types for dB levels
+      names :: Map Int Name
+      names = naming ce                  -- names for dB levels
+  -- traverse the context from left to right
+  forM [0..n-1] $ \ k -> do
+    x       <- lookupM k names
+    One dom <- lookupM k delta
+    TBind x <$> Traversable.traverse toExpr dom
+
 -- | @typeCheckConstructor d dt sz co pols tel (TypeSig c t)@
 --
 --   returns True if constructor has recursive argument
 typeCheckConstructor :: Name -> Type -> Sized -> Co -> [Pol] -> Telescope -> Constructor -> TypeCheck (Bool, Kinded EConstructor)
-typeCheckConstructor d dt sz co pos tel (Constructor n cpars t) = enter ("constructor " ++ show n) $ do
+typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("constructor " ++ show n) $ do
+  let tel = maybe dtel fst mctel
+{-
+  tel <- case cpars of
+    -- old style data parameters
+    Nothing -> return dtel
+    -- new style pattern parameters
+    Just{}  -> computeConstructorTele dtel dt t
+-}
   sig <- gets signature
-  let telE = map (mapDec (const irrelevantDec)) tel -- need kinded tel!!
+  let telE = setDec irrelevantDec tel -- need kinded tel!!
     -- parameters are erased in types of constructors
   let tt = teleToType telE t
   echoTySig n tt
@@ -396,13 +457,13 @@ typeCheckConstructor d dt sz co pos tel (Constructor n cpars t) = enter ("constr
   Kinded ki te <- addBinds telWithD $
     checkConType sz t -- do NOT resurrect telescope!!
 
-  -- check target of constructor
+  -- Check target of constructor.
   dv <- whnf' dt
   let (argts,target) = typeToTele te
-  addBinds telWithD $ addBinds argts $ checkTarget d dv tel target
+  whenNothing mctel $ -- only for old-style parameters
+    addBinds telWithD $ addBinds argts $ checkTarget d dv tel target
 
-  -- make type of a constructor a singleton type
---  let mkName i n | null (suggestion n) = n { suggestion = "y" ++ show i }
+  -- Make type of a constructor a singleton type.
   let mkName i n | emptyName n = fresh $ "y" ++ show i
                  | otherwise   = n
       fields = map boundName argts
@@ -414,6 +475,9 @@ typeCheckConstructor d dt sz co pos tel (Constructor n cpars t) = enter ("constr
 
   let tte = teleToType telE tsing -- te -- DO resurrect here!
   vt <- whnf' tte
+
+  -- Now, compute the remaining information concerning the constructor.
+
   {- old code was more accurate, since it evaluated before checking
      for recursive occurrence.
   recOccs <- sposConstructor d 0 pos vt -- get recursive occurrences
@@ -425,16 +489,19 @@ typeCheckConstructor d dt sz co pos tel (Constructor n cpars t) = enter ("constr
   isSz <- if sz /= Sized then return Nothing else do
     szConstructor d co params vt -- check correct use of sizes
     if co == CoInd then return $ Just $ error "impossible lhs type of coconstructor" else do
-    let lte = teleToType telE $ mkConLType params te
+    let (x, lte) = mapSnd (teleToType telE) $ mkConLType params te
     echoKindedTySig kTerm n lte
     ltv <- whnf' lte
-    return $ Just ltv
-  addSig n (ConSig params isSz recOccs vt d fType)
+    return $ Just (x, ltv)
+
+  -- Add the type constructor to the signature.
+  let cpars = fmap (mapFst (map boundName)) mctel -- deletes types, keeps names
+  addSig n (ConSig cpars isSz recOccs vt d (length dtel) fType)
 --  let (tele, te) = typeToTele (length tel) tte -- NOT NECESSARY
   echoKindedTySig kTerm n tte
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki)
 --  echoTySigE n tte
-  return (isRec, Kinded ki $ Constructor n cpars te)
+  return (isRec, Kinded ki $ Constructor n (fmap (mapFst (const telE)) mctel) te)
 
 typeCheckMeasuredFuns :: Co -> [Fun] -> TypeCheck [EFun]
 typeCheckMeasuredFuns co funs0 = do
@@ -1861,7 +1928,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -- WRONG:                 let flex1 = if erased' then MaxMatches 1 av : flex else flex
                  let flex1 = flex
 
-                 ConSig {numPars = nPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName} <- lookupSymb n
+                 ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
 
                  -- the following is a hack to still support old-style
                  --   add .($ i) (zero i) ...
@@ -1874,7 +1941,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                      isFlex (VGen k) = List.any (flexK k) flex
                      isFlex _ = True
                      isSz = if co == Cons then sz else Nothing
-                 vc <- instConLType n nPars vc isSz isFlex =<< force av
+                 vc <- instConLType n conPars vc isSz isFlex dataPars =<< force av
 {-
                  vc <- case sz of
                          Nothing -> instConType n nPars vc =<< force av
@@ -2086,7 +2153,7 @@ checkRHS :: Substitution -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkRHS ins rhs v = do
    traceCheckM ("checking rhs " ++ show rhs ++ " : " ++ show v)
    enter "right hand side" $ do
-     -- first updated measure according to substitution for dot variables
+     -- first update measure according to substitution for dot variables
      cxt <- ask
      let rho = environ cxt
      mmu' <- Traversable.mapM (substitute ins) (envBound rho)
@@ -2389,7 +2456,7 @@ compSubst subst1 subst2 = do
 
 -}
 
-mkConLType :: Int -> Expr -> Expr
+mkConLType :: Int -> Expr -> (Name, Expr)
 mkConLType npars t =
   let (sizetb:tel, t0) = typeToTele t
   in case spineView t0 of
@@ -2401,7 +2468,7 @@ mkConLType npars t =
           tbi   = TBind i $ sizeDomain irrelevantDec
           tbj   = sizetb { boundDom = belowDomain irrelevantDec Lt (Var i) }
           tel'  = tbi : tbj : tel
-      in teleToType tel' core
+      in (i, teleToType tel' core)
     _ -> error $ "conLType " ++ show npars ++ " (" ++ show t ++ "): illformed constructor type"
 
 

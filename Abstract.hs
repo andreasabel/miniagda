@@ -508,6 +508,17 @@ sizeDomain dec = Domain tSize kTSize dec
 belowDomain :: Dec -> LtLe -> Expr -> Dom Expr
 belowDomain dec ltle e = Domain (Below ltle e) kTSize dec
 
+class LensDec a where
+  getDec :: a -> Dec
+  setDec :: Dec -> a -> a
+  setDec d = mapDec $ const d
+  mapDec :: (Dec -> Dec) -> a -> a
+  mapDec f a = setDec (f $ getDec a) a
+
+instance LensDec (Dom a) where
+  getDec = decor
+  setDec d dom = dom { decor = d }
+
 {-
 instance Functor Dom where
   fmap f dom = dom { typ = f (typ dom) }
@@ -572,9 +583,10 @@ noBind = TBind (fresh "")
 boundType :: TBind -> Type
 boundType = typ . boundDom
 
-mapDec :: (Dec -> Dec) -> TBind -> TBind
-mapDec f (TBind x dom) = TBind x (dom { decor = f (decor dom) })
-mapDec f tb = tb
+instance LensDec (TBinding a) where
+  getDec = getDec . boundDom
+  mapDec f (TBind x dom) = TBind x (dom { decor = f (decor dom) })
+  mapDec f tb = tb
 
 mapDecM :: (Applicative m) => (Dec -> m Dec) -> TBind -> m TBind
 mapDecM f (TBind x dom) =
@@ -877,10 +889,12 @@ type Type = Expr
 
 -- | Constructor declaration.  Top-level scope (independent of data pars).
 data Constructor = Constructor
- { conName :: Name             -- ^ Name of the constructor.
- , conPars :: Maybe [Name]     -- ^ Names bound by constructor parameters (if unequal to data telescope).
- , conType :: Type             -- ^ Constructor type (@fields -> target@).
+ { ctorName :: Name        -- ^ Name of the constructor.
+ , ctorPars :: ParamPats   -- ^ Constructor patterns (if new style params).
+ , ctorType :: Type        -- ^ Constructor type (@fields -> target@).
  } deriving (Eq, Ord, Show)
+
+type ParamPats = Maybe (Telescope, [Pattern])
 
 type Telescope = [TBind]
 
@@ -1373,16 +1387,17 @@ prettyClause f (Clause _ ps (Just e)) = pretty f
 -- Constructor analysis ----------------------------------------------
 
 data FieldClass
-  = Index                               -- like the length in Vector
-  | NotErasableIndex                    -- c : (index : A) -> D (f index)
-  | Field (Maybe (Type, Arity, Clause)) -- not free in the target
+  = Index                    -- ^ E.g., the length in Vector.
+  | NotErasableIndex         -- ^ E.g., @c : (index : A) -> D (f index)@
+  | Field (Maybe Destructor) -- ^ An actual field, not free in the target.
     deriving (Eq, Show)
-  -- maybe type and def of destructor
+
+type Destructor = (Type, Arity, Clause)
 
 data FieldInfo = FieldInfo
-  { fDec :: Dec
-  , fName  :: Name        -- "" for anonymous fields
-  , fType  :: Type
+  { fDec   :: Dec
+  , fName  :: Name        -- ^ Empty "" for anonymous fields.
+  , fType  :: Type        -- ^ Naked type (no preceeding telescope).
 --  , fLazy  :: Bool        -- lazy (coinductive occ) or strict (everything else) -- see TCM.hs ConSig
   , fClass :: FieldClass
   }
@@ -1402,7 +1417,7 @@ data PatternsType
 data ConstructorInfo = ConstructorInfo
   { cName   :: Name
 --  , cType   :: TVal
-  , cPars   :: Maybe [Name]       -- ^ Constructor parameters if unequal to data parameters.
+  , cPars   :: ParamPats  -- ^ Constructor parameters if unequal to data parameters.
   , cFields :: [FieldInfo]
   , cTyCore :: Type
   , cPatFam :: (PatternsType, [Pattern])
@@ -1504,20 +1519,21 @@ destructorNames :: [FieldInfo] -> [Name]
 destructorNames fields = List.map fName $ filter isNamedField fields
 
 analyzeConstructor :: Co -> Name -> Telescope -> Constructor -> ConstructorInfo
-analyzeConstructor co dataName pars (Constructor constrName conPars ty) =
-  let (_, core) = typeToTele ty
-      fields = classifyFields co dataName ty
+analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
+  let (_, core)  = typeToTele ty
+      pars       = maybe dataPars fst conPars
+      fields     = classifyFields co dataName ty
       -- freshenFieldName fi = fi { fName = freshen $ fName fi }
       -- freshfields = List.map freshenFieldName fields
       -- generate destructors
       -- choose a name for the record to destroy
-      indices = filter (\ f -> fClass f == Index) fields
-      indexTele = List.map (\ f -> TBind (fName f) $ Domain (fType f) defaultKind (fDec f)) indices
-      indexNames = List.map fName indices
+      indices    = filter (\ f -> fClass f == Index) fields
+      indexTele  = List.map (\ f -> TBind (fName f) $ Domain (fType f) defaultKind (fDec f)) indices
+      indexNames  = List.map fName indices
       -- do not generated destructors for erased arguments
       destrNames = destructorNames fields
-      recName = internal constrName -- "constructed_by_" ++ constrName
-      parNames = List.map boundName pars
+      recName    = internal constrName -- "constructed_by_" ++ constrName
+      parNames   = List.map boundName pars
       parAndIndexNames = parNames ++ indexNames
       -- substitute variable "fst" by application "fst A B p"
       phi x = if x `elem` destrNames
@@ -1574,8 +1590,8 @@ destructorNamesPresent fields =
                not (erased $ fDec f) && not (emptyName $ fName f))) -- no erased or unnamed field
     fields
 
--- analyze all constructors of a data type at once
--- so that we can also check which constructors patterns are irrefutable
+-- | Analyze all constructors of a data type at once
+--   so that we can also check which constructors patterns are irrefutable.
 analyzeConstructors :: Co -> Name -> Telescope -> [Constructor] -> [ConstructorInfo]
 analyzeConstructors co dataName pars cs =
   let cis = List.map (analyzeConstructor co dataName pars) cs
@@ -1584,20 +1600,12 @@ analyzeConstructors co dataName pars cs =
       result = zipWith (\ ci ov -> if ov then ci { cEtaExp = False } else ci) cis overlapList
   in result
 
-{-
-  where classifyField fvs (dec, name, ty) = FieldInfo
-          { fDec = dec
-          , fName  = name
-          , fType  = ty
-          , fClass = if name `Set.member` fvs then Index else Field Nothing
-          }
--}
-
--- build constructor type from constructor info
--- erasing all indices
+-- | Build constructor type from constructor info, erasing all indices.
 reassembleConstructor :: ConstructorInfo -> Constructor
 reassembleConstructor ci = Constructor (cName ci) (cPars ci) (reassembleConstructorType ci)
 
+-- | Assumes that all the indices (even from data telescope) are contained
+--   in fields.
 reassembleConstructorType :: ConstructorInfo -> Type
 reassembleConstructorType ci = buildPi (cFields ci) where
   buildPi [] = cTyCore ci
@@ -1806,10 +1814,11 @@ typeToTele' k t = ttt k t []
       ttt k t tel = (reverse tel, t)
 
 ---- modification
-{-
-resurrectTele :: Telescope -> Telescope
-resurrectTele = List.map (mapDec resurrectDec)
--}
+
+instance LensDec Telescope where
+  getDec = error "getDec not defined for Telescope"
+  mapDec = List.map . mapDec
+
 ---- destruction
 
 teleLam :: Telescope -> Expr -> Expr

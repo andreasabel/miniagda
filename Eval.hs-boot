@@ -17,6 +17,8 @@ whnfClos :: Val -> TypeCheck Val
 force :: Val -> TypeCheck Val
 piApps :: TVal -> [Clos] -> TypeCheck TVal
 
+matchList :: Env -> [Pattern] -> [Val] -> TypeCheck (Maybe Env)
+
 projectType :: TVal -> Name -> Val -> TypeCheck TVal
 
 up    :: Bool -> Val -> TVal -> TypeCheck Val

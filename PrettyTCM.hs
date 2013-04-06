@@ -72,6 +72,9 @@ instance PrettyTCM Name where
 instance PrettyTCM Pattern where
   prettyTCM = pretty
 
+instance PrettyTCM [Pattern] where
+  prettyTCM = sep . map pretty
+
 instance PrettyTCM Expr where
   prettyTCM = pretty
 
@@ -96,5 +99,3 @@ instance (ToExpr a) => PrettyTCM (Measure a) where
 
 instance (ToExpr a) => PrettyTCM (Bound a) where
   prettyTCM beta = pretty =<< mapM toExpression beta
-
-
