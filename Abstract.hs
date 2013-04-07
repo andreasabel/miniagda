@@ -604,15 +604,9 @@ instance LensDec (TBinding a) where
   mapDec f tb = tb
 
 mapDecM :: (Applicative m) => (Dec -> m Dec) -> TBind -> m TBind
-mapDecM f (TBind x dom) =
-  (\ dec -> TBind x (dom { decor = dec })) <$> f (decor dom)
-mapDecM f tb = pure tb
-{-
-mapDecM :: (Monad m) => (Dec -> m Dec) -> TBind -> m TBind
-mapDecM f (TBind x dom) = do
-  dec <- f (decor dom)
-  return $ TBind x (dom { decor = dec })
--}
+mapDecM f tb@TBind{} = flip setDec tb <$> f (getDec tb)
+mapDecM f tb         = pure tb
+
 -- measures ----------------------------------------------------------
 
 newtype Measure a = Measure { measure :: [a] }    -- mu
