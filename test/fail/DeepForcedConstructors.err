@@ -18,4 +18,4 @@ f
 /// clause 2
 /// pattern succ .true zero
 /// pattern zero
-/// checkPattern: constructor zero of non-computational argument zero : (Nat v0) not forced
+/// checkPattern: constructor zero of non-computational argument zero : (Nat .true{}) not forced

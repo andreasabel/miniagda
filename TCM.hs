@@ -205,6 +205,7 @@ data TCState = TCState
   , metaVars    :: MetaVars
   , constraints :: Constraints
   , positivityGraph :: PositivityGraph
+  , dots        :: Dots
   }
 
 type MetaVars = Map MVar MetaVar
@@ -236,6 +237,35 @@ instance Applicative TypeCheck where
   pure      = return
   mf <*> ma = mf >>= \ f -> ma >>= \ a -> pure (f a)
 -}
+
+
+-- | Dotted constructors (the top one in the pattern).
+type Dots = [(Dotted,Pattern)]
+
+emptyDots = []
+
+class LensDots a where
+  getDots :: a -> Dots
+  setDots :: Dots -> a -> a
+  setDots = mapDots . const
+  mapDots :: (Dots -> Dots) -> a -> a
+  mapDots f a = setDots (f (getDots a)) a
+
+instance LensDots TCState where
+  getDots = dots
+  setDots d st = st { dots = d }
+
+newDotted :: Pattern -> TypeCheck Dotted
+newDotted p = do
+  d <- mkDotted True
+  modify $ mapDots $ ((d,p):)
+  return d
+
+clearDots :: TypeCheck ()
+clearDots = modify $ setDots emptyDots
+
+openDots :: TypeCheck [Pattern]
+openDots = map snd . filter (isDotted . fst) <$> gets dots
 
 -- rewriting rules -----------------------------------------------
 
@@ -706,7 +736,7 @@ instance MonadCxt TypeCheck where
               sige <- lookupSymb n
               vc <- conLType n (typ dom)
               addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
-                pv0 <- mkConVal (coPat pi) n vpl vc
+                pv0 <- mkConVal notDotted (coPat pi) n vpl vc
                 pv  <- up False pv0 (typ dom)
                 vb  <- whnf (update env x pv) b
                 cont vb pv rho
@@ -1181,7 +1211,8 @@ instConLType c conPars rhsTyp lhsTyp isFlex dataPars dataTyp =
 
 -- | The common pattern behind @instConType@ and @instConLType@.
 instConLType' :: Name -> ConPars -> TVal -> Maybe ((Name, TVal), Val -> Bool) -> Maybe Name -> Int -> TVal -> TypeCheck TVal
-instConLType' c conPars symbTyp isSized md dataPars tv = do
+instConLType' c conPars symbTyp isSized md dataPars tv =
+  enter ("instConLType'") $ do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv
                    <+> text ("to be a data type applied to all of its " ++
@@ -1214,7 +1245,8 @@ instConLType' c conPars symbTyp isSized md dataPars tv = do
               , text "when instantiating type" <+> prettyTCM tv
               , text ("of constructor " ++ show c)
               ]
-        mst <- nonLinMatchList' True (emptyEnv, []) ps pars =<< lookupSymbTyp d
+        -- clear dots here:
+        mst <- nonLinMatchList' True True (emptyEnv, []) ps pars =<< lookupSymbTyp d
         case mst of
           Nothing  -> failure
           Just (Environ{ envMap = env0 }, psub) -> do
@@ -1294,10 +1326,10 @@ instance MonadSig TypeCheck where
 -- more on the type checking monad -------------------------------
 
 initSt :: TCState
-initSt = TCState emptySig emptyMetaVars emptyConstraints emptyPosGraph
+initSt = TCState emptySig emptyMetaVars emptyConstraints emptyPosGraph emptyDots
 
 initWithSig :: Signature -> TCState
-initWithSig sig = TCState sig emptyMetaVars emptyConstraints emptyPosGraph
+initWithSig sig = initSt { signature = sig }
 
 -- Meta-variable and constraint handling specification ---------------
 

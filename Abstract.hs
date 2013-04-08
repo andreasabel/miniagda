@@ -11,6 +11,7 @@ module Abstract where
 import Prelude hiding (showList, map, concat, foldl)
 
 import Control.Monad.Writer (Writer, tell, All(..))
+import Control.Monad.Trans
 
 import Control.Applicative hiding (empty)
 import Data.Foldable (Foldable)
@@ -25,6 +26,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 import Debug.Trace
+import Data.IORef
 import System.IO.Unsafe
 
 import Text.PrettyPrint as PP
@@ -741,12 +743,47 @@ data RecInfo
   | NamedRec { recConK :: ConK
              , recConName :: Name     -- ^ record constructor
              , recNamedFields :: Bool -- ^ print field names?
+             , recDottedRef :: Dotted -- ^ coming from dotted constructor (unconfirmed)
              }
   deriving (Eq, Ord)
 
+newtype Dotted = Dotted { dottedRef :: IORef Bool }
+
+instance Eq  Dotted where x == y = True
+instance Ord Dotted where x <= y = True
+
+-- A bit of imperative programming
+
+mkDotted :: MonadIO m => Bool -> m Dotted
+mkDotted b = liftIO $ Dotted <$> newIORef b
+
+-- default value, shared over all instances
+{-# NOINLINE notDotted #-}
+notDotted :: Dotted
+notDotted = unsafePerformIO $ mkDotted False
+
+isDotted :: Dotted -> Bool
+isDotted = unsafePerformIO . readIORef . dottedRef
+
+clearDotted :: MonadIO m => Dotted -> m ()
+clearDotted d | isDotted d = liftIO $ do
+      -- putStrLn ("clearing a dot")
+      writeIORef (dottedRef d) False
+  | otherwise = return ()
+
+alignDotted :: MonadIO m => Dotted -> Dotted -> m ()
+alignDotted d1 d2 = case (isDotted d1, isDotted d2) of
+  (True, False) -> clearDotted d1
+  (False, True) -> clearDotted d2
+  _             -> return ()
+
+recDotted :: RecInfo -> Bool
+recDotted NamedRec{recDottedRef} = isDotted recDottedRef
+recDotted AnonRec = False
+
 instance Show RecInfo where
   show AnonRec              = ""
-  show NamedRec{recConName} = show recConName
+  show ri@NamedRec{recConName} = (if recDotted ri then "." else "") ++ show recConName
 
 -- * smart constructors
 
@@ -1083,10 +1120,10 @@ instance Pretty Expr where
   prettyPrec k (Proj Post n)  = text "." <> pretty n
   prettyPrec k (Record AnonRec []) = text "record" <+> braces empty
   prettyPrec k (Record AnonRec rs) = text "record" <+> prettyRecFields rs
-  prettyPrec k (Record (NamedRec _ n _) []) = pretty n
-  prettyPrec k (Record (NamedRec _ n True) rs) = pretty n <+> prettyRecFields rs
-  prettyPrec k (Record (NamedRec _ n False) rs) =
-   parensIf (not (null rs) && precAppR <= k) $
+  prettyPrec k (Record (NamedRec _ n _ dotted) []) = dotIf dotted $ pretty n
+  prettyPrec k (Record (NamedRec _ n True dotted) rs) = dotIf dotted $ pretty n <+> prettyRecFields rs
+  prettyPrec k (Record (NamedRec _ n False dotted) rs) =
+   parensIf (not (null rs) && precAppR <= k) $ dotIf dotted $
      pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
   prettyPrec k (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
   prettyPrec k (App f e)  = parensIf (precAppR <= k) $
@@ -1146,6 +1183,16 @@ instance Pretty Expr where
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
   prettyPrec k (Ann e) = pretty e
+
+class DotIf a where
+  dotIf :: a -> Doc -> Doc
+
+instance DotIf Bool where
+  dotIf False d = d
+  dotIf True  d = text "." <> d
+
+instance DotIf Dotted where
+  dotIf c = dotIf (isDotted c)
 
 instance Pretty TBind where
   prettyPrec k (TMeasure mu) = pretty mu
@@ -1210,8 +1257,8 @@ instance Pretty (Sort Expr) where
 instance Pretty Pattern where
   prettyPrec k (VarP x)       = pretty x
   prettyPrec k (ConP co c ps) = parensIf (not (null ps) && precAppR <= k) $
-    (if dottedPat co then text "." else empty) <>
-    pretty c <+> hsep (List.map (prettyPrec precAppR) ps)
+    -- (if dottedPat co then text "." else empty) <>
+    dotIf (dottedPat co) $ pretty c <+> hsep (List.map (prettyPrec precAppR) ps)
   prettyPrec k (SuccP p)      = text "$" <> prettyPrec k p
   prettyPrec k (SizeP x y)    = parensIf (precAppR <= k) $ pretty y <+> text "<" <+> pretty x
   prettyPrec k (PairP p p')   = parens $ pretty p <> comma <+> pretty p'

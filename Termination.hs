@@ -332,7 +332,7 @@ compareExpr' tso e p =
       ((Proj Post n1,[]), ProjP n2) | n1 == n2 -> Decr 0
       _ -> Un
 
-conView (Record (NamedRec co n _) rs, es) = (Def (DefId (ConK co) n), map snd rs ++ es)
+conView (Record (NamedRec co n _ _) rs, es) = (Def (DefId (ConK co) n), map snd rs ++ es)
 conView p = p
 
 compareVar :: (?cutoff :: Int) => TSO Name -> Name -> Pattern -> Order
@@ -354,7 +354,7 @@ compareVar tso n p =
       ConP pi c (p:pl) | coPat pi == Cons ->
         comp (Decr 1) (maxL (map (compareVar tso n) (p:pl)))
       ConP{}   -> ret Un
-      ProjP{}   -> ret Un
+      ProjP{}  -> ret Un
       SuccP p2 -> comp (Decr 1) (compareVar tso n p2)
       DotP e -> case (exprToPattern e) of
                     Nothing -> ret $ Un

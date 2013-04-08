@@ -470,7 +470,7 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
       argns  = zipWith mkName [0..] $ fields
       argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
 --      core   = (foldl App (con (coToConK co) n) $ map Var argns)
-      core   = Record (NamedRec (coToConK co) n False) $ zip fields $ map Var argns
+      core   = Record (NamedRec (coToConK co) n False notDotted) $ zip fields $ map Var argns
       tsing  = teleToType argtbs $ Sing core target
 
   let tte = teleToType telE tsing -- te -- DO resurrect here!
@@ -1155,7 +1155,7 @@ checkConTerm co c es v = do
     _ -> do
       tv <- conType c v
       (knes, dv) <- checkSpine es tv
-      let ee = Record (NamedRec co c False) $ map valueOf knes
+      let ee = Record (NamedRec co c False notDotted) $ map valueOf knes
       checkSubtype ee dv v
       return $ Kinded kTerm ee
 
@@ -1658,7 +1658,11 @@ checkClauses' i tv (c:cl) = do
 checkClause :: Int -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
   -- traceCheck ("checking function clause " ++ show i) $
+    clearDots
     (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] [] tv pl
+    dots <- openDots
+    unless (null dots) $
+      recoverFailDoc $ text "the following dotted constructors could not be confirmed: " <+> prettyTCM dots
     -- 2013-03-30 When checking the rhs, we only allow new size hypotheses
     -- if they do not break any valuation of the existing hypotheses.
     -- See ICFP 2013 paper.
@@ -1689,6 +1693,7 @@ type DotFlex = (Int,(Expr,Domain))
 -- left over goals
 data Goal = DotFlex Int Expr Domain
           | MaxMatches Int TVal
+  deriving Show
 
 -- checkPatterns is initially called with an empty local context
 -- in the type checking monad
@@ -1803,9 +1808,10 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
          -- other patterns: no need to know about result type
          _ -> do
            (flex',ins',cxt',pe,pv,absp) <- checkPattern' flex ins domEr p
+           -- traceM ("checkPattern' returns " ++ show (flex',ins',cxt',pe,pv,absp))
            vb  <- whnf (update env x pv) b
            vb  <- substitute ins' vb  -- from ConP case -- ?? why not first subst and then whnf?
-           -- traceCheck ("Returning type " ++ show vb) $
+           -- traceCheckM ("Returning type " ++ show vb)
            return (flex',ins',cxt',vb,pe,pv,absp)
 
     _ -> throwErrorMsg $ "checkPattern: expected function type, found " ++ show tv
@@ -1910,48 +1916,19 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
           -- always expand defined patterns!
           p@(ConP pi n ps) | coPat pi == DefPat -> do
             checkPattern' flex ins domEr =<< expandDefPat p
-{- MOVED to Eval
-            PatSig ns pat v <- lookupSymb n
-            unless (length ns == length ps) $ fail ("underapplied defined pattern in " ++ show p)
-            let pat' = if dottedPat pi then dotConstructors pat else pat
-                p    = patSubst (zip ns ps) pat'
-            checkPattern' flex ins domEr p
--}
 
-          ConP pi n pl | not $ dottedPat pi -> do
+--          ConP pi n pl | not $ dottedPat pi -> do
+          ConP pi n pl -> do
                  let co = coPat pi
-                 nonDottedConstructorChecks n co pl
+
+                 -- First check that we do not match against an irrelevant argument.
+                 unless (dottedPat pi) $ nonDottedConstructorChecks n co pl
 {- TODO
                  enter ("can only match non parametric arguments") $
                    leqPolM (polarity dec) (pprod defaultPol)
 -}
-                 when (isFunType av) $ fail ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")
--- TODO: ensure that matchings against erased arguments are forced
---                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av
--- WRONG:                 let flex1 = if erased' then MaxMatches 1 av : flex else flex
-                 let flex1 = flex
+                 (vc,(flex',ins',cxt',vc',ple,pvs,absp)) <- checkConstructorPattern co n pl
 
-                 ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
-
-                 -- the following is a hack to still support old-style
-                 --   add .($ i) (zero i) ...
-                 -- fun defs:  if (zero i) is matched against (Nat flexvar$i)
-                 -- we use the old constructor type [i : Size] -> Nat $i
-                 -- else, the new one [j < i] -> Nat i
-                 let flexK k (DotFlex k' _ _) = k == k'
-                     flexK k _ = False
-                     -- use lhs con type only if sizeindex is not a rigid var
-                     isFlex (VGen k) = List.any (flexK k) flex
-                     isFlex _ = True
-                     isSz = if co == Cons then sz else Nothing
-                 vc <- instConLType n conPars vc isSz isFlex dataPars =<< force av
-{-
-                 vc <- case sz of
-                         Nothing -> instConType n nPars vc =<< force av
-                         Just vc -> instConType n (nPars+1) vc =<< force av
--}
-
-                 (flex',ins',cxt',vc',ple,pvs,absp) <- checkPatterns decEr flex1 ins vc pl
                  when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
                  let flexgen = concat $ map (\ g -> case g of
                         DotFlex i _ _ -> [i]
@@ -1961,9 +1938,11 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 --                  av2 <- sing (environ cxt') (patternToExpr p) av
 --                  subst <- local (\ _ -> cxt') $ inst flexgen VSet av1 av2
 
+
                  -- need to evaluate the erased pattern!
                  let pe = ConP pi n ple -- erased pattern
-                 pv0 <- mkConVal co n pvs vc
+                 dotted <- if dottedPat pi then newDotted p else return notDotted
+                 pv0 <- mkConVal dotted co n pvs vc
                  -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs
 {-
                  let epe = patternToExpr pe
@@ -2008,8 +1987,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
           -- compute the pattern variable context
           -- and then treat the pattern as dot pattern.
           p@(ConP pi n ps) | dottedPat pi -> do
-
-            checkPattern' flex ins domEr $ DotP $ patternToExpr p
+            (vc,(flex',ins',cxt',vc',ple,pvs,absp)) <-
+              checkConstructorPattern (coPat pi) n ps
+            local (const cxt') $
+              checkPattern' flex ins domEr $ DotP $ patternToExpr p
 
           DotP e -> do
 {-
@@ -2041,7 +2022,35 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
     where
       maybeErase p = if erased decEr then ErasedP p else p
-      -- checkConstructorPattern
+
+      checkConstructorPattern co n pl = do
+                 when (isFunType av) $ fail ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")
+-- TODO: ensure that matchings against erased arguments are forced
+--                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av
+
+                 ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
+
+                 -- the following is a hack to still support old-style
+                 --   add .($ i) (zero i) ...
+                 -- fun defs:  if (zero i) is matched against (Nat flexvar$i)
+                 -- we use the old constructor type [i : Size] -> Nat $i
+                 -- else, the new one [j < i] -> Nat i
+                 let flexK k (DotFlex k' _ _) = k == k'
+                     flexK k _ = False
+                     -- use lhs con type only if sizeindex is not a rigid var
+                     isFlex (VGen k) = List.any (flexK k) flex
+                     isFlex _ = True
+                     isSz = if co == Cons then sz else Nothing
+                 vc <- instConLType n conPars vc isSz isFlex dataPars =<< force av
+{-
+                 vc <- case sz of
+                         Nothing -> instConType n nPars vc =<< force av
+                         Just vc -> instConType n (nPars+1) vc =<< force av
+-}
+
+                 -- (flex',ins',cxt',vc',ple,pvs,absp) <-
+                 (vc,) <$> checkPatterns decEr flex ins vc pl
+
 
       -- These checks are only relevant if a constructor is an actual match.
       nonDottedConstructorChecks n co pl = do
@@ -2243,8 +2252,9 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
            -- we assume injectivity for indices
 
     -- Constructor applications are represented as VRecord
-    (VRecord (NamedRec _ c1 _) rs1,
-     VRecord (NamedRec _ c2 _) rs2) | c1 == c2 -> do
+    (VRecord (NamedRec _ c1 _ dot1) rs1,
+     VRecord (NamedRec _ c2 _ dot2) rs2) | c1 == c2 -> do
+         alignDotted dot1 dot2
          sige <- lookupSymb c1
          instList [] flex (symbTyp sige) (map snd rs1) (map snd rs2)
 
@@ -2328,7 +2338,7 @@ instance Substitute (Bound Val) where
 
 -- substitute generic variable in value
 instance Substitute Val where
-  substitute subst v =
+  substitute subst v = do -- enterDoc (text "substitute" <$> prettyTCM v) $ do
     case v of
       VGen k -> case lookup k subst of
                   Nothing ->  return $ v

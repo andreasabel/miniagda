@@ -226,7 +226,7 @@ equal u1 u2 = traceLoop ("equal " ++ show u1 ++ " =?= " ++ show u2) $
     _ -> return False
 
 notDifferentNames :: RecInfo -> RecInfo -> Bool
-notDifferentNames (NamedRec _ n _) (NamedRec _ n' _) = n == n'
+notDifferentNames (NamedRec _ n _ _) (NamedRec _ n' _ _) = n == n'
 notDifferentNames _ _ = True
 
 equals' :: [Val] -> [Val] -> TypeCheck Bool
@@ -469,7 +469,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Pair e1 e2 -> VPair <$> whnf env e1 <*> whnf env e2
     Proj fx n  -> return $ VProj fx n
 
-    Record ri@(NamedRec Cons _ _) rs -> VRecord ri <$> mapAssocM (whnf env) rs
+    Record ri@(NamedRec Cons _ _ _) rs -> VRecord ri <$> mapAssocM (whnf env) rs
 
     -- coinductive and anonymous records are treated lazily:
     Record ri rs -> return $ VRecord ri $ mapAssoc (mkClos env) rs
@@ -909,7 +909,7 @@ upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
 
           vs <- mapM arg fis
           let fs = map fName fis
-              v' = VRecord (NamedRec (coToConK co) (cName ci) False) $ zip fs vs
+              v' = VRecord (NamedRec (coToConK co) (cName ci) False notDotted) $ zip fs vs
 --          v' <- foldM app (vCon (coToConK co) (cName ci)) vs -- 2012-01-22 PARS GONE: (pars ++ vs)
           ret v'
     -- more constructors or unknown situation: do not eta expand
@@ -1062,7 +1062,10 @@ match env p v0 = --trace (show env ++ show v0) $
 --  The following case is NOT IMPOSSIBLE:
 --      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) -> failValInv v
       (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
-      (ConP _ x pl,VRecord (NamedRec _ y _) rs) | x == y -> matchList env pl $ map snd rs
+      -- If a value is a dotted record value, we do not succeed, since
+      -- it is not sure this is the correct constructor.
+      (ConP _ x pl,VRecord (NamedRec ri y _ dotted) rs) | x == y && not (isDotted dotted) ->
+         matchList env pl $ map snd rs
       (p@(ConP pi _ _), v) | coPat pi == DefPat -> do
         p <- expandDefPat p
         match env p v
@@ -1085,8 +1088,8 @@ type MatchState = (Env, GenToPattern)
 -- @nonLinMatch True@ allows also instantiation in v0
 -- this is useful for finding all matching constructors
 -- for an erased argument in checkPattern
-nonLinMatch :: Bool -> MatchState -> Pattern -> Val -> TVal -> TypeCheck (Maybe MatchState)
-nonLinMatch symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ do
+nonLinMatch :: Bool -> Bool -> MatchState -> Pattern -> Val -> TVal -> TypeCheck (Maybe MatchState)
+nonLinMatch undot symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ do
   -- force against constructor pattern
   v <- case p of
          ConP{}  -> force v0
@@ -1101,22 +1104,27 @@ nonLinMatch symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ 
     (ProjP x,     VProj Post y) | x == y -> return $ Just st
     (ConP _ c pl, VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
       vc <- conLType c tv
-      nonLinMatchList' symm st pl vl vc
-    (ConP _ c pl, VRecord (NamedRec _ c' _) rs) | c == c' -> do
+      nonLinMatchList' undot symm st pl vl vc
+    -- Here, we do accept dotted constructors, since we are abusing this for unification.
+    (ConP _ c pl, VRecord (NamedRec _ c' _ dotted) rs) | c == c' -> do
+      when undot $ clearDotted dotted
       vc <- conLType c tv
-      nonLinMatchList' symm st pl (map snd rs) vc
+      nonLinMatchList' undot symm st pl (map snd rs) vc
+    -- if the match against an unconfirmed constructor
+    -- we can succeed, but not compute a sensible environment
+    (_, VRecord (NamedRec _ c' _ dotted) rs) | isDotted dotted && not undot -> return $ Just st
     (p@(ConP pi _ _), v) | coPat pi == DefPat -> do
       p <- expandDefPat p
-      nonLinMatch symm st p v tv
+      nonLinMatch undot symm st p v tv
     (PairP p1 p2, VPair v1 v2) -> do
       tv <- force tv
       case tv of
         VQuant Sigma x dom rho b -> do
-          nonLinMatch symm st p1 v1 (typ dom) `bindMaybe` \ st -> do
-          nonLinMatch symm st p2 v2 =<< whnf (update rho x v1) b
+          nonLinMatch undot symm st p1 v1 (typ dom) `bindMaybe` \ st -> do
+          nonLinMatch undot symm st p2 v2 =<< whnf (update rho x v1) b
         _ -> failDoc $ text "nonLinMatch: expected" <+> prettyTCM tv <+> text "to be a Sigma-type (&)"
     (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` \ v' ->
-      nonLinMatch symm st p' v' tv
+      nonLinMatch undot symm st p' v' tv
     _ -> return Nothing
   where
     -- Check that the previous solution for @x@ is equal to @v@.
@@ -1132,18 +1140,18 @@ nonLinMatch symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ 
 --   env   is the accumulator for the solution of the matching
 nonLinMatchList :: Bool -> Env -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe Env)
 nonLinMatchList symm env ps vs tv =
-  fmap fst <$> nonLinMatchList' symm (env, []) ps vs tv
+  fmap fst <$> nonLinMatchList' False symm (env, []) ps vs tv
 
-nonLinMatchList' :: Bool -> MatchState -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe MatchState)
-nonLinMatchList' symm st [] [] tv = return $ Just st
-nonLinMatchList' symm st (p:pl) (v:vl) tv = do
+nonLinMatchList' :: Bool -> Bool -> MatchState -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe MatchState)
+nonLinMatchList' undot symm st [] [] tv = return $ Just st
+nonLinMatchList' undot symm st (p:pl) (v:vl) tv = do
   tv <- force tv
   case tv of
     VQuant Pi x dom rho b ->
-      nonLinMatch symm st p v (typ dom) `bindMaybe` \ st' ->
-      nonLinMatchList' symm st' pl vl =<< whnf (update rho x v) b
+      nonLinMatch undot symm st p v (typ dom) `bindMaybe` \ st' ->
+      nonLinMatchList' undot symm st' pl vl =<< whnf (update rho x v) b
     _ -> fail $ "nonLinMatchList': cannot match in absence of pi-type"
-nonLinMatchList' _ _ _ _ _ = return Nothing
+nonLinMatchList' _ _ _ _ _ _ = return Nothing
 
 
 -- | Expand a top-level pattern synonym
@@ -1481,7 +1489,7 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
               (VUp v1 av1, u2) -> leqVal' f p mt12 v1 u2
               (u1, VUp v2 av2) -> leqVal' f p mt12 u1 v2
 
-              (VRecord (NamedRec _ n1 _) rs1, VRecord (NamedRec _ n2 _) rs2) ->
+              (VRecord (NamedRec _ n1 _ _) rs1, VRecord (NamedRec _ n2 _ _) rs2) ->
                  leqCons n1 (map snd rs1) n2 (map snd rs2)
 
 {-
@@ -2170,8 +2178,8 @@ telView tv = do
     _ -> return ([], tv)
 
 -- | Turn a fully applied constructor value into a named record value.
-mkConVal :: ConK -> Name -> [Val] -> TVal -> TypeCheck Val
-mkConVal co n vs vc = do
+mkConVal :: Dotted -> ConK -> Name -> [Val] -> TVal -> TypeCheck Val
+mkConVal dotted co n vs vc = do
   (vTel, _) <- telView vc
   let fieldNames = map (boundName . snd) vTel
-  return $ VRecord (NamedRec co n False) $ zip fieldNames vs
+  return $ VRecord (NamedRec co n False dotted) $ zip fieldNames vs

@@ -99,3 +99,6 @@ instance (ToExpr a) => PrettyTCM (Measure a) where
 
 instance (ToExpr a) => PrettyTCM (Bound a) where
   prettyTCM beta = pretty =<< mapM toExpression beta
+
+instance (PrettyTCM a, PrettyTCM b) => PrettyTCM (a,b) where
+  prettyTCM (a,b) = parens $ prettyTCM a <> comma <+> prettyTCM b

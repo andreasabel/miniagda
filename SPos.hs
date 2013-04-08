@@ -18,20 +18,20 @@ import Control.Monad.Error
 import Debug.Trace
 
 {-
-traceSPos msg a = a -- trace msg a 
+traceSPos msg a = a -- trace msg a
 traceSPosM msg = return () -- traceM msg
 -}
-traceSPos msg a = trace msg a 
+traceSPos msg a = trace msg a
 traceSPosM msg = traceM msg
 
 
 
 -- nocc (used by SPos and TypeCheck)
 -- check that a does not occur in tv
--- a may be a "atomic value" i.e not pi , lam , app , or succ 
+-- a may be a "atomic value" i.e not pi , lam , app , or succ
 nocc :: Int -> Val -> TVal -> TypeCheck Bool
-nocc k a tv = do 
-  -- traceM ("noccRecArg " ++ show tv) 
+nocc k a tv = do
+  -- traceM ("noccRecArg " ++ show tv)
   tv <- whnfClos tv
   case tv of
     a' | a == a'                 -> return False
@@ -39,10 +39,10 @@ nocc k a tv = do
        nocc (k+1) a =<< whnf (update env x (VGen k)) b
     VLam x env b                 -> nocc (k+1) a =<< whnf (update env x (VGen k)) b
     VSucc v                      -> nocc k a v
-    VApp v1 []                   -> return True -- because  VApp v1 [] != a  
+    VApp v1 []                   -> return True -- because  VApp v1 [] != a
     VApp v1 vl                   -> andM $ map (nocc k a) $ VApp v1 [] : vl
     VRecord AnonRec rs           -> andM $ map (nocc k a . snd) rs
-    VRecord (NamedRec co c _) rs -> andM $ 
+    VRecord (NamedRec co c _ _) rs -> andM $
       nocc k a (vCon co c) : map (nocc k a . snd) rs
     VGen{}                       -> return $ True
     VZero                        -> return $ True
@@ -51,10 +51,10 @@ nocc k a tv = do
     VPlus vl                     -> andM $ map (nocc k a) vl
     VSort (CoSet v)              -> nocc k a v
     VSort{}                      -> return $ True
-    VSing v tv                   -> nocc k a tv 
+    VSing v tv                   -> nocc k a tv
     VUp v tv                     -> nocc k a v
     VIrr                         -> return $ True
-    VCase v _ env cls            -> andM $ 
+    VCase v _ env cls            -> andM $
       nocc k a v : map (nocc k a . snd) (envMap env)
     _                            -> fail $ "internal error: NYI: nocc " ++ show (k,a,tv)
 
@@ -63,7 +63,7 @@ noccFromBool True  = Polarity.Const
 noccFromBool False = mixed
 
 
------------------------------- RETIRED CODE -------------------------- 
+------------------------------ RETIRED CODE --------------------------
 {- BEGIN RETIRED
 
 
@@ -73,10 +73,10 @@ noccFromBool False = mixed
 -- containts a recursive occurrence
 sposConstructor :: Name -> Int -> [Pos] -> TVal -> TypeCheck [Bool]
 sposConstructor n k sp tv = traceSPos ("sposConstructor " ++ show n ++ " " ++ show sp ++ " " ++ show tv) $
-  loop k tv where 
-    loop k tv  
+  loop k tv where
+    loop k tv
      = case tv of
-         VPi dec x av env b -> do 
+         VPi dec x av env b -> do
               spr <- spos 0 (vDat n) av
               spv <- sposVals (posGen 0 sp) av
               case (isSPos spr, isSPos spv) of
@@ -84,7 +84,7 @@ sposConstructor n k sp tv = traceSPos ("sposConstructor " ++ show n ++ " " ++ sh
                                   occs <- loop (k+1) bv
                                   return $ (spr == SPos) : occs
                 (False,_) -> throwErrorMsg "rec. arg not strictly positive"
-                (True,False) -> throwErrorMsg $ "parameter not strictly positive in " ++ show av 
+                (True,False) -> throwErrorMsg $ "parameter not strictly positive in " ++ show av
          _ -> return []
 
 sposVals :: [Val] -> TVal -> TypeCheck Pos
@@ -106,15 +106,15 @@ posArgs vl pl = let l = zip vl pl
 
 -- check that a only occurs strictly pos tv
 -- a may be a "atomic value" ie not pi , lam , app , or succ
--- Results are: SPos, Mixed, or NOcc 
+-- Results are: SPos, Mixed, or NOcc
 spos :: Int -> Val -> TVal -> TypeCheck Pos
-spos k a tv = traceSPos ("spos " ++ show a ++ " in " ++ show tv) $ 
+spos k a tv = traceSPos ("spos " ++ show a ++ " in " ++ show tv) $
  do tv <- whnfClos tv
     (case tv of
          a' | a == a' -> return SPos
-         VPi dec x av env b -> 
+         VPi dec x av env b ->
              do no <- nocc k a av
-                case no of 
+                case no of
                   True -> do
                       bv <- whnf (update env x (VGen k)) b
                       spos (k+1) a bv
@@ -124,7 +124,7 @@ spos k a tv = traceSPos ("spos " ++ show a ++ " in " ++ show tv) $
                  spos (k+1) a bv
          VSucc v -> spos k a v
          VApp (VDef id) [] -> return $ NOcc
-         VApp (VDef id) vl -> do 
+         VApp (VDef id) vl -> do
                sige <- lookupSymb (name id)
                case sige of
                  (DataSig { numPars = p, positivity = pos }) ->
@@ -141,7 +141,7 @@ spos k a tv = traceSPos ("spos " ++ show a ++ " in " ++ show tv) $
                           nl <- mapM (nocc k a) vl
                           return $ noccFromBool $ n && and nl
  -}
-         _ -> nocc k a tv >>= return . noccFromBool) 
+         _ -> nocc k a tv >>= return . noccFromBool)
       >>= \ res -> traceSPos ("spos " ++ show a ++ " in " ++ show tv ++ " returns " ++ show res) $ return res
 
 END RETIRED -}

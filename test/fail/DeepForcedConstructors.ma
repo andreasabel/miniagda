@@ -1,5 +1,5 @@
 -- 2010-01-25
--- 2010-07-08 
+-- 2010-07-08
 
 data Bool : Set
 { true : Bool
@@ -19,5 +19,5 @@ data Nat : Bool -> Set
 fun f : (b : Bool) -> [Nat b] -> Bool
 { f true zero = true
 ; f false (succ .true zero) = false
-} 
+}
 -- should not type check, since match "zero" inside (succ ...) is not forced

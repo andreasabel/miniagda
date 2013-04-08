@@ -4,7 +4,7 @@
 data Unit : Set { unit : Unit }
 
 data Prod [i : Size] (A : Set i) (B : Set i) : Set i
--- { pair : A -> B -> Prod i A B
+--{ pair : A -> B -> Prod i A B
 { pair : (fst : A) -> (snd : B) -> Prod i A B
 }
 
@@ -12,7 +12,7 @@ fun fst' : [i : Size] -> [A : Set i] -> [B : Set i] -> Prod i A B -> A
 { fst' i A B (pair a b) = a
 }
 
-data List [i : Size] (A : Set i) : Set i 
+data List [i : Size] (A : Set i) : Set i
 { nil  : List i A
 ; cons : A -> List i A -> List i A
 }
@@ -26,6 +26,6 @@ fun HVecR : List 1 Set -> Set
 -- inductive heterogeneous vectors
 data HVec : List 1 Set -> Set 1
 { vnil  : HVec (nil)
-; vcons : [A : Set] -> [As : List 1 Set] -> 
+; vcons : [A : Set] -> [As : List 1 Set] ->
           A -> HVec As -> HVec (cons A As)
-} 
+}
