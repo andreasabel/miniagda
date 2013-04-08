@@ -749,8 +749,9 @@ data RecInfo
 
 newtype Dotted = Dotted { dottedRef :: IORef Bool }
 
-instance Eq  Dotted where x == y = True
-instance Ord Dotted where x <= y = True
+instance Eq   Dotted where x == y = True
+instance Ord  Dotted where x <= y = True
+instance Show Dotted where show d = fwhen (isDotted d) ("un" ++) "confirmed"
 
 -- A bit of imperative programming
 

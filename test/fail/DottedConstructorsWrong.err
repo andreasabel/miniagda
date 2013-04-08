@@ -14,7 +14,8 @@ term  not : Bool -> Bool
 block fails as expected, error message:
 not
 /// clause 1
-/// the following dotted constructors could not be confirmed:  .true
+/// confirming dotted constructor .true
+/// more than one constructor matches type Bool
 type  Nat : Set
 term  zero : < zero : Nat >
 term  suc : ^(n : Nat) -> < suc n : Nat >
@@ -22,4 +23,5 @@ term  pred : Nat -> Nat
 error during typechecking:
 pred
 /// clause 2
-/// the following dotted constructors could not be confirmed:  .suc x
+/// confirming dotted constructor .suc x
+/// more than one constructor matches type Nat

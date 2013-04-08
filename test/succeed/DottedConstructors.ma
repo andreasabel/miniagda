@@ -28,8 +28,8 @@ data Fin (n : Nat)
 
 fun lookup : [A : Set] [n : Nat] (i : Fin n) (xs : Vec A n) -> A
 { lookup A .zero    ()       vnil
-; lookup A (.suc n) fzero    (vcons x xs) = x
-; lookup A (.suc n) (fsuc i) (vcons x xs) = lookup A n i xs
+; lookup A (.suc n) fzero    (.vcons x xs) = x
+; lookup A (.suc n) (fsuc i) (.vcons x xs) = lookup A n i xs
 }
 
 {- untyped terms
@@ -62,9 +62,14 @@ data Var (cxt : Cxt) (a : Ty)
 }
 
 data Tm (cxt : Cxt) (a : Ty)
-{ var (x : Var cxt a)                                : Tm cxt a
-; app [a : Ty] (r : Tm cxt (arr a b)) (s : Tm cxt a) : Tm cxt b
-; abs (t : Tm (cons a cxt) b)                        : Tm cxt (arr a b)
+
+{ var (x : Var cxt a)          : Tm cxt a
+
+; app [a : Ty]
+      (r : Tm cxt (arr a b))
+      (s : Tm cxt a)           : Tm cxt b
+
+; abs (t : Tm (cons a cxt) b)  : Tm cxt (arr a b)
 }
 
 fun Sem : Ty -> Set
@@ -83,8 +88,8 @@ fun val : [cxt : Cxt] [a : Ty] -> Var cxt a -> Env cxt -> Sem a
 }
 
 fun sem : [cxt : Cxt] [a : Ty] -> Tm cxt a -> Env cxt -> Sem a
-{ sem cxt a          (var x)     rho = val cxt a x rho
-; sem cxt b          (app a r s) rho = sem cxt (arr a b) r rho (sem cxt a s rho)
+{ sem cxt a          (var x)     rho   = val cxt a x rho
+; sem cxt b          (app a r s) rho   = (sem cxt (arr a b) r rho) (sem cxt a s rho)
 ; sem cxt (.arr a b) (abs t)     rho v = sem (cons a cxt) b t (v, rho)
 }
 

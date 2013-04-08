@@ -33,8 +33,13 @@ instance Pretty Doc where
 angleBrackets :: Doc -> Doc
 angleBrackets d = text "<" <+> d <+> text ">"
 
+-- | Apply when condition is @True@.
+fwhen :: Bool -> (a -> a) -> a -> a
+fwhen True  f a = f a
+fwhen False f a = a
+
 parensIf :: Bool -> Doc -> Doc
-parensIf b = if b then PP.parens else id
+parensIf b = fwhen b PP.parens
 
 hsepBy :: Doc -> [Doc] -> Doc
 hsepBy sep [] = empty

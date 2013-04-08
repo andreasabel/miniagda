@@ -5,6 +5,7 @@ module TypeChecker where
 
 import Control.Applicative hiding (Const) -- ((<$>))
 import Control.Monad
+import Control.Monad.IfElse
 import Control.Monad.Identity
 import Control.Monad.State
 import Control.Monad.Error
@@ -1610,10 +1611,10 @@ checkCases' i v tv (c : cl) = do
     return $ Kinded (unionKind k1 k2) $ ce : cle
 
 checkCase :: Int -> Val -> TVal -> Clause -> TypeCheck (Kinded EClause)
-checkCase i v tv cl@(Clause _ [p] mrhs) =
+checkCase i v tv cl@(Clause _ [p] mrhs) = enter ("case " ++ show i) $
   -- traceCheck ("checking case " ++ show i) $
-    (
     do
+      clearDots
       (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] [] tv p
       local (\ _ -> cxt) $ do
         mapM (checkGoal ins) flex
@@ -1630,7 +1631,6 @@ checkCase i v tv cl@(Clause _ [p] mrhs) =
                 return $ Kinded ki (Clause tel [pe] (Just rhse))
                 -- [rhs'] <- solveAndModify [rhs] (environ cxt)
                 -- return (Clause [p] rhs')
-    ) `throwTrace` ("case " ++ show i)
 
 -- type check a function
 
@@ -1660,9 +1660,6 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
   -- traceCheck ("checking function clause " ++ show i) $
     clearDots
     (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] [] tv pl
-    dots <- openDots
-    unless (null dots) $
-      recoverFailDoc $ text "the following dotted constructors could not be confirmed: " <+> prettyTCM dots
     -- 2013-03-30 When checking the rhs, we only allow new size hypotheses
     -- if they do not break any valuation of the existing hypotheses.
     -- See ICFP 2013 paper.
@@ -1671,6 +1668,11 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
     -- not necessary.
     local (\ _ -> cxt { consistencyCheck = (mutualCo cxt == Ind) }) $ do
       mapM (checkGoal ins) flex
+{-
+      dots <- openDots
+      unless (null dots) $
+        recoverFailDoc $ text "the following dotted constructors could not be confirmed: " <+> prettyTCM dots
+-}
       -- TODO: insert meta var solution in dot patterns
       tel <- getContextTele -- WRONG TELE, has VGens for DotPs
       case (absp,mrhs) of
@@ -1693,6 +1695,7 @@ type DotFlex = (Int,(Expr,Domain))
 -- left over goals
 data Goal = DotFlex Int Expr Domain
           | MaxMatches Int TVal
+          | DottedCons Dotted Pattern TVal
   deriving Show
 
 -- checkPatterns is initially called with an empty local context
@@ -1919,10 +1922,11 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
 --          ConP pi n pl | not $ dottedPat pi -> do
           ConP pi n pl -> do
-                 let co = coPat pi
+                 let co     = coPat pi
+                     dotted = dottedPat pi
 
                  -- First check that we do not match against an irrelevant argument.
-                 unless (dottedPat pi) $ nonDottedConstructorChecks n co pl
+                 unless dotted $ nonDottedConstructorChecks n co pl
 {- TODO
                  enter ("can only match non parametric arguments") $
                    leqPolM (polarity dec) (pprod defaultPol)
@@ -1932,7 +1936,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
                  let flexgen = concat $ map (\ g -> case g of
                         DotFlex i _ _ -> [i]
-                        MaxMatches{} -> []) flex'
+                        _ -> []) flex'
                      -- fst $ unzip flex'
 --                  av1 <- sing (environ cxt') (patternToExpr p) vc'
 --                  av2 <- sing (environ cxt') (patternToExpr p) av
@@ -1941,8 +1945,8 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
                  -- need to evaluate the erased pattern!
                  let pe = ConP pi n ple -- erased pattern
-                 dotted <- if dottedPat pi then newDotted p else return notDotted
-                 pv0 <- mkConVal dotted co n pvs vc
+                 dot <- if dottedPat pi then newDotted p else return notDotted
+                 pv0 <- mkConVal dot co n pvs vc
                  -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs
 {-
                  let epe = patternToExpr pe
@@ -1975,7 +1979,9 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  av  <- substitute ins'' av  -- 2010-09-22: update av
                  pv  <- up False pv0 av
 
-                 return (flex', ins'', cxt' { context = delta'' },
+                 -- if the constructor was dotted, make sure it is the only match
+                 let flex'' = fwhen dotted (DottedCons dot p av :) flex'
+                 return (flex'', ins'', cxt' { context = delta'' },
                          maybeErase pe, pv, absp)
 {- DO NOT UPDATE measure here, its done in checkRHS
                  return (flex', ins'', cxt' { context = delta'', environ = (environ cxt') { envBound = mmu' } }, vb',
@@ -1983,6 +1989,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -}
 
 
+{- UNUSED
           -- If we encounter a dotted constructor, we simply
           -- compute the pattern variable context
           -- and then treat the pattern as dot pattern.
@@ -1991,13 +1998,9 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
               checkConstructorPattern (coPat pi) n ps
             local (const cxt') $
               checkPattern' flex ins domEr $ DotP $ patternToExpr p
+-}
 
           DotP e -> do
-{-
-            -- create a unique identifier for the dot pattern
-            l <- getLen
-            let xp = spaceToUnderscore (show e) ++ "#" ++ show l
--}
             -- create an informative, but irrelevant identifier for dot pattern
             let xp = fresh $ "." ++ case e of Var z -> suggestion z; _ -> Util.parens $ show e
             newWithGen xp domEr $ \ k xv -> do
@@ -2172,11 +2175,15 @@ checkGoal subst (MaxMatches n av) = do
    (\ cenvs ->
       if length cenvs > n then recoverFail $
         if n==0 then "absurd pattern does not match since type " ++ show av' ++ " is not empty"
-         else -- n == 1 and
+         else
            "more than one constructor matches type " ++ show av'
        else return ())
    mcenvs
-
+checkGoal subst (DottedCons dot p av)
+  | isDotted dot =
+      enterDoc (text "confirming dotted constructor" <+> prettyTCM p) $ do
+        checkGoal subst (MaxMatches 1 av)
+  | otherwise    = return ()
 
 checkRHS :: Substitution -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkRHS ins rhs v = do
