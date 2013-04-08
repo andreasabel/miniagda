@@ -1909,6 +1909,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                              return (flex, ins, cxt', bv, maybeErase $ AbsurdP, True)
                     _ -> throwErrorMsg $ "type " ++ show av ++ " of absurd pattern not empty"
 -}
+
+          p@(ConP pi n ps) | dottedPat pi -> do
+            checkPattern' flex ins domEr $ DotP $ patternToExpr p
+
           -- always expand defined patterns!
           ConP pi n ps | coPat pi == DefPat -> do
             PatSig ns pat v <- lookupSymb n

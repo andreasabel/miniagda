@@ -65,6 +65,12 @@ whenNothing :: (Monad m) => Maybe a -> m () -> m ()
 whenNothing Nothing m = m
 whenNothing Just{}  m = return ()
 
+ifNothingM :: (Monad m) => m (Maybe a) -> m b -> (a -> m b) -> m b
+ifNothingM mma mb f = maybe mb f =<< mma
+
+ifJustM :: (Monad m) => m (Maybe a) -> (a -> m b) -> m b -> m b
+ifJustM mma f mb = maybe mb f =<< mma
+
 lookupM :: (Monad m, Show k, Ord k) => k -> Map k v -> m v
 lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
 

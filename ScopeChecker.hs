@@ -911,18 +911,22 @@ scopeCheckClause mname' (C.Clause mname pl mrhs) = do
 type PatCtx = Context
 type SPS = StateT PatCtx ScopeCheck
 
+scopeCheckPatVar :: C.Name -> SPS (A.Pat C.Name C.Expr)
+scopeCheckPatVar n = do
+      sig <- lift $ getSig
+      case lookupSig n sig of
+        Just (DefI (ConK co) n) -> return $ A.ConP (A.PatternInfo co False False) n []
+                             -- a nullary constructor
+        Just _  -> errorPatternNotConstructor n
+        Nothing -> A.VarP <$> addUnique n
+
 scopeCheckPattern :: C.Pattern -> SPS (A.Pat C.Name C.Expr)
 scopeCheckPattern p =
   case p of
 
     -- case n
-    C.IdentP n -> do
-      sig <- lift $ getSig
-      case lookupSig n sig of
-        Just (DefI (ConK co) n) -> return $ A.ConP (A.PatternInfo co False) n []
-                             -- a nullary constructor
-        Just _  -> errorPatternNotConstructor n
-        Nothing -> A.VarP <$> addUnique n
+    C.IdentP n        -> scopeCheckPatVar n
+    C.ConP False n [] -> scopeCheckPatVar n
 
     -- case (i > j):
     C.SizeP m n -> do
@@ -935,15 +939,24 @@ scopeCheckPattern p =
     -- case (p1,p2)
     C.PairP p1 p2 -> A.PairP <$> scopeCheckPattern p1 <*> scopeCheckPattern p2
 
-    -- case .c
-    C.ConP True c [] -> scopeCheckPattern $ C.DotP (C.Ident c)
+    -- case .n
+    C.ConP True n [] -> do
+      -- try projection
+      ifJustM (lift $ isProjIdent n) (return . A.ProjP) $ do
+      -- try constructor
+      sig <- lift $ getSig
+      case lookupSig n sig of
+        Just (DefI (ConK co) n) ->
+              return $ A.ConP (A.PatternInfo co False True) n []
+      -- fallback: dot pattern
+        _  -> return $ A.DotP (C.Ident n)
 
-    -- case c ps
+    -- case [.]c ps
     C.ConP dotted n pl -> do
       sig <- lift $ getSig
       case lookupSig n sig of
         Just (DefI (ConK co) n) ->
-          A.ConP (A.PatternInfo co False) n <$> mapM scopeCheckPattern pl
+          A.ConP (A.PatternInfo co False dotted) n <$> mapM scopeCheckPattern pl
         _  -> errorPatternNotConstructor n
 
     -- case .e

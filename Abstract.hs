@@ -778,7 +778,8 @@ clause = Clause [] -- empty clTele
 
 data PatternInfo = PatternInfo
   { coPat          :: ConK    -- (co)constructor
-  , irrefutablePat :: Bool    -- constructor of a record
+  , irrefutablePat :: Bool    -- constructor of a record (UNUSED)
+  , dottedPat      :: Bool
   } deriving (Eq,Ord,Show)
 
 type Pattern = Pat Name Expr
@@ -1209,6 +1210,7 @@ instance Pretty (Sort Expr) where
 instance Pretty Pattern where
   prettyPrec k (VarP x)       = pretty x
   prettyPrec k (ConP co c ps) = parensIf (not (null ps) && precAppR <= k) $
+    (if dottedPat co then text "." else empty) <>
     pretty c <+> hsep (List.map (prettyPrec precAppR) ps)
   prettyPrec k (SuccP p)      = text "$" <> prettyPrec k p
   prettyPrec k (SizeP x y)    = parensIf (precAppR <= k) $ pretty y <+> text "<" <+> pretty x
@@ -1552,7 +1554,7 @@ analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
       prefix d = d { suggestion = "#" ++ suggestion d }
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
-      pattern = ConP (PatternInfo (coToConK co) False) -- to bootstrap destructor, not irrefutable
+      pattern = ConP (PatternInfo (coToConK co) False False) -- to bootstrap destructor, not irrefutable
           constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++
             List.map (\ fi -> (case fClass fi of
                             Index   -> DotP . Var
@@ -1702,7 +1704,7 @@ overlaps ps ps' = and $ zipWith overlap ps ps'
 --   dot patterns into proper patterns.
 exprToPattern :: Expr -> Maybe Pattern
 exprToPattern (Def (DefId (ConK co) n)) = return $ ConP pi n []
-  where pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
+  where pi = PatternInfo co False False -- not irrefutable (TODO: good enough?)
 exprToPattern (Var n)       = return $ VarP n
 exprToPattern (Pair e e')   = PairP <$> exprToPattern e <*> exprToPattern e'
 exprToPattern (Succ e)      = SuccP <$> exprToPattern e
@@ -1727,7 +1729,7 @@ exprToDotPat' e = do
   let fallback = tell (All False) >> return (DotP e)
   case e of
     Def (DefId (ConK co) n) -> return $ ConP pi n [] where
-      pi = PatternInfo co False -- not irrefutable (TODO: good enough?)
+      pi = PatternInfo co False False -- not irrefutable (TODO: good enough?)
     Proj Post n -> return $ ProjP n
     Var n       -> return $ VarP n
     Pair e e'   -> PairP <$> exprToDotPat' e <*> exprToDotPat' e'
