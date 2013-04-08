@@ -106,7 +106,7 @@ Implementation:
 reval :: Val -> TypeCheck Val
 reval u = traceLoop ("reval " ++ show u) $
  case u of
-  VSort (CoSet v) -> reval v >>= return . VSort . CoSet
+  VSort (CoSet v) -> VSort . CoSet <$> reval v
   VSort{} -> return u
   VInfty  -> return u
   VZero   -> return u
@@ -116,17 +116,14 @@ reval u = traceLoop ("reval " ++ show u) $
   VProj{}  -> return u -- cannot rewrite projection
   VPair v1 v2 -> VPair <$> reval v1 <*> reval v2
   VRecord ri rho -> VRecord ri <$> mapAssocM reval rho
-{-
-  VSucc v -> do v' <- reval v
-                return $ succSize v'
- -}
+
   VApp v vl          -> do
     v'  <- reval v
     vl' <- mapM reval vl
     w   <- foldM app v' vl'
     reduce w  -- since we only have rewrite rules at base types
               -- we do not need to reduces prefixes of w
---  VCon{} -> return u
+
   VDef{} -> return $ VApp u [] -- restore invariant
                                -- CAN'T rewrite defined fun/data
   VGen{} -> reduce u  -- CAN rewrite variable
@@ -152,12 +149,9 @@ reval u = traceLoop ("reval " ++ show u) $
 
   VMeta i env k      -> do env' <- reEnv env
                            return $ VMeta i env' k
-  VUp v tv           -> do v' <- reval v
-                           tv' <- reval tv
-                           up False v' tv'  -- do not force at this point
-  VSing v tv         -> do v' <- reval v
-                           tv' <- reval tv
-                           return $ vSing v' tv'
+
+  VUp v tv           -> up False ==<< (reval v, reval tv)  -- do not force at this point
+  VSing v tv         -> vSing <$> reval v <*> reval tv
   VIrr -> return u
   v -> throwErrorMsg $ "NYI : reval " ++ show v
 
@@ -187,11 +181,10 @@ vSing v (VQuant Pi x dom env b) = -- xv `seq` x' `seq`
 vSing _ tv@(VSing{}) = tv
 vSing v tv = VSing v tv
 
+-- no need to reevaluate mmeas, since only sizes
 reEnv :: Env -> TypeCheck Env
-reEnv (Environ rho mmeas) = do
-  rho' <- mapM (\ (x,v) -> reval v >>= return . (x,)) rho
-  return $ Environ rho' mmeas -- no need to reevaluate mmeas, since only sizes
-
+reEnv (Environ rho mmeas) = flip Environ mmeas <$> do
+  forM rho $ \ (x,v) -> (x,) <$> reval v
 
 -- reduce the root of a value
 reduce :: Val -> TypeCheck Val
@@ -270,7 +263,7 @@ reify' m v0 = do
     (VPlus vs)           -> Plus <$> mapM reify vs
     (VMeta x rho n)      -> -- error $ "cannot reify meta-variable " ++ show v0
                             return $ iterate Succ (Meta x) !! n
-    (VSort (CoSet v))    -> reify v >>= return . Sort . CoSet
+    (VSort (CoSet v))    -> Sort . CoSet <$> reify v
     (VSort s)            -> return $ Sort $ vSortToSort s
     (VBelow ltle v)      -> Below ltle <$> reify v
     (VQuant pisig x dom rho e) -> do
