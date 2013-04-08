@@ -1076,55 +1076,68 @@ matchList env pl     vl     = fail $ "matchList internal error: inequal length w
 
 -- * Typed Non-linear Matching -----------------------------------------
 
+type GenToPattern = [(Int,Pattern)]
+type MatchState = (Env, GenToPattern)
+
 -- @nonLinMatch True@ allows also instantiation in v0
 -- this is useful for finding all matching constructors
 -- for an erased argument in checkPattern
-nonLinMatch :: Bool -> Env -> Pattern -> Val -> TVal -> TypeCheck (Maybe Env)
-nonLinMatch symm env p v0 tv = do
+nonLinMatch :: Bool -> MatchState -> Pattern -> Val -> TVal -> TypeCheck (Maybe MatchState)
+nonLinMatch symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ do
   -- force against constructor pattern
   v <- case p of
-         (ConP _ _ _) -> force v0
-         _ -> return v0
+         ConP{}  -> force v0
+         PairP{} -> force v0
+         _ -> whnfClos v0
   case (p,v) of
-    (ErasedP{}, _) -> return $ Just env
-    (DotP{}   , _) -> return $ Just env
-    (_,    VGen _) | symm -> return $ Just env -- no check in case of non-lin!
+    (ErasedP{}, _) -> return $ Just st
+    (DotP{}   , _) -> return $ Just st
+    (_,    VGen i) | symm -> return $ Just $ mapSnd ((i,p):) st -- no check in case of non-lin!
     (VarP    x, _) -> matchVarP x v
     (SizeP _ x, _) -> matchVarP x v
-    (ProjP x,     VProj Post y) | x == y -> return $ Just env
+    (ProjP x,     VProj Post y) | x == y -> return $ Just st
+    (ConP _ c pl, VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
+      vc <- conLType c tv
+      nonLinMatchList' symm st pl vl vc
     (ConP _ c pl, VRecord (NamedRec _ c' _) rs) | c == c' -> do
       vc <- conLType c tv
-      nonLinMatchList symm env pl (map snd rs) vc
+      nonLinMatchList' symm st pl (map snd rs) vc
     (PairP p1 p2, VPair v1 v2) -> do
       tv <- force tv
       case tv of
         VQuant Sigma x dom rho b -> do
-          nonLinMatch symm env p1 v1 (typ dom) `bindMaybe` \ env -> do
-          nonLinMatch symm env p2 v2 =<< whnf (update rho x v1) b
+          nonLinMatch symm st p1 v1 (typ dom) `bindMaybe` \ st -> do
+          nonLinMatch symm st p2 v2 =<< whnf (update rho x v1) b
         _ -> failDoc $ text "nonLinMatch: expected" <+> prettyTCM tv <+> text "to be a Sigma-type (&)"
     (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` \ v' ->
-      nonLinMatch symm env p' v' tv
+      nonLinMatch symm st p' v' tv
     _ -> return Nothing
   where
     -- Check that the previous solution for @x@ is equal to @v@.
     -- Here, we need the type!
-    matchVarP x v =
-      case find ((x ==) . fst) $ envMap env of
-        Nothing     -> return $ Just (update env x v)
-        Just (y,v') -> ifM (eqValBool tv v v') (return $ Just env) (return Nothing)
+    matchVarP x v = do
+      let env = fst st
+      case find ((x ==) . fst) $ envMap $ fst st of
+        Nothing     -> return $ Just $ mapFst (\ env -> update env x v) st
+        Just (y,v') -> ifM (eqValBool tv v v') (return $ Just st) (return Nothing)
 
 -- nonLinMatchList symm env ps vs tv
 -- typed non-linear matching of patterns ps against values vs at type tv
 --   env   is the accumulator for the solution of the matching
 nonLinMatchList :: Bool -> Env -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe Env)
-nonLinMatchList symm env [] [] tv = return $ Just env
-nonLinMatchList symm env (p:pl) (v:vl) tv =
+nonLinMatchList symm env ps vs tv =
+  fmap fst <$> nonLinMatchList' symm (env, []) ps vs tv
+
+nonLinMatchList' :: Bool -> MatchState -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe MatchState)
+nonLinMatchList' symm st [] [] tv = return $ Just st
+nonLinMatchList' symm st (p:pl) (v:vl) tv = do
+  tv <- force tv
   case tv of
     VQuant Pi x dom rho b ->
-      nonLinMatch symm env p v (typ dom) `bindMaybe` \ env' ->
-      nonLinMatchList symm env' pl vl =<< whnf (update rho x v) b
-    _ -> fail $ "nonLinMatchList: cannot match in absence of pi-type"
-nonLinMatchList _ _ _ _ _ = return Nothing
+      nonLinMatch symm st p v (typ dom) `bindMaybe` \ st' ->
+      nonLinMatchList' symm st' pl vl =<< whnf (update rho x v) b
+    _ -> fail $ "nonLinMatchList': cannot match in absence of pi-type"
+nonLinMatchList' _ _ _ _ _ = return Nothing
 
 
 

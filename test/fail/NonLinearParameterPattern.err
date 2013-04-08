@@ -15,17 +15,17 @@ block fails as expected, error message:
 f
 /// clause 1
 /// pattern c
-/// unifyIndices [] |- < c : D false false > ?<=+ D true false
-/// unifyIndices [] |- D false false ?<=+ D true false
-/// inst [] |- false ?<=^ true : Bool
-/// inst: leqVal false{} ?<=^ true{} : Bool failed
-/// leqVal'  false  <=^  true : Bool
-/// leqVal': head mismatch false{} != true{}
+/// instConType:
+cannot match parameters [true, false]
+against patterns [x, x]
+when instantiating type .[x : Bool] -> .[x : Bool] -> < c : D x x >
+of constructor c
 error during typechecking:
 v
 /// checkExpr 0 |- c : D true false
 /// checkForced fromList [] |- c : D true false
-/// leqVal' (subtyping)  < c : D false false >  <=+  D true false
-/// leqVal' (subtyping)  D false false  <=+  D true false
-/// leqVal'  false  <=^  true : Bool
-/// leqVal': head mismatch false{} != true{}
+/// instConType:
+cannot match parameters [true, false]
+against patterns [x, x]
+when instantiating type .[x : Bool] -> .[x : Bool] -> < c : D x x >
+of constructor c

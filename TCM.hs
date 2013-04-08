@@ -1200,21 +1200,36 @@ instConLType' c conPars symbTyp isSized md dataPars tv = do
         (Just _, []) -> failure
         -- if size index not flexible, use lhs type
         (Just ((x,ltv), isFlex), sizeInd:_) | not (isFlex sizeInd) ->
-          continue [x] ltv (pars ++ [sizeInd])
+          continue d [x] ltv (pars ++ [sizeInd])
         -- otherwise, use rhs type
-        _ -> continue [] symbTyp pars
+        _ -> continue d [] symbTyp pars
   where
-    continue ys tv pars = case conPars of
+    continue d ys tv pars = case conPars of
       Nothing      -> piApps tv pars
       Just (xs, ps) -> do
-        let failure = failDoc $ do text "instConType: Panic: cannot match parameters" <+> prettyTCM pars <+> text "against patterns" <+> prettyTCM ps <+> text "when instantiating type" <+> prettyTCM tv <+> text ("of constructor " ++ show c)
+        let failure = failDoc $ sep
+              [ text "instConType:"
+              , text "cannot match parameters" <+> prettyList (map prettyTCM pars)
+              , text "against patterns" <+> prettyList (map prettyTCM ps)
+              , text "when instantiating type" <+> prettyTCM tv
+              , text ("of constructor " ++ show c)
+              ]
+        mst <- nonLinMatchList' True (emptyEnv, []) ps pars =<< lookupSymbTyp d
+        case mst of
+          Nothing  -> failure
+          Just (Environ{ envMap = env0 }, psub) -> do
+            let env = env0 ++ [ (x, VGen i) | (i, VarP x) <- psub ]
+            -- if length env /= length xs then failure else do
+            vs <- forM (xs ++ ys) $ \ x -> maybe failure return $ lookup x env
+            piApps tv vs
+{-
         menv <- matchList emptyEnv ps pars
         case menv of
           Nothing  -> failure
           Just Environ{ envMap = env } -> if length env /= length xs then failure else do
             vs <- forM (xs ++ ys) $ \ x -> maybe failure return $ lookup x env
             piApps tv vs
-
+-}
 
 {-
       case isSized of

@@ -19,6 +19,10 @@ piApps :: TVal -> [Clos] -> TypeCheck TVal
 
 matchList :: Env -> [Pattern] -> [Val] -> TypeCheck (Maybe Env)
 
+type GenToPattern = [(Int,Pattern)]
+type MatchState = (Env, GenToPattern)
+nonLinMatchList' :: Bool -> MatchState -> [Pattern] -> [Val] -> TVal -> TypeCheck (Maybe MatchState)
+
 projectType :: TVal -> Name -> Val -> TypeCheck TVal
 
 up    :: Bool -> Val -> TVal -> TypeCheck Val
