@@ -1823,9 +1823,6 @@ turnIntoVarPatAtUnitType _ p = return p
 checkPattern' :: [Goal] -> Substitution -> Domain -> Pattern -> TypeCheck ([Goal],Substitution,TCContext,EPattern,Val,Bool)
 checkPattern' flex ins domEr@(Domain av ki decEr) p = do
        p <- turnIntoVarPatAtUnitType av p
-       let erased' = erased decEr
-       let maybeErase p = if erased' then ErasedP p else p
---       let erasedOrIrrefutable p = if erased' then ErasedP p else IrrefutableP p
        case p of
           SuccP{} -> failDoc (text "successor pattern" <+> prettyTCM p <+> text "not allowed here")
 
@@ -1910,18 +1907,20 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                     _ -> throwErrorMsg $ "type " ++ show av ++ " of absurd pattern not empty"
 -}
 
-          p@(ConP pi n ps) | dottedPat pi -> do
-            checkPattern' flex ins domEr $ DotP $ patternToExpr p
-
           -- always expand defined patterns!
-          ConP pi n ps | coPat pi == DefPat -> do
+          p@(ConP pi n ps) | coPat pi == DefPat -> do
+            checkPattern' flex ins domEr =<< expandDefPat p
+{- MOVED to Eval
             PatSig ns pat v <- lookupSymb n
             unless (length ns == length ps) $ fail ("underapplied defined pattern in " ++ show p)
-            let p = patSubst (zip ns ps) pat
+            let pat' = if dottedPat pi then dotConstructors pat else pat
+                p    = patSubst (zip ns ps) pat'
             checkPattern' flex ins domEr p
+-}
 
-          ConP pi n pl -> do
+          ConP pi n pl | not $ dottedPat pi -> do
                  let co = coPat pi
+                 nonDottedConstructorChecks n co pl
 {- TODO
                  enter ("can only match non parametric arguments") $
                    leqPolM (polarity dec) (pprod defaultPol)
@@ -1951,26 +1950,6 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                          Nothing -> instConType n nPars vc =<< force av
                          Just vc -> instConType n (nPars+1) vc =<< force av
 -}
-                 -- check that size argument of coconstr is dotted
-                 when (co == CoCons && isJust sz) $ do
-                   let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
-                   unless (isDotPattern sizep) $
-                     fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
-
-                 when (not $ decEr `elem` map Dec [Const,Rec]) $
-                   recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"
-                 -- check not to match non-trivially against erased stuff
-                 when (decEr == Dec Const) $ do
-                   let failNotForced = recoverFail $ "checkPattern: constructor " ++ show n ++ " of non-computational argument " ++ show p ++ " : " ++ show av ++ " not forced"
-                   mcenvs <- matchingConstructors av
-                   case mcenvs of
-                      Nothing -> do -- now check whether dataName is a record type
-                        DataSig { constructors } <- lookupSymb dataName
-                        unless (length constructors == 1) $ failNotForced
-                        return ()
-                      Just [] -> recoverFail $ "checkPattern: no constructor matches type " ++ show av
-                      Just [(ci, _)] | cName ci == n -> return ()
-                      _ -> failNotForced
 
                  (flex',ins',cxt',vc',ple,pvs,absp) <- checkPatterns decEr flex1 ins vc pl
                  when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
@@ -2025,6 +2004,13 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -}
 
 
+          -- If we encounter a dotted constructor, we simply
+          -- compute the pattern variable context
+          -- and then treat the pattern as dot pattern.
+          p@(ConP pi n ps) | dottedPat pi -> do
+
+            checkPattern' flex ins domEr $ DotP $ patternToExpr p
+
           DotP e -> do
 {-
             -- create a unique identifier for the dot pattern
@@ -2052,6 +2038,36 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                               ,delta'
                               ,vb)
 -}
+
+    where
+      maybeErase p = if erased decEr then ErasedP p else p
+      -- checkConstructorPattern
+
+      -- These checks are only relevant if a constructor is an actual match.
+      nonDottedConstructorChecks n co pl = do
+        ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
+
+        -- check that size argument of coconstr is dotted
+        when (co == CoCons && isJust sz) $ do
+          let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
+          unless (isDotPattern sizep) $
+            fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
+
+        when (not $ decEr `elem` map Dec [Const,Rec]) $
+          recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"
+        -- check not to match non-trivially against erased stuff
+        when (decEr == Dec Const) $ do
+          let failNotForced = recoverFail $ "checkPattern: constructor " ++ show n ++ " of non-computational argument " ++ show p ++ " : " ++ show av ++ " not forced"
+          mcenvs <- matchingConstructors av
+          case mcenvs of
+             Nothing -> do -- now check whether dataName is a record type
+               DataSig { constructors } <- lookupSymb dataName
+               unless (length constructors == 1) $ failNotForced
+               return ()
+             Just [] -> recoverFail $ "checkPattern: no constructor matches type " ++ show av
+             Just [(ci, _)] | cName ci == n -> return ()
+             _ -> failNotForced
+
 
 
 

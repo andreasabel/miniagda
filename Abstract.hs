@@ -786,8 +786,8 @@ type Pattern = Pat Name Expr
 
 -- | Patterns parametrized by type of dot patterns.
 data Pat n e
-  = VarP Name                         -- ^ x
-  | ConP PatternInfo Name [Pat n e] -- ^ (c ps)
+  = VarP Name                       -- ^ x
+  | ConP PatternInfo Name [Pat n e] -- ^ (c ps) and (.c ps)
   | SuccP (Pat n e)                 -- ^ ($ p)
   | SizeP e Name                    -- ^ (x > y) (# > y) ($x > y)
   | PairP (Pat n e) (Pat n e)       -- ^ (p, p')
@@ -1217,7 +1217,7 @@ instance Pretty Pattern where
   prettyPrec k (PairP p p')   = parens $ pretty p <> comma <+> pretty p'
   prettyPrec k (UnusableP p)  = prettyPrec k p
   prettyPrec k (ProjP x)      = text "." <> pretty x
-  prettyPrec k (DotP p)       = text "." <> prettyPrec k p
+  prettyPrec k (DotP p)       = text "." <> prettyPrec precAppR p
   prettyPrec k (AbsurdP)      = text "()"
   prettyPrec k (ErasedP p)    = brackets $ prettyPrec 0 p
 
@@ -1759,6 +1759,14 @@ patternToExpr (ProjP n)      = Proj Post n
 patternToExpr (DotP e)       = e -- cannot put Irr here because introPatType wants to compute the value of a dot pattern (after all bindings have been introduced)
 patternToExpr (ErasedP p)    = erasedExpr $ patternToExpr p
 patternToExpr (AbsurdP)      = Irr
+
+-- | Dot all constructor subpatterns.  Used when expanding a dotted patsyn.
+dotConstructors :: Pattern -> Pattern
+dotConstructors p =
+  case p of
+    ConP pi c ps -> ConP pi{ dottedPat = True } c $ List.map dotConstructors ps
+    PairP p1 p2  -> PairP (dotConstructors p1) (dotConstructors p2)
+    _            -> p
 
 -- admissible pattern ------------------------------------------------
 

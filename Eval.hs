@@ -1063,6 +1063,9 @@ match env p v0 = --trace (show env ++ show v0) $
 --      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) -> failValInv v
       (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
       (ConP _ x pl,VRecord (NamedRec _ y _) rs) | x == y -> matchList env pl $ map snd rs
+      (p@(ConP pi _ _), v) | coPat pi == DefPat -> do
+        p <- expandDefPat p
+        match env p v
       (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` match env p'
       (UnusableP p,_) -> throwErrorMsg ("internal error: match " ++ show (p,v))
       _ -> return Nothing
@@ -1102,6 +1105,9 @@ nonLinMatch symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v0)) $ 
     (ConP _ c pl, VRecord (NamedRec _ c' _) rs) | c == c' -> do
       vc <- conLType c tv
       nonLinMatchList' symm st pl (map snd rs) vc
+    (p@(ConP pi _ _), v) | coPat pi == DefPat -> do
+      p <- expandDefPat p
+      nonLinMatch symm st p v tv
     (PairP p1 p2, VPair v1 v2) -> do
       tv <- force tv
       case tv of
@@ -1140,6 +1146,15 @@ nonLinMatchList' symm st (p:pl) (v:vl) tv = do
 nonLinMatchList' _ _ _ _ _ = return Nothing
 
 
+-- | Expand a top-level pattern synonym
+expandDefPat :: Pattern -> TypeCheck Pattern
+expandDefPat p@(ConP pi c ps) | coPat pi == DefPat = do
+  PatSig ns pat v <- lookupSymb c
+  unless (length ns == length ps) $
+    fail ("underapplied defined pattern in " ++ show p)
+  let pat' = if dottedPat pi then dotConstructors pat else pat
+  return $ patSubst (zip ns ps) pat'
+expandDefPat p = return p
 
 -- heterogeneous typed equality and subtyping ------------------------
 
