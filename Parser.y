@@ -1,5 +1,5 @@
-{ 
-{-# LANGUAGE BangPatterns #-} 
+{
+{-# LANGUAGE BangPatterns #-}
 module Parser where
 
 import qualified Lexer as T
@@ -9,7 +9,7 @@ import Abstract (Decoration(..),Dec,defaultDec,Override(..))
 import Polarity (Pol(..))
 import qualified Abstract as A
 import qualified Polarity as A
-import Concrete (Name)
+import Concrete (Name,patApp)
 }
 
 %name parse
@@ -27,8 +27,8 @@ sized   { T.Sized _ }
 fields  { T.Fields _ }
 mutual  { T.Mutual _ }
 fun     { T.Fun _ }
-cofun   { T.CoFun _ } 
-pattern { T.Pattern _ } 
+cofun   { T.CoFun _ }
+pattern { T.Pattern _ }
 case    { T.Case _ }
 def     { T.Def _ }
 let     { T.Let _ }
@@ -68,8 +68,8 @@ max     { T.Max _ }
 '-'     { T.Minus _ }
 '/'     { T.Slash _ } -- UNUSED
 '*'     { T.Times _ } -- UNUSED
-'^'     { T.Hat _ } 
-'&'     { T.Amp _ } 
+'^'     { T.Hat _ }
+'&'     { T.Amp _ }
 '\\'    { T.Lam _ }
 '_'     { T.Underscore _ }
 
@@ -112,7 +112,7 @@ SizedData : sized data Id DataTelescope ':' Expr '{' Constructors '}' OptFields
    { C.DataDecl $3 A.Sized A.Ind $4 $6 (reverse $8) $10 }
 
 CoData :: { C.Declaration }
-CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' OptFields 
+CoData : codata Id DataTelescope ':' Expr '{' Constructors '}' OptFields
        { C.DataDecl $2 A.NotSized A.CoInd $3 $5 (reverse $7) $9 }
 
 SizedCoData :: { C.Declaration }
@@ -125,19 +125,19 @@ RecordDecl : record Id DataTelescope ':' Expr '{' Constructor '}'  OptFields
 -}
 
 Data :: { C.Declaration }
-Data : data DataDef 
+Data : data DataDef
   { let (n,tel,t,cs,fs) = $2 in C.DataDecl n A.NotSized A.Ind tel t cs fs }
 
 SizedData :: { C.Declaration }
-SizedData : sized data DataDef 
+SizedData : sized data DataDef
   { let (n,tel,t,cs,fs) = $3 in C.DataDecl n A.Sized A.Ind tel t cs fs }
 
 CoData :: { C.Declaration }
-CoData : codata DataDef 
+CoData : codata DataDef
   { let (n,tel,t,cs,fs) = $2 in C.DataDecl n A.NotSized A.CoInd tel t cs fs }
 
 SizedCoData :: { C.Declaration }
-SizedCoData : sized codata DataDef 
+SizedCoData : sized codata DataDef
   { let (n,tel,t,cs,fs) = $3 in C.DataDecl n A.Sized A.CoInd tel t cs fs }
 
 RecordDecl :: { C.Declaration }
@@ -145,15 +145,15 @@ RecordDecl : record DataDef1
   { let (n,tel,t,c,fs) = $2 in C.RecordDecl n tel t c fs }
 
 DataDef :: { (C.Name, C.Telescope, C.Type, [C.Constructor], [C.Name]) }
-DataDef : Id DataTelescope ':' Expr '{' Constructors '}' OptFields 
+DataDef : Id DataTelescope ':' Expr '{' Constructors '}' OptFields
             { ($1, $2, $4, reverse $6, $8)}
-        | Id DataTelescope '{' Constructors '}' OptFields 
+        | Id DataTelescope '{' Constructors '}' OptFields
             { ($1, $2, C.set0, reverse $4, $6)}
 
 DataDef1 :: { (C.Name, C.Telescope, C.Type, C.Constructor, [C.Name]) }
-DataDef1 : Id DataTelescope ':' Expr '{' Constructor '}' OptFields 
+DataDef1 : Id DataTelescope ':' Expr '{' Constructor '}' OptFields
             { ($1, $2, $4, $6, $8)}
-         | Id DataTelescope '{' Constructor '}' OptFields 
+         | Id DataTelescope '{' Constructor '}' OptFields
             { ($1, $2, C.set0, $4, $6)}
 
 Fun :: { C.Declaration }
@@ -164,7 +164,7 @@ CoFun : cofun TypeSig '{' Clauses '}' { C.FunDecl A.CoInd $2 $4  }
 
 Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
-      
+
 Let :: { C.Declaration }
 Let : Eval let LetDef { C.LetDecl $1 $3 }
 
@@ -186,8 +186,8 @@ TypeOpt : {- nothing -} { Nothing }
 
 {-
 Let :: { C.Declaration }
-Let : let TypeSig '=' ExprT { C.LetDecl False $2 $4 } 
-      | eval let TypeSig '=' ExprT { C.LetDecl True $3 $5 } 
+Let : let TypeSig '=' ExprT { C.LetDecl False $2 $4 }
+      | eval let TypeSig '=' ExprT { C.LetDecl True $3 $5 }
 -}
 
 PatternDecl :: { C.Declaration }
@@ -233,14 +233,14 @@ Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
 
 EIds :: { [Name] } -- non-empty list
 EIds : ExprList       { let { f (C.Ident x) = x
-                            ; f e = error ("not an identifier: " ++ C.prettyExpr e) 
-                            } in map f $1 
+                            ; f e = error ("not an identifier: " ++ C.prettyExpr e)
+                            } in map f $1
                       }
 
 Telescope :: { C.Telescope }
 Telescope :  {- empty -}          { [] }
-              | TBind Telescope { $1 : $2 } 
-              | Measure Telescope { C.TMeasure $1 : $2 } 
+              | TBind Telescope { $1 : $2 }
+              | Measure Telescope { C.TMeasure $1 : $2 }
 
 TBind :: { C.TBind }
 TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
@@ -343,12 +343,12 @@ ExprList : Expr               { [$1] }
 
 -- general form of expression
 Expr :: { C.Expr }
-Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 } 
---     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 } 
+Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
+--     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 }
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LLetDef in ExprT             { C.LLet $2 $4 }
 --     | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
-     | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }  
+     | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }
      | Expr0                            { $1 }
      | Expr1 '+' Expr                   { C.Plus $1 $3 }
      | Expr1 '<|' Expr                  { C.App $1 [$3] }
@@ -357,7 +357,7 @@ Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
 
 Expr0 :: { C.Expr }
 Expr0 : Expr1                            { $1 }
-      | SigDom '&' Expr0                 { C.Quant A.Sigma [$1] $3 } 
+      | SigDom '&' Expr0                 { C.Quant A.Sigma [$1] $3 }
 
 SigDom :: { C.TBind }
 SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
@@ -371,7 +371,7 @@ SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
 -- perform applications
 Expr1 :: { C.Expr }
 Expr1 : Expr2 { let (f : args) = reverse $1 in
-                if null args then f else C.App f args 
+                if null args then f else C.App f args
 	      }
        | coset Expr3                      { C.CoSet $2 }
        | set                              { C.Set C.Zero }
@@ -404,20 +404,20 @@ Expr3 : size                      { C.Size }
 {-
 -- general form of type expression
 Type :: { C.Expr }
-Type : Domain '->' Type                 { C.Quant A.Pi $1 $3 } 
+Type : Domain '->' Type                 { C.Quant A.Pi $1 $3 }
      | let LBind '=' ExprT in Type      { C.LLet $2 $4 $6 }
-     | case ExprT '{' Cases '}'         { C.Case $2 $4 }  
+     | case ExprT '{' Cases '}'         { C.Case $2 $4 }
      | Type1                            { $1 }
 
 -- perform applications
 Type1 :: { C.Expr }
 Type1 : Type2 { let (f : args) = reverse $1 in
-                if null args then f else C.App f args 
+                if null args then f else C.App f args
 	      }
        | coset Expr3                      { C.CoSet $2 }
        | set                              { C.Set C.Zero }
        | set Expr3                        { C.Set $2 }
-       | Domain '&' Type1                 { C.Quant A.Sigma $1 $3 } 
+       | Domain '&' Type1                 { C.Quant A.Sigma $1 $3 }
 
 -- gather applications
 Type2 :: { [C.Expr] }
@@ -435,13 +435,13 @@ Type3 : size                      { C.Size }
 -}
 
 RecordDefs :: { [([Name],C.Expr)] }
-RecordDefs 
+RecordDefs
   : RecordDef ';' RecordDefs   { $1 : $3 }
-  | RecordDef                  { [$1] }           
+  | RecordDef                  { [$1] }
   | {- empty -}                { [] }
 
 RecordDef :: { ([Name],C.Expr) }
-RecordDef : SpcIds '=' ExprT    { ($1,$3) } 
+RecordDef : SpcIds '=' ExprT    { ($1,$3) }
 
 {- RETIRED
 SE :: { C.Expr}
@@ -469,7 +469,7 @@ Cases : Pattern '->' ExprT ';' Cases  { (C.Clause Nothing [$1] (Just $3)) : $5 }
       | Pattern ';' Cases             { (C.Clause Nothing [$1] Nothing) : $3 }
       | Pattern                       { (C.Clause Nothing [$1] Nothing) : [] }
       | {- empty -}                   { [] }
-      
+
 Clause :: { C.Clause }
 Clause : Id LHS '=' ExprT { C.Clause (Just $1) $2 (Just $4) }
        | Id LHS           { C.Clause (Just $1) $2 Nothing }
@@ -487,7 +487,7 @@ Patterns : {- empty -} { [] }
 Pattern :: { C.Pattern }
 Pattern : '(' ')'            { C.AbsurdP     }
         | '(' PairP ')'      { $2            }
-        | Id                 { C.IdentP $1   }
+        | DotId              { $1            }
         | succ Pattern       { C.SuccP $2    }
         | '.' set            { C.DotP (C.Set C.Zero) }
         | '.' Expr3          { C.DotP $2     }
@@ -498,16 +498,20 @@ PairP : ElemP ',' PairP     { C.PairP $1 $3 }
       | ElemP               { $1 }
 
 ElemP :: { C.Pattern }
-ElemP : ConP                { let (c, ps) = $1 in C.ConP c (reverse ps) }
-      | Expr3 '>' Id        { C.SizeP $1 $3 } 
-      | Id '<' Expr3        { C.SizeP $3 $1 } 
+ElemP : ConP                { $1 }
+      | Expr3 '>' Id        { C.SizeP $1 $3 }
+      | Id '<' Expr3        { C.SizeP $3 $1 }
       | Pattern             { $1 }
-      | ConP '<|' ElemP     { let (c, ps) = $1 in C.ConP c (reverse ($3 : ps)) }
+      | ConP '<|' ElemP     { patApp $1 [$3] } -- '<|' is Haskell's '$' (appl.)
 
 -- constructor with at least one argument pattern
-ConP :: { (Name, [C.Pattern]) }
-ConP : Id Pattern          { ($1, [$2]) }
-     | ConP Pattern        { let (c, ps) = $1 in (c, $2 : ps) }
+ConP :: { C.Pattern }
+ConP : DotId Pattern       { patApp $1 [$2] }
+     | ConP Pattern        { patApp $1 [$2] }
+
+DotId :: { C.Pattern }
+DotId : Id                 { C.IdentP $1 }
+      | '.' Id             { C.ConP True $2 [] }
 
 {-
 Pattern :: { C.Pattern }
@@ -515,8 +519,8 @@ Pattern : ConP               { $1            }
         | Id                 { C.IdentP $1   }
         | '.' set            { C.DotP (C.Set C.Zero) }
         | '.' Expr3          { C.DotP $2     }
-        | '(' Id '>' Id ')'  { C.SizeP $2 $4 } 
-        | '(' Id '<' Id ')'  { C.SizeP $4 $2 } 
+        | '(' Id '>' Id ')'  { C.SizeP $2 $4 }
+        | '(' Id '<' Id ')'  { C.SizeP $4 $2 }
 --        | '*'       { C.AbsurdP }
 
 ConP :: { C.Pattern }
@@ -545,25 +549,20 @@ RClauses :
 TBindSP :: { C.TBind }
 TBindSP : '(' Ids ':' Expr ')' { C.TBind (Dec Default) $2 $4 } -- ordinary binding
         | '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
-        | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 } 
---        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  
+        | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 }
+--        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }
         |  '(' '+' Ids ':' Expr ')' { C.TBind (Dec SPos) $3 $5 }
 --        |  '[' '+' Ids ':' Expr ']' { C.TBind (Dec True SPos) $3 $5 }
 --        | '(' sized Id ')'     { C.TSized $3 }
 
 DataTelescope :: { C.Telescope }
 DataTelescope :  {- empty -}          { [] }
-              | TBindSP DataTelescope { $1 : $2 } 
+              | TBindSP DataTelescope { $1 : $2 }
 
 {
 
 parseError :: [T.Token] -> a
 parseError [] = error "Parse error at EOF"
-parseError (x : xs) = error ("Parse error at token " ++ T.prettyTok x) 
+parseError (x : xs) = error ("Parse error at token " ++ T.prettyTok x)
 
 }
-
- 
-
-
-

@@ -935,8 +935,11 @@ scopeCheckPattern p =
     -- case (p1,p2)
     C.PairP p1 p2 -> A.PairP <$> scopeCheckPattern p1 <*> scopeCheckPattern p2
 
+    -- case .c
+    C.ConP True c [] -> scopeCheckPattern $ C.DotP (C.Ident c)
+
     -- case c ps
-    C.ConP  n pl -> do
+    C.ConP dotted n pl -> do
       sig <- lift $ getSig
       case lookupSig n sig of
         Just (DefI (ConK co) n) ->

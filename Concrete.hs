@@ -124,7 +124,7 @@ data Clause = Clause
             deriving (Eq,Show)
 
 data Pattern
-  = ConP Name [Pattern]   -- (c ps)
+  = ConP Bool Name [Pattern]   -- ^ @(c ps)@ if @False; @(.c ps)@ if @True@.
   | PairP Pattern Pattern -- (p, p')
   | SuccP Pattern         -- ($ p)
   | DotP Expr             -- .e
@@ -134,6 +134,11 @@ data Pattern
     deriving (Eq,Show)
 
 type Case = (Pattern,Expr)
+
+-- | Used in Parser.
+patApp :: Pattern -> [Pattern] -> Pattern
+patApp (IdentP c)         ps' = ConP False  c ps'
+patApp (ConP dotted c ps) ps' = ConP dotted c (ps ++ ps')
 
 ----
 
@@ -252,7 +257,7 @@ prettyCase (Clause Nothing [p] Nothing)  = prettyPattern p
 prettyCase (Clause Nothing [p] (Just e)) = prettyPattern p ++ " -> " ++ prettyExpr e
 
 prettyPattern :: Pattern -> String
-prettyPattern (ConP c ps) = parens $ foldl (\ acc p -> acc ++ " " ++ prettyPattern p) c ps
+prettyPattern (ConP dotted c ps) = parens $ foldl (\ acc p -> acc ++ " " ++ prettyPattern p) (if dotted then "." ++ c else c) ps
 prettyPattern (PairP p1 p2) = parens $ prettyPattern p1 ++ ", " ++
                                 prettyPattern p2
 prettyPattern (SuccP p) = parens $ "$ " ++ prettyPattern p
