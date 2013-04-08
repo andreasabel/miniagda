@@ -88,6 +88,8 @@ fun sem : [cxt : Cxt] [a : Ty] -> Tm cxt a -> Env cxt -> Sem a
 ; sem cxt (.arr a b) (abs t)     rho v = sem (cons a cxt) b t (v, rho)
 }
 
+
+
 {- How to check a data constructor
 
 Case 1: no target given, e.g.
