@@ -205,7 +205,7 @@ data TCState = TCState
   , metaVars    :: MetaVars
   , constraints :: Constraints
   , positivityGraph :: PositivityGraph
-  , dots        :: Dots
+  -- , dots        :: Dots -- UNUSED
   }
 
 type MetaVars = Map MVar MetaVar
@@ -238,6 +238,7 @@ instance Applicative TypeCheck where
   mf <*> ma = mf >>= \ f -> ma >>= \ a -> pure (f a)
 -}
 
+{- NOT NEEDED
 
 -- | Dotted constructors (the top one in the pattern).
 type Dots = [(Dotted,Pattern)]
@@ -266,6 +267,7 @@ clearDots = modify $ setDots emptyDots
 
 openDots :: TypeCheck [Pattern]
 openDots = map snd . filter (isDotted . fst) <$> gets dots
+-}
 
 -- rewriting rules -----------------------------------------------
 
@@ -1326,7 +1328,7 @@ instance MonadSig TypeCheck where
 -- more on the type checking monad -------------------------------
 
 initSt :: TCState
-initSt = TCState emptySig emptyMetaVars emptyConstraints emptyPosGraph emptyDots
+initSt = TCState emptySig emptyMetaVars emptyConstraints emptyPosGraph -- emptyDots
 
 initWithSig :: Signature -> TCState
 initWithSig sig = initSt { signature = sig }

@@ -1614,7 +1614,7 @@ checkCase :: Int -> Val -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkCase i v tv cl@(Clause _ [p] mrhs) = enter ("case " ++ show i) $
   -- traceCheck ("checking case " ++ show i) $
     do
-      clearDots
+      -- clearDots -- NOT NEEDED
       (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] [] tv p
       local (\ _ -> cxt) $ do
         mapM (checkGoal ins) flex
@@ -1658,7 +1658,7 @@ checkClauses' i tv (c:cl) = do
 checkClause :: Int -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
   -- traceCheck ("checking function clause " ++ show i) $
-    clearDots
+    -- clearDots -- NOT NEEDED
     (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] [] tv pl
     -- 2013-03-30 When checking the rhs, we only allow new size hypotheses
     -- if they do not break any valuation of the existing hypotheses.
@@ -1945,7 +1945,8 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
                  -- need to evaluate the erased pattern!
                  let pe = ConP pi n ple -- erased pattern
-                 dot <- if dottedPat pi then newDotted p else return notDotted
+                 -- dot <- if dottedPat pi then newDotted p else return notDotted
+                 dot <- if dottedPat pi then mkDotted True else return notDotted
                  pv0 <- mkConVal dot co n pvs vc
                  -- OLD: let pv0 = VDef (DefId (ConK co) n) `VApp` pvs
 {-
