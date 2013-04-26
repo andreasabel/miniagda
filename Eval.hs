@@ -827,7 +827,8 @@ getMatchingConstructor eta n vl = traceRecord ("getMatchingConstructor " ++ show
       traceRecordM $ "Matching constructors: " ++ show cenvs
       case cenvs of
         -- exactly one matching constructor: can eta expand
-        [(ci,env)] -> if not (eta `implies` cEtaExp ci) then return UnknownConstructors else do
+--        [(ci,env)] -> if not (eta `implies` cEtaExp ci) then return UnknownConstructors else do
+        [(ci,env)] -> if eta && not (cEtaExp ci) then return UnknownConstructors else do
           -- get list of index values from environment
           let fis = cFields ci
           let indices = filter (\ fi -> fClass fi == Index) fis

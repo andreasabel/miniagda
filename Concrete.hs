@@ -11,33 +11,29 @@ type Name = String -- concrete names
 
 set0 = Set Zero
 
-data Expr = Set Expr        -- Type 0 for backward compat
-          | CoSet Expr
---          | Type Expr
-          -- size type
-          | Size
-          | Succ Expr
-          | Zero
-          | Infty
-          | Max
-          | Plus Expr Expr
-          --
-          | RApp Expr Expr
-          | App Expr [Expr]
-          | Lam Name Expr
-          | Case Expr (Maybe Type) [Clause]
-          | LLet LetDef Expr -- local let
---          | LLet LBind Expr Expr -- local let
-          | Quant PiSigma Telescope Expr
---          | Quant PiSigma TBind Expr
-          | Pair Expr Expr
-          | Record [([Name],Expr)]
-          | Proj Name
-          | Ident Name
-          | Unknown
-          -- singleton type
-          | Sing Expr Expr
-          deriving (Eq)
+-- | Concrete expressions syntax.
+data Expr
+  = Set Expr                        -- ^ Universe @Set e@; @Set@ for @Set 0@.
+  | CoSet Expr
+  | Size                            -- ^ @Size@ type of sizes.
+  | Succ Expr                       -- ^ @$e@.
+  | Zero                            -- ^ @0@.
+  | Infty                           -- ^ @#@.
+  | Max                             -- ^ @max@.
+  | Plus Expr Expr                  -- ^ @e + e'@.
+  | RApp Expr Expr                  -- ^ @e |> f@.
+  | App Expr [Expr]                 -- ^ @f e1 ... en@ or @f <| e@.
+  | Lam Name Expr                   -- ^ @\ x -> e@.
+  | Case Expr (Maybe Type) [Clause] -- ^ @case e : A { cls }@.
+  | LLet LetDef Expr                -- ^ @let x = e in e'@ local let.
+  | Quant PiSigma Telescope Expr    -- ^ @(x : A) -> B@, @(x : A) & B@.
+  | Pair Expr Expr                  -- ^ @e , e'@.
+  | Record [([Name],Expr)]          -- ^ @record { x = e, x' y = e' }@.
+  | Proj Name                       -- ^ @.x@.
+  | Ident Name                      -- ^ @x@.
+  | Unknown                         -- ^ @_@.
+  | Sing Expr Expr                  -- ^ @<e : A>@ singleton type.
+  deriving (Eq)
 
 data LetDef = LetDef
   { letDefDec :: Dec
