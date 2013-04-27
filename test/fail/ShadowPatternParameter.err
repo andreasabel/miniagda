@@ -3,4 +3,4 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 scope check error: D
 /// c
-/// TBind {boundDec = Dec {polarity = ^}, boundNames = ["n"], boundType = Nat}: Identifier n already in context
+/// TBind {boundDec = Dec {polarity = ^}, boundNames = [n], boundType = Nat}: Identifier n already in context

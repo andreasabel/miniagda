@@ -3,25 +3,25 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 type  T : Bool -> Set
-{ T true = Nat
-; T false = Bool
+{ T Bool.true = Nat
+; T Bool.false = Bool
 }
-term  bad : .[F : Nat -> Set] -> .[f : .[x : Bool] -> T x -> Nat] -> (g : (n : Nat) -> F (f [true] n)) -> (h : F (f [false] false) -> Bool) -> Bool
+term  bad : .[F : Nat -> Set] -> .[f : .[x : Bool] -> T x -> Nat] -> (g : (n : Nat) -> F (f [Bool.true] n)) -> (h : F (f [Bool.false] Bool.false) -> Bool) -> Bool
 error during typechecking:
 bad
 /// clause 1
 /// right hand side
 /// checkExpr 4 |- h (g zero) : Bool
 /// inferExpr' h (g zero)
-/// checkApp ((v0 {f [false] false {g = (v2 Up ((n : Nat::Tm) -> F (f [true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}})::Tm -> Bool{g = (v2 Up ((n : Nat::Tm) -> F (f [true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}) eliminated by g zero
-/// leqVal' (subtyping)  < g zero : F (f [true] zero) >  <=+  F (f [false] false)
-/// leqVal' (subtyping)  F (f [true] zero)  <=+  F (f [false] false)
-/// leqVal'  f true zero  <=*  f false false : Nat
-/// leqVal'  zero : Nat  <=*  false : Bool
+/// checkApp ((v0 {f [Bool.false] Bool.false {g = (v2 Up ((n : Nat::Tm) -> F (f [Bool.true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}})::Tm -> Bool{g = (v2 Up ((n : Nat::Tm) -> F (f [Bool.true] n){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}) eliminated by g zero
+/// leqVal' (subtyping)  < g Nat.zero : F (f [Bool.true] Nat.zero) >  <=+  F (f [Bool.false] Bool.false)
+/// leqVal' (subtyping)  F (f [Bool.true] Nat.zero)  <=+  F (f [Bool.false] Bool.false)
+/// leqVal'  f Bool.true Nat.zero  <=*  f Bool.false Bool.false : Nat
+/// leqVal'  Nat.zero : Nat  <=*  Bool.false : Bool
 /// type Nat has different shape than Bool

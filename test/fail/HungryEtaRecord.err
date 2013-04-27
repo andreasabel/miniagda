@@ -3,9 +3,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Hungry : -(i : Size) -> Set
-term  inn : .[i : Size] -> ^(out : .[j < i] -> Hungry j) -> < inn out : Hungry i >
+term  Hungry.inn : .[i : Size] -> ^(out : .[j < i] -> Hungry j) -> < Hungry.inn out : Hungry i >
 term  out : .[i : Size] -> (inn : Hungry i) -> .[j < i] -> Hungry j
-{ out [i] (inn #out) = #out
+{ out [i] (Hungry.inn #out) = #out
 }
 type  D : .[i : Size] -> Hungry i -> Set
 {}

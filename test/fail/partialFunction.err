@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
-term  put : .[A : Set] -> .[P : A -> Set] -> ^(a : A) -> .[y1 : P a] -> < put a y1 : Subset A P >
+term  Subset.put : .[A : Set] -> .[P : A -> Set] -> ^(a : A) -> .[y1 : P a] -> < Subset.put a y1 : Subset A P >
 type  PFun : ^(A : Set) -> ^(B : Set) -> Set
 error during typechecking:
 PFun
-/// constructor mkPFun
+/// constructor PFun.mkPFun
 /// new PFun : (^(A : Set) -> ^(B : Set) -> Set)
 /// new A : Set
 /// new B : Set

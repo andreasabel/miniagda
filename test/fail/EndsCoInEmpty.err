@@ -3,30 +3,30 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  EmptyOr : ++(A : Set) -> ^ Bool -> Set
-term  inn : .[A : Set] -> ^(out : A) -> < inn out : EmptyOr A true >
-term  out : .[A : Set] -> (inn : EmptyOr A true) -> A
-{ out [A] (inn #out) = #out
+term  EmptyOr.inn : .[A : Set] -> ^(out : A) -> < EmptyOr.inn out : EmptyOr A Bool.true >
+term  out : .[A : Set] -> (inn : EmptyOr A Bool.true) -> A
+{ out [A] (EmptyOr.inn #out) = #out
 }
-term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A false -> B
+term  exFalso : .[A : Set] -> .[B : Set] -> EmptyOr A Bool.false -> B
 { exFalso [A] [B] ()
 }
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < cons i head tail : Stream A $i >
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
 term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
-{ head [A] [i] (cons [.i] #head #tail) = #head
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
 }
 term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
-{ tail [A] [i] (cons [.i] #head #tail) = #tail
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
 }
-term  bla : .[A : Set] -> .[i : Size] -> EmptyOr (Stream A i) false
+term  bla : .[A : Set] -> .[i : Size] -> EmptyOr (Stream A i) Bool.false
 error during typechecking:
 bla
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> EmptyOr (Stream A i) false ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i <= #] -> EmptyOr (Stream A i) Bool.false ends in correct coinductive sized type
 /// new i <= #
-/// endsInSizedCo: EmptyOr (Stream A i) false
-/// allTypesOfTuple: panic: target type EmptyOr (Stream A i) false is not an instance of any constructor
+/// endsInSizedCo: EmptyOr (Stream A i) Bool.false
+/// allTypesOfTuple: panic: target type EmptyOr (Stream A i) Bool.false is not an instance of any constructor

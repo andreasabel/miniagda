@@ -29,4 +29,4 @@ up    :: Bool -> Val -> TVal -> TypeCheck Val
 
 leqSize' :: Val -> Val -> TypeCheck ()
 
-mkConVal :: Dotted -> ConK -> Name -> [Val] -> TVal -> TypeCheck Val
+mkConVal :: Dotted -> ConK -> QName -> [Val] -> TVal -> TypeCheck Val

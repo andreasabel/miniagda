@@ -3,9 +3,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 term  sabotage : .[i : Size] -> (.[j < i] -> Unit) -> Unit
-{ sabotage [i] f = unit
+{ sabotage [i] f = Unit.unit
 }
 term  wtf : .[i : Size] -> Unit
 error during typechecking:

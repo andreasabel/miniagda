@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 term  add : Nat -> Nat -> Nat
-{ add zero y = y
-; add (succ x) y = succ (add x y)
+{ add Nat.zero y = y
+; add (Nat.succ x) y = Nat.succ (add x y)
 }
 type  Vec : ++(A : Set) -> ^ Nat -> Set
-term  vnil : .[A : Set] -> < vnil : Vec A zero >
-term  vcons : .[A : Set] -> ^(y0 : A) -> .[n : Nat] -> ^(y2 : Vec A n) -> < vcons y0 n y2 : Vec A (succ n) >
+term  Vec.vnil : .[A : Set] -> < Vec.vnil : Vec A Nat.zero >
+term  Vec.vcons : .[A : Set] -> ^(y0 : A) -> .[n : Nat] -> ^(y2 : Vec A n) -> < Vec.vcons y0 n y2 : Vec A (Nat.succ n) >
 term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> Nat
 error during typechecking:
 length
@@ -19,7 +19,7 @@ length
 /// right hand side
 /// checkExpr 5 |- succ n : Nat
 /// checkForced fromList [(.(succ n),1),(A,0),(x,2),(n,3),(xs,4)] |- succ n : Nat
-/// checkApp (^(y0 : Nat::()) -> < succ y0 : Nat >) eliminated by n
+/// checkApp (^(y0 : Nat::()) -> < Nat.succ y0 : Nat >) eliminated by n
 /// inferExpr' n
 /// inferExpr: variable n : Nat may not occur
 /// , because it is marked as erased

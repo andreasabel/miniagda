@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  L : +(A : Set) -> Set
-term  l1 : .[A : Set] -> ^(y0 : A) -> ^(y1 : L A) -> < l1 y0 y1 : L A >
-term  l2 : .[A : Set] -> ^(y0 : T A) -> < l2 y0 : L A >
+term  L.l1 : .[A : Set] -> ^(y0 : A) -> ^(y1 : L A) -> < L.l1 y0 y1 : L A >
+term  L.l2 : .[A : Set] -> ^(y0 : T A) -> < L.l2 y0 : L A >
 type  T : +(A : Set) -> Set
-term  t1 : .[A : Set] -> ^(y0 : L A) -> < t1 y0 : T A >
+term  T.t1 : .[A : Set] -> ^(y0 : L A) -> < T.t1 y0 : T A >
 error during typechecking:
 new L : (+(A : Set) -> Set)
 /// new T : (+(A : Set) -> Set{L = (v0 Up (+(A : Set) -> Set))})
 /// T
-/// constructor t2
+/// constructor T.t2
 /// new T : (+(A : Set) -> Set{T = (v1 Up (+(A : Set) -> Set{L = (v0 Up (+(A : Set) -> Set))})), L = (v0 Up (+(A : Set) -> Set))})
 /// new A : Set
 /// inferExpr' ^ (A -> T A) -> T A

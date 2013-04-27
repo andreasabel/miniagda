@@ -3,12 +3,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  SNat : + Size -> Set
-term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> < zero i : SNat $i >
-term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
 type  Stream : - Size -> Set
-term  cons : .[i : Size] -> ^(y1 : SNat #) -> ^(y2 : Stream i) -> < cons i y1 y2 : Stream $i >
+term  Stream.cons : .[i : Size] -> ^(y1 : SNat #) -> ^(y2 : Stream i) -> < Stream.cons i y1 y2 : Stream $i >
 term  bla : .[i : Size] -> SNat i -> .[j : Size] -> Stream j -> .[A : Set] -> A
 error during typechecking:
 bla

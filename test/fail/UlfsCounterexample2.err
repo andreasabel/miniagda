@@ -3,24 +3,24 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 type  T : ^ Bool -> Set
-term  nat : ^(y0 : Nat) -> < nat y0 : T true >
-term  bool : ^(y0 : Bool) -> < bool y0 : T false >
-term  bad : .[F : Nat -> Set] -> ^(f : .[x : Bool] -> T x -> Nat) -> (g : (n : Nat) -> F (f [true] (nat n))) -> (h : F (f [false] (bool false)) -> Bool) -> Bool
+term  T.nat : ^(y0 : Nat) -> < T.nat y0 : T Bool.true >
+term  T.bool : ^(y0 : Bool) -> < T.bool y0 : T Bool.false >
+term  bad : .[F : Nat -> Set] -> ^(f : .[x : Bool] -> T x -> Nat) -> (g : (n : Nat) -> F (f [Bool.true] (T.nat n))) -> (h : F (f [Bool.false] (T.bool Bool.false)) -> Bool) -> Bool
 error during typechecking:
 bad
 /// clause 1
 /// right hand side
 /// checkExpr 4 |- h (g zero) : Bool
 /// inferExpr' h (g zero)
-/// checkApp ((v0 {f [false] (bool false) {g = (v2 Up ((n : Nat::Tm) -> F (f [true] (nat n)){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}})::Tm -> Bool{g = (v2 Up ((n : Nat::Tm) -> F (f [true] (nat n)){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}) eliminated by g zero
-/// leqVal' (subtyping)  < g zero : F (f [true] (nat zero)) >  <=+  F (f [false] (bool false))
-/// leqVal' (subtyping)  F (f [true] (nat zero))  <=+  F (f [false] (bool false))
-/// leqVal'  f true (nat zero)  <=*  f false (bool false) : Nat
-/// leqVal'  nat zero : T true  <=*  bool false : T false
-/// leqVal': head mismatch nat{y0 = zero{}} != bool{y0 = false{}}
+/// checkApp ((v0 {f [Bool.false] (T.bool Bool.false) {g = (v2 Up ((n : Nat::Tm) -> F (f [Bool.true] (T.nat n)){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}})::Tm -> Bool{g = (v2 Up ((n : Nat::Tm) -> F (f [Bool.true] (T.nat n)){f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))})), f = (v1 Up (.[x : Bool::Tm] -> T x -> Nat{F = (v0 Up (Nat::Tm -> Set))})), F = (v0 Up (Nat::Tm -> Set))}) eliminated by g zero
+/// leqVal' (subtyping)  < g Nat.zero : F (f [Bool.true] (T.nat Nat.zero)) >  <=+  F (f [Bool.false] (T.bool Bool.false))
+/// leqVal' (subtyping)  F (f [Bool.true] (T.nat Nat.zero))  <=+  F (f [Bool.false] (T.bool Bool.false))
+/// leqVal'  f Bool.true (T.nat Nat.zero)  <=*  f Bool.false (T.bool Bool.false) : Nat
+/// leqVal'  T.nat Nat.zero : T Bool.true  <=*  T.bool Bool.false : T Bool.false
+/// leqVal': head mismatch T.nat{y0 = Nat.zero{}} != T.bool{y0 = Bool.false{}}

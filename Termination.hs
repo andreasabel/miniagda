@@ -758,7 +758,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
       (hd, args) = spineView e -- $ ignoreTopErasure e
       argcalls = concatMap (loop tso) args
       headcalls = case hd of
-          (Def (DefId FunK g)) ->
+          (Def (DefId FunK (QName g))) ->
               case lookup g nl of
                 Nothing -> []
                 Just ar_g ->

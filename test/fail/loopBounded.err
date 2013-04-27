@@ -4,18 +4,18 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- type checking ---
 type  Empty : Set
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 type  Maybe : ++(A : Set) -> Set
-term  nothing : .[A : Set] -> < nothing : Maybe A >
-term  just : .[A : Set] -> ^(a : A) -> < just a : Maybe A >
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(a : A) -> < Maybe.just a : Maybe A >
 type  Nat : + Size -> Set
 { Nat i = Maybe (.[j < i] & Nat j)
 }
 pattern zero = nothing
 pattern suc i n = just (i, n)
 term  pred : .[i : Size] -> Nat $i -> Nat i
-{ pred [i] nothing = nothing
-; pred [i] (just ([j < $i], n)) = n
+{ pred [i] Maybe.nothing = Maybe.nothing
+; pred [i] (Maybe.just ([j < $i], n)) = n
 }
 term  wfix : .[A : Size -> Set] -> (f : .[i : Size] -> (.[j < i] -> A j) -> A i) -> .[i : Size] -> A i
 { wfix [A] f [i] = f [i] (wfix [A] f)

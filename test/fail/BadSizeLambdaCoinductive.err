@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  S : -(i : Size) -> Set
-term  inn : .[i : Size] -> ^(out : .[j < i] -> S j) -> < inn out : S i >
+term  S.inn : .[i : Size] -> ^(out : .[j < i] -> S j) -> < S.inn out : S i >
 term  out : .[i : Size] -> (inn : S i) -> .[j < i] -> S j
-{ out [i] (inn #out) = #out
+{ out [i] (S.inn #out) = #out
 }
 term  eta : .[i : Size] -> (.[j < i] -> S $j) -> S i
 { eta [i] f .out [j < i] = f [j] .out [j]
 }
 term  cons : .[i : Size] -> (s : S i) -> S $i
-term  cons = [\ i ->] \ s -> inn ([\ j ->] s)
+term  cons = [\ i ->] \ s -> S.inn ([\ j ->] s)
 term  inf : .[i : Size] -> S i
 error during typechecking:
 inf

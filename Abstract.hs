@@ -114,6 +114,23 @@ exprToName e = spaceToUnderscore $ show e
 patToName p  = spaceToUnderscore $ show p
 -}
 
+-- | Qualified name.
+data QName
+  = Qual  { qual :: Name, name :: Name }
+  | QName { name :: Name }
+  deriving (Eq, Ord)
+
+instance Show QName where
+  show (Qual m n) = show m ++ "." ++ show n
+  show (QName n)  = show n
+
+-- | An unqualified name is an instance of a qualified name.
+nameInstanceOf (QName n) (Qual _ n') = n == n'
+nameInstanceOf n         n'          = n == n'
+
+-- | Fails if qualified name.
+unqual (QName n) = n
+unqual n         = error $ "Abstract.unqual: " ++ show n
 
 data Sized = Sized | NotSized
              deriving (Eq,Ord,Show)
@@ -573,11 +590,11 @@ conKind _        = False
 coToConK Ind = Cons
 coToConK CoInd = CoCons
 
-data DefId = DefId { idKind :: IdKind, name :: Name }
+data DefId = DefId { idKind :: IdKind, idName :: QName }
            deriving (Eq, Ord)
 
 instance Show DefId where
-    show d = show (name d) -- ++ "@" ++ show (idKind d)
+    show d = show (idName d) -- ++ "@" ++ show (idKind d)
 
 type MVar = Int -- metavariables are numbered
 
@@ -741,7 +758,7 @@ instance Show PiSigma where
 data RecInfo
   = AnonRec                           -- ^ anonymous record
   | NamedRec { recConK :: ConK
-             , recConName :: Name     -- ^ record constructor
+             , recConName :: QName    -- ^ record constructor
              , recNamedFields :: Bool -- ^ print field names?
              , recDottedRef :: Dotted -- ^ coming from dotted constructor (unconfirmed)
              }
@@ -820,20 +837,20 @@ data PatternInfo = PatternInfo
   , dottedPat      :: Bool
   } deriving (Eq,Ord,Show)
 
-type Pattern = Pat Name Expr
+type Pattern = Pat Expr
 
 -- | Patterns parametrized by type of dot patterns.
-data Pat n e
-  = VarP Name                       -- ^ x
-  | ConP PatternInfo Name [Pat n e] -- ^ (c ps) and (.c ps)
-  | SuccP (Pat n e)                 -- ^ ($ p)
-  | SizeP e Name                    -- ^ (x > y) (# > y) ($x > y)
-  | PairP (Pat n e) (Pat n e)       -- ^ (p, p')
-  | ProjP Name                      -- ^ .proj
-  | DotP e                          -- ^ .e
-  | AbsurdP                         -- ^ ()
-  | ErasedP (Pat n e)               -- ^ pattern which got erased
-  | UnusableP (Pat n e)
+data Pat e
+  = VarP Name                      -- ^ x
+  | ConP PatternInfo QName [Pat e] -- ^ (c ps) and (.c ps)
+  | SuccP (Pat e)                  -- ^ ($ p)
+  | SizeP e Name                   -- ^ (x > y) (# > y) ($x > y)
+  | PairP (Pat e) (Pat e)          -- ^ (p, p')
+  | ProjP Name                     -- ^ .proj
+  | DotP e                         -- ^ .e
+  | AbsurdP                        -- ^ ()
+  | ErasedP (Pat e)                -- ^ pattern which got erased
+  | UnusableP (Pat e)
 {- ^ a pattern which results from matching a coinductive type and
 the corresponding size index is not in the coinductive result type of
 the function.  Such a pattern is not usable for termination
@@ -873,7 +890,7 @@ con co n = Def $ DefId (ConK co) n
 -- con co n = Con co n []
 fun n    = Def $ DefId FunK n
 dat n    = Def $ DefId DatK n
-letdef n = Def $ DefId LetK n
+letdef n = Def $ DefId LetK $ QName n
 
 type SpineView = (Expr, [Expr])
 
@@ -937,7 +954,7 @@ type Type = Expr
 
 -- | Constructor declaration.  Top-level scope (independent of data pars).
 data Constructor = Constructor
- { ctorName :: Name        -- ^ Name of the constructor.
+ { ctorName :: QName       -- ^ Name of the constructor.
  , ctorPars :: ParamPats   -- ^ Constructor patterns (if new style params).
  , ctorType :: Type        -- ^ Constructor type (@fields -> target@).
  } deriving (Eq, Ord, Show)
@@ -1050,8 +1067,8 @@ patternVars (AbsurdP)     = []
 -- get all the definitions that are refered to in expression
 -- this is used e.g. to check whether a (co)fun is recursive
 usedDefs :: Expr -> [Name]
-usedDefs (Def id) | idKind id == FunK = [name id]
-usedDefs (Def id) | idKind id == DatK = [name id]
+usedDefs (Def id) | idKind id == FunK = [unqual $ idName id]
+usedDefs (Def id) | idKind id == DatK = [unqual $ idName id]
 usedDefs (Def{}) = []
 usedDefs (Pair f e) = usedDefs f ++ usedDefs e
 usedDefs (App f e) = usedDefs f ++ usedDefs e
@@ -1090,6 +1107,10 @@ rhsDefs cls = List.foldl (\ ns (Clause _ ps e) -> maybe [] usedDefs e ++ ns) [] 
 instance Pretty Name where
 --  pretty x = text $ suggestion x
   pretty x = text $ show x
+
+instance Pretty QName where
+  pretty (Qual m n) = pretty m <> text "." <> pretty n
+  pretty (QName n)  = pretty n
 
 instance Pretty DefId where
 --    pretty d = pretty $ name d
@@ -1474,7 +1495,7 @@ data PatternsType
     deriving (Eq, Ord, Show)
 
 data ConstructorInfo = ConstructorInfo
-  { cName   :: Name
+  { cName   :: QName
 --  , cType   :: TVal
   , cPars   :: ParamPats  -- ^ Constructor parameters if unequal to data parameters.
   , cFields :: [FieldInfo]
@@ -1591,7 +1612,7 @@ analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
       indexNames  = List.map fName indices
       -- do not generated destructors for erased arguments
       destrNames = destructorNames fields
-      recName    = internal constrName -- "constructed_by_" ++ constrName
+      recName    = internal $ name constrName -- "constructed_by_" ++ constrName
       parNames   = List.map boundName pars
       parAndIndexNames = parNames ++ indexNames
       -- substitute variable "fst" by application "fst A B p"
@@ -1603,7 +1624,8 @@ analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
       -- modifiedDestrNames = List.map prefix destrNames
       -- TODO: Index arguments are not always before fields
       pattern = ConP (PatternInfo (coToConK co) False False) -- to bootstrap destructor, not irrefutable
-          constrName (-- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++
+          constrName
+          ( -- 2012-01-22 PARS GONE!   List.map (DotP . Var) parNames ++
             List.map (\ fi -> (case fClass fi of
                             Index   -> DotP . Var
                             Field{} -> VarP . prefix)

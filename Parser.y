@@ -19,6 +19,7 @@ import Concrete (Name,patApp)
 %token
 
 id      { T.Id $$ _ }
+qualid  { T.QualId $$ _ }
 number  { T.Number $$ _ }
 data    { T.Data _ }
 codata  { T.CoData _ }
@@ -200,7 +201,7 @@ OptFields : {- empty -}  { [] }
 -----
 
 Id :: { Name }
-Id : id { $1 }
+Id : id { C.Name $1 }
 -- no longer  number { $1 }
 
 SpcIds :: { [Name] } -- non-empty list
@@ -232,7 +233,7 @@ Bound : Measure '<' Measure { A.Bound A.Lt $1 $3 }
       | Measure '<=' Measure { A.Bound A.Le $1 $3 } {- (A.succMeasure C.Succ $3) } -}
 
 EIds :: { [Name] } -- non-empty list
-EIds : ExprList       { let { f (C.Ident x) = x
+EIds : ExprList       { let { f (C.Ident (C.QName x)) = x
                             ; f e = error ("not an identifier: " ++ C.prettyExpr e)
                             } in map f $1
                       }
@@ -393,13 +394,17 @@ Expr3 :: { C.Expr }
 Expr3 : size                      { C.Size }
       | max                       { C.Max }
       | infty                     { C.Infty }
-      | Id                        { C.Ident $1}
+      | QName                     { C.Ident $1}
       | '<' ExprT ':' Expr '>'    { C.Sing $2 $4 }
       | '(' ExprT ')'             { $2 }
       | '_'                       { C.Unknown }
       | succ Expr3                { C.Succ $2 }  -- succ is a prefix op
       | number                    { iterate C.Succ C.Zero !! (read $1) }
       | record '{' RecordDefs '}' { C.Record $3 }
+
+QName :: { C.QName }
+QName : qualid { let (m,n) = $1 in C.Qual (C.Name m) (C.Name n) }
+      | Id     { C.QName $1}
 
 {-
 -- general form of type expression
@@ -510,8 +515,8 @@ ConP : DotId Pattern       { patApp $1 [$2] }
      | ConP Pattern        { patApp $1 [$2] }
 
 DotId :: { C.Pattern }
-DotId : Id                 { C.IdentP $1 }
-      | '.' Id             { C.ConP True $2 [] }
+DotId : Id                 { C.IdentP (C.QName $1) }
+      | '.' Id             { C.ConP True (C.QName $2) [] }
 
 {-
 Pattern :: { C.Pattern }

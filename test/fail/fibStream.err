@@ -3,24 +3,24 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 term  add : Nat -> Nat -> Nat
-{ add zero = \ y -> y
-; add (succ x) = \ y -> succ (add x y)
+{ add Nat.zero = \ y -> y
+; add (Nat.succ x) = \ y -> Nat.succ (add x y)
 }
 type  Stream : ++(A : Set) -> - Size -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < cons i y1 y2 : Stream A $i >
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
 term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
-{ tail [A] [i] (cons [.i] x xs) = xs
+{ tail [A] [i] (Stream.cons [.i] x xs) = xs
 }
 term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
-{ zipWith [A] [B] [C] f $[i < #] (cons [.i] a as) (cons [.i] b bs) = cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+{ zipWith [A] [B] [C] f $[i < #] (Stream.cons [.i] a as) (Stream.cons [.i] b bs) = Stream.cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
 }
 term  n0 : Nat
-term  n0 = zero
+term  n0 = Nat.zero
 term  n1 : Nat
-term  n1 = succ n0
+term  n1 = Nat.succ n0
 term  fib : .[i : Size] -> Stream Nat i
 error during typechecking:
 fib

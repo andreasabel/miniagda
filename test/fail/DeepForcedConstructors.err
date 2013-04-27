@@ -3,19 +3,19 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 term  not : Bool -> Bool
-{ not true = false
-; not false = true
+{ not Bool.true = Bool.false
+; not Bool.false = Bool.true
 }
 type  Nat : ^ Bool -> Set
-term  zero : < zero : Nat true >
-term  succ : ^(b : Bool) -> ^(y1 : Nat b) -> < succ b y1 : Nat false >
+term  Nat.zero : < Nat.zero : Nat Bool.true >
+term  Nat.succ : ^(b : Bool) -> ^(y1 : Nat b) -> < Nat.succ b y1 : Nat Bool.false >
 term  f : (b : Bool) -> .[Nat b] -> Bool
 error during typechecking:
 f
 /// clause 2
 /// pattern succ .true zero
 /// pattern zero
-/// checkPattern: constructor zero of non-computational argument zero : (Nat .true{}) not forced
+/// checkPattern: constructor Nat.zero of non-computational argument zero : (Nat .Bool.true{}) not forced

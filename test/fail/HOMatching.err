@@ -3,10 +3,10 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Succ : Set
-term  succ : ^(y0 : Succ) -> < succ y0 : Succ >
+term  Succ.succ : ^(y0 : Succ) -> < Succ.succ y0 : Succ >
 type  homatch : (Succ -> Succ) -> Set
 error during typechecking:
 homatch
 /// clause 1
 /// pattern succ
-/// higher-order matching of pattern succ at type (Succ::Tm -> Succ) not allowed
+/// cannot resolve constructor succ

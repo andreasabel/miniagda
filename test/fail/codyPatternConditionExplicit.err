@@ -3,34 +3,34 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 type  O : + Size -> Set
-term  Z : .[s!ze : Size] -> .[i < s!ze] -> O s!ze
-term  Z : .[i : Size] -> < Z i : O $i >
-term  S : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> O s!ze
-term  S : .[i : Size] -> ^(y1 : O i) -> < S i y1 : O $i >
-term  L : .[s!ze : Size] -> .[i < s!ze] -> ^ (Nat -> O i) -> O s!ze
-term  L : .[i : Size] -> ^(y1 : Nat -> O i) -> < L i y1 : O $i >
-term  M : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> ^ O i -> O s!ze
-term  M : .[i : Size] -> ^(y1 : O i) -> ^(y2 : O i) -> < M i y1 y2 : O $i >
+term  O.Z : .[s!ze : Size] -> .[i < s!ze] -> O s!ze
+term  O.Z : .[i : Size] -> < O.Z i : O $i >
+term  O.S : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> O s!ze
+term  O.S : .[i : Size] -> ^(y1 : O i) -> < O.S i y1 : O $i >
+term  O.L : .[s!ze : Size] -> .[i < s!ze] -> ^ (Nat -> O i) -> O s!ze
+term  O.L : .[i : Size] -> ^(y1 : Nat -> O i) -> < O.L i y1 : O $i >
+term  O.M : .[s!ze : Size] -> .[i < s!ze] -> ^ O i -> ^ O i -> O s!ze
+term  O.M : .[i : Size] -> ^(y1 : O i) -> ^(y2 : O i) -> < O.M i y1 y2 : O $i >
 term  f01 : .[i : Size] -> Nat -> O $$$i
-{ f01 [i] zero = Z [i]
-; f01 [i] (succ zero) = S [$i] (Z [i])
-; f01 [i] (succ (succ n)) = S [$$i] (S [$i] (Z [i]))
+{ f01 [i] Nat.zero = O.Z [i]
+; f01 [i] (Nat.succ Nat.zero) = O.S [$i] (O.Z [i])
+; f01 [i] (Nat.succ (Nat.succ n)) = O.S [$$i] (O.S [$i] (O.Z [i]))
 }
 term  v5 : .[i : Size] -> O $$$$$i
-term  v5 = [\ i ->] M [$$$$i] (L [$$$i] (f01 [i])) (S [$$$i] (S [$$i] (S [$i] (Z [i]))))
+term  v5 = [\ i ->] O.M [$$$$i] (O.L [$$$i] (f01 [i])) (O.S [$$$i] (O.S [$$i] (O.S [$i] (O.Z [i]))))
 term  emb : Nat -> O #
-{ emb zero = Z [#]
-; emb (succ n) = S [#] (emb n)
+{ emb Nat.zero = O.Z [#]
+; emb (Nat.succ n) = O.S [#] (emb n)
 }
 term  pre : .[i : Size] -> (Nat -> O $$i) -> Nat -> O $i
-term  pre = [\ i ->] \ f -> \ n -> case f (succ n) : O $$i
-                       { Z [.$i] -> Z [i]
-                       ; S [.$i] x -> x
-                       ; L [.$i] g -> g n
-                       ; M [.$i] a b -> a
+term  pre = [\ i ->] \ f -> \ n -> case f (Nat.succ n) : O $$i
+                       { O.Z [.$i] -> O.Z [i]
+                       ; O.S [.$i] x -> x
+                       ; O.L [.$i] g -> g n
+                       ; O.M [.$i] a b -> a
                        }
 term  deep : .[i : Size] -> O i -> Nat -> Nat
 error during typechecking:
@@ -43,10 +43,10 @@ deep
 /// checkApp ((O ($ ($ ($ v6))))::Tm -> Nat -> Nat{i = ($ ($ ($ v6)))}) eliminated by M $$i (L $i (pre i f)) (S j2 (f n))
 /// checkExpr 9 |- M $$i (L $i (pre i f)) (S j2 (f n)) : O $$$i
 /// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- M $$i (L $i (pre i f)) (S j2 (f n)) : O $$$i
-/// checkApp (^(y1 : (O ($ ($ v6)))::()) -> ^(y2 : O i) -> < M i y1 y2 : O $i >{i = ($ ($ v6))}) eliminated by L $i (pre i f)
+/// checkApp (^(y1 : (O ($ ($ v6)))::()) -> ^(y2 : O i) -> < O.M i y1 y2 : O $i >{i = ($ ($ v6))}) eliminated by L $i (pre i f)
 /// checkExpr 9 |- L $i (pre i f) : O $$i
 /// checkForced fromList [(i4,0),(i3,1),(j2,2),(f,3),(i2,4),(i1,5),(i,6),(x,7),(n,8)] |- L $i (pre i f) : O $$i
-/// checkApp (^(y1 : (Nat::Tm -> O i{i = ($ v6)})::()) -> < L i y1 : O $i >{i = ($ v6)}) eliminated by pre i f
+/// checkApp (^(y1 : (Nat::Tm -> O i{i = ($ v6)})::()) -> < O.L i y1 : O $i >{i = ($ v6)}) eliminated by pre i f
 /// inferExpr' pre i f
 /// checkApp ((Nat::Tm -> O $$i{i = v6})::Tm -> Nat -> O $i{i = v6}) eliminated by f
 /// leqVal' (subtyping)  (xSing# : Nat) -> < f xSing# : O j2 >  <=+  Nat -> O $$i

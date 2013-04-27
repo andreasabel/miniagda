@@ -3,16 +3,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 type  Prod : -(A : Set) -> ++(B : Set) -> Set
-term  pair : .[A : Set] -> .[B : Set] -> ^(y0 : A -> B) -> < pair y0 : Prod A B >
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(y0 : A -> B) -> < Prod.pair y0 : Prod A B >
 type  Tree : Set
-term  node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < node numBranches y1 : Tree >
-{ VecTree zero = Unit
-; VecTree (suc n) = Prod Tree (VecTree n)
+term  Tree.node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < Tree.node numBranches y1 : Tree >
+{ VecTree Nat.zero = Unit
+; VecTree (Nat.suc n) = Prod Tree (VecTree n)
 }
 error during typechecking:
 checking positivity

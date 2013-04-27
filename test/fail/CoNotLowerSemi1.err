@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : +(i : Size) -> Set
-term  zero : .[i : Size] -> < zero : Nat i >
-term  suc : .[i : Size] -> ^(jn : .[j < i] & Nat j) -> < suc jn : Nat i >
+term  Nat.zero : .[i : Size] -> < Nat.zero : Nat i >
+term  Nat.suc : .[i : Size] -> ^(jn : .[j < i] & Nat j) -> < Nat.suc jn : Nat i >
 type  Stream : ++(A : Set) -> Set
-term  cons : .[A : Set] -> ^(head : A) -> ^(tail : Stream A) -> < cons head tail : Stream A >
+term  Stream.cons : .[A : Set] -> ^(head : A) -> ^(tail : Stream A) -> < Stream.cons head tail : Stream A >
 term  head : .[A : Set] -> (cons : Stream A) -> A
-{ head [A] (cons #head #tail) = #head
+{ head [A] (Stream.cons #head #tail) = #head
 }
 term  tail : .[A : Set] -> (cons : Stream A) -> Stream A
-{ tail [A] (cons #head #tail) = #tail
+{ tail [A] (Stream.cons #head #tail) = #tail
 }
 error during typechecking:
 lsc

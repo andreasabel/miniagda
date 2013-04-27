@@ -3,17 +3,17 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 type  Nat : +(i : Size) -> Set
-term  zero : .[i : Size] -> .[j < i] -> < zero j : Nat i >
-term  suc : .[i : Size] -> .[j < i] -> ^(n : Nat j) -> < suc j n : Nat i >
+term  Nat.zero : .[i : Size] -> .[j < i] -> < Nat.zero j : Nat i >
+term  Nat.suc : .[i : Size] -> .[j < i] -> ^(n : Nat j) -> < Nat.suc j n : Nat i >
 term  apply : .[i : Size] -> (.[j < i] -> Nat $j -> Unit) -> Nat i -> Unit
-{ apply [i] f (zero [j < i]) = f [j] (zero [j])
-; apply [i] f (suc [j < i] x) = f [j] (suc [j] x)
+{ apply [i] f (Nat.zero [j < i]) = f [j] (Nat.zero [j])
+; apply [i] f (Nat.suc [j < i] x) = f [j] (Nat.suc [j] x)
 }
 term  caseN : .[i : Size] -> Unit -> (Nat i -> Unit) -> Nat $i -> Unit
-{ caseN [i] z s (zero [j < $i]) = z
-; caseN [i] z s (suc [j < $i] x) = s x
+{ caseN [i] z s (Nat.zero [j < $i]) = z
+; caseN [i] z s (Nat.suc [j < $i] x) = s x
 }
 term  run : .[i : Size] -> Nat i -> Unit
 error during typechecking:

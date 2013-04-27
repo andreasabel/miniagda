@@ -5,7 +5,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Any : Set
 error during typechecking:
 Any
-/// constructor inn
+/// constructor Any.inn
 /// new Any : Set
 /// inferExpr' ^(Out : Set) -> Any
 /// new Out : Set

@@ -5,7 +5,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 type  Wrap : .[A : Set] -> Set
 error during typechecking:
 Wrap
-/// constructor inn
+/// constructor Wrap.inn
 /// new Wrap : (.[A : Set] -> Set)
 /// new A : Set
 /// inferExpr' ^(out : A) -> Wrap A

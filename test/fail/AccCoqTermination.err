@@ -3,46 +3,46 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> ^ A -> Set
-term  acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(y1 : (a : A) -> Lt a b -> Acc A Lt a) -> < acc b y1 : Acc A Lt b >
+term  Acc.acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(y1 : (a : A) -> Lt a b -> Acc A Lt a) -> < Acc.acc b y1 : Acc A Lt b >
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 type  R : ^ Nat -> ^ Nat -> Set
-term  r1 : .[x : Nat] -> < r1 x : R (succ (succ x)) (succ zero) >
-term  r2 : < r2 : R (succ zero) zero >
-term  acc2 : (n : Nat) -> Acc Nat R (succ (succ n))
-term  acc2 = \ n -> acc [succ (succ n)] (\ a -> \ p -> case p : R a (succ (succ n))
-                                          {})
-term  aux1 : (a : Nat) -> (p : R a (succ zero)) -> Acc Nat R a
-{ aux1 (succ (succ x)) (r1 [.x]) = acc2 x
+term  R.r1 : .[x : Nat] -> < R.r1 x : R (Nat.succ (Nat.succ x)) (Nat.succ Nat.zero) >
+term  R.r2 : < R.r2 : R (Nat.succ Nat.zero) Nat.zero >
+term  acc2 : (n : Nat) -> Acc Nat R (Nat.succ (Nat.succ n))
+term  acc2 = \ n -> Acc.acc [Nat.succ (Nat.succ n)] (\ a -> \ p -> case p : R a (Nat.succ (Nat.succ n))
+                                                      {})
+term  aux1 : (a : Nat) -> (p : R a (Nat.succ Nat.zero)) -> Acc Nat R a
+{ aux1 (Nat.succ (Nat.succ x)) (R.r1 [.x]) = acc2 x
 }
-term  acc1 : Acc Nat R (succ zero)
-term  acc1 = acc [succ zero] aux1
-term  aux0 : (a : Nat) -> (p : R a zero) -> Acc Nat R a
-{ aux0 .(succ zero) r2 = acc1
+term  acc1 : Acc Nat R (Nat.succ Nat.zero)
+term  acc1 = Acc.acc [Nat.succ Nat.zero] aux1
+term  aux0 : (a : Nat) -> (p : R a Nat.zero) -> Acc Nat R a
+{ aux0 .(succ zero) R.r2 = acc1
 }
-term  acc0 : Acc Nat R zero
-term  acc0 = acc [zero] aux0
+term  acc0 : Acc Nat R Nat.zero
+term  acc0 = Acc.acc [Nat.zero] aux0
 term  accR : (n : Nat) -> Acc Nat R n
-{ accR zero = acc0
-; accR (succ zero) = acc1
-; accR (succ (succ n)) = acc2 n
+{ accR Nat.zero = acc0
+; accR (Nat.succ Nat.zero) = acc1
+; accR (Nat.succ (Nat.succ n)) = acc2 n
 }
 term  acc_dest : (n : Nat) -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Nat R m
-{ acc_dest .n (acc [n] p) = p
+{ acc_dest .n (Acc.acc [n] p) = p
 }
 term  f : (x : Nat) -> Acc Nat R x -> Nat
-{ f x (acc [.x] p) = case x : Nat
-                     { zero -> f (succ x) (p (succ x) r2)
-                     ; succ zero -> f (succ x) (p (succ x) (r1 [zero]))
-                     ; succ (succ y) -> zero
-                     }
+{ f x (Acc.acc [.x] p) = case x : Nat
+                         { Nat.zero -> f (Nat.succ x) (p (Nat.succ x) R.r2)
+                         ; Nat.succ Nat.zero -> f (Nat.succ x) (p (Nat.succ x) (R.r1 [Nat.zero]))
+                         ; Nat.succ (Nat.succ y) -> Nat.zero
+                         }
 }
 term  g : (x : Nat) -> .[Acc Nat R x] -> Nat
 { g x [p] = case x : Nat
-            { zero -> g (succ x) [acc_dest zero p (succ x) r2]
-            ; succ zero -> g (succ x) [acc_dest (succ zero) p (succ x) (r1 [zero])]
-            ; succ (succ y) -> zero
+            { Nat.zero -> g (Nat.succ x) [acc_dest Nat.zero p (Nat.succ x) R.r2]
+            ; Nat.succ Nat.zero -> g (Nat.succ x) [acc_dest (Nat.succ Nat.zero) p (Nat.succ x) (R.r1 [Nat.zero])]
+            ; Nat.succ (Nat.succ y) -> Nat.zero
             }
 }
 error during typechecking:

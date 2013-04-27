@@ -3,31 +3,31 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  false : < false : Bool >
-term  true : < true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  Bool.true : < Bool.true : Bool >
 type  D : ^(x : Bool) -> ^(y : Bool) -> Set
-term  c : .[x : Bool] -> .[x : Bool] -> < c : D x x >
-type  g : D true true -> Set
-{ g c = Bool
+term  D.c : .[x : Bool] -> .[x : Bool] -> < D.c : D x x >
+type  g : D Bool.true Bool.true -> Set
+{ g D.c = Bool
 }
-type  f : D true false -> Set
+type  f : D Bool.true Bool.false -> Set
 block fails as expected, error message:
 f
 /// clause 1
 /// pattern c
 /// instConLType'
 /// instConType:
-cannot match parameters [true, false]
+cannot match parameters [Bool.true, Bool.false]
 against patterns [x, x]
-when instantiating type .[x : Bool] -> .[x : Bool] -> < c : D x x >
-of constructor c
+when instantiating type .[x : Bool] -> .[x : Bool] -> < D.c : D x x >
+of constructor D.c
 error during typechecking:
 v
-/// checkExpr 0 |- c : D true false
-/// checkForced fromList [] |- c : D true false
+/// checkExpr 0 |- c : D Bool.true Bool.false
+/// checkForced fromList [] |- c : D Bool.true Bool.false
 /// instConLType'
 /// instConType:
-cannot match parameters [true, false]
+cannot match parameters [Bool.true, Bool.false]
 against patterns [x, x]
-when instantiating type .[x : Bool] -> .[x : Bool] -> < c : D x x >
-of constructor c
+when instantiating type .[x : Bool] -> .[x : Bool] -> < D.c : D x x >
+of constructor D.c

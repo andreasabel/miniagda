@@ -3,12 +3,12 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
-term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a a >
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
 term  subst : .[A : Set] -> .[a : A] -> .[b : A] -> .[q : Id A a b] -> .[P : A -> Set] -> P a -> P b
-{ subst [A] [a] [.a] [refl] [P] h = h
+{ subst [A] [a] [.a] [Id.refl] [P] h = h
 }
-term  J : .[A : Set] -> .[P : (a : A) -> (b : A) -> Id A a b -> Set] -> (h : (a : A) -> P a a refl) -> (a : A) -> (b : A) -> .[q : Id A a b] -> P a b q
-{ J [A] [P] h a .a [refl] = h a
+term  J : .[A : Set] -> .[P : (a : A) -> (b : A) -> Id A a b -> Set] -> (h : (a : A) -> P a a Id.refl) -> (a : A) -> (b : A) -> .[q : Id A a b] -> P a b q
+{ J [A] [P] h a .a [Id.refl] = h a
 }
 term  subst : .[A : Set] -> (a : A) -> (b : A) -> (q : Id A a b) -> .[P : A -> Set] -> P a -> P b
 term  subst = [\ A ->] \ a -> \ b -> \ q -> [\ P ->] J [A] [\ x -> \ y -> \ p -> P x -> P y] (\ y -> \ p -> p) a b [q]
@@ -22,7 +22,7 @@ extReducesNot
 /// new p : (.[x : v0::Tm] -> Id A x (f x){f = (v2 Up (v0::Tm -> A{a = v1, A = v0})), a = v1, A = v0})
 /// checkExpr 4 |- refl : Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
 /// checkForced fromList [(A,0),(a,1),(f,2),(p,3)] |- refl : Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
-/// leqVal' (subtyping)  < refl : Id A a a >  <=+  Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
+/// leqVal' (subtyping)  < Id.refl : Id A a a >  <=+  Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
 /// leqVal' (subtyping)  Id A a a  <=+  Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
 /// leqVal'  a  <=^  J (A -> A) (\ x -> \ y -> \ p -> (\ x -> A) x -> (\ x -> A) y) (\ y -> \ p -> p) (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) a : A
 /// leqApp: head mismatch a != J

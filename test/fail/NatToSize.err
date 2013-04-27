@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  suc : ^(y0 : Nat) -> < suc y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
 size  toSize : Nat -> Size
-{ toSize zero = 0
-; toSize (suc n) = $(toSize n)
+{ toSize Nat.zero = 0
+; toSize (Nat.suc n) = $(toSize n)
 }
 size  toSizeNT : Nat -> Size
-{ toSizeNT zero = 0
-; toSizeNT (suc n) = $(toSizeNT (suc n))
+{ toSizeNT Nat.zero = 0
+; toSizeNT (Nat.suc n) = $(toSizeNT (Nat.suc n))
 }
 error during typechecking:
 Termination check for function toSizeNT fails 

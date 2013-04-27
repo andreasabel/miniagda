@@ -507,10 +507,10 @@ whnf env e = enter ("whnf " ++ show e) $
                   return $ plusSizes vs
 
     Def (DefId LetK n) -> do
-        item <- lookupSymb n
+        item <- lookupSymbQ n
         whnfClos (definingVal item)
 
-    Def (DefId (ConK DefPat) n) -> whnfClos . definingVal =<< lookupSymb n
+    Def (DefId (ConK DefPat) n) -> whnfClos . definingVal =<< lookupSymbQ n
 --    Def (DefId (ConK DefPat) n) -> fail $ "internal error: whnf of defined pattern " ++ show n
     Def id   -> return $ vDef id
 {-
@@ -704,7 +704,7 @@ force v = -- trace ("forcing " ++ show v) $
 -- apply a recursive function
 -- corecursive ones are not expanded even if the arity is exceeded
 -- this is because a coinductive type needs to be destructed by pattern matching
-appDef :: Name -> [Val] -> TypeCheck Val
+appDef :: QName -> [Val] -> TypeCheck Val
 appDef n vl = --trace ("appDef " ++ n) $
     do
       -- identifier might not be in signature yet, e.g. ind.-rec.def.
@@ -769,9 +769,9 @@ matchingConstructors (VApp (VDef (DefId DatK d)) vl) = matchingConstructors' d v
 matchingConstructors v = return Nothing
 -- fail $ "matchingConstructors: not a data type: " ++ show v -- return []
 
-matchingConstructors' :: Name -> [Val] -> TypeCheck [(ConstructorInfo,Env)]
+matchingConstructors' :: QName -> [Val] -> TypeCheck [(ConstructorInfo,Env)]
 matchingConstructors' n vl = do
-  sige <- lookupSymb n
+  sige <- lookupSymbQ n
   case sige of
     (DataSig {symbTyp = dv, constructors = cs}) -> -- if (null cs) then ret [] else do -- no constructor
       matchingConstructors'' True vl dv cs
@@ -804,7 +804,7 @@ data MatchingConstructors a
 
 getMatchingConstructor
   :: Bool           -- eta   : must the field etaExpand be set of the data type
-  -> Name           -- d     : the name of the data types
+  -> QName          -- d     : the name of the data types
   -> [Val]          -- vl    : the arguments of the data type
   -> TypeCheck (MatchingConstructors
      ( Co           -- co    : coinductive type?
@@ -841,7 +841,7 @@ getMatchingConstructor eta n vl = traceRecord ("getMatchingConstructor " ++ show
     _ -> traceRecord ("no eta expandable type") $ return UnknownConstructors
 
 getFieldsAtType
-  :: Name           -- d     : the name of the data types
+  :: QName          -- d     : the name of the data types
   -> [Val]          -- vl    : the arguments of the data type
   -> TypeCheck
      (Maybe         -- Nothing if not a record type
@@ -880,7 +880,7 @@ projectType tv p rv = do
     _ -> fail1
 
 -- eta expand  v  at data type  n vl
-upData :: Bool -> Val -> Name -> [Val] -> TypeCheck Val
+upData :: Bool -> Val -> QName -> [Val] -> TypeCheck Val
 upData force v n vl = -- trace ("upData " ++ show v ++ " at " ++ n ++ show vl) $
  do
   let ret v' = traceEta ("Eta-expanding: " ++ show v ++ " --> " ++ show v' ++ " at type " ++ show n ++ show vl) $ return v'
@@ -1062,10 +1062,10 @@ match env p v0 = --trace (show env ++ show v0) $
       (ConP _ x [],VDef (DefId (ConK _) y)) -> failValInv v -- | x == y -> return $ Just env
 --  The following case is NOT IMPOSSIBLE:
 --      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) -> failValInv v
-      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | x == y -> matchList env pl vl
+      (ConP _ x pl,VApp (VDef (DefId (ConK _) y)) vl) | nameInstanceOf x  y -> matchList env pl vl
       -- If a value is a dotted record value, we do not succeed, since
       -- it is not sure this is the correct constructor.
-      (ConP _ x pl,VRecord (NamedRec ri y _ dotted) rs) | x == y && not (isDotted dotted) ->
+      (ConP _ x pl,VRecord (NamedRec ri y _ dotted) rs) | nameInstanceOf x y && not (isDotted dotted) ->
          matchList env pl $ map snd rs
       (p@(ConP pi _ _), v) | coPat pi == DefPat -> do
         p <- expandDefPat p
@@ -1103,11 +1103,11 @@ nonLinMatch undot symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v
     (VarP    x, _) -> matchVarP x v
     (SizeP _ x, _) -> matchVarP x v
     (ProjP x,     VProj Post y) | x == y -> return $ Just st
-    (ConP _ c pl, VApp (VDef (DefId (ConK _) c')) vl) | c == c' -> do
+    (ConP _ c pl, VApp (VDef (DefId (ConK _) c')) vl) | nameInstanceOf c c' -> do
       vc <- conLType c tv
       nonLinMatchList' undot symm st pl vl vc
     -- Here, we do accept dotted constructors, since we are abusing this for unification.
-    (ConP _ c pl, VRecord (NamedRec _ c' _ dotted) rs) | c == c' -> do
+    (ConP _ c pl, VRecord (NamedRec _ c' _ dotted) rs) | nameInstanceOf c c' -> do
       when undot $ clearDotted dotted
       vc <- conLType c tv
       nonLinMatchList' undot symm st pl (map snd rs) vc
@@ -1158,7 +1158,7 @@ nonLinMatchList' _ _ _ _ _ _ = return Nothing
 -- | Expand a top-level pattern synonym
 expandDefPat :: Pattern -> TypeCheck Pattern
 expandDefPat p@(ConP pi c ps) | coPat pi == DefPat = do
-  PatSig ns pat v <- lookupSymb c
+  PatSig ns pat v <- lookupSymbQ c
   unless (length ns == length ps) $
     fail ("underapplied defined pattern in " ++ show p)
   let pat' = if dottedPat pi then dotConstructors pat else pat
@@ -1234,7 +1234,7 @@ data TypeShape
             (OneOrTwo Env)
             (OneOrTwo Type)      -- both are function types
   | ShSort  SortShape            -- sort of same shape
-  | ShData  Name (OneOrTwo TVal) -- same data, but with possibly different args
+  | ShData  QName (OneOrTwo TVal)-- same data, but with possibly different args
   | ShNe    (OneOrTwo TVal)      -- both neutral
   | ShSing  Val TVal             -- 1 and singleton
   | ShSingL Val TVal TVal        -- 2 and the left is a singleton
@@ -1741,7 +1741,7 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
 -}
 
       (VDef n, VDef m) | n == m ->  do
-        tv <- lookupSymbTyp (name n)
+        tv <- lookupSymbTypQ (idName n)
         leqVals' f pol (One tv) w1 w2
         return ()
 
@@ -2179,7 +2179,7 @@ telView tv = do
     _ -> return ([], tv)
 
 -- | Turn a fully applied constructor value into a named record value.
-mkConVal :: Dotted -> ConK -> Name -> [Val] -> TVal -> TypeCheck Val
+mkConVal :: Dotted -> ConK -> QName -> [Val] -> TVal -> TypeCheck Val
 mkConVal dotted co n vs vc = do
   (vTel, _) <- telView vc
   let fieldNames = map (boundName . snd) vTel

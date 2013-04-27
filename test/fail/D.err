@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  D : Set
-term  abs : ^(y0 : ^ D -> D) -> < abs y0 : D >
+term  D.abs : ^(y0 : ^ D -> D) -> < D.abs y0 : D >
 warning: ignoring error: polarity check ++ <= - failed
 warning: ignoring error: polarity check ++ <= + failed
 term  app : D -> ^ D -> D
-{ app (abs f) d = f d
+{ app (D.abs f) d = f d
 }
 term  sapp : D -> D
 { sapp x = app x x
@@ -16,7 +16,7 @@ error during typechecking:
 delta
 /// checkExpr 0 |- abs (\ x -> sapp x) : D
 /// checkForced fromList [] |- abs (\ x -> sapp x) : D
-/// checkApp (^(y0 : (^D::() -> D)::()) -> < abs y0 : D >) eliminated by \ x -> sapp x
+/// checkApp (^(y0 : (^D::() -> D)::()) -> < D.abs y0 : D >) eliminated by \ x -> sapp x
 /// checkExpr 0 |- \ x -> sapp x : ^ D -> D
 /// checkForced fromList [] |- \ x -> sapp x : ^ D -> D
 /// new x : D

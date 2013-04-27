@@ -3,9 +3,9 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  D : Set
-term  absD : ^(y0 : E -> D) -> < absD y0 : D >
+term  D.absD : ^(y0 : E -> D) -> < D.absD y0 : D >
 type  E : Set
-term  inE : ^(y0 : D) -> < inE y0 : E >
+term  E.inE : ^(y0 : D) -> < E.inE y0 : E >
 error during typechecking:
 checking positivity
 /// polarity check ++ <= - failed

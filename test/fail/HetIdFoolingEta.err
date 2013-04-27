@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 ty-u  Id : ^(A : Set) -> ^(a : A) -> ^(B : Set) -> ^ B -> Set 1
-term  refl : .[A : Set] -> .[a : A] -> < refl : Id A a A a >
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a A a >
 error during typechecking:
 offDia
 /// not a type: (f : (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id A a B b) -> (A : Set) -> (B : Set) -> (a : A) -> (b : B) -> Id (Id A B a b) (f A B a b) (Id A a A a) (refl A a)

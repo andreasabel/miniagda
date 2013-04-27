@@ -3,24 +3,24 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  Twice : ++(A : Set) -> Set
-term  inl : .[A : Set] -> ^(y0 : A) -> < inl y0 : Twice A >
-term  inr : .[A : Set] -> ^(y0 : A) -> < inr y0 : Twice A >
+term  Twice.inl : .[A : Set] -> ^(y0 : A) -> < Twice.inl y0 : Twice A >
+term  Twice.inr : .[A : Set] -> ^(y0 : A) -> < Twice.inr y0 : Twice A >
 term  fmap : .[A : Set] -> .[B : Set] -> (A -> B) -> Twice A -> Twice B
-{ fmap [A] [B] f (inl a) = inl (f a)
-; fmap [A] [B] f (inr a) = inr (f a)
+{ fmap [A] [B] f (Twice.inl a) = Twice.inl (f a)
+; fmap [A] [B] f (Twice.inr a) = Twice.inr (f a)
 }
 type  BStr : - Size -> Set
-term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < cons i head tail : BStr $i >
+term  BStr.cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < BStr.cons i head tail : BStr $i >
 term  head : .[i : Size] -> (cons : BStr $i) -> Bool
-{ head [i] (cons [.i] #head #tail) = #head
+{ head [i] (BStr.cons [.i] #head #tail) = #head
 }
 term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
-{ tail [i] (cons [.i] #head #tail) = #tail
+{ tail [i] (BStr.cons [.i] #head #tail) = #tail
 }
 term  idAndLast : .[i : Size] -> BStr i -> Twice (BStr i)
 error during typechecking:

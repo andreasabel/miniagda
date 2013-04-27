@@ -3,24 +3,24 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  SNat : + Size -> Set
-term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> < zero i : SNat $i >
-term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
 type  Nat : Set
 type  Nat = SNat #
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 type  Maybe : ++(A : Set) -> Set
-term  nothing : .[A : Set] -> < nothing : Maybe A >
-term  just : .[A : Set] -> ^(y0 : A) -> < just y0 : Maybe A >
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(y0 : A) -> < Maybe.just y0 : Maybe A >
 term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
-{ shift_case [i] nothing = nothing
-; shift_case [.i] (just (zero [i])) = nothing
-; shift_case [.i] (just (succ [i] x)) = just x
+{ shift_case [i] Maybe.nothing = Maybe.nothing
+; shift_case [.i] (Maybe.just (SNat.zero [i])) = Maybe.nothing
+; shift_case [.i] (Maybe.just (SNat.succ [i] x)) = Maybe.just x
 }
 term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
-term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (succ [#] n))
+term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (SNat.succ [#] n))
 term  loop : .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 term  loop_case : .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
 error during typechecking:

@@ -3,16 +3,16 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  N : Set
-term  zz : < zz : N >
-term  ss : ^(y0 : N) -> < ss y0 : N >
+term  N.zz : < N.zz : N >
+term  N.ss : ^(y0 : N) -> < N.ss y0 : N >
 type  Nat : + Size -> Set
-term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
-term  zero : .[i : Size] -> < zero i : Nat $i >
-term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
-term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
 term  even : .[i : Size] -> Nat i -> Bool
 term  even' : .[i : Size] -> Nat i -> Bool
 term  odd' : .[i : Size] -> Nat i -> Bool

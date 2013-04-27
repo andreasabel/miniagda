@@ -9,13 +9,14 @@ module Lexer where
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
-$u = [ . \n ]                 -- universal: any character
+$u     = [ . \n ]               -- universal: any character
+@ident = $alpha ($alpha | $digit | \_ | \')*  -- identifier
 
 tokens :-
 
 $white+				;
 "--".*				;
-"{-" ([$u # \-] | \- [$u # \}])* ("-")+ "}" ; 
+"{-" ([$u # \-] | \- [$u # \}])* ("-")+ "}" ;
 
 
 sized	    	     	   	{ tok (\p s -> Sized p) }
@@ -65,7 +66,7 @@ max                             { tok (\p s -> Max p) }
 \^				{ tok (\p s -> Hat p) }
 \&				{ tok (\p s -> Amp p) }
 "->"				{ tok (\p s -> Arrow p)  }
-"<="                            { tok (\p s -> Leq p)  } 
+"<="                            { tok (\p s -> Leq p)  }
 =				{ tok (\p s -> Eq p) }
 \\				{ tok (\p s -> Lam p) }
 \_				{ tok (\p s -> Underscore p) }
@@ -73,11 +74,12 @@ max                             { tok (\p s -> Max p) }
 \>                              { tok (\p s -> AngleClose p) }
 
 [$digit]+		        { tok (\p s -> (Number s p )) }
-$alpha [$alpha $digit \_ \']*   { tok (\p s -> (Id s p )) }
-	
+@ident                          { tok (\p s -> (Id s p )) }
+@ident \. @ident                { tok (\p s -> (qualId s p)) }
 
 {
 data Token = Id String AlexPosn
+           | QualId (String, String) AlexPosn
      	   | Number String AlexPosn
      	   | Sized AlexPosn
            | Data AlexPosn
@@ -92,9 +94,9 @@ data Token = Id String AlexPosn
 	   | Def AlexPosn
 	   | Let AlexPosn
 	   | In AlexPosn
-           | Type AlexPosn 
-           | Set AlexPosn 
-           | CoSet AlexPosn 
+           | Type AlexPosn
+           | Set AlexPosn
+           | CoSet AlexPosn
 	   | Eval AlexPosn
 	   | Fail AlexPosn
 	   | Check AlexPosn
@@ -106,8 +108,8 @@ data Token = Id String AlexPosn
            | Succ AlexPosn
            | Max AlexPosn
            --
-           | LTri AlexPosn 
-           | RTri AlexPosn 
+           | LTri AlexPosn
+           | RTri AlexPosn
            | AngleOpen AlexPosn
            | AngleClose AlexPosn
            | BrOpen AlexPosn
@@ -136,10 +138,13 @@ data Token = Id String AlexPosn
            | NotUsed AlexPosn -- so happy doesn't generate overlap case pattern warning
              deriving (Eq)
 
+qualId s p = let (m, '.':n) = break (== '.') s in QualId (m,n) p
+
 prettyTok :: Token -> String
-prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where   
-  (tk,pos) = case c of 
+prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
+  (tk,pos) = case c of
     (Id s p) -> (show s,p)
+    (QualId (m, n) p) -> (show m ++ "." ++ show n, p)
     (Number i p) -> (i,p)
     Sized p -> ("sized",p)
     Data p -> ("data",p)
@@ -193,7 +198,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Amp p -> ("&",p)
     Lam p -> ("\\",p)
     Underscore p -> ("_",p)
-    _ -> error "not used"    
+    _ -> error "not used"
 
 
 prettyAlexPosn (AlexPn _ line row) = "line " ++ show line ++ ", row " ++ show row

@@ -3,13 +3,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Unit : Set
-term  unit : < unit : Unit >
+term  Unit.unit : < Unit.unit : Unit >
 term  top : Unit -> Unit
-{ top un!t = unit
+{ top un!t = Unit.unit
 }
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 term  not : Bool -> Bool
 block fails as expected, error message:
 not
@@ -17,8 +17,8 @@ not
 /// confirming dotted constructor .true
 /// more than one constructor matches type Bool
 type  Nat : Set
-term  zero : < zero : Nat >
-term  suc : ^(n : Nat) -> < suc n : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
 term  pred : Nat -> Nat
 error during typechecking:
 pred

@@ -3,18 +3,18 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  SNat : + Size -> Set
-term  zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
-term  zero : .[i : Size] -> < zero i : SNat $i >
-term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
-term  succ : .[i : Size] -> ^(y1 : SNat i) -> < succ i y1 : SNat $i >
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
 term  bla : .[i : Size] -> SNat $i -> SNat i
 error during typechecking:
 bla
 /// clause 1
 /// pattern zero $i
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> < zero i : SNat $i > ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i <= #] -> < SNat.zero i : SNat $i > ends in correct coinductive sized type
 /// new i <= #
-/// endsInSizedCo: < zero i : SNat $i >
+/// endsInSizedCo: < SNat.zero i : SNat $i >
 /// endsInSizedCo: SNat $i
 /// endsInSizedCo: target SNat $i of corecursive function is neither a CoSet or codata of size i nor a tuple type

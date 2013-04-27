@@ -3,13 +3,13 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  BT : Set
-term  lf : < lf : BT >
-term  node : ^(y0 : BT) -> ^(y1 : BT) -> < node y0 y1 : BT >
+term  BT.lf : < BT.lf : BT >
+term  BT.node : ^(y0 : BT) -> ^(y1 : BT) -> < BT.node y0 y1 : BT >
 term  f : BT -> BT
 term  g : BT -> BT -> BT
-{ f (node l (node rl rr)) = g l rr
+{ f (BT.node l (BT.node rl rr)) = g l rr
 }
-{ g t u = f (node t u)
+{ g t u = f (BT.node t u)
 }
 error during typechecking:
 Termination check for mutual block [f,g] fails for [f,g]

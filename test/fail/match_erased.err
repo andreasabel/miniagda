@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : Set
-term  zero : < zero : Nat >
-term  succ : ^(y0 : Nat) -> < succ y0 : Nat >
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
 term  illegal_match : Nat -> .[Nat] -> Nat
 error during typechecking:
 illegal_match
 /// clause 1
 /// pattern zero
-/// checkPattern: constructor zero of non-computational argument zero : Nat not forced
+/// checkPattern: constructor Nat.zero of non-computational argument zero : Nat not forced

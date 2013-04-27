@@ -3,23 +3,23 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  Prod : ++(A : Set) -> ++(B : Set) -> Set
-term  pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < pair fst snd : Prod A B >
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
 term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
-{ fst [A] [B] (pair #fst #snd) = #fst
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
 }
 term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
-{ snd [A] [B] (pair #fst #snd) = #snd
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
 }
 type  BStr : - Size -> Set
-term  cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < cons i head tail : BStr $i >
+term  BStr.cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < BStr.cons i head tail : BStr $i >
 term  head : .[i : Size] -> (cons : BStr $i) -> Bool
-{ head [i] (cons [.i] #head #tail) = #head
+{ head [i] (BStr.cons [.i] #head #tail) = #head
 }
 term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
-{ tail [i] (cons [.i] #head #tail) = #tail
+{ tail [i] (BStr.cons [.i] #head #tail) = #tail
 }
 term  idAndLast : .[i : Size] -> BStr i -> Prod Bool (BStr i)
 error during typechecking:

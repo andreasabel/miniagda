@@ -119,18 +119,18 @@ translateLet n t e
   | otherwise = do
       ts <- translateTypeSig $ TypeSig n t
       e  <- translateExpr e
-      n  <- hsName (DefId LetK n)
+      n  <- hsName (DefId LetK $ QName n)
       return [ ts, H.mkLet n e ]
 
 translateTypeSig :: TypeSig -> Translate H.Decl
 translateTypeSig (TypeSig n t) = do
-  n <- hsName (DefId LetK n)
+  n <- hsName (DefId LetK $ QName n)
   t <- translateType t
   return $ H.mkTypeSig n t
 
 translateDataDecl :: Name -> FTelescope -> FKind -> [FConstructor] -> Translate [H.Decl]
 translateDataDecl n tel k cs = do
-  n   <- hsName (DefId DatK n)
+  n   <- hsName (DefId DatK $ QName n)
   tel <- translateTelescope tel
   let k' = translateKind k
   cs  <- mapM translateConstructor cs
@@ -263,19 +263,21 @@ hsVarName x = return $ H.Ident $ show x
 hsName :: DefId -> Translate H.Name
 hsName id = enter ("error translating identifier " ++ show id) $
   case id of
-  (DefId DatK x) -> do
+  (DefId DatK (QName x)) -> do
     let n = suggestion x
     unless (isUpper $ head n) $
       fail $ "data names need to be capitalized"
     return $ H.Ident n
-  (DefId (ConK co) x) -> do
+  (DefId (ConK co) (Qual d x)) -> do
     let n = suggestion x
-    dataName <- getDataName x
-    return $ H.Ident $ dataName ++ "_" ++ n
+        m = suggestion d
+    return $ H.Ident $ m ++ "_" ++ n
+    -- dataName <- getDataName x
+    -- return $ H.Ident $ dataName ++ "_" ++ n
   -- lets, funs, cofuns. TODO: type-valued funs!
 --   (DefId Let ('_':n)) | -> return $ H.Ident n
   (DefId _ x) -> do
-    let n = suggestion x
+    let n = suggestion $ unqual x
 {- ignore for now
      unless (isLower $ head n) $
        fail $ "function names need to start with a lowercase letter"

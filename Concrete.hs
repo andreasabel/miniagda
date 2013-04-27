@@ -7,9 +7,27 @@ import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..
 import qualified Abstract as A
 import Polarity
 
-type Name = String -- concrete names
+-- | Concrete names.
+data Name = Name { theName :: String }
+  deriving (Eq,Ord)
+
+instance Show Name where
+  show (Name n) = n
+
+-- | Possibly qualified names.
+data QName
+  = Qual  { qual :: Name, name :: Name }  -- ^ @X.x@ e.g. qualified constructor.
+  | QName { name :: Name }                -- ^ @x@.
+  deriving (Eq,Ord)
+
+unqual (QName n) = n
+
+instance Show QName where
+  show (Qual m n) = show m ++ "." ++ show n
+  show (QName n)  = show n
 
 set0 = Set Zero
+ident n = Ident (QName n)
 
 -- | Concrete expressions syntax.
 data Expr
@@ -30,7 +48,7 @@ data Expr
   | Pair Expr Expr                  -- ^ @e , e'@.
   | Record [([Name],Expr)]          -- ^ @record { x = e, x' y = e' }@.
   | Proj Name                       -- ^ @.x@.
-  | Ident Name                      -- ^ @x@.
+  | Ident QName                     -- ^ @x@ or @D.c@.
   | Unknown                         -- ^ @_@.
   | Sing Expr Expr                  -- ^ @<e : A>@ singleton type.
   deriving (Eq)
@@ -65,8 +83,9 @@ data Declaration
 
 data TypeSig = TypeSig Name Type
              deriving (Eq)
+
 instance Show TypeSig where
-  show (TypeSig n t) = n ++ " : " ++ show t
+  show (TypeSig n t) = show n ++ " : " ++ show t
 
 type Type = Expr
 
@@ -77,8 +96,8 @@ data Constructor = Constructor
   } deriving (Eq)
 
 instance Show Constructor where
-  show (Constructor n tel (Just t)) = n ++ " " ++ show tel ++ " : " ++ show t
-  show (Constructor n tel  Nothing) = n ++ " " ++ show tel
+  show (Constructor n tel (Just t)) = show n ++ " " ++ show tel ++ " : " ++ show t
+  show (Constructor n tel  Nothing) = show n ++ " " ++ show tel
 
 type TBind = TBinding Type
 type LBind = TBinding (Maybe Type)  -- possibly domain-free
@@ -120,13 +139,13 @@ data Clause = Clause
             deriving (Eq,Show)
 
 data Pattern
-  = ConP Bool Name [Pattern]   -- ^ @(c ps)@ if @False; @(.c ps)@ if @True@.
-  | PairP Pattern Pattern -- (p, p')
-  | SuccP Pattern         -- ($ p)
-  | DotP Expr             -- .e
-  | IdentP Name           -- x
-  | SizeP Expr Name       -- (x > y) or y < # or ...
-  | AbsurdP               -- ()
+  = ConP Bool QName [Pattern] -- ^ @(c ps)@ if @False; @(.c ps)@ if @True@.
+  | PairP Pattern Pattern     -- ^ @(p, p')@
+  | SuccP Pattern             -- ^ @($ p)@
+  | DotP Expr                 -- ^ @.e@
+  | IdentP QName              -- ^ @x@ or @c@ or @D.c@.
+  | SizeP Expr Name           -- ^ @(x > y)@ or @y < #@ or ...
+  | AbsurdP                   -- ^ @()@
     deriving (Eq,Show)
 
 type Case = (Pattern,Expr)
@@ -136,7 +155,7 @@ patApp :: Pattern -> [Pattern] -> Pattern
 patApp (IdentP c)         ps' = ConP False  c ps'
 patApp (ConP dotted c ps) ps' = ConP dotted c (ps ++ ps')
 
-----
+-- * Pretty printing.
 
 prettyLBind :: LBind -> String
 -- prettyLBind (TSized x)                   = prettyTBind False (TSized x)
@@ -147,7 +166,7 @@ prettyLBind (TBind dec xs (Just t))      = prettyTBind False (TBind dec xs t)
 prettyLBind (TBind dec xs Nothing) =
   if erased dec then addPol False $ brackets binding
    else addPol True binding
-  where binding = Util.showList " " id xs
+  where binding = Util.showList " " show xs
         pol = polarity dec
         addPol b x = if pol==defaultPol
                       then x
@@ -167,7 +186,7 @@ prettyTBind inPi (TBind dec xs t) =
    else addPol (not inPi) $ (if inPi then parens else id) binding
   where s = prettyExpr t
         binding = if null xs then s else
-          foldr (\ x s -> x ++ " " ++ s) (": " ++ s) xs
+          foldr (\ x s -> show x ++ " " ++ s) (": " ++ s) xs
         pol = polarity dec
         addPol b x = if pol==defaultPol
                       then x
@@ -175,7 +194,7 @@ prettyTBind inPi (TBind dec xs t) =
 prettyTBind inPi (TBounded dec x ltle e) =
   if erased dec then addPol False $ brackets binding
    else addPol (not inPi) $ (if inPi then parens else id) binding
-  where binding = x ++ " < " ++ prettyExpr e
+  where binding = show x ++ " < " ++ prettyExpr e
         pol = polarity dec
         addPol b x = if pol==defaultPol
                       then x
@@ -204,12 +223,12 @@ prettyLetDef (LetDef dec n [] mt e) = prettyLetAssign (prettyLBind tb) e
 prettyLetDef (LetDef dec n tel mt e) = prettyLetAssign s e
   where s = prettyDecId dec n ++ " " ++ prettyTel False tel ++ prettyMaybeType mt
 
-prettyDecId :: Dec -> String -> String
+prettyDecId :: Dec -> Name -> String
 prettyDecId dec x
-  | erased dec = brackets x
+  | erased dec = brackets $ show x
   | otherwise  =
      let pol = polarity dec
-     in  if pol == defaultPol then x else show pol ++ x
+     in  if pol == defaultPol then show x else show pol ++ show x
 
 prettyTel :: Bool -> Telescope -> String
 prettyTel inPi = Util.showList " " (prettyTBind inPi)
@@ -231,7 +250,7 @@ prettyExpr e =
       Plus e1 e2      -> "(" ++ prettyExpr e1 ++ " + " ++  prettyExpr e2 ++ ")"
       Pair e1 e2      -> "(" ++ prettyExpr e1 ++ " , " ++  prettyExpr e2 ++ ")"
       App e1 el       -> "(" ++ prettyExprs (e1:el) ++ ")"
-      Lam x e1        -> "(\\" ++ x ++ " -> " ++ prettyExpr e1 ++ ")"
+      Lam x e1        -> "(\\" ++ show x ++ " -> " ++ prettyExpr e1 ++ ")"
       Case e Nothing cs -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       Case e (Just t) cs -> "case " ++ prettyExpr e ++ " : " ++ prettyExpr t ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       LLet letdef e -> prettyLetBody (prettyLetDef letdef) e
@@ -239,33 +258,33 @@ prettyExpr e =
       LLet tb e1 e2 -> "(let " ++ prettyLBind tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")"
 -}
       Record rs       -> "record {" ++ Util.showList "; " prettyRecordLine rs ++ "}"
-      Proj n          -> "." ++ n
-      Ident n         -> n
+      Proj n          -> "." ++ show n
+      Ident n         -> show n
       Unknown         -> "_"
       Sing e t        -> "<" ++ prettyExpr e ++ " : " ++ prettyExpr t ++ ">"
 --      Quant pisig tb t2 -> parens $ prettyTBind True tb
       Quant pisig tel t2 -> parens $ prettyTel True tel
                                   ++ " " ++ show pisig ++ " " ++ prettyExpr t2
 
-prettyRecordLine (xs, e) = Util.showList " " id xs ++ " = " ++ prettyExpr e
+prettyRecordLine (xs, e) = Util.showList " " show xs ++ " = " ++ prettyExpr e
 
 prettyCase (Clause Nothing [p] Nothing)  = prettyPattern p
 prettyCase (Clause Nothing [p] (Just e)) = prettyPattern p ++ " -> " ++ prettyExpr e
 
 prettyPattern :: Pattern -> String
-prettyPattern (ConP dotted c ps) = parens $ foldl (\ acc p -> acc ++ " " ++ prettyPattern p) (if dotted then "." ++ c else c) ps
+prettyPattern (ConP dotted c ps) = parens $ foldl (\ acc p -> acc ++ " " ++ prettyPattern p) (if dotted then "." ++ show c else show c) ps
 prettyPattern (PairP p1 p2) = parens $ prettyPattern p1 ++ ", " ++
                                 prettyPattern p2
-prettyPattern (SuccP p) = parens $ "$ " ++ prettyPattern p
-prettyPattern (DotP e)  = "." ++ prettyExpr e
-prettyPattern (IdentP x) = x
-prettyPattern (SizeP e y) = parens $ prettyExpr e ++ " > " ++ y
-prettyPattern (AbsurdP) = parens ""
+prettyPattern (SuccP p)   = parens $ "$ " ++ prettyPattern p
+prettyPattern (DotP e)    = "." ++ prettyExpr e
+prettyPattern (IdentP x)  = show x
+prettyPattern (SizeP e y) = parens $ prettyExpr e ++ " > " ++ show y
+prettyPattern (AbsurdP)   = parens ""
 
 prettyExprs :: [Expr] -> String
 prettyExprs = Util.showList " " prettyExpr
 
-prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " id (n:ns)) ++ " = " ++ prettyPattern p
+prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " show (n:ns)) ++ " = " ++ prettyPattern p
 
 teleToType :: Telescope -> Type -> Type
 teleToType [] t = t

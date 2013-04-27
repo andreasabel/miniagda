@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
- 
+
 module Value where
 
 import Control.Applicative
@@ -114,7 +114,7 @@ filterEnv ns ((x,v) : rho) =
 vDef id   = VDef id `VApp` []
 vCon co n = vDef $ DefId (ConK co) n
 -- vCon co n = vDef $ DefId (ConK (coToConK co)) n
-vFun n    = vDef $ DefId FunK n
+vFun n    = vDef $ DefId FunK $ QName n
 vDat n    = vDef $ DefId DatK n
 
 {- POSSIBLY BREAKS INVARIANT!
@@ -164,7 +164,7 @@ succSize v = case v of
             VInfty -> VInfty
             VMax vs -> maxSize $ map succSize vs
             VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
-            _ -> VSucc v 
+            _ -> VSucc v
 vSucc = succSize
 
 -- "multiplication" of sizes

@@ -3,11 +3,11 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : ^ Size -> Set
-term  zero : .[i : Size] -> < zero i : Nat $i >
-term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
 type  Colist : ^(A : Set) -> ^ Size -> Set
-term  nil : .[A : Set] -> .[i : Size] -> < nil i : Colist A $i >
-term  cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < cons i y1 y2 : Colist A $i >
+term  Colist.nil : .[A : Set] -> .[i : Size] -> < Colist.nil i : Colist A $i >
+term  Colist.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < Colist.cons i y1 y2 : Colist A $i >
 term  length : .[i : Size] -> .[A : Set] -> Colist A i -> Nat i
 error during typechecking:
 checking type of length for admissibility

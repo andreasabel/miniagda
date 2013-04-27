@@ -3,18 +3,18 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : +(i : Size) -> Set
-term  zero : .[i : Size] -> < zero : Nat i >
-term  suc : .[i : Size] -> ^(jn : .[j < i] & Nat j) -> < suc jn : Nat i >
+term  Nat.zero : .[i : Size] -> < Nat.zero : Nat i >
+term  Nat.suc : .[i : Size] -> ^(jn : .[j < i] & Nat j) -> < Nat.suc jn : Nat i >
 type  Stream : ++(A : Set) -> -(i : Size) -> Set
-term  cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : .[j < i] -> Stream A j) -> < cons head tail : Stream A i >
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : .[j < i] -> Stream A j) -> < Stream.cons head tail : Stream A i >
 term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A i) -> A
-{ head [A] [i] (cons #head #tail) = #head
+{ head [A] [i] (Stream.cons #head #tail) = #head
 }
 term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A i) -> .[j < i] -> Stream A j
-{ tail [A] [i] (cons #head #tail) = #tail
+{ tail [A] [i] (Stream.cons #head #tail) = #tail
 }
 term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> Stream A i
-{ repeat [A] a [i] = cons a ([\ j ->] repeat [A] a [j])
+{ repeat [A] a [i] = Stream.cons a ([\ j ->] repeat [A] a [j])
 }
 error during typechecking:
 lsc

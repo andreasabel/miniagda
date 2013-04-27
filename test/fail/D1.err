@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  D : Set
-term  abs : ^(y0 : ^ D -> D) -> < abs y0 : D >
+term  D.abs : ^(y0 : ^ D -> D) -> < D.abs y0 : D >
 warning: ignoring error: polarity check ++ <= - failed
 warning: ignoring error: polarity check ++ <= + failed
 term  app : ^ D -> ^ D -> D

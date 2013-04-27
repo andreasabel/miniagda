@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Exists : ^(A : Set) -> ++(B : A -> Set) -> Set
-term  exI : .[A : Set] -> .[B : A -> Set] -> ^(witness : A) -> ^(proof : B witness) -> < exI witness proof : Exists A B >
+term  Exists.exI : .[A : Set] -> .[B : A -> Set] -> ^(witness : A) -> ^(proof : B witness) -> < Exists.exI witness proof : Exists A B >
 term  witness : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> A
-{ witness [A] [B] (exI #witness #proof) = #witness
+{ witness [A] [B] (Exists.exI #witness #proof) = #witness
 }
 term  proof : .[A : Set] -> .[B : A -> Set] -> (exI : Exists A B) -> B (witness [A] [B] exI)
-{ proof [A] [B] (exI #witness #proof) = #proof
+{ proof [A] [B] (Exists.exI #witness #proof) = #proof
 }
 type  Foo : Set
-term  foo : ^(y0 : Exists Foo (\ x -> Foo)) -> < foo y0 : Foo >
+term  Foo.foo : ^(y0 : Exists Foo (\ x -> Foo)) -> < Foo.foo y0 : Foo >
 error during typechecking:
 checking positivity
 /// polarity check ++ <= ^ failed

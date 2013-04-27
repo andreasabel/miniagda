@@ -3,22 +3,22 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  true : < true : Bool >
-term  false : < false : Bool >
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
 type  Nat : ^ Bool -> Set
-term  zero : < zero : Nat true >
-term  succ : .[b : Bool] -> ^(y1 : Nat b) -> < succ b y1 : Nat false >
-term  f : (b : Bool) -> .[Nat b] -> Nat false
+term  Nat.zero : < Nat.zero : Nat Bool.true >
+term  Nat.succ : .[b : Bool] -> ^(y1 : Nat b) -> < Nat.succ b y1 : Nat Bool.false >
+term  f : (b : Bool) -> .[Nat b] -> Nat Bool.false
 error during typechecking:
 f
 /// clause 2
 /// right hand side
-/// checkExpr 2 |- succ false (succ b n) : Nat false
-/// checkForced fromList [(n,1),(b,0)] |- succ false (succ b n) : Nat false
-/// checkApp (^(y1 : (Nat false{})::()) -> < succ b y1 : Nat false >{b = false{}}) eliminated by succ b n
-/// checkExpr 2 |- succ b n : Nat false
-/// checkForced fromList [(n,1),(b,0)] |- succ b n : Nat false
-/// checkApp (^(y1 : (Nat v0)::()) -> < succ b y1 : Nat false >{b = v0}) eliminated by n
+/// checkExpr 2 |- succ false (succ b n) : Nat Bool.false
+/// checkForced fromList [(n,1),(b,0)] |- succ false (succ b n) : Nat Bool.false
+/// checkApp (^(y1 : (Nat Bool.false{})::()) -> < Nat.succ b y1 : Nat Bool.false >{b = Bool.false{}}) eliminated by succ b n
+/// checkExpr 2 |- succ b n : Nat Bool.false
+/// checkForced fromList [(n,1),(b,0)] |- succ b n : Nat Bool.false
+/// checkApp (^(y1 : (Nat v0)::()) -> < Nat.succ b y1 : Nat Bool.false >{b = v0}) eliminated by n
 /// inferExpr' n
 /// inferExpr: variable n : Nat b may not occur
 /// , because it is marked as erased

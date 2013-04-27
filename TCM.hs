@@ -172,7 +172,7 @@ data TCContext = TCContext
   , mutualFuns :: Map Name SigDef -- types of mutual funs while checking body
   , mutualCo :: Co                -- mutual block (co)recursive ?
   , checkingMutualName :: Maybe DefId -- which body of a mutual block am I checking?
-  , callStack :: [Name] -- ^ Used to avoid looping when going into recursive data definitions.
+  , callStack :: [QName] -- ^ Used to avoid looping when going into recursive data definitions.
   }
 
 instance Show TCContext where
@@ -735,7 +735,7 @@ instance MonadCxt TypeCheck where
                 cont bv xv (update rho y xv)
 -}
           ConP pi n pl -> do
-              sige <- lookupSymb n
+              sige <- lookupSymbQ n
               vc <- conLType n (typ dom)
               addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
                 pv0 <- mkConVal notDotted (coPat pi) n vpl vc
@@ -1024,7 +1024,7 @@ matchPatType (p,v) dom cont =
 
 -- input to and output of the type-checker
 
-type Signature = Map Name SigDef
+type Signature = Map QName SigDef
 
 -- a signature entry is either
 -- * a fun/cofun,
@@ -1097,16 +1097,16 @@ type ConPars = Maybe ([Name], [Pattern])
 -- | LHS type plus name of size index.
 type LHSType = Maybe (Name, TVal)
 
-isEmptyData :: Name -> TypeCheck Bool
+isEmptyData :: QName -> TypeCheck Bool
 isEmptyData n = do
-  sig <- lookupSymb n
+  sig <- lookupSymbQ n
   case sig of
     DataSig { constructors } -> return $ null constructors
     _ -> throwErrorMsg $ "internal error: isEmptyData " ++ show n ++ ": name of data type expected"
 
-isUnitData :: Name -> TypeCheck Bool
+isUnitData :: QName -> TypeCheck Bool
 isUnitData n = do
-  sig <- lookupSymb n
+  sig <- lookupSymbQ n
   case sig of
     DataSig { constructors = [c], isTuple } -> return $
       isTuple && null (cFields c) && cPatFam c == (LinearPatterns, [])
@@ -1114,7 +1114,7 @@ isUnitData n = do
     _ -> throwErrorMsg $ "internal error: isUnitData " ++ show n ++ ": name of data type expected"
 
 
-undefinedFType :: Name -> Expr
+undefinedFType :: QName -> Expr
 undefinedFType n = Irr
 -- undefinedFType n = error $ "no extracted type for " ++ show n
 
@@ -1142,15 +1142,27 @@ dataView tv = do
     VQuant Pi x dom env b         -> do
       new x dom $ \ xv -> dataView =<< whnf (update env x xv) b
 -}
-    VApp (VDef (DefId DatK n)) vs -> return $ Data n vs
+    VApp (VDef (DefId DatK n)) vs -> return $ Data (unqual n) vs
     VSing v dv                    -> dataView =<< whnfClos dv
     _                             -> return $ NoData
 
+-- | Disambiguate possibly overloaded constructor @c@ at given type @tv@.
+disambigCon ::  QName -> TVal -> TypeCheck QName
+disambigCon c tv =
+  case c of
+    Qual{}  -> return c
+    QName n -> do
+      dv <- dataView tv
+      case dv of
+        Data d _ -> return $ Qual d n
+        _ -> fail $ "cannot resolve constructor " ++ show n
+
 -- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
 --   with parameters instantiated.
-conType :: Name -> TVal -> TypeCheck TVal
+conType :: QName -> TVal -> TypeCheck TVal
 conType c tv = do
-  ConSig { conPars, symbTyp, dataName, dataPars } <- lookupSymb c
+  c <- disambigCon c tv
+  ConSig { conPars, symbTyp, dataName, dataPars } <- lookupSymbQ c
   instConType c conPars symbTyp dataName dataPars tv
 
 -- | Get LHS type of constructor.
@@ -1160,9 +1172,10 @@ conType c tv = do
 --   rhs @suc : [i : Size] -> Nat i -> Nat $i@
 --   lhs @suc : [i : Size] [j < i] -> Nat j -> Nat i@.
 --   In the lhs type, @i@ turns into an additional parameter.
-conLType :: Name -> TVal -> TypeCheck TVal
+conLType :: QName -> TVal -> TypeCheck TVal
 conLType c tv = do
-  ConSig { conPars, lhsTyp, symbTyp, dataName, dataPars } <- lookupSymb c
+  c <- disambigCon c tv
+  ConSig { conPars, lhsTyp, symbTyp, dataName, dataPars } <- lookupSymbQ c
   case lhsTyp of
     Nothing        -> instConType c conPars symbTyp dataName dataPars tv
     Just (x, lTyp) -> instConType c (fmap (inc x) conPars) lTyp dataName (dataPars+1) tv
@@ -1177,7 +1190,7 @@ conLType c tv = do
 --   @@
 --      instConType c n ((x1:A1..xn:An) -> B) d (d v1..vn ws) = B[vs/xs]
 --   @@
-instConType :: Name -> ConPars -> TVal -> Name -> Int -> TVal -> TypeCheck TVal
+instConType :: QName -> ConPars -> TVal -> Name -> Int -> TVal -> TypeCheck TVal
 instConType c conPars symbTyp dataName dataPars tv =
   instConLType' c conPars symbTyp Nothing (Just dataName) dataPars tv
 {-
@@ -1207,12 +1220,12 @@ instConType c numPars symbTyp dataName tv = do
 --   uses the lhs type @ltv@ unless the variable instantiated for
 --   the size argument is flexible (because then it wants to be
 --   unified with the successor pattern of the rhs type.
-instConLType :: Name -> ConPars -> TVal -> LHSType -> (Val -> Bool) -> Int -> TVal -> TypeCheck TVal
+instConLType :: QName -> ConPars -> TVal -> LHSType -> (Val -> Bool) -> Int -> TVal -> TypeCheck TVal
 instConLType c conPars rhsTyp lhsTyp isFlex dataPars dataTyp =
   instConLType' c conPars rhsTyp (fmap (,isFlex) lhsTyp) Nothing dataPars dataTyp
 
 -- | The common pattern behind @instConType@ and @instConLType@.
-instConLType' :: Name -> ConPars -> TVal -> Maybe ((Name, TVal), Val -> Bool) -> Maybe Name -> Int -> TVal -> TypeCheck TVal
+instConLType' :: QName -> ConPars -> TVal -> Maybe ((Name, TVal), Val -> Bool) -> Maybe Name -> Int -> TVal -> TypeCheck TVal
 instConLType' c conPars symbTyp isSized md dataPars tv =
   enter ("instConLType'") $ do
   let failure = failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1277,11 +1290,26 @@ instConLType' c conPars symbTyp isSized md dataPars tv =
 -- Signature specification -------------------------------------------
 
 class MonadCxt m => MonadSig m where
-  lookupSymbTyp :: Name -> m TVal
-  lookupSymb    :: Name -> m SigDef
-  addSig        :: Name -> SigDef -> m ()
-  modifySig     :: Name -> (SigDef -> SigDef) -> m ()
-  setExtrTyp    :: Name -> Expr -> m ()
+  lookupSymbTypQ :: QName -> m TVal
+  lookupSymbQ    :: QName -> m SigDef
+  addSigQ        :: QName -> SigDef -> m ()
+  modifySigQ     :: QName -> (SigDef -> SigDef) -> m ()
+  setExtrTypQ    :: QName -> Expr -> m ()
+
+  lookupSymbTyp  :: Name -> m TVal
+  lookupSymbTyp  = lookupSymbTypQ . QName
+
+  lookupSymb     :: Name -> m SigDef
+  lookupSymb     = lookupSymbQ . QName
+
+  addSig         :: Name -> SigDef -> m ()
+  addSig         = addSigQ . QName
+
+  modifySig      :: Name -> (SigDef -> SigDef) -> m ()
+  modifySig      = modifySigQ . QName
+
+  setExtrTyp     :: Name -> Expr -> m ()
+  setExtrTyp     = setExtrTypQ . QName
 
 -- Signature implementation ------------------------------------------
 
@@ -1293,37 +1321,43 @@ instance MonadSig TypeCheck where
     mdom <- errorToMaybe $ lookupName1 n
     case mdom of
       Just (CxtEntry dom udec) -> return (typ dom)
-      Nothing -> do
-        entry <- lookupSymb n
-        return $ symbTyp entry
+      Nothing -> symbTyp <$> lookupSymb n
+
+  lookupSymbTypQ (QName n) = lookupSymbTyp n
+  lookupSymbTypQ n@Qual{}  = symbTyp <$> lookupSymbQ n
 
   -- lookupSymb :: Name -> TypeCheck SigDef
   lookupSymb n = do
     cxt <- ask
     case Map.lookup n (mutualFuns cxt) of
-      Just k -> return $ k
-      Nothing -> do
-        sig <- gets signature
-        lookupSig n sig
-          where
-            -- lookupSig :: Name -> Signature -> TypeCheck SigDef
-            lookupSig n sig =
-              case (Map.lookup n sig) of
-                Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
-                Just k -> return k
+      Just k  -> return $ k
+      Nothing -> lookupSymbInSig (QName n)
+
+  lookupSymbQ (QName n) = lookupSymb n
+  lookupSymbQ n@Qual{}  = lookupSymbInSig n
 
   -- addSig :: Name -> SigDef -> TypeCheck ()
-  addSig n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
+  addSigQ n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
     st <- get
     put $ st { signature = Map.insert n def $ signature st }
 
   -- modifySig :: Name -> (SigDef -> SigDef) -> TypeCheck ()
-  modifySig n f = do
+  modifySigQ n f = do
     st <- get
     put $ st { signature = Map.adjust f n $ signature st }
 
   -- setExtrTyp :: Name -> Expr -> TypeCheck ()
-  setExtrTyp n t = modifySig n (\ d -> d { extrTyp = t })
+  setExtrTypQ n t = modifySigQ n (\ d -> d { extrTyp = t })
+
+lookupSymbInSig :: QName -> TypeCheck SigDef
+lookupSymbInSig n = lookupSig n =<< gets signature
+    where
+      -- lookupSig :: Name -> Signature -> TypeCheck SigDef
+      lookupSig n sig =
+        case (Map.lookup n sig) of
+          Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
+          Just k -> return k
+
 
 -- more on the type checking monad -------------------------------
 

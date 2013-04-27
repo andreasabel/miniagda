@@ -278,7 +278,7 @@ extractConstructor tel0 (Constructor n pars t) = do
   let tel = tel0
   -- compute full extracted constructor type and add to the signature
   t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t)
-  setExtrTyp n t'
+  setExtrTypQ n t'
   let (tel',core) = typeToTele' (length tel) t'
   return $ Constructor n pars core
   -- compute type minus telescope
@@ -363,9 +363,9 @@ extractPattern' av p cont =
             cont [ConP pi n ps]
         _ -> cont []
 
-extrConType :: Name -> FTVal -> TypeCheck FTVal
+extrConType :: QName -> FTVal -> TypeCheck FTVal
 extrConType c av = do
-  ConSig { conPars, extrTyp, dataPars } <- lookupSymb c
+  ConSig { conPars, extrTyp, dataPars } <- lookupSymbQ c
   traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
   tv <- whnf' extrTyp
   numPars <- maybe (return dataPars) (const $ fail $ "NYI: extrConType for pattern parameters") conPars
@@ -374,7 +374,7 @@ extrConType c av = do
    _ -> do
     case av of
       VApp (VDef (DefId DatK d)) vs -> do
-        DataSig { positivity } <- lookupSymb d
+        DataSig { positivity } <- lookupSymbQ d
         traceExtrM ("extrConType " ++ show c ++ "; data type has positivity = " ++ show positivity)
         let pars 0 pols vs = []
             pars n (pol:pols) vs | erased pol = VIrr : pars (n-1) pols vs
@@ -409,7 +409,7 @@ extractInfer e = do
         Arrow av bv -> return (if er then f else App f e, bv)
         NotFun -> return (if er then f else castExpr f `App` e, VIrr)
 
-    Def f -> (Def f,) <$> do (whnf' . extrTyp) =<< lookupSymb (name f)
+    Def f -> (Def f,) <$> do (whnf' . extrTyp) =<< lookupSymbQ (idName f)
 
     Pair{} -> fail $ "extractInfer: IMPOSSIBLE: pair " ++ show e
     -- other expressions are erased or types
@@ -634,7 +634,7 @@ extractTypeAt k tv = do
             return $ Quant Pi (TBind x (defaultIrrDom k')) b
 
     (VApp (VDef (DefId DatK n)) vs, _) -> do
-      k  <- extrTyp <$> lookupSymb n  -- get kind of dname from signature
+      k  <- extrTyp <$> lookupSymbQ n  -- get kind of dname from signature
       as <- extractTypes k vs  -- turn vs into types as at kind k
       return $ foldl App (Def (DefId DatK n)) as
 

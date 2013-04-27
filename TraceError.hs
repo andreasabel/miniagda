@@ -16,20 +16,21 @@ instance Error TraceError where
 
 instance Show TraceError where
     show (Err str) = str
-    show (TrErr str err) = str ++ "\n/// " ++ show err 
+    show (TrErr str err) = str ++ "\n/// " ++ show err
 
-throwErrorMsg m = throwError (Err m) 
+throwErrorMsg m = throwError (Err m)
 
 -- newErrorMsg :: (MonadError TraceError m) => m a -> String -> m a
 newErrorMsg c s = c `catchError` (\ _ -> throwErrorMsg s)
 -- addErrorMsg c s = c `catchError` (\ s' -> throwErrorMsg (s' ++ "\n" ++ s))
 
 -- extend the current error message by n
-throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e) 
+throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e)
 enter n x = throwTrace x n
 enterTrace n x = trace n $ throwTrace x n
+enterShow n = enter (show n)
 
-enterDoc :: (MonadError TraceError m, Pretty d) => m d -> m a -> m a 
+enterDoc :: (MonadError TraceError m, Pretty d) => m d -> m a -> m a
 enterDoc md cont = do
   d <- md
   enter (render (pretty d)) cont
@@ -52,7 +53,7 @@ boolToErrorDoc d False = failDoc d
 
 boolToError :: (Monad m) => String -> Bool -> m ()
 boolToError msg True  = return ()
-boolToError msg False = fail msg 
+boolToError msg False = fail msg
 
 instance MonadError () Maybe where
   catchError Nothing k = k ()
@@ -90,7 +91,7 @@ class Monad m => MonadAssert m where
 assert' :: (MonadIO m) => AssertionHandling -> Bool -> String -> m a -> m a
 assert' Ignore b s k = k
 assert' h True s k = k
-assert' Warning False s k = do 
+assert' Warning False s k = do
   liftIO $ putStrLn s
   k
 assert' Failure False s k = fail s

@@ -3,8 +3,8 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Bool : Set
-term  tt : < tt : Bool >
-term  ff : < ff : Bool >
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
 term  bad'' : .[Size] -> Bool
 error during typechecking:
 bad''

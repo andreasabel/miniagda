@@ -3,7 +3,7 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 ty-u  WrapSize : Set 1
-term  inn : .[out : Size] -> < inn out : WrapSize >
+term  WrapSize.inn : .[out : Size] -> < WrapSize.inn out : WrapSize >
 size  out : (inn : WrapSize) -> Size
 error during typechecking:
 WrapSize

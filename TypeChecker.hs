@@ -86,22 +86,21 @@ echo = liftIO . putStrLn
 echoR = echo
 -- echoR s = echo $ "R> " ++ s
 
-echoTySig :: MonadIO m => Name -> Expr -> m ()
+echoTySig :: (Show n, MonadIO m) => n -> Expr -> m ()
 echoTySig n t = return () -- echo $ "I> " ++ n ++ " : " ++ show t
 
-echoKindedTySig :: MonadIO m => Kind -> Name -> Expr -> m ()
+echoKindedTySig :: (Show n, MonadIO m) => Kind -> n -> Expr -> m ()
 echoKindedTySig ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " : " ++ show t
 
-echoKindedDef :: MonadIO m => Kind -> Name -> Expr -> m ()
+echoKindedDef :: (Show n, MonadIO m) => Kind -> n -> Expr -> m ()
 echoKindedDef ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " = " ++ show t
-
 
 echoEPrefix = "E> "
 
-echoTySigE :: MonadIO m => Name -> Expr -> m ()
+echoTySigE :: (Show n, MonadIO m) => n -> Expr -> m ()
 echoTySigE n t = echo $ echoEPrefix ++ show n ++ " : " ++ show t
 
-echoDefE :: MonadIO m => Name -> Expr -> m ()
+echoDefE :: (Show n, MonadIO m) => n -> Expr -> m ()
 echoDefE n t = echo $ echoEPrefix ++ show n ++ " = " ++ show t
 
 -- the type checker returns pruned (extracted) terms
@@ -138,14 +137,14 @@ typeCheckDeclaration (OverrideDecl Impredicative ds) =
 
 typeCheckDeclaration (RecordDecl n tel t0 c fields) =
   -- just one "mutual" declaration
-  checkingMutual (Just $ DefId DatK n) $ do
+  checkingMutual (Just $ DefId DatK $ QName n) $ do
     result <- typeCheckDataDecl n NotSized CoInd [] tel t0 [c] fields
     checkPositivityGraph
     return result
 
 typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) =
   -- just one "mutual" declaration
-  checkingMutual (Just $ DefId DatK n) $ do
+  checkingMutual (Just $ DefId DatK $ QName n) $ do
     result <- typeCheckDataDecl n sz co pos0 tel t0 cs fields
     checkPositivityGraph
     return result
@@ -164,7 +163,7 @@ typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
   -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
   let v = mkClos rho ee -- delay whnf computation
   -- v  <- whnf' ee -- WAS: whnf' e'
-  addSig n (LetSig vt ki v $ undefinedFType n)    -- late (var -> expr) binding, but ok since no shadowing
+  addSig n (LetSig vt ki v $ undefinedFType $ QName n)    -- late (var -> expr) binding, but ok since no shadowing
 --  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
   echoKindedTySig ki n te
 --  echoTySigE n te
@@ -241,11 +240,11 @@ typeCheckMutualSig d = fail $ "typeCheckMutualSig: panic: unexpected declaration
 typeCheckMutualBody :: Bool -> Kind -> Declaration -> TypeCheck [EDeclaration]
 typeCheckMutualBody measured _ (DataDecl n sz co pos tel t cs fields) = do
   -- set name of mutual thing whose body we are checking
-  checkingMutual (Just $ DefId DatK n) $
+  checkingMutual (Just $ DefId DatK $ QName n) $
     --
     typeCheckDataDecl n sz co pos tel t cs fields
 typeCheckMutualBody measured@False ki (FunDecl co fun@(Fun ts@(TypeSig n t) n' ar cls)) = do
-  checkingMutual (Just $ DefId FunK n) $ do
+  checkingMutual (Just $ DefId FunK $ QName n) $ do
     fun' <- typeCheckFunBody co ki fun
     return $ [FunDecl co fun']
 
@@ -497,7 +496,7 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
 
   -- Add the type constructor to the signature.
   let cpars = fmap (mapFst (map boundName)) mctel -- deletes types, keeps names
-  addSig n (ConSig cpars isSz recOccs vt d (length dtel) fType)
+  addSigQ n (ConSig cpars isSz recOccs vt d (length dtel) fType)
 --  let (tele, te) = typeToTele (length tel) tte -- NOT NECESSARY
   echoKindedTySig kTerm n tte
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki)
@@ -540,10 +539,10 @@ typeCheckMeasuredFuns co funs0 = do
     enableSig :: Co -> Kind -> Fun -> TypeCheck ()
     enableSig co ki (Fun (TypeSig n t) n' ar' cl') = do
       vt <- whnf' t
-      addSig n (FunSig co vt ki ar' cl' True $ undefinedFType n)
+      addSig n (FunSig co vt ki ar' cl' True $ undefinedFType $ QName n)
       -- add a let binding for external use
       v <- up False (vFun n) vt
-      addSig n' (LetSig vt ki v $ undefinedFType n')
+      addSig n' (LetSig vt ki v $ undefinedFType $ QName n')
 
 
 
@@ -609,7 +608,7 @@ addFunSig :: Co -> Kinded Fun -> TypeCheck ()
 addFunSig co (Kinded ki (Fun (TypeSig n t) n' ar cl)) = do
     sig <- gets signature
     vt <- whnf' t -- TODO: PROBLEM for internal extraction (would need te here)
-    addSig n (FunSig co vt ki ar cl False $ undefinedFType n) --not yet type checked / termination checked
+    addSig n (FunSig co vt ki ar cl False $ undefinedFType $ QName n) --not yet type checked / termination checked
 
 -- ADMCHECK FOR COFUN is not taking place in checking the lhs
 -- TODO: proper analysis for size patterns!
@@ -689,7 +688,7 @@ checkTarget :: Name -> TVal -> Telescope -> Type -> TypeCheck ()
 checkTarget d dv tel tg = do
   tv <- whnf' tg
   case tv of
-    VApp (VDef (DefId DatK n)) vs | n == d -> do
+    VApp (VDef (DefId DatK (QName n))) vs | n == d -> do
       telvs <- mapM (\ tb -> whnf' (Var (boundName tb))) tel
       enter ("checking datatype parameters in constructor target") $
         leqVals' N mixed (One dv) (take (length tel) vs) telvs
@@ -1118,7 +1117,7 @@ Following Awodey/Bauer 2001, the following rule is valid
 
           -- unfold defined patterns
           (h@(Def (DefId (ConK DefPat) c)), es) -> do
-             PatSig xs pat _ <- lookupSymb c
+             PatSig xs pat _ <- lookupSymbQ c
              let (xs1, xs2) = splitAt (length es) xs
                  phi x      = maybe (Var x) id $ lookup x (zip xs1 es)
                  body       = parSubst phi (patternToExpr pat)
@@ -1144,7 +1143,7 @@ Following Awodey/Bauer 2001, the following rule is valid
 
 -- | Check (partially applied) constructor term, eta-expand it and turn it
 --   into a named record.
-checkConTerm :: ConK -> Name -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
+checkConTerm :: ConK -> QName -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
 checkConTerm co c es v = do
   case v of
     VQuant Pi x dom env b -> do
@@ -1154,6 +1153,7 @@ checkConTerm co c es v = do
         Kinded ki ee <- checkConTerm co c (es ++ [Var y]) vb
         return $ Kinded ki $ Lam (decor dom) y ee
     _ -> do
+      c <- disambigCon c v
       tv <- conType c v
       (knes, dv) <- checkSpine es tv
       let ee = Record (NamedRec co c False notDotted) $ map valueOf knes
@@ -1491,8 +1491,8 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
 
 --      App e1 (e2:el) -> inferExpr $ (e1 `App` [e2]) `App` el
       -- 2012-01-22 no longer infer constructors
-      (Def id@(DefId {idKind, name})) | not (conKind idKind) -> do -- traceCheckM ("infer defined head " ++ show n)
-         mitem <- errorToMaybe $ lookupName1 name
+      (Def id@(DefId {idKind, idName = name})) | not (conKind idKind) -> do -- traceCheckM ("infer defined head " ++ show n)
+         mitem <- errorToMaybe $ lookupName1 $ unqual name
          case mitem of -- first check if it is also a var name
            Just item -> do -- we are inside a mutual declaration (not erased!)
              let pol  = (polarity $ decor $ domain item)
@@ -1508,7 +1508,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
                    leqPolM pol upol
              return (typ $ domain item, Kinded (kind $ domain item) $ e)
            Nothing -> -- otherwise, it is not the data type name just being defined
-                 do sige <- lookupSymb name
+                 do sige <- lookupSymbQ name
                     case sige of
                       -- data types have always kind Set 0!
                       (DataSig { symbTyp = tv }) -> return (tv, Kinded (symbolKind sige) e)
@@ -1922,6 +1922,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
 --          ConP pi n pl | not $ dottedPat pi -> do
           ConP pi n pl -> do
+
+                 -- disambiguate constructor first
+                 n <- disambigCon n av
+
                  let co     = coPat pi
                      dotted = dottedPat pi
 
@@ -2032,7 +2036,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -- TODO: ensure that matchings against erased arguments are forced
 --                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av
 
-                 ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
+                 ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymbQ n
 
                  -- the following is a hack to still support old-style
                  --   add .($ i) (zero i) ...
@@ -2058,7 +2062,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 
       -- These checks are only relevant if a constructor is an actual match.
       nonDottedConstructorChecks n co pl = do
-        ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymb n
+        ConSig {conPars, lhsTyp = sz, recOccs, symbTyp = vc, dataName, dataPars} <- lookupSymbQ n
 
         -- check that size argument of coconstr is dotted
         when (co == CoCons && isJust sz) $ do
@@ -2216,7 +2220,7 @@ unifyIndices flex v1 v2 = ask >>= \ cxt -> enterDoc (text ("unifyIndices " ++ sh
     (VSing _ v1, VApp (VDef (DefId DatK d2)) vl2) ->
       flip (unifyIndices flex) v2 =<< whnfClos v1
     (VApp (VDef (DefId DatK d1)) vl1, VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 -> do
-      (DataSig { numPars = np, symbTyp = tv, positivity = posl}) <- lookupSymb d1
+      (DataSig { numPars = np, symbTyp = tv, positivity = posl}) <- lookupSymbQ d1
       instList posl flex tv vl1 vl2 -- unify also parameters to solve dot patterns
     _ ->
 -- -}
@@ -2253,7 +2257,7 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
     -- injectivity of data type constructors is unsound in general
     (VApp (VDef (DefId DatK d1)) vl1,
      VApp (VDef (DefId DatK d2)) vl2) | d1 == d2 ->  do
-         (DataSig { numPars, symbTyp = tv, positivity = posl }) <- lookupSymb d1
+         (DataSig { numPars, symbTyp = tv, positivity = posl }) <- lookupSymbQ d1
          instList' numPars posl flex tv vl1 vl2
            -- ignore parameters (first numPars args)
            -- this is sound because we have irrelevance for parameters
@@ -2263,7 +2267,7 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
     (VRecord (NamedRec _ c1 _ dot1) rs1,
      VRecord (NamedRec _ c2 _ dot2) rs2) | c1 == c2 -> do
          alignDotted dot1 dot2
-         sige <- lookupSymb c1
+         sige <- lookupSymbQ c1
          instList [] flex (symbTyp sige) (map snd rs1) (map snd rs2)
 
     (VSucc v1',     VSucc v2')     -> instWh pos flex tv v1' v2'
@@ -2562,7 +2566,7 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
    case tv of
 
      {- case D pars sizeArg args -}
-     VApp (VDef (DefId DatK m)) vl | n == m -> do
+     VApp (VDef (DefId DatK (QName m))) vl | n == m -> do
         v0 <- whnfClos $ vl !! p
         case v0 of
           (VGen i') | i' == i  -> do
@@ -2785,7 +2789,7 @@ lowerSemiContinuous i av = do
       new x dom $ \ xv -> lowerSemiContinuous i =<< whnf (update env x xv) b
 
     VApp (VDef (DefId DatK n)) vl -> do
-      sige <- lookupSymb n
+      sige <- lookupSymbQ n
       case sige of
 
         -- finite tuple type
@@ -2877,7 +2881,7 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
 
       VSing _ tv -> endsInSizedCo' endInCo i =<< whnfClos tv
       VApp (VDef (DefId DatK n)) vl -> do
-         sige <- lookupSymb n
+         sige <- lookupSymbQ n
          case sige of
             DataSig { numPars = np, isSized = Sized, isCo = CoInd }
               | length vl > np -> do
@@ -2999,7 +3003,7 @@ endsInCo tv  = -- traceCheck ("endsInCo: " ++ show tv) $
 -}
 
       VApp (VDef (DefId DatK n)) vl -> do
-         sige <- lookupSymb n
+         sige <- lookupSymbQ n
          case sige of
             DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return True
@@ -3058,7 +3062,7 @@ szUsed :: Co -> Int -> TVal -> TypeCheck Bool
 szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++ show i) $
     case tv of
          (VApp (VDef (DefId DatK n)) vl) ->
-             do sige <- lookupSymb n
+             do sige <- lookupSymbQ n
                 case sige of
                   DataSig { numPars = p
                           , isSized = Sized
@@ -3201,7 +3205,7 @@ admEndsInCo tv firstVar jobs = -- traceCheck ("admEndsInCo: " ++ show tv) $
 -}
 
       VApp (VDef (DefId DatK n)) vl -> do
-         sige <- lookupSymb n
+         sige <- lookupSymbQ n
          case sige of
             DataSig { isSized = NotSized, isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
                return CoFun
@@ -3309,7 +3313,7 @@ szUsed' :: Co -> Int -> TVal -> TypeCheck ()
 szUsed' co i tv =
     case tv of
          (VApp (VDef (DefId DatK n)) vl) ->
-             do sige <- lookupSymb n
+             do sige <- lookupSymbQ n
                 case sige of
                   DataSig { numPars = p, isSized = Sized, isCo =  co' } | co == co' && length vl > p ->
                       -- p is the number of parameters

@@ -3,15 +3,15 @@ MiniAgda by Andreas Abel and Karl Mehltretter
 --- scope checking ---
 --- type checking ---
 type  Nat : + Size -> Set
-term  zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
-term  zero : .[i : Size] -> < zero i : Nat $i >
-term  succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
-term  succ : .[i : Size] -> ^(y1 : Nat i) -> < succ i y1 : Nat $i >
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
 term  foo : .[i : Size] -> Nat i
 {}
 type  foo2 : (i : Size) -> Nat $i -> Set
-{ foo2 i (zero [.i]) = foo2 # (zero [#])
-; foo2 i (succ [.i] x) = Nat #
+{ foo2 i (Nat.zero [.i]) = foo2 # (Nat.zero [#])
+; foo2 i (Nat.succ [.i] x) = Nat #
 }
 error during typechecking:
 Termination check for function foo2 fails 

@@ -98,12 +98,12 @@ emptyCtx = []
 
 newLocal :: Push Local b => C.Name -> b -> (A.Name, b)
 newLocal n cxt = (x, push (n, x) cxt)
-  where x = A.fresh n
+  where x = A.fresh $ C.theName n
 
 lookupLocal :: C.Name -> ScopeCheck (Maybe A.Name)
 lookupLocal n = retrieve n <$> asks stack
 
-lookupGlobal :: C.Name -> ScopeCheck (Maybe DefI)
+lookupGlobal :: C.QName -> ScopeCheck (Maybe DefI)
 lookupGlobal n = lookupSig n <$> getSig
 
 addContext :: Context -> SCCxt -> SCCxt
@@ -120,15 +120,18 @@ data IKind
   | LetK
 
 -- | Global identifier.
-data DefI = DefI { ikind :: IKind, aname :: A.Name }
+data DefI = DefI { ikind :: IKind, aname :: A.QName }
 
 -- | Scope check signature.
-type Sig = [(C.Name,DefI)]
+type Sig = [(C.QName,DefI)]
 
 emptySig :: Sig
 emptySig = []
 
-lookupSig :: C.Name -> Sig -> Maybe DefI
+lookupSigU :: C.Name -> Sig -> Maybe DefI
+lookupSigU n = lookupSig (C.QName n)
+
+lookupSig :: C.QName -> Sig -> Maybe DefI
 lookupSig n [] = Nothing
 lookupSig n ((x,k):xs) = if (x == n) then Just k else lookupSig n xs
 
@@ -213,16 +216,33 @@ getSig = ScopeCheck $ gets signature
 addName :: IKind -> C.Name -> ScopeCheck A.Name
 addName k n = do
   sig <- getSig
-  when (isJust (lookupSig n sig)) $
+  when (isJust (lookupSig (C.QName n) sig)) $
     errorAlreadyInSignature "shadowing of global definitions forbidden" n
-  let x = A.fresh n
-  addAName k n x
+  let x = A.fresh $ C.theName n
+  addANameU k n x
   return x
 
+-- addNameU :: IKind -> C.Name -> ScopeCheck A.Name
+-- addNameU k n = A.unqual <$> addName k (C.QName n)
+
 -- | Add an already translated global identifier.
-addAName :: IKind -> C.Name -> A.Name -> ScopeCheck ()
+addAName :: IKind -> C.QName -> A.QName -> ScopeCheck ()
 addAName k n x = ScopeCheck $ modify $ \ st ->
   st { signature = (n, DefI k x) : signature st }
+
+addANameU :: IKind -> C.Name -> A.Name -> ScopeCheck ()
+addANameU ki n x = addAName ki (C.QName n) (A.QName x)
+
+-- | Add or reuse an unqualified name.
+overloadName :: IKind -> C.Name -> ScopeCheck A.Name
+overloadName k n = do
+  sig <- getSig
+  case lookupSigU n sig of
+    Nothing -> do
+      let x = A.fresh $ C.theName n
+      addANameU k n x
+      return x
+    Just (DefI k' (A.QName x)) -> return x
 
 {- UNUSED
 addDecl :: C.Declaration -> ScopeCheck A.Name
@@ -235,12 +255,12 @@ addFunDecl b (C.FunDecl _ ts _) = addTypeSig (FunK b) ts
 -}
 
 addTypeSig :: IKind -> C.TypeSig -> A.TypeSig -> ScopeCheck ()
-addTypeSig kind (C.TypeSig n _) (A.TypeSig x _) = addAName kind n x
+addTypeSig kind (C.TypeSig n _) (A.TypeSig x _) = addANameU kind n x
 
 {- UNUSED
 -- | Add a global identifier.  Fail if already in signature.
 addGlobal :: Show d => d -> IKind -> C.Name -> ScopeCheck A.Name
-addGlobal d k n = enter n $ do
+addGlobal d k n = enterShow n $ do
   sig <- getSig
   case lookupSig n sig of
     Just _  -> errorAlreadyInSignature d n
@@ -354,10 +374,10 @@ scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
         undeclaredNames = usedNames \\ ns
     when (not (null unusedNames)) $ throwErrorMsg $
       errorHead ++ "unsed variables in pattern: "
-        ++ Util.showList " " id unusedNames
+        ++ Util.showList " " show unusedNames
     when (not (null undeclaredNames)) $ throwErrorMsg $
       errorHead ++ "undeclared variables in pattern: "
-        ++ Util.showList " " id undeclaredNames
+        ++ Util.showList " " show undeclaredNames
   --  when (n `elem` ns) $ throwErrorMsg $ errorHead ++ "pattern"
   x <- addName (ConK DefPat) n
   let xs = map (fromJust . flip lookup delta) ns
@@ -413,7 +433,7 @@ scopeCheckMutual ds0 = do
   ds' <- mapM (setDefaultPolarity A.Rec . checkBody) (zip tsigs' ds)
   -- switch back to external fun ids
   let funNames = [ x | A.FunDecl _ (A.Fun _ x _ _) <- ds' ] -- external fun names
-  zipWithM_ (addAName (LetK)) ns funNames
+  zipWithM_ (addANameU (LetK)) ns funNames
 --  zipWithM_ (addAName (FunK True)) ns funNames
   return $ A.MutualDecl measured ds'
 
@@ -487,16 +507,16 @@ mutualGetTypeSig (C.OverrideDecl _ [d]) =
 
 scopeCheckRecordDecl :: C.Name -> C.Telescope -> C.Type -> C.Constructor -> [C.Name] ->
   ScopeCheck A.Declaration
-scopeCheckRecordDecl n tel t c cfields = enter n $ do
+scopeCheckRecordDecl n tel t c cfields = enterShow n $ do
   setDefaultPolarity A.Param $ do
     tel <- generalizeTel tel
     -- STALE COMMENT: we do not infer at all: -- do not infer polarities in index arguments
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
-    addAName DataK n x
+    addANameU DataK n x
     let names = collectTelescopeNames tel
-        target = C.App (C.Ident n) (map C.Ident names)  -- R pars
+        target = C.App (C.ident n) (map C.ident names)  -- R pars
         (tel',t') = A.typeToTele' (length names) tt'
-    c' <- scopeCheckConstructor n (zipTels tel tel') A.CoInd target c
+    c' <- scopeCheckConstructor n x (zipTels tel tel') A.CoInd target c
     let delta = contextFromConstructors c c'
     afields <- addFields ProjK delta cfields
     return $ A.RecordDecl x tel' t' c' afields
@@ -516,25 +536,25 @@ scopeCheckField delta n =
 addFields :: IKind -> Context -> [C.Name] -> ScopeCheck [A.Name]
 addFields kind delta cfields = do
     afields <- mapM (scopeCheckField delta) cfields
-    mapM (uncurry $ addAName kind) $ zip cfields afields
+    mapM (uncurry $ addANameU kind) $ zip cfields afields
     return afields
 
 scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
-scopeCheckDataDecl decl@(C.DataDecl n sz co tel0 t cs fields) = enter n $ do
+scopeCheckDataDecl decl@(C.DataDecl n sz co tel0 t cs fields) = enterShow n $ do
   setDefaultPolarity A.Param $ do
     tel <- generalizeTel tel0
     -- STALE: -- do not infer polarities in index arguments
     (A.TypeSig x tt') <- scopeCheckTypeSig (C.TypeSig n $ C.teleToType tel t)
-    addAName DataK n x
+    addANameU DataK n x
     checkDataBody tt' n x sz co tel cs fields
 
 -- precondition: name already added to signature
 checkDataBody :: A.Type -> C.Name -> A.Name -> Sized -> Co -> C.Telescope -> [C.Constructor] -> [C.Name] -> ScopeCheck A.Declaration
 checkDataBody tt' n x sz co tel cs fields = do
       let cnames = collectTelescopeNames tel         -- parameters
-          target = C.App (C.Ident n) $ map C.Ident cnames  -- D pars
+          target = C.App (C.ident n) $ map C.ident cnames  -- D pars
           (tel',t') = A.typeToTele' (length cnames) tt'
-      cs' <- mapM (scopeCheckConstructor n (zipTels tel tel') co target) cs
+      cs' <- mapM (scopeCheckConstructor n x (zipTels tel tel') co target) cs
 {- NO LONGER INFER DESTRUCTORS
       -- traceM ("constructors: " ++ show cs')
 --      when (t' == A.Sort A.Set && length cs' == 1) $ do
@@ -585,12 +605,12 @@ scopeCheckFunDecls co l = do
   --let addFuns b = mapM (uncurry $ addAName $ FunK b) nxs
 --  let addFuns b = mapM (\ (n,x) -> addAName (FunK b) n x) nxs
   -- addFuns False
-  mapM (uncurry $ addAName $ FunK False) nxs
+  mapM (uncurry $ addANameU $ FunK False) nxs
   arcll' <- mapM (setDefaultPolarity A.Rec . scopeCheckFunClauses) l
   -- add names as external ids
   --addFuns True
   let nxs' = map (mapPair id A.mkExtName) nxs
-  mapM (uncurry $ addAName (LetK)) nxs'
+  mapM (uncurry $ addANameU (LetK)) nxs'
 --  mapM (uncurry $ addAName (FunK True)) nxs'
   return $ A.MutualFunDecl (isJust ml) co $
     zipWith3 (\ ts (_, x') (ar, cls) -> A.Fun ts x' ar cls) tsl' nxs' arcll'
@@ -642,14 +662,17 @@ findMeasure tel =
 -- | Check whether concrete name is already in signature.
 --   If yes, fail. If no, create abstract name and continue.
 checkInSig :: Show d => d -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck a
-checkInSig d n k = enter n $ do
+checkInSig d n k = enterShow n $ do
   sig <- getSig
-  case lookupSig n sig of
+  case lookupSig (C.QName n) sig of
     Just _  -> errorAlreadyInSignature d n
-    Nothing -> k (A.fresh n)
+    Nothing -> k (A.fresh $ C.theName n)
+
+-- checkInSigU :: Show d => d -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck a
+-- checkInSigU d n k = checkInSig d (C.QName n) (k . A.unqual)
 
 scopeCheckFunClauses :: C.Declaration -> ScopeCheck (Arity, [A.Clause])
-scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) cl) = enter n $ do
+scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) cl) = enterShow n $ do
   cl <- mapM (scopeCheckClause (Just n)) cl
   let m = if null cl then 0 else
        List.foldl1 min $ map (length . A.clPatterns) cl
@@ -686,21 +709,33 @@ checkAndAddTypeSig (kind, ts@(C.TypeSig n _)) = do
         return (Just mi, ts)
 -}
       _ -> (Nothing,) <$> scopeCheckTypeSig ts
-  addAName kind n x  -- or: addTypeSig kind ts ts'
+  addANameU kind n x  -- or: addTypeSig kind ts ts'
   return (mm, ts')
 
 collectTelescopeNames :: C.Telescope -> [C.Name]
 collectTelescopeNames = concat . map C.boundNames
 
+-- | Check whether concrete name is already in signature.
+--   If yes, fail. If no, create abstract name and continue.
+checkConsInSig :: Show decl => decl -> C.Name -> A.Name -> IKind -> C.Name -> (A.QName -> ScopeCheck a) -> ScopeCheck a
+checkConsInSig decl d dx ki n cont = enterShow n $ do
+  -- first check whether the datatype has this constructor already
+  ifJustM (lookupSig (C.Qual d n) <$> getSig) (const $ errorAlreadyInSignature decl n) $ do
+  -- then check the overloaded name and possibly add it
+  x <- overloadName ki n
+  -- the qualified name is added in the continuation
+  cont $ A.Qual dx x
+
 -- | @cxt@ is the data telescope.
-scopeCheckConstructor :: C.Name -> Context -> Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
-scopeCheckConstructor d cxt co t0 a@(C.Constructor n tel mt) =
-  checkInSig a n $ \ x -> do
+scopeCheckConstructor :: C.Name -> A.Name -> Context -> Co -> C.Type -> C.Constructor -> ScopeCheck A.Constructor
+scopeCheckConstructor d dx cxt co t0 a@(C.Constructor n tel mt) = do
+  let ki = ConK $ A.coToConK co
+  checkConsInSig a d dx ki n $ \ x -> do
 
   let finish t mcxt = local (addContext $ maybe cxt id mcxt) $ do
        t <- setDefaultPolarity A.Param $ scopeCheckExpr $ C.teleToType tel t
        t <- adjustTopDecsM defaultToParam t
-       addAName (ConK $ A.coToConK co) n x
+       addAName ki (C.Qual d n) x
        let dummyDom = A.Domain A.Irr A.NoKind $ A.Dec Param
            mtel     = fmap (map (\ (n,x) -> A.TBind x dummyDom)) mcxt
            ps       = [] -- patterns computed during type checking
@@ -729,8 +764,8 @@ scopeCheckConstructor d cxt co t0 a@(C.Constructor n tel mt) =
             finish t . Just =<< parameterVariables pars
 
       case target of
-        C.Ident d'            -> continue d' []
-        C.App (C.Ident d') es -> continue d' es
+        C.Ident (C.QName d')            -> continue d' []
+        C.App (C.Ident (C.QName d')) es -> continue d' es
         _ -> fallback -- errorTargetMustBeAppliedName n target
 
 {- OLD CODE
@@ -742,8 +777,8 @@ scopeCheckConstructor ctel atel co t0 a@(C.Constructor n tel mt) = addTel ctel a
     addAName (ConK $ A.coToConK co) n x
     return $ A.TypeSig x t
 -}
-  where isTelPar (c,_) (C.Ident x) = c == x
-        isTelPar _     _           = False
+  where isTelPar (c,_) (C.Ident (C.QName x)) = c == x
+        isTelPar _     _                     = False
         defaultToParam dec = case (A.polarity dec) of
           A.Default -> return $ dec { A.polarity = A.Param }
           A.Param   -> return dec
@@ -831,24 +866,30 @@ scopeCheckExpr' e =
 
       C.Proj n -> A.Proj Post <$> scopeCheckProj n
 
-      C.Ident n -> do
-        res <- lookupLocal n
+      C.Ident n@C.Qual{} -> scopeCheckGlobalVar n
+
+      C.Ident n@C.QName{} -> do
+        res <- lookupLocal (C.name n)
         case res of
-          Just n -> return $ A.Var n
-          Nothing -> do
-            res <- lookupGlobal n
-            case res of
-             Just (DefI k x) -> case k of
-               (ConK co)  -> return $ A.con co x
-               LetK       -> return $ A.letdef x
-               -- references to recursive functions are coded differently
-               -- outside the mutual block
-               FunK True  -> return $ A.fun x -- A.letdef x -- A.mkExtRef x
-               FunK False -> return $ A.fun x
-               DataK      -> return $ A.dat x
-               ProjK      -> return $ A.Proj A.Pre x -- errorProjectionUsedAsExpression n
-             Nothing -> errorIdentifierUndefined n
+          Just x -> return $ A.Var x
+          Nothing -> scopeCheckGlobalVar n
+
       _ -> fail $ "NYI: scopeCheckExpr " ++ show e
+
+scopeCheckGlobalVar :: C.QName -> ScopeCheck A.Expr
+scopeCheckGlobalVar n = do
+  res <- lookupGlobal n
+  case res of
+    Just (DefI k x) -> case k of
+      (ConK co)  -> return $ A.con co x
+      LetK       -> return $ A.letdef (A.unqual x)
+      -- references to recursive functions are coded differently
+      -- outside the mutual block
+      FunK True  -> return $ A.fun x -- A.letdef x -- A.mkExtRef x
+      FunK False -> return $ A.fun x
+      DataK      -> return $ A.dat x
+      ProjK      -> return $ A.Proj A.Pre (A.unqual x) -- errorProjectionUsedAsExpression n
+    Nothing -> errorIdentifierUndefined n
 
 scopeCheckLocalVar :: C.Name -> ScopeCheck A.Name
 scopeCheckLocalVar n = maybe (errorIdentifierUndefined n) return =<< do
@@ -862,18 +903,18 @@ scopeCheckRecordLine (n : ns, e) = do
 scopeCheckProj :: C.Name -> ScopeCheck A.Name
 scopeCheckProj n = do
   sig <- getSig
-  case lookupSig n sig of
-    Just (DefI ProjK x) -> return x
+  case lookupSigU n sig of
+    Just (DefI ProjK x) -> return $ A.unqual x
     _                   -> errorNotAField n
 
 
 -- | @isProjIdent n = n@ if defined and the name of a projection.
-isProjIdent :: C.Name -> ScopeCheck (Maybe A.Name)
+isProjIdent :: C.QName -> ScopeCheck (Maybe A.Name)
 isProjIdent n = do
   sig <- getSig
   return $
     case lookupSig n sig of
-      Just (DefI ProjK x) -> Just x
+      Just (DefI ProjK x) -> Just $ A.unqual x
       _ -> Nothing
 
 isProjection :: C.Expr -> ScopeCheck (Maybe A.Name)
@@ -911,16 +952,16 @@ scopeCheckClause mname' (C.Clause mname pl mrhs) = do
 type PatCtx = Context
 type SPS = StateT PatCtx ScopeCheck
 
-scopeCheckPatVar :: C.Name -> SPS (A.Pat C.Name C.Expr)
+scopeCheckPatVar :: C.QName -> SPS (A.Pat C.Expr)
 scopeCheckPatVar n = do
       sig <- lift $ getSig
       case lookupSig n sig of
         Just (DefI (ConK co) n) -> return $ A.ConP (A.PatternInfo co False False) n []
                              -- a nullary constructor
         Just _  -> errorPatternNotConstructor n
-        Nothing -> A.VarP <$> addUnique n
+        Nothing -> A.VarP <$> addUnique (C.unqual n)
 
-scopeCheckPattern :: C.Pattern -> SPS (A.Pat C.Name C.Expr)
+scopeCheckPattern :: C.Pattern -> SPS (A.Pat C.Expr)
 scopeCheckPattern p =
   case p of
 
@@ -955,8 +996,8 @@ scopeCheckPattern p =
     C.ConP dotted n pl -> do
       sig <- lift $ getSig
       case lookupSig n sig of
-        Just (DefI (ConK co) n) ->
-          A.ConP (A.PatternInfo co False dotted) n <$> mapM scopeCheckPattern pl
+        Just (DefI (ConK co) x) ->
+          A.ConP (A.PatternInfo co False dotted) x <$> mapM scopeCheckPattern pl
         _  -> errorPatternNotConstructor n
 
     -- case .e
@@ -986,7 +1027,7 @@ addPatVar linear n = do
       put delta'
       return x
 
-scopeCheckDotPattern :: A.Pat C.Name C.Expr -> ScopeCheck A.Pattern
+scopeCheckDotPattern :: A.Pat C.Expr -> ScopeCheck A.Pattern
 scopeCheckDotPattern p =
     case p of
       A.DotP e -> A.DotP <$> scopeCheckExprN e
@@ -1032,36 +1073,36 @@ scopeCheckParameter e =
     scpField e ([f], e') = scopeCheckParameter e'
     scpField e _         = errorInvalidParameter e
 
-    scpApp :: C.Expr -> C.Name -> [C.Expr] -> SPS ()
+    scpApp :: C.Expr -> C.QName -> [C.Expr] -> SPS ()
     scpApp e n es = do
       sig <- lift $ getSig
       case lookupSig n sig of
         Just (DefI ConK{} n) -> mapM_ scopeCheckParameter es
         Just (DefI DataK  n) -> mapM_ scopeCheckParameter es
         Just _  -> errorInvalidParameter e
-        Nothing -> void $ addNonUnique n -- allow non-linearity
+        Nothing -> void $ addNonUnique (C.unqual n) -- allow non-linearity
 
 -- * Scope checking errors
 
-errorAlreadyInSignature s n = throwErrorMsg $ show s  ++ ": Identifier " ++ n ++ " already in signature"
+errorAlreadyInSignature s n = throwErrorMsg $ show s  ++ ": Identifier " ++ show n ++ " already in signature"
 
-errorAlreadyInContext s n = throwErrorMsg $ show s ++ ": Identifier " ++ n ++ " already in context"
+errorAlreadyInContext s n = throwErrorMsg $ show s ++ ": Identifier " ++ show n ++ " already in context"
 
 -- errorPatternNotVariable n = throwErrorMsg $ "pattern " ++ n ++ ": Identifier expected"
 
-errorPatternNotConstructor n = throwErrorMsg $ "pattern " ++ n ++ " is not a constructor"
+errorPatternNotConstructor n = throwErrorMsg $ "pattern " ++ show n ++ " is not a constructor"
 
-errorNotAField n = throwErrorMsg $ "record field " ++ n ++ " unknown"
+errorNotAField n = throwErrorMsg $ "record field " ++ show n ++ " unknown"
 -- errorUnknownProjection n = throwErrorMsg $ "projection " ++ n ++ " unknown"
 
 errorDuplicateField r = throwErrorMsg $ show r ++ " assigns a field twice"
 
 
-errorProjectionUsedAsExpression n = throwErrorMsg $ "projection " ++ n ++ " used as expression"
+errorProjectionUsedAsExpression n = throwErrorMsg $ "projection " ++ show n ++ " used as expression"
 
-errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ n ++ " undefined"
+errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ show n ++ " undefined"
 
-errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ n
+errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ show n
 
 errorClauseIdentifier (Just n) (Just n') = throwErrorMsg $ "Expected identifier " ++ show n' ++ " as clause head, found " ++ show n
 
@@ -1071,13 +1112,13 @@ errorConstraintNotAllowed beta = throwErrorMsg $
   show beta ++ ": constraints must follow a quantifier"
 
 errorTargetMustBeAppliedName n t = throwErrorMsg $
-  "constructor " ++ n ++ ": target must be data/record type applied to parameters and indices; however, I found " ++ show t
+  "constructor " ++ show n ++ ": target must be data/record type applied to parameters and indices; however, I found " ++ show t
 
 errorWrongTarget c d d' = throwErrorMsg $
-  "constructor " ++ c ++ " should target data/record type " ++ d ++ "; however, I found " ++ d'
+  "constructor " ++ show c ++ " should target data/record type " ++ show d ++ "; however, I found " ++ show d'
 
 errorNotEnoughParameters c t = throwErrorMsg $
-  "constructor " ++ c ++ ": target " ++ show t ++ " is missing parameters"
+  "constructor " ++ show c ++ ": target " ++ show t ++ " is missing parameters"
 
 errorInvalidParameter e = throwErrorMsg $
   "expression " ++ show e ++ " is not valid in a parameter"
