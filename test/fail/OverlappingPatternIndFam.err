@@ -25,7 +25,7 @@ offDiag
 /// inferExpr' (b : A) -> Id (DecEq A a b) (f a b) (notEq A a b)
 /// new b : v0
 /// inferExpr' Id (DecEq A a b) (f a b) (notEq A a b)
-/// checkApp (^(DecEq v0 v2 v3)::Tm -> Set{a = (v1 v2 v3), A = (DecEq v0 v2 v3)}) eliminated by notEq A a b
+/// checkApp (^(DecEq v0 v2 v3)::Tm -> {Set {a = (v1 v2 v3), A = (DecEq v0 v2 v3)}}) eliminated by notEq A a b
 /// checkExpr 4 |- notEq A a b : DecEq A a b
 /// checkForced fromList [(A,0),(f,1),(a,2),(b,3)] |- notEq A a b : DecEq A a b
 /// checkApp (.[b : v0::Tm] -> < DecEq.notEq b : DecEq A a b >{a = v2, A = v0}) eliminated by A

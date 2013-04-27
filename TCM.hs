@@ -486,11 +486,6 @@ class Monad m => MonadCxt m where
   new2WithGen:: Name -> (Domain, Domain) -> (Int -> (Val, Val) -> m a) -> m a
   new2WithGen x (doml, domr) k = newVar x (Two doml domr)
     (\ i (Two vl vr) -> k i (vl, vr))
-{-
-  new2WithGen:: Name -> (TVal, TVal, Dec) -> (Int -> (Val, Val) -> m a) -> m a
-  new2WithGen x (tvl, tvr, dec) k = newVar x (Two tvl tvr, dec)
-    (\ i (Two vl vr) -> k i (vl, vr))
--}
   new        :: Name -> Domain -> (Val -> m a) -> m a
   new x d cont = newWithGen x d (\ _ -> cont)
   new2       :: Name -> (Domain, Domain) -> ((Val, Val) -> m a) -> m a
@@ -716,14 +711,12 @@ instance MonadCxt TypeCheck where
                         , environ = en' }) $ cont vs'
 
   -- addPattern :: TVal -> Pattern -> (TVal -> Val -> Env -> m a) -> m a
-  addPattern tv@(VQuant Pi x dom env b) p rho cont =
+  addPattern tv@(VQuant Pi x dom fv) p rho cont =
        case p of
-          VarP y -> new y dom $ \ xv -> do
-              bv <- whnf (update env x xv) b
+          VarP y -> underAbs y dom fv $ \ _ xv bv -> do
               cont bv xv (update rho y xv)
 
-          SizeP e y -> newWithGen y dom $ \ j xv -> do
-              bv <- whnf (update env x xv) b
+          SizeP e y -> underAbs y dom fv $ \ j xv bv -> do
               ve <- whnf' e
               addBoundHyp (Bound Lt (Measure [xv]) (Measure [ve])) $
                 cont bv xv (update rho y xv)
@@ -740,7 +733,7 @@ instance MonadCxt TypeCheck where
               addPatterns vc pl rho $ \ vc' vpl rho -> do -- apply dom to pl?
                 pv0 <- mkConVal notDotted (coPat pi) n vpl vc
                 pv  <- up False pv0 (typ dom)
-                vb  <- whnf (update env x pv) b
+                vb  <- app fv pv
                 cont vb pv rho
 {-
           ConP pi n pl -> do
@@ -755,7 +748,7 @@ instance MonadCxt TypeCheck where
           SuccP p2 -> do
               addPattern (vSize `arrow` vSize) p2 rho $ \ _ vp2 rho -> do
                 let pv = succSize vp2
-                vb  <- whnf (update env x pv) b
+                vb  <- app fv pv
                 cont vb pv rho
 
           ErasedP p -> addPattern tv p rho cont
@@ -768,7 +761,7 @@ instance MonadCxt TypeCheck where
 
           DotP e -> do
               v  <- whnf rho e
-              vb <- whnf (update env x v) b
+              vb <- app fv v
               cont vb v rho -- [(x,v)]
 
 
@@ -923,6 +916,19 @@ instance MonadCxt TypeCheck where
 
   checkingMutual mn = local (\ cxt -> cxt { checkingMutualName = mn })
 
+-- | Go into the codomain of a Pi-type or open an abstraction.
+underAbs  :: Name -> Domain -> FVal -> (Int -> Val -> Val -> TypeCheck a) -> TypeCheck a
+underAbs x dom fv cont = newWithGen x dom $ \ i xv -> cont i xv =<< app fv xv
+
+-- | Do not check consistency preservation of context.
+underAbs_  :: Name -> Domain -> FVal -> (Int -> Val -> Val -> TypeCheck a) -> TypeCheck a
+underAbs_ x dom fv cont = noConsistencyChecking $ underAbs x dom fv cont
+
+noConsistencyChecking = local $ \ cxt -> cxt { consistencyCheck = False }
+
+-- | No eta, no hypotheses.  First returned val is a @VGen i@.
+underAbs' :: Name -> FVal -> (Val -> Val -> TypeCheck a) -> TypeCheck a
+underAbs' x fv cont = addName x $ \ xv -> cont xv =<< app fv xv
 
 -- addBind :: MonadTCM m => TBind -> m a -> m a
 addBind :: TBind -> TypeCheck a -> TypeCheck a
@@ -973,10 +979,9 @@ introPatType (p,v) tv cont = do
       case p of
         ProjP n -> cont =<< projectType tv n VIrr -- no record value here
         _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv
-    VQuant Pi x dom env b -> do
-       v <- whnfClos v
-       bv <- whnf (update env x v) b
-       matchPatType (p,v) dom $ cont bv
+    VQuant Pi x dom fv -> do
+       v  <- whnfClos v
+       matchPatType (p,v) dom . cont =<< app fv v
     _ -> fail $ "introPatType: internal error, expected Pi-type, found " ++ show tv
 
 introPatTypes :: [(Pattern,Val)] -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
@@ -1008,9 +1013,9 @@ matchPatType (p,v) dom cont =
           (PairP p1 p2, VPair v1 v2) -> do
              av <- force (typ dom)
              case av of
-               VQuant Sigma x dom1@(Domain av1 ki dec) env b -> do
+               VQuant Sigma x dom1@(Domain av1 ki dec) fv -> do
                  matchPatType (p1,v1) dom1 $ do
-                   bv <- whnf (update env x v1) b
+                   bv <- app fv v1
                    matchPatType (p2,v2) (Domain bv ki dec) cont
                _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show p ++ "  :  " ++ show dom
 

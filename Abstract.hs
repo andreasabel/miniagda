@@ -73,6 +73,10 @@ fresh n = Name n UserName $ unsafePerformIO newUnique
 freshen :: Name -> Name
 freshen n = fresh (suggestion n)
 
+-- | A non-unique empty name.  Use only inconstant functions!
+noName :: Name
+noName = fresh ""
+
 -- | Check whether name is @""@.
 emptyName :: Name -> Bool
 emptyName n = null (suggestion n)
@@ -80,6 +84,13 @@ emptyName n = null (suggestion n)
 nonEmptyName :: Name -> String -> Name
 nonEmptyName n s | emptyName n = n { suggestion = s }
                  | otherwise   = n
+
+-- | Get the first non-empty name from a non-empty list of names.
+bestName :: [Name] -> Name
+bestName [n]    = n
+bestName (n:ns)
+  | emptyName n = bestName ns
+  | otherwise   = n
 
 -- temporary hack for reification
 
@@ -601,11 +612,11 @@ type MVar = Int -- metavariables are numbered
 -- typed bindings in Pi, LLet, Telescope -----------------------------
 
 data TBinding a = TBind
-  { boundName :: Name -- "" if no name is given
-  , boundDom  :: Dom a       -- ^ @x : T@ or @i < j@
+  { boundName :: Name        -- ^ @emptyName@ if non-dependent.
+  , boundDom  :: Dom a       -- ^ @x : T@ or @i < j@.
   }
-  | TMeasure (Measure Expr)  -- ^ measure @|m|@
-  | TBound   (Bound Expr)    -- ^ constraint @|m| <(=) |m'|@
+  | TMeasure (Measure Expr)  -- ^ Measure @|m|@.
+  | TBound   (Bound Expr)    -- ^ Constraint @|m| <(=) |m'|@.
     deriving (Eq,Ord,Show,Functor,Foldable,Traversable)
 
 type LBind = TBinding (Maybe Type)

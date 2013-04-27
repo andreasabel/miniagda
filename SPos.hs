@@ -35,8 +35,8 @@ nocc k a tv = do
   tv <- whnfClos tv
   case tv of
     a' | a == a'                 -> return False
-    VQuant Pi x dom env b        -> nocc k a (typ dom) `andLazy` do
-       nocc (k+1) a =<< whnf (update env x (VGen k)) b
+    VQuant Pi x dom fv          -> nocc k a (typ dom) `andLazy` do
+       nocc (k+1) a =<< app fv (VGen k)
     VLam x env b                 -> nocc (k+1) a =<< whnf (update env x (VGen k)) b
     VSucc v                      -> nocc k a v
     VApp v1 []                   -> return True -- because  VApp v1 [] != a

@@ -16,6 +16,6 @@ D
 /// inferExpr' .[j < i] & D j
 /// inferExpr' < i
 /// inferExpr' i
-/// inferExpr: variable i : <= # may not occur
+/// inferExpr: variable i : Size may not occur
 /// , because of polarity
 /// polarity check + <= - failed

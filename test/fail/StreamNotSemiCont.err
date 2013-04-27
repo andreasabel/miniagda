@@ -17,10 +17,9 @@ error during typechecking:
 bad
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i
 /// new A : Set
 /// endsInSizedCo: (Stream A i -> Stream A i) -> Stream A i
-/// new  : ((Stream v1 v0)::Tm -> Stream A i{A = v1, i = v0})
-/// type Stream A i -> Stream A i not lower semi continuous in i
+/// type  Stream A i -> Stream A i  not lower semi continuous in  i

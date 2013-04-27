@@ -24,7 +24,7 @@ error during typechecking:
 omega'
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> CoNat i ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> CoNat i ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: CoNat i
 /// endsInSizedCo: target CoNat i of corecursive function is neither a CoSet or codata of size i nor a tuple type

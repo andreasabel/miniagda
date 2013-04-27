@@ -17,14 +17,14 @@ mySucc
 /// checkApp (^(y1 : (Nat v1)::()) -> < Nat.succ i y1 : Nat $i >{i = v1}) eliminated by n
 /// leqVal' (subtyping)  < n : Nat i >  <=+  Nat j
 /// leqVal' (subtyping)  Nat i  <=+  Nat j
-/// leqVal'  i  <=+  j : <= #
+/// leqVal'  i  <=+  j : Size
 /// leSize i <=+ j
 /// leSize' i <= j
 /// bound not entailed
 error during typechecking:
 explicitCast
-/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j <= i] -> Nat i -> Nat j
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i <= #] -> .[j <= i] -> Nat i -> Nat j
+/// checkExpr 0 |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j <= i] -> Nat i -> Nat j
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> n : .[i : Size] -> .[j <= i] -> Nat i -> Nat j
 /// new i <= #
 /// checkExpr 1 |- \ j -> \ n -> n : .[j <= i] -> Nat i -> Nat j
 /// checkForced fromList [(i,0)] |- \ j -> \ n -> n : .[j <= i] -> Nat i -> Nat j
@@ -36,7 +36,7 @@ explicitCast
 /// checkExpr 3 |- n : Nat j
 /// leqVal' (subtyping)  < n : Nat i >  <=+  Nat j
 /// leqVal' (subtyping)  Nat i  <=+  Nat j
-/// leqVal'  i  <=+  j : <= #
+/// leqVal'  i  <=+  j : Size
 /// leSize i <=+ j
 /// leSize' i <= j
 /// bound not entailed

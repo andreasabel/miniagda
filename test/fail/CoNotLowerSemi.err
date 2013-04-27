@@ -22,6 +22,6 @@ lsc
 /// checkExpr 1 |- (# , s) : .[j < #] & Stream (Nat j) #
 /// checkForced fromList [(s,0)] |- (# , s) : .[j < #] & Stream (Nat j) #
 /// checkExpr 1 |- # : < #
-/// leqVal' (subtyping)  < # : <= # >  <=+  < #
+/// leqVal' (subtyping)  < # : Size >  <=+  < #
 /// leSize # <+ #
 /// leSize: # < # failed

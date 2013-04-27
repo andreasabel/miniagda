@@ -18,11 +18,11 @@ error during typechecking:
 extReducesNot
 /// new A : Set
 /// new a : v0
-/// new f : (v0::Tm -> A{a = v1, A = v0})
-/// new p : (.[x : v0::Tm] -> Id A x (f x){f = (v2 Up (v0::Tm -> A{a = v1, A = v0})), a = v1, A = v0})
-/// checkExpr 4 |- refl : Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
-/// checkForced fromList [(A,0),(a,1),(f,2),(p,3)] |- refl : Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
-/// leqVal' (subtyping)  < Id.refl : Id A a a >  <=+  Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
-/// leqVal' (subtyping)  Id A a a  <=+  Id A a (subst [A -> A] (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) [\ x -> A] a)
-/// leqVal'  a  <=^  J (A -> A) (\ x -> \ y -> \ p -> (\ x -> A) x -> (\ x -> A) y) (\ y -> \ p -> p) (\ x -> x) f (ext [A] [\ x -> A] [\ x -> x] [f] p) a : A
+/// new f : (v0::Tm -> {A {a = v1, A = v0}})
+/// new p : (.[x : v0::Tm] -> Id A x (f x){f = (v2 Up (v0::Tm -> {A {a = v1, A = v0}})), a = v1, A = v0})
+/// checkExpr 4 |- refl : Id A a (subst [A -> A] (\ x -> x) (f ) (ext [A] [\ x -> A] [\ x -> x] [f ] (p x)) [\ x -> A] a)
+/// checkForced fromList [(A,0),(a,1),(f,2),(p,3)] |- refl : Id A a (subst [A -> A] (\ x -> x) (f ) (ext [A] [\ x -> A] [\ x -> x] [f ] (p x)) [\ x -> A] a)
+/// leqVal' (subtyping)  < Id.refl : Id A a a >  <=+  Id A a (subst [A -> A] (\ x -> x) (f ) (ext [A] [\ x -> A] [\ x -> x] [f ] (p x)) [\ x -> A] a)
+/// leqVal' (subtyping)  Id A a a  <=+  Id A a (subst [A -> A] (\ x -> x) (f ) (ext [A] [\ x -> A] [\ x -> x] [f ] (p x)) [\ x -> A] a)
+/// leqVal'  a  <=^  J (A -> A) (\ x -> \ y -> \ p -> A x -> A y) (\ y -> \ p -> p) (\ x -> x) (f ) (ext [A] [\ x -> A] [\ x -> x] [f ] (p x)) a : A
 /// leqApp: head mismatch a != J

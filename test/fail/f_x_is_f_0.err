@@ -12,4 +12,4 @@ error during typechecking:
 f
 /// clause 1
 /// pattern $$i
-/// cannot match against deep successor pattern $$i; type: (.[i : Size] -> SNat i -> SNat #)
+/// cannot match against deep successor pattern $$i at type .[i : Size] -> SNat i -> SNat #

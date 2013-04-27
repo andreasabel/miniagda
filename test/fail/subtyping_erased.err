@@ -9,7 +9,7 @@ id
 /// new A : Set
 /// checkExpr 1 |- \ x -> x : (.[A] -> A) -> A -> A
 /// checkForced fromList [(A,0)] |- \ x -> x : (.[A] -> A) -> A -> A
-/// new x : (.[v0::Tm] -> A{A = v0})
+/// new x : (.[v0::Tm] -> {A {A = v0}})
 /// checkExpr 2 |- x : A -> A
 /// leqVal' (subtyping)  .[xSing# : A] -> < x xSing# : A >  <=+  A -> A
 /// subtyping .[xSing# : A] -> < x xSing# : A >  <=+  A -> A failed

@@ -27,7 +27,7 @@ error during typechecking:
 idAndLast
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> BStr i -> Twice (BStr i) ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> BStr i -> Twice (BStr i) ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: BStr i -> Twice (BStr i)
 /// new  : (BStr v0)

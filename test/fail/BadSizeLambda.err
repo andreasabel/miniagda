@@ -14,7 +14,7 @@ wtf
 /// right hand side
 /// checkExpr 1 |- sabotage i (\ j -> wtf j) : Unit
 /// inferExpr' sabotage i (\ j -> wtf j)
-/// checkApp ((.[j < v0] -> Unit{i = v0})::Tm -> Unit{i = v0}) eliminated by \ j -> wtf j
+/// checkApp ((.[j < v0] -> Unit{i = v0})::Tm -> {Unit {i = v0}}) eliminated by \ j -> wtf j
 /// checkExpr 1 |- \ j -> wtf j : .[j < i] -> Unit
 /// checkForced fromList [(i,0)] |- \ j -> wtf j : .[j < i] -> Unit
 /// new j < v0

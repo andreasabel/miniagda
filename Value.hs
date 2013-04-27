@@ -30,28 +30,70 @@ data Val
   | VMeasured (Measure Val) Val  -- mu -> A  (only in checkPattern)
   | VGuard (Bound Val) Val       -- mu<mu' -> A
   | VBelow LtLe Val              -- domain in bounded size quant.
-  | VQuant PiSigma Name Domain Env Expr
-  | VSing Val TVal               -- Singleton type (TVal is base type)
+  | VQuant
+    { vqPiSig :: PiSigma
+    , vqName  :: Name
+    , vqDom   :: Domain
+    , vqFun   :: FVal
+    }
+  | VSing Val TVal               -- Singleton type (TVal not Pi)
   -- functions
   | VLam Name Env Expr
-  | VUp Val TVal                 -- delayed eta expansion; TVal is a VPi
+  | VAbs Name Int Val Valuation  -- abstract free variable
+  | VConst Val                   -- constant function
+  | VUp Val TVal                 -- delayed eta expansion; TVal is a Pi
+  -- values
+  | VRecord RecInfo EnvMap       -- a record value / fully applied constructor
+  | VPair Val Val                -- eager pair
   -- neutrals
   | VGen Int                     -- free variable (de Bruijn level)
   | VDef DefId                   -- co(data/constructor/fun)
                                  -- VDef occurs only inside a VApp!
   | VCase Val TVal Env [Clause]
   | VApp Val [Clos]
-  | VRecord RecInfo EnvMap       -- a record value
+  -- closures
   | VProj PrePost Name           -- a projection as an argument to a neutral
-  | VPair Val Val                -- eager pair
   | VClos Env Expr               -- closure for cbn evaluation
   -- don't care
   | VIrr                         -- erased hypothetical inhabitant of empty type
     deriving (Eq,Ord)
 
-type TVal = Val
+-- | Makes constant function if name is empty.
+vLam :: Name -> Env -> Expr -> FVal
+vLam x env e
+  | emptyName x = VConst $ VClos env e
+  | otherwise   = VLam x env e
+
+-- | Is a value a function?  May become more @True@ after forcing the @VUp@.
+isFun :: Val -> Bool
+isFun VLam{}                         = True
+isFun VAbs{}                         = True
+isFun VConst{}                       = True
+isFun (VUp _ VQuant{ vqPiSig = Pi }) = True
+isFun v                              = False
+
+absName :: FVal -> Name
+absName fv =
+  case fv of
+    VLam x _ _              -> x
+    VAbs x _ _ _            -> x
+    VUp _ (VQuant Pi x _ _) -> x
+    _                       -> noName
+
+type FVal = Val
+type TVal = Val -- type value
 type Clos = Val
 type Domain = Dom TVal
+
+-- | Valuation of free variables.
+newtype Valuation = Valuation { valuation :: [(Int,Val)] }
+  deriving (Eq,Ord)
+
+emptyVal  = Valuation []
+sgVal i v = Valuation [(i,v)]
+
+valuateGen :: Int -> Valuation -> Val
+valuateGen i valu = maybe (VGen i) id $ lookup i $ valuation valu
 
 type TeleVal = [TBinding Val]
 
@@ -126,14 +168,21 @@ vApp f vs = VApp f vs
 failValInv :: (Monad m) => Val -> m a
 failValInv v = fail $ "internal error: value " ++ show v ++ " violates representation invariant"
 
+vAbs :: Name -> Int -> Val -> FVal
+vAbs x i v = VAbs x i v emptyVal
+
 arrow , prod :: TVal -> TVal -> TVal
 arrow = quant Pi
-prod = quant Sigma
+prod  = quant Sigma
 
-quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
+quant piSig a b = VQuant piSig x (defaultDomain a) (VConst b)
   where x   = fresh ""
-        bla = fresh "#codom"
+-- quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
+--   where x   = fresh ""
+--         bla = fresh "#codom"
 
+
+-- * Sizes ------------------------------------------------------------
 
 -- Sizes form a commutative semiring with multiplication (Plus) and
 -- idempotent addition (Max)
@@ -215,12 +264,11 @@ maxSize vs = case flatten [] vs of
         flatten acc [] = Set.toList $ Set.fromList acc -- sort, nub
 -}
 
--- destructors -------------------------------------------------------
+-- * destructors -------------------------------------------------------
 
 vSortToSort :: Sort Val -> Sort Expr
 vSortToSort (SortC c)    = SortC c
 vSortToSort (Set VInfty) = Set Infty
--- rest
 
 predSize :: Val -> Maybe Val
 predSize VInfty = Just VInfty
@@ -235,15 +283,15 @@ instance HasPred Val where
   predecessor v = predSize v
 
 isFunType :: TVal -> Bool
-isFunType (VQuant Pi _ _ _ _) = True
-isFunType _ = False
+isFunType VQuant{ vqPiSig = Pi } = True
+isFunType _                      = False
 
 isDataType :: TVal -> Bool
 isDataType (VApp (VDef (DefId DatK _)) _) = True
 isDataType (VSing v tv) = isDataType tv
 isDataType _ = False
 
--- ugly printing -----------------------------------------------------
+-- * ugly printing -----------------------------------------------------
 
 instance Show (Sort Val) where
   show (SortC c) = show c
@@ -253,66 +301,66 @@ instance Show (Sort Val) where
   show (CoSet v) = parens $ ("CoSet " ++ show v)
 
 instance Show Val where
-    show = showVal
+  show v | isVSize v = "Size"
+  show (VSort s) = show s
+  show VInfty = "#"
+  show VZero = "0"
+  show (VSucc v) = "($ " ++ show v ++ ")"
+  show (VMax vl) = "(max " ++ showVals vl ++ ")"
+  show (VPlus (v:vl)) = parens $ foldr (\ v s -> show v ++ " + " ++ s) (show v) vl
+  show (VApp v []) = show v
+  show (VApp v vl) = "(" ++ show v ++ " " ++ showVals vl ++ ")"
+  show (VDef id) = show id
+  show (VProj Pre id) = show id
+  show (VProj Post id) = "." ++ show id
+  show (VPair v1 v2) = "(" ++ show v1 ++ ", " ++ show v2 ++ ")"
+  show (VGen k) = "v" ++ show k
+  show (VMeta k rho 0) = "?" ++ show k ++ showEnv rho
+  show (VMeta k rho 1) = "$?" ++ show k ++ showEnv rho
+  show (VMeta k rho n) = "(?" ++ show k ++ showEnv rho ++ " + " ++ show n ++")"
+  show (VRecord ri env) = show ri ++ "{" ++ Util.showList "; " (\ (n, v) -> show n ++ " = " ++ show v) env ++ "}"
+  show (VCase v vt env cs) = "case " ++ show v ++ " : " ++ show vt ++ " { " ++ showCases cs ++ " } " ++ showEnv env
+  show (VClos (Environ [] Nothing) e) = showsPrec precAppR e ""
+  show (VClos env e) = "{" ++ show e ++ " " ++ showEnv env ++ "}"
+  show (VSing v vt) = "<" ++ show v ++ " : " ++ show vt ++ ">"
+  show VIrr  = "."
+  show (VMeasured mu tv) = parens $ show mu ++ " -> " ++ show tv
+  show (VGuard beta tv) = parens $ show beta ++ " -> " ++ show tv
+  show (VBelow ltle v) = show ltle ++ " " ++ show v
 
-showVal :: Val -> String
-showVal v | isVSize v = "Size"
---showVal (VSort (SortC c)) = show c
-showVal (VSort s) = show s
-showVal VInfty = "#"
-showVal VZero = "0"
-showVal (VSucc v) = "($ " ++ showVal v ++ ")"
-showVal (VMax vl) = "(max " ++ showVals vl ++ ")"
-showVal (VPlus (v:vl)) = parens $ foldr (\ v s -> showVal v ++ " + " ++ s) (showVal v) vl
-showVal (VApp v []) = showVal v
-showVal (VApp v vl) = "(" ++ showVal v ++ " " ++ showVals vl ++ ")"
--- showVal (VCon _ n) = n
-showVal (VDef id) = show id -- show $ name id
-showVal (VProj Pre id) = show id
-showVal (VProj Post id) = "." ++ show id
-showVal (VPair v1 v2) = "(" ++ show v1 ++ ", " ++ show v2 ++ ")"
-showVal (VGen k) = "v" ++ show k
-showVal (VMeta k rho 0) = "?" ++ show k ++ showEnv rho
-showVal (VMeta k rho 1) = "$?" ++ show k ++ showEnv rho
-showVal (VMeta k rho n) = "(?" ++ show k ++ showEnv rho ++ " + " ++ show n ++")"
-showVal (VRecord ri env) = show ri ++ "{" ++ Util.showList "; " (\ (n, v) -> show n ++ " = " ++ showVal v) env ++ "}"
-showVal (VCase v vt env cs) = "case " ++ showVal v ++ " : " ++ showVal vt ++ " { " ++ showCases cs ++ " } " ++ showEnv env
-showVal (VLam x env e) = "(\\" ++ show x ++ " -> " ++ show e ++ showEnv env ++ ")"
-showVal (VClos (Environ [] Nothing) e) = showsPrec precAppR e ""
-showVal (VClos env e) = "{" ++ show e ++ " " ++ showEnv env ++ "}"
-showVal (VUp v vt) = "(" ++ show v ++ " Up " ++ show vt ++ ")"
-showVal (VSing v vt) = "<" ++ show v ++ " : " ++ show vt ++ ">"
-showVal VIrr  = "."
-showVal (VMeasured mu tv) = parens $ show mu ++ " -> " ++ show tv
-showVal (VGuard beta tv) = parens $ show beta ++ " -> " ++ show tv
-showVal (VBelow ltle v) = show ltle ++ " " ++ show v
+  show (VQuant pisig x (Domain (VBelow ltle v) ki dec) bv)
+       | (ltle,v) /= (Le,VInfty) =
+       parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
+                (if erased dec then brackets binding else parens binding)
+                 ++ " " ++ show pisig ++ " " ++ showSkipLambda bv
+            where binding = show x ++ " " ++ show ltle ++ " " ++ show v
 
-showVal (VQuant pisig x (Domain (VBelow ltle v) ki dec) env b)
-  | (ltle,v) /= (Le,VInfty) =
-  parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
-            (if erased dec then brackets binding else parens binding)
-              ++ " " ++ show pisig ++ " " ++ show b ++ showEnv env
-         where binding = show x ++ " " ++ show ltle ++ " " ++ showVal v
+  show (VQuant pisig x (Domain av ki dec) bv) =
+        parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
+                (if erased dec then brackets binding
+                  else if emptyName x then s1 else parens binding)
+                    ++ " " ++ show pisig ++ " " ++ showSkipLambda bv
+             where s1 = s2 ++ s0
+                   s2 = show av
+                   s3 = show ki
+                   s0 = if ki == defaultKind || s2 == s3 then "" else "::" ++ s3
+                   binding = if emptyName x then  s1 else show x ++ " : " ++ s1
 
-showVal (VQuant pisig x (Domain av ki dec) env b) =
-  parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
-            (if erased dec then brackets binding
-              else if emptyName x then s1 else parens binding)
-                ++ " " ++ show pisig ++ " " ++ show b ++ showEnv env
-         where s1 = s2 ++ s0
-               s2 = showVal av
-               s3 = show ki
-               s0 = if ki == defaultKind || s2 == s3 then "" else "::" ++ s3
-               binding = if emptyName x then  s1 else show x ++ " : " ++ s1
+  show (VLam x env e) = "(\\" ++ show x ++ " -> " ++ show e ++ showEnv env ++ ")"
+  show (VConst v) = "(\\ _ -> " ++ show v ++ ")"
+  show (VAbs x i v valu) = "(\\" ++ show x ++ "@" ++ show i ++ show v ++ showValuation valu ++ ")"
+  show (VUp v vt) = "(" ++ show v ++ " Up " ++ show vt ++ ")"
 
-{-
-showVal (VPi dec "" av env e) = "(" ++ showVal av ++ " -> " ++ show e ++ showEnv env ++ ")"
-showVal (VPi dec x av env e) = "((" ++ x  ++ " : " ++ showVal av ++ ") -> " ++ show e ++ showEnv env ++ ")"
--}
+showSkipLambda v =
+  case v of
+    (VLam x env e)    -> show e ++ showEnv env
+    (VConst v)        -> show v
+    (VAbs x i v valu) -> show v ++ showValuation valu
+    v                 -> show v
 
 showVals :: [Val] -> String
 showVals [] = ""
-showVals (v:vl) = showVal v ++ (if null vl then "" else " " ++ showVals vl)
+showVals (v:vl) = show v ++ (if null vl then "" else " " ++ showVals vl)
 
 -- environment ---------------------------------------------------
 
@@ -323,7 +371,7 @@ appendEnv :: Environ a -> Environ a -> Environ a
 appendEnv (Environ rho mmeas) (Environ rho' mmeas') =
   Environ (rho ++ rho') (orM mmeas mmeas')
 
--- enviroment extension / update
+-- | enviroment extension / update
 update :: Environ a -> Name -> a -> Environ a
 update env n v | emptyName n = env
                | otherwise   = env { envMap = (n,v) : envMap env }
@@ -346,6 +394,10 @@ lookupEnv ((x,v):xs) n = if x == n then return v
                           else lookupEnv xs n
 -}
 
+showValuation :: Valuation -> String
+showValuation (Valuation [])  = ""
+showValuation (Valuation tau) = "{" ++ Util.showList ", " (\(i,v) -> show i ++ " = " ++ show v) tau ++ "}"
+
 showEnv :: Environ Val -> String
 showEnv (Environ [] Nothing)   = ""
 showEnv (Environ rho Nothing)  = "{" ++ showEnv' rho ++ "}"
@@ -353,13 +405,4 @@ showEnv (Environ [] (Just mu)) = "{ measure=" ++ show mu ++ " }"
 showEnv (Environ rho (Just mu)) = "{" ++ showEnv' rho ++ " | measure=" ++ show mu ++ " }"
 
 showEnv' :: EnvMap -> String
-showEnv' = Util.showList ", " (\ (n,v) -> show n ++ " = " ++ showVal v)
-{-
-showEnv' ((n,v):env) = n ++ " = " ++ showVal v ++
-      (if null env then "" else ", " ++ showEnv' env)
--}
-
-{-
-fresh :: Environ a -> Name
-fresh env = "fresh#" ++ show (length (envMap env))
--}
+showEnv' = Util.showList ", " (\ (n,v) -> show n ++ " = " ++ show v)

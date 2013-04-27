@@ -7,10 +7,10 @@ error during typechecking:
 Mu
 /// constructor Mu.inn
 /// new Mu : (++(F : (+Set -> Set)::Set) -> Set)
-/// new F : (+Set -> Set{Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))})
+/// new F : (+Set -> {Set {Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))}})
 /// inferExpr' ^ F (Mu F) -> Mu F
 /// inferExpr' F (Mu F)
-/// checkApp (+Set -> Set{Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))}) eliminated by Mu F
+/// checkApp (+Set -> {Set {Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))}}) eliminated by Mu F
 /// inferExpr' Mu F
 /// checkApp (++(F : (+Set -> Set)::Set) -> Set) eliminated by F
 /// inferExpr' F

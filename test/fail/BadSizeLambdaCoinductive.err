@@ -19,7 +19,7 @@ inf
 /// right hand side
 /// checkExpr 1 |- eta i (\ j -> cons j (inf j)) : S i
 /// inferExpr' eta i (\ j -> cons j (inf j))
-/// checkApp ((.[j < v0] -> S $j{i = v0})::Tm -> S i{i = v0}) eliminated by \ j -> cons j (inf j)
+/// checkApp ((.[j < v0] -> S $j{i = v0})::Tm -> {S i {i = v0}}) eliminated by \ j -> cons j (inf j)
 /// checkExpr 1 |- \ j -> cons j (inf j) : .[j < i] -> S $j
 /// checkForced fromList [(i,0)] |- \ j -> cons j (inf j) : .[j < i] -> S $j
 /// new j < v0

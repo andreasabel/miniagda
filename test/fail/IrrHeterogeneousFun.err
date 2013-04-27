@@ -27,21 +27,21 @@ term  f : (b : Bool) -> T b -> T b
 }
 error during typechecking:
 bad2
-/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [Bool.false] (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
-/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F [Bool.false] (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
+/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h zero) : .[F : .[b : Bool] -> (T b -> T b) -> Nat -> Set] -> (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
 /// new F : (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set)
-/// checkExpr 1 |- \ g -> \ h -> g (h zero) : (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
-/// checkForced fromList [(F,0)] |- \ g -> \ h -> g (h zero) : (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
-/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
-/// checkExpr 2 |- \ h -> g (h zero) : (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
-/// checkForced fromList [(g,1),(F,0)] |- \ h -> g (h zero) : (h : (n : Nat) -> F [Bool.true] (\ x -> f Bool.true x) n) -> Bool
-/// new h : ((n : Nat::Tm) -> F [Bool.true] (\ x -> f Bool.true x) n{g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
+/// checkExpr 1 |- \ g -> \ h -> g (h zero) : (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ h -> g (h zero) : (g : F Bool.false (\ x -> f Bool.false x) Nat.zero -> Bool) -> (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
+/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})
+/// checkExpr 2 |- \ h -> g (h zero) : (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ h -> g (h zero) : (h : (n : Nat) -> F Bool.true (\ x -> f Bool.true x) n) -> Bool
+/// new h : ((n : Nat::Tm) -> F [Bool.true] (\ x -> f Bool.true x) n{g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))})
 /// checkExpr 3 |- g (h zero) : Bool
 /// inferExpr' g (h zero)
-/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> Bool{F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}) eliminated by h zero
-/// leqVal' (subtyping)  < h Nat.zero : F Bool.true (\ x -> f Bool.true x) Nat.zero >  <=+  F Bool.false (\ x -> f Bool.false x) Nat.zero
+/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {\ x -> f Bool.false x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}} {Nat.zero {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Nat -> Set))}}) eliminated by h zero
+/// leqVal' (subtyping)  < h n Nat.zero : F Bool.true (\ x -> f Bool.true x) Nat.zero >  <=+  F Bool.false (\ x -> f Bool.false x) Nat.zero
 /// leqVal' (subtyping)  F Bool.true (\ x -> f Bool.true x) Nat.zero  <=+  F Bool.false (\ x -> f Bool.false x) Nat.zero
-/// leqVal'  \ x -> f Bool.true x : Nat -> T Bool.true  <=*  \ x -> f Bool.false x : Bool -> T Bool.false
+/// leqVal'  x : Nat -> Nat  <=*  f Bool.false x : Bool -> Bool
 /// new x : Nat||Bool
 /// leqVal'  x : Nat  <=*  f Bool.false x : Bool
 /// type Nat has different shape than Bool

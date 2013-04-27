@@ -18,15 +18,15 @@ fDiag
 /// checkExpr 0 |- \ f -> \ A -> \ a -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
 /// checkForced fromList [] |- \ f -> \ A -> \ a -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> DecEq A a b) -> .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
 /// new f : (.[A : Set] -> (a : A) -> (b : A) -> DecEq A a b)
-/// checkExpr 1 |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
-/// checkForced fromList [(f,0)] |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
+/// checkExpr 1 |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
+/// checkForced fromList [(f,0)] |- \ A -> \ a -> refl : .[A : Set] -> (a : A) -> Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
 /// new A : Set
-/// checkExpr 2 |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
-/// checkForced fromList [(A,1),(f,0)] |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f [A] a a) DecEq.eq
+/// checkExpr 2 |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
+/// checkForced fromList [(A,1),(f,0)] |- \ a -> refl : (a : A) -> Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
 /// new a : v1
-/// checkExpr 3 |- refl : Id (DecEq A a a) (f [A] a a) DecEq.eq
-/// checkForced fromList [(A,1),(f,0),(a,2)] |- refl : Id (DecEq A a a) (f [A] a a) DecEq.eq
-/// leqVal' (subtyping)  < Id.refl : Id (DecEq A a a) (f [A] a a) (f [A] a a) >  <=+  Id (DecEq A a a) (f [A] a a) DecEq.eq
-/// leqVal' (subtyping)  Id (DecEq A a a) (f [A] a a) (f [A] a a)  <=+  Id (DecEq A a a) (f [A] a a) DecEq.eq
+/// checkExpr 3 |- refl : Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
+/// checkForced fromList [(A,1),(f,0),(a,2)] |- refl : Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
+/// leqVal' (subtyping)  < Id.refl : Id (DecEq A a a) (f A a b [A] a a) (f A a b [A] a a) >  <=+  Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
+/// leqVal' (subtyping)  Id (DecEq A a a) (f A a b [A] a a) (f A a b [A] a a)  <=+  Id (DecEq A a a) (f A a b [A] a a) DecEq.eq
 /// leqVal'  f A a a  <=^  DecEq.eq : DecEq A a a
 /// leqApp: head mismatch f != DecEq.eq

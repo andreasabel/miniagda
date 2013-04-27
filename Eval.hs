@@ -83,7 +83,6 @@ Rewriting rules are considered computational, since they trigger new
 
 - pattern matching
 - equality checking
-
 When a new rule b --> p is added, b should be in --> normal form.
 Otherwise there could be inconsistencies, like adding both rules
 
@@ -103,61 +102,116 @@ Implementation:
 
  -}
 
-reval :: Val -> TypeCheck Val
-reval u = traceLoop ("reval " ++ show u) $
- case u of
-  VSort (CoSet v) -> VSort . CoSet <$> reval v
-  VSort{} -> return u
-  VInfty  -> return u
-  VZero   -> return u
-  VSucc{} -> return u  -- no rewriting in size expressions
-  VMax{}  -> return u
-  VPlus{}  -> return u
-  VProj{}  -> return u -- cannot rewrite projection
-  VPair v1 v2 -> VPair <$> reval v1 <*> reval v2
-  VRecord ri rho -> VRecord ri <$> mapAssocM reval rho
+class Reval a where
+  reval' :: Valuation -> a -> TypeCheck a
+  reval  :: a -> TypeCheck a
+  reval = reval' emptyVal
 
-  VApp v vl          -> do
-    v'  <- reval v
-    vl' <- mapM reval vl
-    w   <- foldM app v' vl'
-    reduce w  -- since we only have rewrite rules at base types
-              -- we do not need to reduces prefixes of w
+instance Reval a => Reval (Maybe a) where
+  reval' valu ma = Traversable.traverse (reval' valu) ma
 
-  VDef{} -> return $ VApp u [] -- restore invariant
-                               -- CAN'T rewrite defined fun/data
-  VGen{} -> reduce u  -- CAN rewrite variable
+instance Reval b => Reval (a,b) where
+  reval' valu (x,v) = (x,) <$> reval' valu v
 
-  VCase v tv env cl -> do
-    v' <- reval v
-    tv' <- reval tv
-    env' <- reEnv env
-    evalCase v' tv' env' cl
+instance Reval a => Reval [a] where
+  reval' valu vs = mapM (reval' valu) vs
 
-  VBelow ltle v      -> VBelow ltle <$> reval v
+instance Reval Env where
+  reval' valu (Environ rho mmeas) =
+   flip Environ mmeas <$> reval' valu rho
+   -- no need to reevaluate mmeas, since only sizes
 
-  VQuant pisig x dom env b -> do
-    dom' <- Traversable.mapM reval dom
-    env' <- reEnv env
-    return $ VQuant pisig x dom' env' b
+-- | When combining valuations, the old one takes priority.
+--   @[sigma][tau]v = [[sigma]tau]v@
+instance Reval Valuation where
+  reval' valu (Valuation valu') = Valuation . (++ valuation valu) <$>
+    reval' valu valu'
 
-  VLam x env e       -> do env' <- reEnv env
-                           return $ VLam x env' e
+instance Reval a => Reval (Measure a) where
+  reval' valu beta = Traversable.traverse (reval' valu) beta
 
-  VClos env e        -> do env' <- reEnv env
-                           return $ VClos env' e
+instance Reval a => Reval (Bound a) where
+  reval' valu beta = Traversable.traverse (reval' valu) beta
 
-  VMeta i env k      -> do env' <- reEnv env
-                           return $ VMeta i env' k
+instance Reval Val where
+  reval' valu u = traceLoop ("reval " ++ show u) $ do
+    let reval v   = reval' valu v
+        reEnv rho = reval' valu rho
+        reFun fv  = reval' valu fv
+    case u of
+      VSort (CoSet v) -> VSort . CoSet <$> reval v
+      VSort{} -> return u
+      VInfty  -> return u
+      VZero   -> return u
+      VSucc{} -> return u  -- no rewriting in size expressions
+      VMax{}  -> return u
+      VPlus{}  -> return u
+      VProj{}  -> return u -- cannot rewrite projection
+      VPair v1 v2 -> VPair <$> reval v1 <*> reval v2
+      VRecord ri rho -> VRecord ri <$> mapAssocM reval rho
 
-  VUp v tv           -> up False ==<< (reval v, reval tv)  -- do not force at this point
-  VSing v tv         -> vSing <$> reval v <*> reval tv
-  VIrr -> return u
-  v -> throwErrorMsg $ "NYI : reval " ++ show v
+      VApp v vl          -> do
+        v'  <- reval v
+        vl' <- mapM reval vl
+        w   <- foldM app v' vl'
+        reduce w  -- since we only have rewrite rules at base types
+                  -- we do not need to reduces prefixes of w
+
+      VDef{} -> return $ VApp u [] -- restore invariant
+                                   -- CAN'T rewrite defined fun/data
+      VGen i -> reduce (valuateGen i valu)  -- CAN rewrite variable
+
+      VCase v tv env cl -> do
+        v' <- reval v
+        tv' <- reval tv
+        env' <- reEnv env
+        evalCase v' tv' env' cl
+
+      VBelow ltle v         -> VBelow ltle <$> reval v
+      VGuard beta v         -> VGuard <$> reval beta <*> reval v
+      VQuant pisig x dom fv ->
+        VQuant pisig x
+          <$> Traversable.mapM reval dom
+          <*> reFun fv
+    {-
+      VQuant pisig x dom env b -> do
+        dom' <- Traversable.mapM reval dom
+        env' <- reEnv env
+        return $ VQuant pisig x dom' env' b
+    -}
+      VConst v           -> VConst <$> reval' valu v
+      VLam x env e       -> flip (VLam x) e <$> reval' valu env
+      VAbs x i v valu'   -> VAbs x i v <$> reval' valu valu'
+      VUp v tv           -> up False ==<< (reval' valu v, reval' valu tv)  -- do not force at this point
+
+      VClos env e        -> do env' <- reEnv env
+                               return $ VClos env' e
+
+      VMeta i env k      -> do env' <- reEnv env
+                               return $ VMeta i env' k
+
+      VSing v tv         -> vSing ==<< (reval v, reval tv)
+      VIrr -> return u
+      v -> throwErrorMsg $ "NYI : reval " ++ show v
+
 
 -- TODO: singleton Sigma types
+-- <t : Pi x:a.f> = Pi x:a <t x : f x>
+-- <t : A -> B  > = Pi x:A <t x : B>
+-- <t : <t' : a>> = <t' : a>
+vSing :: Val -> TVal -> TypeCheck TVal
+vSing v (VQuant Pi x' dom fv) = do
+  let x = fresh $ if emptyName x' then "xSing#" else suggestion x'
+  VQuant Pi x dom <$> do
+  underAbs_ x dom fv $ \ i xv bv -> do
+    v <- app v xv
+    vAbs x i <$> vSing v bv
+vSing _ tv@(VSing{}) = return $ tv
+vSing v tv           = return $ VSing v tv
+{-
 -- This is a bit of a hack (finding a fresh name)
 -- <t : Pi x:a.b> = Pi x:a <t x : b>
+-- <t : Pi x:a.f> = Pi x:a <t x : f x>
 -- <t : <t' : a>> = <t' : a>
 vSing :: Val -> TVal -> TVal
 vSing v (VQuant Pi x dom env b)
@@ -170,21 +224,9 @@ vSing v (VQuant Pi x dom env b) =
       where xv = fresh ("vSing#" ++ suggestion x)
             x' = fresh $ if emptyName x then "xSing#" else suggestion x
             b' = parSubst (\ y -> Var $ if y == x then x' else y) b
-
-{-
-vSing v (VQuant Pi x dom env b) = -- xv `seq` x' `seq`
- (VQuant Pi x' dom (update env xv v) $ Sing (App (Var xv) (Var x')) b')
-  where xv = fresh ("vSing#" ++ suggestion x)
-        x' = fresh $ if emptyName x then "xSing#" else suggestion x
-        b' = parSubst (\ y -> Var $ if y == x then x' else y) b
--}
 vSing _ tv@(VSing{}) = tv
-vSing v tv = VSing v tv
-
--- no need to reevaluate mmeas, since only sizes
-reEnv :: Env -> TypeCheck Env
-reEnv (Environ rho mmeas) = flip Environ mmeas <$> do
-  forM rho $ \ (x,v) -> (x,) <$> reval v
+vSing v tv           = VSing v tv
+-}
 
 -- reduce the root of a value
 reduce :: Val -> TypeCheck Val
@@ -205,22 +247,24 @@ equal u1 u2 = traceLoop ("equal " ++ show u1 ++ " =?= " ++ show u2) $
 --    (VSucc v1, VSucc v2) -> equal v1 v2  -- NO REDUCING NECC. HERE (Size expr)
     (VApp v1 vl1, VApp v2 vl2) ->
        (equal v1 v2) `andLazy` (equals' vl1 vl2)
-    (VQuant pisig1 x1 dom1 env1 b1, VQuant pisig2 x2 dom2 env2 b2) | pisig1 == pisig2 ->
+    (VQuant pisig1 x1 dom1 fv1, VQuant pisig2 x2 dom2 fv2) | pisig1 == pisig2 ->
        andLazy (equal (typ dom1) (typ dom2)) $  -- NO RED. NECC. (Type)
-         new x1 dom1 $ \ vx -> do
-           v1 <- whnf (update env1 x1 vx) b1
-           v2 <- whnf (update env2 x2 vx) b2
-           equal v1 v2
+         new x1 dom1 $ \ vx -> equal ==<< (app fv1 vx, app fv2 vx)
     (VProj _ p, VProj _ q) -> return $ p == q
     (VPair v1 w1, VPair v2 w2) -> (equal v1 v2) `andLazy` (equal w1 w2)
     (VBelow ltle1 v1, VBelow ltle2 v2) | ltle1 == ltle2 -> equal v1 v2
     (VSing v1 tv1, VSing v2 tv2) -> (equal v1 v2) `andLazy` (equal tv1 tv2)
 
+    (fv1, fv2) | isFun fv1, isFun fv2 -> -- PROBLEM: DOM. MISSING, CAN'T "up" fresh variable
+      addName (bestName [absName fv1, absName fv2]) $ \ vx ->
+        equal ==<< (app fv1 vx, app fv2 vx)
+{-
     (VLam x1 env1 b1, VLam x2 env2 b2) -> -- PROBLEM: DOMAIN MISSING
          addName x1 $ \ vx -> do          -- CAN'T "up" fresh variable
                do v1 <- whnf (update env1 x1 vx) b1
                   v2 <- whnf (update env2 x2 vx) b2
                   equal v1 v2
+-}
     (VRecord ri1 rho1, VRecord ri2 rho2) | notDifferentNames ri1 ri2 -> and <$>
       zipWithM (\ (n1,v1) (n2,v2) -> ((n1 == n2) &&) <$> equal' v1 v2) rho1 rho2
     _ -> return False
@@ -266,16 +310,16 @@ reify' m v0 = do
     (VSort (CoSet v))    -> Sort . CoSet <$> reify v
     (VSort s)            -> return $ Sort $ vSortToSort s
     (VBelow ltle v)      -> Below ltle <$> reify v
-    (VQuant pisig x dom rho e) -> do
+    (VQuant pisig x dom fv) -> do
           dom' <- Traversable.mapM reify dom
-          newWithGen x dom $ \ k xv -> do
-            vb <- whnf (update rho x xv) e
+          underAbs_ x dom fv $ \ k xv vb -> do
             let x' = unsafeName (suggestion x ++ "~" ++ show k)
             Quant pisig (TBind x' dom') <$> reify vb
     (VSing v tv)         -> liftM2 Sing (reify v) (reify tv)
-    (VLam x rho e)       -> do
+    fv | isFun fv        -> do
+          let x = absName fv
           addName x $ \ xv@(VGen k) -> do
-            vb <- whnf (update rho x xv) e
+            vb <- app fv xv
             let x' = unsafeName (suggestion x ++ "~" ++ show k)
             Lam defaultDec x' <$> reify vb  -- TODO: dec!?
     (VUp v tv)           -> reify v -- TODO: type directed reification
@@ -316,12 +360,16 @@ toExpr v =
 -}
     VMeasured mu bv -> Quant Pi <$> (TMeasure <$> mapM toExpr mu) <*> toExpr bv
     VGuard beta bv  -> Quant Pi <$> (TBound <$> mapM toExpr beta) <*> toExpr bv
+    VBelow Le VInfty -> return $ Sort $ SortC Size
     VBelow ltle bv  -> Below ltle <$> toExpr bv
-    VQuant pisig x dom rho e -> addNameEnv x rho $ \ x rho ->
-      Quant pisig <$> (TBind x <$> mapM toExpr dom) <*> closToExpr rho e
+    VQuant pisig x dom fv -> underAbs' x fv $ \ xv bv ->
+      Quant pisig <$> (TBind x <$> mapM toExpr dom) <*> toExpr bv
     VSing v tv      -> Sing <$> toExpr v <*> toExpr tv
+    fv | isFun fv   -> addName (absName fv) $ \ xv -> toExpr =<< app fv xv
+{-
     VLam x rho e    -> addNameEnv x rho $ \ x rho ->
       Lam defaultDec x <$> closToExpr rho e
+-}
     VUp v tv        -> toExpr v
     VGen k          -> Var <$> nameOfGen k
     VDef d          -> return $ Def d
@@ -440,11 +488,11 @@ whnf env e = enter ("whnf " ++ show e) $
     Lam dec x e1 | erased dec -> whnf env e1
                  | otherwise -> return $ VLam x env e1
 -}
-    Lam dec x e1 -> return $ VLam x env e1
+    Lam dec x e1 -> return $ vLam x env e1
     Below ltle e -> VBelow ltle <$> whnf env e
     Quant pisig (TBind x dom) b -> do
       dom' <- Traversable.mapM (whnf env) dom  -- Pi is strict in its first argument
-      return $ VQuant pisig x dom' env b
+      return $ VQuant pisig x dom' $ vLam x env b
 
     -- a measured type evaluates to
     -- * a bounded type if measure present in environment (rhs of funs)
@@ -560,7 +608,7 @@ whnf' e = do
 sing :: Env -> Expr -> TVal -> TypeCheck TVal
 sing rho e tv = do
   let v = mkClos rho e -- v <- whnf rho e
-  return $ vSing v tv
+  vSing v tv
 {-
 sing env' e (VPi dec x av env b)  = do
   return $ VPi dec x' av env'' (Sing (App e (Var x')) b)
@@ -586,7 +634,7 @@ evalCase v tv env cs = do
 
 piApp :: TVal -> Clos -> TypeCheck TVal
 piApp (VGuard beta bv) w = piApp bv w
-piApp (VQuant Pi x dom env b) w = whnf (update env x w) b
+piApp (VQuant Pi x dom fv) w = app fv w
 piApp tv@(VApp (VDef (DefId DatK n)) vl) (VProj Post p) = projectType tv p VIrr -- no rec value here
 piApp tv w = failDoc (text "piApp: IMPOSSIBLE to instantiate" <+> prettyTCM tv <+> text "to argument" <+> prettyTCM w)
 
@@ -595,10 +643,13 @@ piApps tv [] = return tv
 piApps tv (v:vs) = do tv' <- piApp tv v
                       piApps tv' vs
 
+updateValu valu i v = reval' (sgVal i v) valu
+
 -- in app u v, u might be a VDef (e.g. when coming from reval)
 app :: Val -> Clos -> TypeCheck Val
 app = app' True
 
+-- | Application of arguments and projections.
 app' :: Bool -> Val -> Clos -> TypeCheck Val
 app' expandDefs u v = do
          let app = app' expandDefs
@@ -619,7 +670,16 @@ app' expandDefs u v = do
 --            VDef n -> appDef n [v]
 --            VApp (VDef id) vl -> VApp (VDef id) (vl ++ [v])
             VApp v1 vl -> return $ VApp v1 (vl ++ [v])
-            VLam x env e  -> whnf (update env x v) e
+
+-- VSing is a type!
+--           VSing u (VQuant Pi x dom fu) -> vSing <$> app u v <*> app fu v
+
+            VLam x env e    -> whnf (update env x v) e
+            VConst u        -> whnfClos u
+            VAbs x i u valu -> flip reval' u =<< updateValu valu i v
+            VUp u (VQuant Pi x dom fu) -> up False ==<< (app u v, app fu v)
+
+{-
             VUp u1 (VQuant Pi x dom rho b) -> do
 {-
 -- ALT: erased functions are not applied to their argument!
@@ -628,7 +688,7 @@ app' expandDefs u v = do
               v1 <- app u1 v  -- eta-expand v ??
               bv <- whnf (update rho x v) b
               up False v1 bv
-
+-}
             VUp u1 (VApp (VDef (DefId DatK n)) vl) -> do
               u' <- force u
               app u' v
@@ -725,12 +785,12 @@ appDef n vl = --trace ("appDef " ++ n) $
 -- up force v tv
 -- force==True also expands at coinductive type
 up :: Bool -> Val -> TVal -> TypeCheck Val
-up f (VUp v tv') tv = up f v tv
-up f v tv@(VQuant Pi _ _ _ _) = return $ VUp v tv
-up f _ (VSing v vt) = up f v vt
-up f v (VDef d) = failValInv (VDef d) -- upData v d []
-up f v (VApp (VDef (DefId DatK d)) vl) = upData f v d vl
-up f v _ = return $ v
+up f (VUp v tv') tv                              = up f v tv
+up f v           tv@VQuant{ vqPiSig = Pi }       = return $ VUp v tv
+up f _           (VSing v vt)                    = up f v vt
+up f v           (VDef d)                        = failValInv $ VDef d
+up f v           (VApp (VDef (DefId DatK d)) vl) = upData f v d vl
+up f v           _                               = return v
 
 {- Most of the code to eta expand on data types is in
    TypeChecker.hs "typeCheckDeclaration"
@@ -1120,9 +1180,9 @@ nonLinMatch undot symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v
     (PairP p1 p2, VPair v1 v2) -> do
       tv <- force tv
       case tv of
-        VQuant Sigma x dom rho b -> do
+        VQuant Sigma x dom fv -> do
           nonLinMatch undot symm st p1 v1 (typ dom) `bindMaybe` \ st -> do
-          nonLinMatch undot symm st p2 v2 =<< whnf (update rho x v1) b
+          nonLinMatch undot symm st p2 v2 =<< app fv v1
         _ -> failDoc $ text "nonLinMatch: expected" <+> prettyTCM tv <+> text "to be a Sigma-type (&)"
     (SuccP p', v) -> (predSize <$> whnfClos v) `bindMaybe` \ v' ->
       nonLinMatch undot symm st p' v' tv
@@ -1148,9 +1208,9 @@ nonLinMatchList' undot symm st [] [] tv = return $ Just st
 nonLinMatchList' undot symm st (p:pl) (v:vl) tv = do
   tv <- force tv
   case tv of
-    VQuant Pi x dom rho b ->
+    VQuant Pi x dom fv ->
       nonLinMatch undot symm st p v (typ dom) `bindMaybe` \ st' ->
-      nonLinMatchList' undot symm st' pl vl =<< whnf (update rho x v) b
+      nonLinMatchList' undot symm st' pl vl =<< app fv v
     _ -> fail $ "nonLinMatchList': cannot match in absence of pi-type"
 nonLinMatchList' _ _ _ _ _ _ = return Nothing
 
@@ -1231,8 +1291,7 @@ data TypeShape
   = ShQuant PiSigma
             (OneOrTwo Name)
             (OneOrTwo Domain)
-            (OneOrTwo Env)
-            (OneOrTwo Type)      -- both are function types
+            (OneOrTwo FVal)      -- both are function types
   | ShSort  SortShape            -- sort of same shape
   | ShData  QName (OneOrTwo TVal)-- same data, but with possibly different args
   | ShNe    (OneOrTwo TVal)      -- both neutral
@@ -1254,7 +1313,7 @@ shSize = ShSort (ShSortC Size)
 typeView :: TVal -> TypeShape
 typeView tv =
   case tv of
-    VQuant pisig x dom env b     -> ShQuant pisig (One x) (One dom) (One env) (One b)
+    VQuant pisig x dom fv        -> ShQuant pisig (One x) (One dom) (One fv)
     VBelow{}                     -> shSize
     VSort s                      -> ShSort (sortView s)
     VSing v tv                   -> ShSing v tv
@@ -1277,9 +1336,9 @@ typeView12 :: (Functor m, Error e, MonadError e m) => OneOrTwo TVal -> m TypeSha
 typeView12 (One tv) = return $ typeView tv
 typeView12 (Two tv1 tv2) =
   case (tv1, tv2) of
-    (VQuant pisig1 x1 dom1 env1 b1, VQuant pisig2 x2 dom2 env2 b2)
+    (VQuant pisig1 x1 dom1 fv1, VQuant pisig2 x2 dom2 fv2)
       | pisig1 == pisig2 && erased (decor dom1) == erased (decor dom2) ->
-        return $ ShQuant pisig1 (Two x1 x2) (Two dom1 dom2) (Two env1 env2) (Two b1 b2)
+        return $ ShQuant pisig1 (Two x1 x2) (Two dom1 dom2) (Two fv1 fv2)
     (VSort s1, VSort s2) -> ShSort <$> sortView12 (Two s1 s2)
     (VSing v tv, _)      -> return $ ShSingL v tv tv2
     (_, VSing v tv)      -> return $ ShSingR tv1 v tv
@@ -1300,6 +1359,9 @@ sortView12 (Two s1 s2) =
 
 whnf12 :: OneOrTwo Env -> OneOrTwo Expr -> TypeCheck (OneOrTwo Val)
 whnf12 env12 e12 = Traversable.traverse id $ zipWith12 whnf env12 e12
+
+app12 ::  OneOrTwo Val -> OneOrTwo Val -> TypeCheck (OneOrTwo Val)
+app12 fv12 v12 = Traversable.traverse id $ zipWith12 app fv12 v12
 
 -- if m12 = Nothing, we are checking subtyping, otherwise we are
 -- comparing objects or higher-kinded types
@@ -1351,7 +1413,7 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
    ----------------------------------------------------------
    Gamma |- t : p(x:A) -> B  <=  Gamma' |- t' : p'(x:A') -> B'
 -}
-      Just (ShQuant Pi x12 dom12 env12 b12) -> do
+      Just (ShQuant Pi x12 dom12 fv12) -> do
          x <- do
            let x = name12 x12
            if null (suggestion x) then do
@@ -1363,7 +1425,7 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
          newVar x dom12 $ \ _ xv12 -> do
             u1' <- app u1' (first12  xv12)
             u2' <- app u2' (second12 xv12)
-            tv12 <- whnf12 (zipWith123 update env12 x12 xv12) b12
+            tv12 <- app12 fv12 xv12
             leqVal' f p (Just tv12) u1' u2'
 {-
       Just (VPi x1 dom1 env1 b1, VPi x2 dom2 env2 b2)  ->
@@ -1436,8 +1498,8 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
   ---------------------------------------------------------
   Gamma |- p(x:A) -> B : s <= Gamma' |- p'(x:A') -> B' : s'
 -}
-              (VQuant piSig1 x1 dom1@(Domain av1 _ dec1) env1 b1,
-               VQuant piSig2 x2 dom2@(Domain av2 _ dec2) env2 b2) -> do
+              (VQuant piSig1 x1 dom1@(Domain av1 _ dec1) fv1,
+               VQuant piSig2 x2 dom2@(Domain av2 _ dec2) fv2) -> do
                  let p' = if piSig1 == Pi then switch p else p
                  if piSig1 /= piSig2 || not (leqDec p' dec1 dec2) then
                     recoverFailDoc $ text "subtyping" <+> prettyTCM u1 <+> text (" <=" ++ show p ++ " ") <+> prettyTCM u2 <+> text "failed"
@@ -1445,18 +1507,11 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
                     leqVal' (switch f) p' Nothing av1 av2
                     -- take smaller domain
                     let dom = if (p' == Neg) then dom2 else dom1
-                    let x = if emptyName x1 then x2 else
-                            if emptyName x2 then x1 else
-                            if p' == Neg then x2 else x1
+                    let x = bestName $ if p' == Neg then [x2,x1] else [x1,x2]
                     new x dom $ \ xv -> do
-                      bv1 <- whnf (update env1 x1 xv) b1
-                      bv2 <- whnf (update env2 x2 xv) b2
-{-
-                    new2 x1 (dom1, dom2) $ \ (xv1, xv2) -> do
-                      bv1 <- whnf (update env1 x1 xv1) b1
-                      bv2 <- whnf (update env2 x2 xv2) b2
--}
-                      enterDoc (text "comparing codomain" <+> prettyTCM b1 <+> text "with" <+> prettyTCM b2) $
+                      bv1 <- app fv1 xv
+                      bv2 <- app fv2 xv
+                      enterDoc (text "comparing codomain" <+> prettyTCM bv1 <+> text "with" <+> prettyTCM bv2) $
                         leqVal' f p Nothing bv1 bv2
 
               (VSing v1 av1, VSing v2 av2) -> do
@@ -1638,7 +1693,7 @@ leqVals' f q tv12 vl1 vl2 = do
       tv12 <- mapM (\ tv -> projectType tv p1 VIrr) tv12
       leqVals' f q tv12 vs1 vs2
 
-    (w1:vs1, w2:vs2, ShQuant Pi x12 dom12 env12 b12) -> do
+    (w1:vs1, w2:vs2, ShQuant Pi x12 dom12 fv12) -> do
       let p = oneOrTwo id polAnd (fmap (polarity . decor) dom12)
       let dec = Dec { polarity = p } -- WAS: , erased = erased $ decor $ first12 dom12 }
       v1 <- whnfClos w1
@@ -1646,18 +1701,15 @@ leqVals' f q tv12 vl1 vl2 = do
       tv12 <- do
         if erased p -- WAS: (erased dec || p == Pol.Const)
          -- we have skipped an argument, so proceed with two types!
-         then whnf12 (zipWith123 update (toTwo env12) (toTwo x12) (Two v1 v2))
-                     (toTwo b12)
+         then app12 (toTwo fv12) (Two v1 v2)
          else do
            let q' = polComp p q
            applyDec dec $
              leqVal' f q' (Just $ fmap typ dom12) v1 v2
            -- we have not skipped comparison, so proceed (1/2) as we came in
-           case env12 of
-             Two env1 env2 ->
-               whnf12 (zipWith123 update env12 x12 (Two v1 v2)) b12
-             One env -> One <$>
-               whnf (update env (fromOne x12) v1) (fromOne b12)
+           case fv12 of
+             Two{}  -> app12 fv12 (Two v1 v2)
+             One fv -> One <$> app fv v1
                -- type is invariant, so it does not matter which one we take
       leqVals' f q tv12 vs1 vs2
 
@@ -1713,6 +1765,7 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
       (VApp{}, _)    -> throwErrorMsg $ "leqApp: internal error: hit application v1 = " ++ show v1
       (_, VApp{})    -> throwErrorMsg $ "leqApp: internal error: hit application v2 = " ++ show v2
 -}
+
       (VUp v1 _, v2) -> leqApp f pol v1 w1 v2 w2
       (v1, VUp v2 _) -> leqApp f pol v1 w1 v2 w2
 
@@ -2173,8 +2226,8 @@ checkPositivityGraph = enter ("checking positivity") $ do
 telView :: TVal -> TypeCheck ([(Val, TBinding TVal)], TVal)
 telView tv = do
   case tv of
-    VQuant Pi x dom env b -> new x dom $ \ xv -> do
-      (vTel, core) <- telView =<< whnf (update env x xv) b
+    VQuant Pi x dom fv -> underAbs_ x dom fv $ \ _ xv bv -> do
+      (vTel, core) <- telView bv
       return ((xv, TBind x dom) : vTel, core)
     _ -> return ([], tv)
 

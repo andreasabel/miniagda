@@ -27,9 +27,9 @@ fix
 /// right hand side
 /// checkExpr 3 |- f i (fix A f) : A i
 /// inferExpr' f i (fix A f)
-/// checkApp ((v0 v2)::Tm -> A $i{i = v2, A = (v0 Up (Size -> Set))}) eliminated by fix A f
-/// leqVal' (subtyping)  .[i <= #] -> < fix A f i : A i >  <=+  A i
-/// leqApp: head mismatch .[i <= #] -> < fix A f i : A i > != A
+/// checkApp ((v0 v2)::Tm -> {A $i {i = v2, A = (v0 Up (Size -> Set))}}) eliminated by fix A f
+/// leqVal' (subtyping)  .[i : Size] -> < fix [A ] (f i ) i : A i >  <=+  A i
+/// leqApp: head mismatch .[i : Size] -> < fix [A ] (f i ) i : A i > != A
 type  A : -(i : Size) -> Set
 type  A = \ i -> (Nat # -> Nat i) -> Nat #
 term  fix : (f : .[i : Size] -> A i -> A $i) -> .[i : Size] -> A i
@@ -39,6 +39,6 @@ fix
 /// right hand side
 /// checkExpr 2 |- f i (fix f i) : (Nat # -> Nat i) -> Nat #
 /// inferExpr' f i (fix f i)
-/// checkApp ((((Nat #)::Tm -> Nat i{i = v1})::Tm -> Nat #{i = v1})::Tm -> A $i{i = v1}) eliminated by fix f i
+/// checkApp ((((Nat #)::Tm -> {Nat i {i = v1}})::Tm -> {Nat # {i = v1}})::Tm -> {A $i {i = v1}}) eliminated by fix f i
 /// checkGuard |i| < |i|
 /// lexSizes: no descent detected

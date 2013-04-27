@@ -26,4 +26,4 @@ error during typechecking:
 fib
 /// clause 1
 /// pattern $$i
-/// cannot match against deep successor pattern $$i; type: (.[i : Size] -> Stream Nat i)
+/// cannot match against deep successor pattern $$i at type .[i : Size] -> Stream Nat i

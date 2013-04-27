@@ -37,7 +37,7 @@ checking type of loop for admissibility
 /// new i : _
 /// new f : _
 /// new i <= #
-/// admType: checking ((SNat v3)::Tm -> (Nat -> Maybe (SNat i)) -> Unit{i = v3, un!t = v0}) admissible in v3
+/// admType: checking ((SNat v3)::Tm -> {(Nat -> Maybe (SNat i)) -> Unit {i = v3, un!t = v0}}) admissible in v3
 /// new  : (SNat v3)
-/// admType: checking (((SNat #)::Tm -> Maybe (SNat i){i = v3, un!t = v0})::Tm -> Unit{i = v3, un!t = v0}) admissible in v3
-/// type ((SNat #)::Tm -> Maybe (SNat i){i = v3, un!t = v0}) not lower semi continuous in v3
+/// admType: checking (((SNat #)::Tm -> {Maybe (SNat i) {i = v3, un!t = v0}})::Tm -> {Unit {i = v3, un!t = v0}}) admissible in v3
+/// type  SNat # -> Maybe (SNat i)  not lower semi continuous in  i

@@ -52,7 +52,10 @@ traceCheckM msg = traceM msg
 
 traceSing msg a = a -- trace msg a
 traceSingM msg = return () -- traceM msg
-
+{-
+traceSing msg a = trace msg a
+traceSingM msg = traceM msg
+-}
 
 traceAdm msg a = a -- trace msg a
 traceAdmM msg = return () -- traceM msg
@@ -406,7 +409,7 @@ checkConstructorParams es tv = do
   -- could be extended to unifyable expressions in general
   ps <- mapM (\ e -> maybe (errorParamNotPattern e) return $ exprToPattern e) es
   -- no goals from dot patterns, no absurd pattern
-  ([],_,cxt,_,_,_,False) <- checkPatterns defaultDec [] [] tv ps
+  ([],_,cxt,_,_,_,False) <- checkPatterns defaultDec [] emptySub tv ps
   return (cxt, ps)
 
   where
@@ -897,7 +900,7 @@ checkExpr e v = do
             let vp = VSucc vy
             addSizeRel j 1 i $
               addRewrite (Rewrite vx vp) [v] $ \ [v'] -> do
-                Kinded ki2 rhse <- checkRHS [] rhs v'
+                Kinded ki2 rhse <- checkRHS emptySub rhs v'
                 return $ Kinded ki2 $ Case (Var x) (Just tSize) [Clause [TBind y dom] [SuccP (VarP y)] (Just rhse)]
 
 
@@ -987,20 +990,18 @@ checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
 
 -- | @checkPair e1 e2 y dom env b@ checks @Pair e1 e2@ against
 --   @VQuant Sigma y dom env b@.
-checkPair :: Expr -> Expr -> Name -> Domain -> Env -> Expr -> TypeCheck (Kinded Expr)
-checkPair e1 e2 y dom@(Domain av ki dec) env b = do
+checkPair :: Expr -> Expr -> Name -> Domain -> FVal -> TypeCheck (Kinded Expr)
+checkPair e1 e2 y dom@(Domain av ki dec) fv = do
   case av of
     VBelow Lt VInfty -> do
-      lowerSemi <- newWithGen y dom $ \ i xv -> do
-        bv <- whnf (update env y xv) b
-        lowerSemiCont i bv
+      lowerSemi <- underAbs y dom fv $ \ i _ bv -> lowerSemiCont i bv
       continue $ if lowerSemi then VBelow Le VInfty else av
     _ -> continue av
   where
     continue av = do
       Kinded k1 e1 <- applyDec dec $ checkExpr e1 av
       v1 <- whnf' e1
-      bv <- whnf (update env y v1) b
+      bv <- app fv v1
       Kinded k2 e2 <- checkExpr e2 bv
       return $ Kinded (unionKind k1 k2) $ Pair (maybeErase dec e1) e2
 
@@ -1019,8 +1020,8 @@ checkForced e v = do
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkForced e bv
 
-      (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) env b) ->
-        checkPair e1 e2 y dom env b
+      (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) fv) ->
+        checkPair e1 e2 y dom fv
 
       (Record ri rs, t@(VApp (VDef (DefId DatK d)) vl)) -> do
          let fail1 = failDoc (text "expected" <+> prettyTCM t <+> text "to be a record type")
@@ -1067,17 +1068,16 @@ Following Awodey/Bauer 2001, the following rule is valid
 
 -- NOW just my rule (LICS 2010 draft) a la Barras/Bernardo
 
-      (Lam _ y e1, VQuant Pi x dom env t1) -> do
+      (Lam _ y e1, VQuant Pi x dom fv) -> do
           -- rho <- getEnv  -- get the environment corresponding to Gamma
-          new y dom $ \ vy -> do
-            v_t1 <- whnf (update env x vy) t1
+          underAbs y dom fv $ \ _ vy bv -> do
             -- traceCheckM $ "checking " ++ show e1 ++ " : " ++ show v_t1
-            Kinded ki1 e1e <- checkExpr e1 v_t1
+            Kinded ki1 e1e <- checkExpr e1 bv
             -- the kind of a lambda is the kind of its body
             return $ Kinded ki1 $ Lam (decor dom) y e1e
 
       -- lone projection: eta-expand!
-      (Proj Pre p, VQuant Pi x dom env t1) -> do
+      (Proj Pre p, VQuant Pi x dom fv) -> do
          let y = nonEmptyName x "y"
          checkForced (Lam (decor dom) y $ App e (Var y)) v
 {-
@@ -1146,11 +1146,10 @@ Following Awodey/Bauer 2001, the following rule is valid
 checkConTerm :: ConK -> QName -> [Expr] -> TVal -> TypeCheck (Kinded Extr)
 checkConTerm co c es v = do
   case v of
-    VQuant Pi x dom env b -> do
+    VQuant Pi x dom fv -> do
       let y = freshen $ nonEmptyName x "y"
-      new y dom $ \ vx -> do
-        vb <- whnf (update env x vx) b
-        Kinded ki ee <- checkConTerm co c (es ++ [Var y]) vb
+      underAbs y dom fv $ \ _ _ bv -> do
+        Kinded ki ee <- checkConTerm co c (es ++ [Var y]) bv
         return $ Kinded ki $ Lam (decor dom) y ee
     _ -> do
       c <- disambigCon c v
@@ -1206,16 +1205,14 @@ checkApp e2 v = do
   v <- force v -- if v is a corecursively defined type in Set, unfold!
   enter ("checkApp " ++ show v ++ " eliminated by " ++ show e2) $ do
   case v of
-    VQuant Pi x dom@(Domain av@(VBelow Lt VInfty) _ dec) env b -> do
-      upperSemi <- newWithGen x dom $ \ i xv -> do
-        bv <- whnf (update env x xv) b
-        upperSemiCont i bv
-      continue $ if upperSemi then VQuant Pi x dom{ typ = VBelow Le VInfty} env b
+    VQuant Pi x dom@(Domain av@(VBelow Lt VInfty) _ dec) fv -> do
+      upperSemi <- underAbs x dom fv $ \ i _ bv -> upperSemiCont i bv
+      continue $ if upperSemi then VQuant Pi x dom{ typ = VBelow Le VInfty} fv
                  else v
     _ -> continue v
  where
   continue v = case v of
-    VQuant Pi x (Domain av _ dec) env b -> do
+    VQuant Pi x (Domain av _ dec) fv -> do
        (ki, v2, e2e) <- do
          if inferable e2 then do
        -- if e2 has a singleton type, we should not take v2 = whnf e2
@@ -1233,7 +1230,7 @@ checkApp e2 v = do
               Kinded ki e2e <- applyDec dec $ checkExpr e2 av
               v2 <- whnf' e2e
               return (ki, v2, e2e)
-       bv <- whnf (update env x v2) b
+       bv <- app fv v2
        -- the kind of the application is the kind of its head
        return (Kinded ki $ (x,) $ maybeErase dec e2e, bv)
        -- if e1e==Irr then Irr else if e2e==Irr then e1e else App e1e [e2e])
@@ -1351,19 +1348,24 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
     (case e of
 
       Var x -> do
-        -- traceCheckM ("infer variable " ++ x) $
+        traceCheckM ("infer variable " ++ show x)
         item <- lookupName1 x
-        enterDoc (text "inferExpr: variable" <+> prettyTCM x <+> colon <+> prettyTCM (typ $ domain item) <+> text "may not occur") $ do
-          let dec = decor $ domain item
-          let udec = upperDec item
-          let pol = polarity dec
-          let upol = polarity udec
+        traceCheckM ("infer variable: retrieved item ")
+        let dom = domain item
+            av  = typ dom
+        traceCheckM ("infer variable: " ++ show av)
+        enterDoc (text "inferExpr: variable" <+> prettyTCM x <+> colon <+> prettyTCM av <+> text "may not occur") $ do
+          let dec  = decor dom
+              udec = upperDec item
+              pol  = polarity dec
+              upol = polarity udec
           when (erased dec && not (erased udec)) $
             recoverFail ", because it is marked as erased"
           enter ", because of polarity" $
             leqPolM pol upol
-           -- traceCheckM ("infer variable " ++ x ++ " : " ++ show  (typ item))
-        return $ (typ $ domain item, Kinded (kind $ domain item) $ Var x)
+        traceCheckM ("infer variable returns")
+        traceCheckM ("infer variable " ++ show x ++ " : " ++ show av)
+        return $ (av, Kinded (kind dom) $ Var x)
 {-
         let err = "inferExpr: variable " ++ x ++ " : " ++ show (typ item) ++
                   " may not occur"
@@ -1615,7 +1617,7 @@ checkCase i v tv cl@(Clause _ [p] mrhs) = enter ("case " ++ show i) $
   -- traceCheck ("checking case " ++ show i) $
     do
       -- clearDots -- NOT NEEDED
-      (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] [] tv p
+      (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] emptySub tv p
       local (\ _ -> cxt) $ do
         mapM (checkGoal ins) flex
         tel <- getContextTele -- TODO!
@@ -1659,7 +1661,7 @@ checkClause :: Int -> TVal -> Clause -> TypeCheck (Kinded EClause)
 checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
   -- traceCheck ("checking function clause " ++ show i) $
     -- clearDots -- NOT NEEDED
-    (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] [] tv pl
+    (flex,ins,cxt,tv0,ple,plv,absp) <- checkPatterns neutral [] emptySub tv pl
     -- 2013-03-30 When checking the rhs, we only allow new size hypotheses
     -- if they do not break any valuation of the existing hypotheses.
     -- See ICFP 2013 paper.
@@ -1688,7 +1690,11 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
 
 -- * Pattern checking ------------------------------------------------
 
-type Substitution = [(Int,TVal)]
+type Substitution = Valuation -- [(Int,Val)]
+
+emptySub    = emptyVal
+sgSub       = sgVal
+lookupSub i = lookup i . valuation
 
 type DotFlex = (Int,(Expr,Domain))
 
@@ -1765,7 +1771,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
         _ -> failDoc (text "cannot eliminate type" <+> prettyTCM tv <+> text "with a non-projection pattern")
 
     -- function type can be eliminated
-    VQuant Pi x (Domain av ki dec) env b -> do
+    VQuant Pi x (Domain av ki dec) fv -> do
 {-
        let erased' = er || erased dec
        let decEr   = if erased' then irrelevantDec else dec -- dec {erased = erased'}
@@ -1776,20 +1782,15 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 
          -- treat successor pattern here, because of admissibility check
          SuccP p2 -> do
-                 when (av /= vSize) (throwErrorMsg "checkPattern: expected type Size")
-
-                 when (isSuccessorPattern p2) $
-                   fail ("cannot match against deep successor pattern "
-                    ++ show p ++ "; type: " ++ show tv)
+                 when (av /= vSize) $ throwErrorMsg "checkPattern: expected type Size"
+                 when (isSuccessorPattern p2) $ cannotMatchDeep p tv
 
                  co <- asks mutualCo
                  when (co /= CoInd) $
                    fail ("successor pattern only allowed in cofun")
 
                  enterDoc (text ("checkPattern " ++ show p ++" : matching on size, checking that target") <+> prettyTCM tv <+> text "ends in correct coinductive sized type") $
-                   newWithGen x domEr $ \ i xv -> do
-                     vb0 <- whnf (update env x xv) b
-                     endsInSizedCo i vb0
+                   underAbs x domEr fv $ \ i _ bv -> endsInSizedCo i bv
 
                  cxt <- ask
                  -- 2012-02-05 assume size variable in SuccP to be < #
@@ -1801,7 +1802,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 --                 pv0 <- local (\ _ -> cxt') $ whnf' $ patternToExpr pe
                  -- pv0 <- patternToVal p -- RETIRE patternToVal
                  -- pv  <- up False pv0 av -- STUPID what can be eta-exanded at type Size??
-                 vb  <- whnf (update env x pv) b
+                 vb  <- app fv pv
 {-
                  endsInCoind <- endsInSizedCo pv vb
                  when (not endsInCoind) $ throwErrorMsg $ "checkPattern " ++ show p ++" : cannot match on size since target " ++ show tv ++ " does not end in correct coinductive sized type"
@@ -1812,7 +1813,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
          _ -> do
            (flex',ins',cxt',pe,pv,absp) <- checkPattern' flex ins domEr p
            -- traceM ("checkPattern' returns " ++ show (flex',ins',cxt',pe,pv,absp))
-           vb  <- whnf (update env x pv) b
+           vb  <- app fv pv
            vb  <- substitute ins' vb  -- from ConP case -- ?? why not first subst and then whnf?
            -- traceCheckM ("Returning type " ++ show vb)
            return (flex',ins',cxt',vb,pe,pv,absp)
@@ -1838,10 +1839,10 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
           PairP p1 p2 -> do
             av <- force av
             case av of
-             VQuant Sigma y dom1@(Domain av1 ki1 dec1) env1 a2 -> do
+             VQuant Sigma y dom1@(Domain av1 ki1 dec1) fv -> do
               (flex, ins, cxt, pe1, pv1, absp1) <-
                  checkPattern' flex ins (Domain av1 ki1 $ dec1 `compose` decEr) p1
-              av2 <- whnf (update env1 y pv1) a2
+              av2 <- app fv pv1
               (flex, ins, cxt, pe2, pv2, absp2) <-
                  local (const cxt) $
                    checkPattern' flex ins (Domain av2 ki decEr) p2
@@ -2157,7 +2158,7 @@ checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
 -- 2012-01-25 now we do since "extraction" turns also con.terms into records
 checkGoal :: Substitution -> Goal -> TypeCheck ()
 checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $
-  case (lookup i subst) of
+  case lookupSub i subst of
     Nothing -> recoverFail $ "not instantiated"
     Just v -> do
       tv <- substitute subst (typ it)
@@ -2240,18 +2241,18 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
 --  case tv of
 --    (VPi dec x av env b) ->
   case (v1,v2) of
-    (VGen k, VGen j) | k == j -> return []
+    (VGen k, VGen j) | k == j -> return emptySub
     (VGen k,_) | elem k flex -> do
                        l <- getLen
                        noc <- nocc l v1 v2
                        case noc of
-                         True -> return [(k,v2)]
+                         True -> return $ sgSub k v2
                          False -> throwErrorMsg "occurs check failed"
     (_,VGen k) | elem k flex -> do
                    l <- getLen
                    noc <- nocc l v2 v1
                    case noc of
-                         True -> return [(k,v1)]
+                         True -> return $ sgSub k v1
                          False -> throwErrorMsg "occurs check failed"
 
     -- injectivity of data type constructors is unsound in general
@@ -2290,33 +2291,33 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
            return [] -- throwErrorMsg $ "inst: NYI"
  -}
     _ -> do leqVal pos tv v1 v2 `throwTrace` ("inst: leqVal " ++ show v1 ++ " ?<=" ++ show pos ++ " " ++ show v2 ++ " : " ++ show tv ++ " failed")
-            return []
+            return emptySub
 
 instList :: [Pol] -> [Int] -> TVal -> [Val] -> [Val] -> TypeCheck Substitution
 instList = instList' 0
 
 -- unify lists, ignoring the first np items
 instList' :: Int -> [Pol] -> [Int] -> TVal -> [Val] -> [Val] -> TypeCheck Substitution
-instList' np posl flex tv [] [] = return []
+instList' np posl flex tv [] [] = return emptySub
 instList' np posl flex tv (v1:vl1) (v2:vl2) = do
   v1 <- whnfClos v1
   v2 <- whnfClos v2
   if (np <= 0 || isMeta flex v1 || isMeta flex v2) then
     case tv of
-      (VQuant Pi x dom env b) -> do
+      (VQuant Pi x dom fv) -> do
         let pol = getPol dom  -- WAS: (headPosl posl)
         subst <- inst pol flex (typ dom) v1 v2
         vl1' <- mapM (substitute subst) vl1
         vl2' <- mapM (substitute subst) vl2
         v    <- substitute subst v1
-        env' <- substitute subst env
-        vb   <- whnf (update env' x v) b
+        fv   <- substitute subst fv
+        vb   <- app fv v
         subst' <- instList' (np - 1) (tailPosl posl) flex vb vl1' vl2'
         compSubst subst subst'
    else
     case tv of
-      (VQuant Pi x dom env b) -> do
-        vb   <- whnf (update env x v2) b
+      (VQuant Pi x dom fv) -> do
+        vb   <- app fv v2
         instList' (np - 1) (tailPosl posl) flex vb vl1 vl2
 instList' np pos flex tv vl1 vl2 = fail $ "internal error: instList' " ++ show (np,pos,flex,tv,vl1,vl2) ++ " not handled"
 
@@ -2333,132 +2334,101 @@ isMeta :: [Int] -> Val -> Bool
 isMeta flex (VGen k) = k `elem` flex
 isMeta _ _ = False
 
--- overload `subst`
+----------------------------------------------------------------------
+-- * Substitution into values
+----------------------------------------------------------------------
+
+-- | Overloaded substitution of values for generic values (free variables).
 class Substitute a where
   substitute :: Substitution -> a -> TypeCheck a
 
-instance Substitute (Measure Val) where
-  substitute subst (Measure mu) = do
-    mu' <- mapM (substitute subst) mu
-    return $ Measure mu'
+instance Substitute v => Substitute (x,v) where
+  substitute subst (x,v) = (x,) <$> substitute subst v
 
-instance Substitute (Bound Val) where
-  substitute subst (Bound ltle mu1 mu2) = do
-    mu1' <- substitute subst mu1
-    mu2' <- substitute subst mu2
-    return $ Bound ltle mu1' mu2'
+instance Substitute v => Substitute [v] where
+  substitute = mapM . substitute
+
+instance Substitute v => Substitute (Maybe v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (Map k v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (OneOrTwo v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (Dom v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (Measure v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (Bound v) where
+  substitute = Traversable.mapM . substitute
+
+instance Substitute v => Substitute (Sort v) where
+  substitute = Traversable.mapM . substitute
 
 -- substitute generic variable in value
 instance Substitute Val where
   substitute subst v = do -- enterDoc (text "substitute" <$> prettyTCM v) $ do
+    let sub v = substitute subst v
     case v of
-      VGen k -> case lookup k subst of
-                  Nothing ->  return $ v
-                  Just v' ->  return $ v'
-      VApp v1 vl -> do v1' <- substitute subst v1
-                       vl' <- mapM (substitute subst) vl
-                       foldM app v1' vl'  -- does not do anything for empty list vl'
-      VSing v1 vt -> do v1' <- substitute subst v1
-                        vt' <- substitute subst vt
-                        return $ vSing v1' vt'  -- TODO: Check reevaluation necessary?
+      VGen k                -> return $ valuateGen k subst
+      VApp v1 vl            -> foldM app ==<< (sub v1, sub vl)
+      VSing v1 vt           -> vSing ==<< (sub v1, sub vt) -- TODO: Check reevaluation necessary?
 
-      VSucc v1  -> succSize  <$> substitute subst v1
-      VMax  vs  -> maxSize   <$> mapM (substitute subst) vs
-      VPlus vs  -> plusSizes <$> mapM (substitute subst) vs
+      VSucc v1              -> succSize  <$> substitute subst v1
+      VMax  vs              -> maxSize   <$> mapM (substitute subst) vs
+      VPlus vs              -> plusSizes <$> mapM (substitute subst) vs
 
-      VCase v1 tv1 env cl -> do
-        v1' <- substitute subst v1
-        tv1' <- substitute subst tv1
-        env' <- substitute subst env
-        return $ VCase v1' tv1' env' cl
+      VCase v1 tv1 env cl   -> VCase <$> sub v1 <*> sub tv1 <*> sub env <*> return cl
+      VMeasured mu bv       -> VMeasured <$> sub mu <*> sub bv
+      VGuard beta bv        -> VGuard <$> sub beta <*> sub bv
 
-      VMeasured mu bv -> do
-          mu' <- substitute subst mu
-          bv'   <- substitute subst bv
-          return $ VMeasured mu' bv'
-      VGuard beta bv -> do
-          beta' <- substitute subst beta
-          bv'   <- substitute subst bv
-          return $ VGuard beta' bv'
+      VBelow ltle v         -> VBelow ltle <$> substitute subst v
 
-      VBelow ltle v -> VBelow ltle <$> substitute subst v
+      VQuant pisig x dom fv -> VQuant pisig x <$> sub dom <*> sub fv
+      VRecord ri rs         -> VRecord ri <$> sub rs
+      VPair v1 v2           -> VPair <$> sub v1 <*> sub v2
+      VProj{}               -> return v
 
-      VQuant pisig x dom env b ->
-          do dom' <- Traversable.mapM (substitute subst) dom
-             env' <- substitute subst env
-             return $ VQuant pisig x dom' env' b
-      VRecord ri rs -> VRecord ri <$> mapM (\ (x,v) -> (x,) <$> substitute subst v) rs
-      VPair v1 v2  -> VPair <$> substitute subst v1 <*> substitute subst v2
-      VProj{}      -> return v
-      VLam x env b -> do env' <- substitute subst env
-                         return $ VLam x env' b
-      VClos env e  -> do env' <- substitute subst env
-                         return $ VClos env' e
-      VUp v1 vt -> do v1' <- substitute subst v1
-                      vt' <- substitute subst vt
-                      up False v1' vt'
-      VSort s   -> substitute subst s >>= return . VSort
-      VZero     -> return $ v
-      VInfty    -> return $ v
-      VIrr      -> return $ v
-      VDef id   -> return $ vDef id  -- because empty list of apps will be rem.
---      VCon co n -> return $ v
-      VMeta x env n -> do env' <- substitute subst env
-                          return $ VMeta x env' n
+      VLam x env b          -> flip (VLam x) b <$> sub env
+      VConst v              -> VConst <$> sub v
+      VAbs x i v valu       -> VAbs x i v <$> sub valu
+      VClos env e           -> flip VClos e <$> sub env
+      VUp v1 vt             -> up False ==<< (sub v1, sub vt)
+      VSort s               -> VSort <$> sub s
+      VZero                 -> return $ v
+      VInfty                -> return $ v
+      VIrr                  -> return $ v
+      VDef id               -> return $ vDef id  -- because empty list of apps will be rem.
+      VMeta x env n         -> flip (VMeta x) n <$> sub env
 {- REDUNDANT
       _ -> error $ "substitute: internal error: not defined for " ++ show v
 -}
 
-instance Substitute (Sort Val) where
-  substitute subst s =
-    case s of
-      Set v -> do v' <- substitute subst v
-                  return $ Set v'
-      CoSet v -> substitute subst v >>= return . CoSet
-      SortC c -> return $ SortC c
-
-instance Substitute Domain where
-  substitute subst dom = Traversable.mapM (substitute subst) dom
-
 instance Substitute SemCxt where
   substitute subst delta = do
-    cxt' <- mapMapM (Traversable.mapM (substitute subst)) (cxt delta)
+    cxt' <- substitute subst (cxt delta)
     return $ delta { cxt = cxt' }
-{-
-instance Substitute a => Substitute (Maybe a) where
-  substitute subst Nothing  = return $ Nothing
-  substitute subst (Just a) = substitute subst a >>= return . Just
--}
 
--- substitute in environment
+-- | Substitute in environment.
 instance Substitute Env where
-  substitute subst (Environ rho mmeas) = do
-    rho' <- mapM (\(x,v) -> substitute subst v >>= return . (x,)) rho
-    mmeas' <- Traversable.mapM (substitute subst) mmeas
-    return $ Environ rho' mmeas'
-{-
-substitute subst [] = return $ []
-substitute subst ((x,v):env) = do  v'   <- substitute subst v
-                                 env' <- substitute subst env
-                                 return $  (x,v'):env'
--}
+  substitute subst (Environ rho mmeas) =
+    Environ <$> substitute subst rho <*> substitute subst mmeas
 
+instance Substitute Substitution where
+  substitute subst2 subst1 = compSubst subst1 subst2
 
--- "merge" substitutions by first applying the second to the first, then
--- appending them
+-- | "merge" substitutions by first applying the second to the first, then
+--   appending them @t[sigma][tau] = t[sigma . tau]@
 compSubst :: Substitution -> Substitution -> TypeCheck Substitution
-compSubst subst1 subst2 = do
-    subst1' <- mapM (\ (x,v) -> substitute subst2 v >>= return . (x,)) subst1
-    return $ subst1' ++ subst2
-{-
-compSubst subst1 subst2 = do
-    let (dom1,tg1) = unzip subst1
-    tg1' <- mapM (substitute subst2) tg1
-    let subst1' = zip dom1 tg1'
-    return $ subst1' ++ subst2
--}
+compSubst (Valuation subst1) subst2@(Valuation subst2') =
+    Valuation . (++ subst2') <$> substitute subst2 subst1
 
--- Size checking
+----------------------------------------------------------------------
+-- * Size checking
 ----------------------------------------------------------------------
 
 {- TODO: From a sized data declaration
@@ -2507,7 +2477,7 @@ szType :: Co -> Int -> TVal -> TypeCheck ()
 szType co p tv = doVParams p tv $ \ tv' -> do
     let polsz = if co==Ind then Pos else Neg
     case tv' of
-      VQuant Pi x (Domain av ki dec) env b | isVSize av && not (erased dec) && polarity dec == polsz -> return ()
+      VQuant Pi x (Domain av ki dec) fv | isVSize av && not (erased dec) && polarity dec == polsz -> return ()
       _ -> throwErrorMsg $ "not a sized type, target " ++ show tv' ++ " must have non-erased domain " ++ show Size ++ " with polarity " ++ show polsz
 
 -- * constructors of sized type
@@ -2518,24 +2488,22 @@ szConstructor :: Name -> Co -> Int -> TVal -> TypeCheck ()
 szConstructor n co p tv = enterDoc (text ("szConstructor " ++ show n ++ " :") <+> prettyTCM tv) $ do
   doVParams p tv $ \ tv' ->
     case tv' of
-       VQuant Pi x dom env b | isVSize (typ dom) ->
-          newWithGen x dom $ \ k xv -> do
-            bv <- whnf (update env x xv) b
+       VQuant Pi x dom fv | isVSize (typ dom) ->
+          underAbs x dom fv $ \ k xv bv -> do
             szSizeVarUsage n co p k bv
        _ -> fail $ "not a valid sized constructor: expected size quantification"
 
 szSizeVarUsage :: Name -> Co -> Int -> Int -> TVal -> TypeCheck ()
 szSizeVarUsage n co p i tv = enterDoc (text "szSizeVarUsage of" <+> prettyTCM (VGen i) <+> text "in" <+> prettyTCM tv) $
     case tv of
-       VQuant Pi x dom env b -> do
+       VQuant Pi x dom fv -> do
           let av = typ dom
           szSizeVarDataArgs n p i av  -- recursive calls of for D..i..
           enterDoc (text "checking" <+> prettyTCM av <+> text (" to be " ++
               (if co == CoInd then "antitone" else "isotone") ++ " in variable")
               <+> prettyTCM (VGen i)) $
             szMono co i av                -- monotone in i
-          new x dom $ \ xv -> do
-            bv <- whnf (update env x xv) b
+          underAbs x dom fv $ \ _ xv bv -> do
             szSizeVarUsage n co p i bv
 
        _ -> szSizeVarTarget p i tv
@@ -2581,16 +2549,19 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
 
      VApp v1 vl -> mapM_ (\ v -> whnfClos v >>= szSizeVarDataArgs n p i) (v1:vl)
 
-     VQuant Pi x dom env b -> do
+     VQuant Pi x dom fv -> do
        szSizeVarDataArgs n p i (typ dom)
-       new x dom $ \ xv -> do
-          bv <- whnf (update env x xv) b
+       underAbs x dom fv $ \ _ xv bv -> do
           szSizeVarDataArgs n p i bv
 
+     fv | isFun fv ->
+       addName (absName fv) $ \ xv -> szSizeVarDataArgs n p i =<< app fv xv
+{-
      VLam x env b ->
        addName x $ \ xv -> do
          bv <- whnf (update env x xv) b
          szSizeVarDataArgs n p i bv
+-}
      _ -> return ()
 
 {- REMOVED, 2009-11-28, replaced by monotonicity check
@@ -2602,9 +2573,8 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
 -- skip over parameters of type signature of a constructor/data type
 doVParams :: Int -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 doVParams 0 tv k = k tv
-doVParams p (VQuant Pi x dom env b) k =
-  new x dom $ \ xv -> do
-    bv <- whnf (update env x xv) b
+doVParams p (VQuant Pi x dom fv) k =
+  underAbs x dom fv $ \ _ xv bv -> do
     doVParams (p - 1) bv k
 
 --------------------------------------
@@ -2767,26 +2737,29 @@ So if G is upper semi-continuous, so is F.
 lowerSemiCont :: Int -> TVal -> TypeCheck Bool
 lowerSemiCont i tv = errorToBool $ lowerSemiContinuous i tv
 
+docNotLowerSemi i av = text "type " <+> prettyTCM av <+>
+  text " not lower semi continuous in " <+> prettyTCM (VGen i)
+
 lowerSemiContinuous :: Int -> TVal -> TypeCheck ()
 lowerSemiContinuous i av = do
   av <- force av
-  let fallback = szAntitone i av `newErrorDoc`
-            (text "type" <+> prettyTCM av <+> text "not lower semi continuous in" <+> prettyTCM (VGen i))
+  let fallback = szAntitone i av `newErrorDoc` docNotLowerSemi i av
+
   case av of
 
     -- [j < i] & F j  is lower semi-cont in i
     -- because [i < #] & [j < i] & F j is the same as [j < #] & F j
     -- [but what if i in FV(F j)? should not matter!] 2013-04-01
-    VQuant Sigma x dom@Domain{ typ = VBelow Lt (VGen i') } env b | i == i' -> return ()
+    VQuant Sigma x dom@Domain{ typ = VBelow Lt (VGen i') } fv | i == i' -> return ()
 
     -- [j <= i] & F j  is lower semi-cont in i if F is
-    VQuant Sigma x dom@Domain{ typ = VBelow Le (VGen i') } env b | i == i' -> do
-      newWithGen x dom $ \ j xv -> lowerSemiContinuous j =<< whnf (update env x xv) b
+    VQuant Sigma x dom@Domain{ typ = VBelow Le (VGen i') } fv | i == i' -> do
+      underAbs x dom fv $ \ j xv bv -> lowerSemiContinuous j bv
 
     -- Sigma-type general case
-    VQuant Sigma x dom@Domain{ typ = av } env b -> do
+    VQuant Sigma x dom@Domain{ typ = av } fv -> do
       lowerSemiContinuous i av
-      new x dom $ \ xv -> lowerSemiContinuous i =<< whnf (update env x xv) b
+      underAbs x dom fv $ \ _ xv bv -> lowerSemiContinuous i bv
 
     VApp (VDef (DefId DatK n)) vl -> do
       sige <- lookupSymbQ n
@@ -2853,16 +2826,16 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
       VMeasured mu bv -> endsInSizedCo' endInCo i bv
 
       -- case forall j <= i. C j coinductive in i
-      VQuant Pi x dom@Domain{ typ = VBelow Le (VGen i') } env b | i == i' ->
-        newWithGen x dom $ \ j xv ->
-          endsInSizedCo' endInCo j =<< whnf (update env x xv) b
+      VQuant Pi x dom@Domain{ typ = VBelow Le (VGen i') } fv | i == i' ->
+        underAbs x dom fv $ \ j xv bv ->
+          endsInSizedCo' endInCo j bv
       VGuard (Bound Le (Measure [VGen j]) (Measure [VGen i'])) bv | i == i' ->
         endsInSizedCo' endInCo j bv
 
       -- same case again, written as j < i+1. C j
-      VQuant Pi x dom@Domain{ typ = VBelow Lt (VSucc (VGen i')) } env b | i == i' ->
-        newWithGen x dom $ \ j xv ->
-          endsInSizedCo' endInCo j =<< whnf (update env x xv) b
+      VQuant Pi x dom@Domain{ typ = VBelow Lt (VSucc (VGen i')) } fv | i == i' ->
+        underAbs x dom fv $ \ j xv bv ->
+          endsInSizedCo' endInCo j bv
       VGuard (Bound Lt (Measure [VGen j]) (Measure [VSucc (VGen i')])) bv | i == i' ->
         endsInSizedCo' endInCo j bv
 
@@ -2872,12 +2845,11 @@ endsInSizedCo' endInCo i tv  = enterDoc (text "endsInSizedCo:" <+> prettyTCM tv)
       -- so we can instantiate i to #.
       VGuard (Bound Lt (Measure [VGen j]) (Measure [VGen i'])) bv | i == i' ->
         return ()
-      VQuant Pi x dom@Domain{ typ = VBelow Lt (VGen i') } env b | i == i' -> return ()
+      VQuant Pi x dom@Domain{ typ = VBelow Lt (VGen i') } fv | i == i' -> return ()
 
-      VQuant Pi x dom env b -> new x dom $ \ xv -> do
+      VQuant Pi x dom fv -> do
          lowerSemiContinuous i $ typ dom
-         bv <- whnf (update env x xv) b
-         endsInSizedCo' endInCo i bv
+         underAbs x dom fv $ \ _ xv bv -> endsInSizedCo' endInCo i bv
 
       VSing _ tv -> endsInSizedCo' endInCo i =<< whnfClos tv
       VApp (VDef (DefId DatK n)) vl -> do
@@ -2988,19 +2960,7 @@ allComponentTypes fis rho0 check = enter ("allComponentTypes: checking fields of
 endsInCo :: TVal -> TypeCheck Bool
 endsInCo tv  = -- traceCheck ("endsInCo: " ++ show tv) $
    case tv of
-      VQuant Pi x dom env b -> new x dom $ \ gen -> do
-         bv <- whnf (update env x gen) b
-         endsInCo  bv
-
-{-
-      -- if not applied, it cannot be a sized type
-      VDef (DefId Dat n) -> do
-         sig <- gets signature
-         case (lookupSig n sig) of
-            DataSig { isCo = CoInd } -> -- traceCheck ("found non-sized coinductive target") $
-               return True
-            _ -> return False
--}
+      VQuant Pi x dom fv -> underAbs x dom fv $ \ _ _ bv -> endsInCo bv
 
       VApp (VDef (DefId DatK n)) vl -> do
          sige <- lookupSymbQ n
@@ -3019,8 +2979,7 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
          case p of
            ProjP n -> return (p, [])
            _ -> fail "admPattern: IMPOSSIBLE: non-projection pattern for record type"
-      VQuant Pi x dom env b -> newWithGen x dom $ \ k xv -> do
-         bv <- whnf (update env x xv) b
+      VQuant Pi x dom fv -> underAbs x dom fv $ \ k xv bv -> do
   {-
          if p is successor pattern
          check that bv is admissible in k, returning subset of [Ind, CoInd]
@@ -3028,9 +2987,7 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
 -}
          if isSuccessorPattern p then do
            inco <- admType k bv
-           when (CoInd `elem` inco && not (shallowSuccP p)) $
-             fail ("cannot match coinductive size against deep successor pattern "
-                    ++ show p ++ "; type: " ++ show tv)
+           when (CoInd `elem` inco && not (shallowSuccP p)) $ cannotMatchDeep p tv
            if (CoInd `elem` inco)
               || (inco /= [] && completeP p)
             then return (p, inco)
@@ -3039,16 +2996,18 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
 
       _ -> fail "admPattern: IMPOSSIBLE: pattern for a non-function type"
 
+cannotMatchDeep p tv = recoverFailDoc $
+  text "cannot match against deep successor pattern"
+    <+> text (show p) <+> text "at type" <+> prettyTCM tv
+
 admType :: Int -> TVal -> TypeCheck [Co]
 admType i tv = enter ("admType: checking " ++ show tv ++ " admissible in v" ++ show i) $
     case tv of
-       VQuant Pi x dom@(Domain av _ _) env b -> do
+       VQuant Pi x dom@(Domain av _ _) fv -> do
           isInd <- szUsed Ind i av
           when (not isInd) $
-            szAntitone i av `newErrorMsg`
-             ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)
-          new x dom $ \ gen -> do
-            bv <- whnf (update env x gen) b
+            szAntitone i av `newErrorDoc` docNotLowerSemi i av
+          underAbs x dom fv $ \ gen _ bv -> do
             inco <- admType i bv
             if isInd then return (Ind : inco) else return inco
        _ -> do
@@ -3093,8 +3052,8 @@ szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++
 szCheckIndFun :: [Int] -> TVal -> TypeCheck ()
 szCheckIndFun admpos tv = -- traceCheck ("szCheckIndFun: " ++ show delta ++ " |- " ++ show tv ++ " adm?") $
       case tv of
-       VQuant Pi x dom env b -> new x dom $ \ (VGen k) -> do
-         bv <- whnf' b
+       VQuant Pi x dom fv -> underAbs x dom fv $ \ k _ bv -> do
+         -- bv <- whnf' b
          if isVSize (typ dom) then do
              when (k `elem` admpos) $
                szCheckIndFunSize k bv
@@ -3113,11 +3072,15 @@ szCheckIndFun admpos tv = -- traceCheck ("szCheckIndFun: " ++ show delta ++ " |-
 szCheckIndFunSize :: Int -> TVal -> TypeCheck ()
 szCheckIndFunSize i tv = -- traceCheck ("szCheckIndFunSize: " ++ show delta ++ " |- " ++ show tv ++ " adm(v" ++ show i ++ ")?") $
     case tv of
-       VQuant Pi x dom env b -> do
+       VQuant Pi x dom fv -> do
             szLowerSemiCont i (typ dom)
+--            new x dom $ \ k _  -> szCheckIndFunSize i =<< app fv (VGen k)
+            underAbs x dom fv $ \ _ _ bv -> szCheckIndFunSize i bv
+{-
             new' x dom $ do
               bv <- whnf' b
               szCheckIndFunSize i bv
+-}
        _ -> szMonotone i tv
 
 {- szLowerSemiCont
@@ -3127,10 +3090,10 @@ szCheckIndFunSize i tv = -- traceCheck ("szCheckIndFunSize: " ++ show delta ++ "
  -}
 szLowerSemiCont :: Int -> TVal -> TypeCheck ()
 szLowerSemiCont i av = -- traceCheck ("szlowerSemiCont: checking " ++ show av ++ " lower semi continuous in v" ++ show i) $
-   ((szAntitone i av) `catchError`
+   (szAntitone i av `catchError`
       (\ msg -> -- traceCheck (show msg) $
                    szInductive i av))
-        `newErrorMsg` ("type " ++ show av ++ " not lower semi continuous in v" ++ show i)
+        `newErrorDoc` docNotLowerSemi i av
 
 
 {- checking cofun-types for admissibility
@@ -3187,12 +3150,15 @@ admCoFun tv = do
 admEndsInCo :: TVal -> Int -> (Int -> TypeCheck ()) -> TypeCheck CoFunType
 admEndsInCo tv firstVar jobs = -- traceCheck ("admEndsInCo: " ++ show tv) $
    case tv of
-      VQuant Pi x dom env b -> do
+      VQuant Pi x dom fv -> do
          l <- getLen
          let jobs' = (addJob l (typ dom) jobs)
+         underAbs x dom fv $ \ _ _ bv -> admEndsInCo bv firstVar jobs'
+{-
          new' x dom $ do
            bv <- whnf' b
            admEndsInCo bv firstVar jobs'
+-}
 
 {-
       -- if not applied, it cannot be a sized type
@@ -3290,7 +3256,7 @@ szMonotone i tv = traceCheck ("szMonotone: " -- ++ show delta ++ " |- "
                               ++ show tv ++ " mon(v" ++ show i ++ ")?") $
  do
    let si = VSucc (VGen i)
-   tv' <- substitute [(i,si)] tv
+   tv' <- substitute (sgSub i si) tv
    leqVal Pos vTopSort tv tv'
 
 szAntitone :: Int -> TVal -> TypeCheck ()
@@ -3298,7 +3264,7 @@ szAntitone i tv = traceCheck ("szAntitone: " -- ++ show delta ++ " |- "
                               ++ show tv ++ " anti(v" ++ show i ++ ")?") $
  do
    let si = VSucc (VGen i)
-   tv' <- substitute [(i,si)] tv
+   tv' <- substitute (sgSub i si) tv
    leqVal Neg vTopSort tv tv'
 
 -- checks if tv is a sized inductive type of size i

@@ -12,11 +12,11 @@ term  mySucc : .[i : Size] -> .[j : Size] -> |j| < |i| -> Nat j -> Nat i
 }
 error during typechecking:
 bla
-/// checkExpr 0 |- \ i -> \ j -> \ n -> mySucc i j n : .[i <= #] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
-/// checkForced fromList [] |- \ i -> \ j -> \ n -> mySucc i j n : .[i <= #] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// checkExpr 0 |- \ i -> \ j -> \ n -> mySucc i j n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> mySucc i j n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
 /// new i <= #
-/// checkExpr 1 |- \ j -> \ n -> mySucc i j n : .[j <= #] -> |j| <= |i| -> Nat j -> Nat i
-/// checkForced fromList [(i,0)] |- \ j -> \ n -> mySucc i j n : .[j <= #] -> |j| <= |i| -> Nat j -> Nat i
+/// checkExpr 1 |- \ j -> \ n -> mySucc i j n : .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// checkForced fromList [(i,0)] |- \ j -> \ n -> mySucc i j n : .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
 /// new j <= #
 /// checkExpr 2 |- \ n -> mySucc i j n : |j| <= |i| -> Nat j -> Nat i
 /// adding size rel. v1 + 0 <= v0

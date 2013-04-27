@@ -9,7 +9,7 @@ bad
 /// pattern j < i
 /// new j <= #
 /// adding size rel. v1 + 1 <= v0
-/// leqVal' (subtyping)  <= #  <=+  < i
+/// leqVal' (subtyping)  Size  <=+  < i
 /// leSize # <+ i
 /// leSize' # < i
 /// leSize: # + 0 < i failed

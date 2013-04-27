@@ -10,7 +10,7 @@ WrapSize
 /// out
 /// clause 1
 /// right hand side
-/// checkExpr 1 |- #out : <= #
+/// checkExpr 1 |- #out : Size
 /// inferExpr' #out
-/// inferExpr: variable #out : <= # may not occur
+/// inferExpr: variable #out : Size may not occur
 /// , because it is marked as erased

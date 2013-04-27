@@ -13,7 +13,7 @@ bla
 /// clause 1
 /// pattern zero $i
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> < SNat.zero i : SNat $i > ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> < SNat.zero i : SNat $i > ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: < SNat.zero i : SNat $i >
 /// endsInSizedCo: SNat $i

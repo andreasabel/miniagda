@@ -22,7 +22,7 @@ run
 /// right hand side
 /// checkExpr 1 |- apply i (\ j -> caseN j unit (run j)) : Nat i -> Unit
 /// inferExpr' apply i (\ j -> caseN j unit (run j))
-/// checkApp ((.[j < v0] -> Nat $j -> Unit{i = v0})::Tm -> Nat i -> Unit{i = v0}) eliminated by \ j -> caseN j unit (run j)
+/// checkApp ((.[j < v0] -> Nat $j -> Unit{i = v0})::Tm -> {Nat i -> Unit {i = v0}}) eliminated by \ j -> caseN j unit (run j)
 /// checkExpr 1 |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
 /// checkForced fromList [(i,0)] |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
 /// new j < v0

@@ -40,7 +40,7 @@ fib2
 /// checkForced fromList [(i,0)] |- cons (i + i) n0 (zipWith Nat Nat Nat add (i + i) (cons (i + i) n1 (fib2 i)) (fib2 i)) : Stream Nat ($i + $i)
 /// leqVal' (subtyping)  < Stream.cons (i + i) (SNat.zero #) (zipWith Nat Nat Nat add (i + i) (Stream.cons [i + i] n1 (fib2 [i])) (fib2 [i])) : Stream Nat $(i + i) >  <=+  Stream Nat ($i + $i)
 /// leqVal' (subtyping)  Stream Nat $(i + i)  <=+  Stream Nat ($i + $i)
-/// leqVal'  $(i + i)  <=-  $$(i + i) : <= #
+/// leqVal'  $(i + i)  <=-  $$(i + i) : Size
 /// leSize $(i + i) <=- $$(i + i)
 /// leSize i + i <=- $(i + i)
 /// leSize' $(i + i) <= i + i

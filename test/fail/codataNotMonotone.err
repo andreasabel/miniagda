@@ -12,12 +12,12 @@ term  NatEq.eqz : .[i : Size] -> < NatEq.eqz i : NatEq $i (SNat.zero [i]) (SNat.
 error during typechecking:
 NatEq
 /// constructor NatEq.eqs
-/// szConstructor NatEq : .[i <= #] -> .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < NatEq.eqs i n m y3 : NatEq $i (SNat.succ [i] n) (SNat.succ [i] m) >
+/// szConstructor NatEq : .[i : Size] -> .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < NatEq.eqs i n m y3 : NatEq $i (SNat.succ [i] n) (SNat.succ [i] m) >
 /// new i <= #
 /// szSizeVarUsage of i in .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < NatEq.eqs i n m y3 : NatEq $i (SNat.succ [i] n) (SNat.succ [i] m) >
 /// checking SNat i  to be antitone in variable i
 /// leqVal'  SNat i  <=-  SNat $i : Set #
-/// leqVal'  i  <=-  $i : <= #
+/// leqVal'  i  <=-  $i : Size
 /// leSize i <=- $i
 /// leSize' $i <= i
 /// leSize: 0 + 1 <= 0 failed

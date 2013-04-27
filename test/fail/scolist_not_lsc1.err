@@ -16,5 +16,5 @@ checking type of length for admissibility
 /// new i <= #
 /// admType: checking (.[A : Set] -> Colist A i -> Nat i{i = v2}) admissible in v2
 /// new A : Set
-/// admType: checking ((Colist v3 v2)::Tm -> Nat i{A = v3, i = v2}) admissible in v2
-/// type (Colist v3 v2) not lower semi continuous in v2
+/// admType: checking ((Colist v3 v2)::Tm -> {Nat i {A = v3, i = v2}}) admissible in v2
+/// type  Colist A i  not lower semi continuous in  i

@@ -15,6 +15,6 @@ bot
 /// checkExpr 2 |- f # : F #
 /// inferExpr' f #
 /// checkApp (.[j < #] -> F j{F = (v0 Up (Size -> Set))}) eliminated by #
-/// leqVal' (subtyping)  < # : <= # >  <=+  < #
+/// leqVal' (subtyping)  < # : Size >  <=+  < #
 /// leSize # <+ #
 /// leSize: # < # failed

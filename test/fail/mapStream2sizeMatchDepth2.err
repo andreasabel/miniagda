@@ -12,4 +12,4 @@ error during typechecking:
 map2
 /// clause 1
 /// pattern $$i
-/// cannot match against deep successor pattern $$i; type: (.[i : Size] -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i)
+/// cannot match against deep successor pattern $$i at type .[i : Size] -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i

@@ -26,7 +26,7 @@ error during typechecking:
 bla
 /// clause 1
 /// pattern $i
-/// checkPattern $i : matching on size, checking that target .[i <= #] -> EmptyOr (Stream A i) Bool.false ends in correct coinductive sized type
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> EmptyOr (Stream A i) Bool.false ends in correct coinductive sized type
 /// new i <= #
 /// endsInSizedCo: EmptyOr (Stream A i) Bool.false
 /// allTypesOfTuple: panic: target type EmptyOr (Stream A i) Bool.false is not an instance of any constructor

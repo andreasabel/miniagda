@@ -16,8 +16,8 @@ type  Id : Nat # -> ++ Set -> Set
 }
 error during typechecking:
 kast
-/// checkExpr 0 |- \ i -> \ n -> \ x -> x : .[i <= #] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
-/// checkForced fromList [] |- \ i -> \ n -> \ x -> x : .[i <= #] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// checkExpr 0 |- \ i -> \ n -> \ x -> x : .[i : Size] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
+/// checkForced fromList [] |- \ i -> \ n -> \ x -> x : .[i : Size] -> .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
 /// new i <= #
 /// checkExpr 1 |- \ n -> \ x -> x : .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
 /// checkForced fromList [(i,0)] |- \ n -> \ x -> x : .[n : Nat i] -> Id n (Nat #) -> Id n (Nat i)
@@ -29,7 +29,7 @@ kast
 /// leqVal' (subtyping)  < x : Id n (Nat #) >  <=+  Id n (Nat i)
 /// leqVal' (subtyping)  Id n (Nat #)  <=+  Id n (Nat i)
 /// leqVal'  Nat #  <=+  Nat i : Set
-/// leqVal'  #  <=+  i : <= #
+/// leqVal'  #  <=+  i : Size
 /// leSize # <=+ i
 /// leSize' # <= i
 /// leSize: # + 0 <= i failed

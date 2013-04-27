@@ -12,7 +12,7 @@ PFun
 /// new A : Set
 /// new B : Set
 /// inferExpr' ^(dom : A -> Set) -> ^(app : Subset A dom -> B) -> PFun A B
-/// new dom : (v1::Tm -> Set{B = v2, A = v1, PFun = (v0 Up (^(A : Set) -> ^(B : Set) -> Set))})
+/// new dom : (v1::Tm -> {Set {B = v2, A = v1, PFun = (v0 Up (^(A : Set) -> ^(B : Set) -> Set))}})
 /// leSize 1 <=+ 0
 /// leSize' 1 <= 0
 /// leSize': 1 <= 0 failed

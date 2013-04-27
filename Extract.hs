@@ -288,7 +288,7 @@ extractClause :: Name -> FTVal -> Clause -> TypeCheck [FClause]
 extractClause f tv (Clause _ pl Nothing) = return [] -- discard absurd clauses
 extractClause f tv cl@(Clause vtel pl (Just rhs)) = do
   traceM ("extracting clause " ++ render (prettyClause f cl)
-          ++ "\n at type " ++ showVal tv)
+          ++ "\n at type " ++ show tv)
 {-
   tel <- introPatterns pl tv0 $ \ _ _ -> do
            vtel <- getContextTele
@@ -312,14 +312,14 @@ extractPatterns tv (p:ps) cont =
 extractPattern :: FTVal -> Pattern ->
                   ([FPattern] -> FTVal -> TypeCheck a) -> TypeCheck a
 extractPattern tv p cont = do
-  traceM ("extracting pattern " ++ render (pretty p) ++ " at type " ++ showVal tv)
+  traceM ("extracting pattern " ++ render (pretty p) ++ " at type " ++ show tv)
   fv <- funView tv
   case fv of
     EraseArg tv -> cont [] tv  -- skip erased patterns
 
-    Forall x dom env t -> do
+    Forall x dom fv -> do
       xv <- whnf' (patternToExpr p) -- pattern variables are already in scope
-      bv <- whnf (update env x xv) t -- TODO!
+      bv <- app fv xv -- TODO!
       case p of
         ErasedP (VarP y) -> setTypeOfName y dom $ cont [] bv
         _ -> cont [] bv
@@ -402,9 +402,9 @@ extractInfer e = do
       fv <- funView tv
       case fv of
         EraseArg bv -> return (f,bv)
-        Forall x dom env b -> do
+        Forall x dom fv -> do
           e <- extractTypeAt e (typ dom)
-          bv <- (\ xv -> whnf (update env x xv) b) =<< whnf' e
+          bv <- app fv =<< whnf' e
           return $ (App f (erasedExpr e), bv)
         Arrow av bv -> return (if er then f else App f e, bv)
         NotFun -> return (if er then f else castExpr f `App` e, VIrr)
@@ -423,10 +423,10 @@ extractCheck e tv = do
       fv <- funView tv
       case fv of
         EraseArg bv        -> extractCheck e bv -- discard lambda
-        Forall x dom env b ->
+        Forall x dom fv    ->
           Lam (decor dom) y <$> do
-            newWithGen y dom $ \ i _ ->
-              extractCheck e =<< whnf (update env x (VGen i)) b
+            newWithGen y dom $ \ i xv ->
+              extractCheck e =<< app fv (VGen i) -- no eta-expansion
         Arrow av bv        ->
           if erased dec then extractCheck e bv
            else Lam dec y <$> do
@@ -480,28 +480,28 @@ funView :: FTVal -> TypeCheck FunView
 funView tv =
   case tv of
     -- erasure mark
-    VQuant Pi x dom env e | erased (decor dom) && typ dom == VIrr ->
-      EraseArg <$> whnf (update env x VIrr) e
+    VQuant Pi x dom fv | erased (decor dom) && typ dom == VIrr ->
+      EraseArg <$> app fv VIrr
     -- forall
-    VQuant Pi x dom env e | erased (decor dom) ->
-      return $ Forall x dom env e
+    VQuant Pi x dom fv | erased (decor dom) ->
+      return $ Forall x dom fv
     -- function type
-    VQuant Pi x dom env e ->
-      Arrow (typ dom) <$> whnf (update env x VIrr) e
+    VQuant Pi x dom fv ->
+      Arrow (typ dom) <$> app fv VIrr
     -- any other type can be a function type, but this needs casts!
     _ -> return NotFun -- $ Arrow VIrr VIrr
 
 data FunView
   = Arrow    FTVal FTVal            -- A -> B
-  | Forall   Name Domain Env FType  -- forall X:K. A
+  | Forall   Name Domain FTVal      -- forall X:K. A
   | EraseArg FTVal                  -- [] -> B
   | NotFun                          -- ()
 
 prodView :: FTVal -> TypeCheck ProdView
 prodView tv =
   case tv of
-    VQuant Sigma x dom env b -> Prod (typ dom) <$> whnf (update env x VIrr) b
-    _                        -> return $ NotProd
+    VQuant Sigma x dom fv -> Prod (typ dom) <$> app fv VIrr
+    _                     -> return $ NotProd
 
 data ProdView
   = Prod FTVal FTVal -- A * B
@@ -558,8 +558,8 @@ extractKind tv =
     VSort s -> return $ extractSet s
     VMeasured mu vb -> extractKind vb
     VGuard beta vb -> extractKind vb
-    VQuant Pi x dom env b -> new' x dom $ do
-       bv  <- whnf (update env x VIrr) b
+    VQuant Pi x dom fv -> new' x dom $ do
+       bv  <- app fv VIrr
        mk' <- extractKind bv
        case mk' of
          Nothing -> return Nothing
@@ -609,26 +609,26 @@ extractTypeAt k tv = do
     (VGuard beta vb, _) -> extractTypeAt k vb
 
     -- relevant function space / sigma type --> non-dependent
-    (VQuant piSig x dom env b,_) | not (erased (decor dom)) -> do
+    (VQuant piSig x dom fv, _) | not (erased (decor dom)) -> do
       a <- extractType (typ dom)
       -- new' x dom $ do
-      bv <- whnf (update env x VIrr) b
+      bv <- app fv VIrr
       b  <- extractType bv
       let x = fresh ""
       return $ Quant piSig (TBind x (defaultDomain a)) b
 
     -- irrelevant function space --> forall or erasure marker
-    (VQuant Pi x dom env b,_) | erased (decor dom) -> do
+    (VQuant Pi x dom fv, _) | erased (decor dom) -> do
       mk <- extractKind (typ dom)
       case mk of
         Nothing -> do -- new' x dom $ do
-          bv <- whnf (update env x VIrr) b
+          bv <- app fv VIrr
           b  <- extractType bv
           let x = fresh ""
           return $ Quant Pi (TBind x (defaultIrrDom Irr)) b
         Just k' -> do
           newTyVar x k' $ \ i -> do
-            bv <- whnf (update env x (VGen i)) b
+            bv <- app fv $ VGen i
             b  <- extractType bv
             x  <- nameOfGen i
             return $ Quant Pi (TBind x (defaultIrrDom k')) b
