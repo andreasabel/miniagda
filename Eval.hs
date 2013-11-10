@@ -496,8 +496,9 @@ instance ClosToExpr Expr where
       Quant Pi tel mu@TMeasure{} e | null tel -> pi <$> closToExpr rho mu   <*> closToExpr rho e
       Quant Pi tel beta@TBound{} e | null tel -> pi <$> closToExpr rho beta <*> closToExpr rho e
 -}
-      Quant piSig tel tb e -> bindClosToExpr rho tel $ \ rho tel ->
-        bindClosToExpr rho tb $ \ rho tb -> Quant piSig tel tb <$> closToExpr rho e
+      Quant piSig tb e -> bindClosToExpr rho tb $ \ rho tb -> Quant piSig tb <$> closToExpr rho e
+--       Quant piSig tel tb e -> bindClosToExpr rho tel $ \ rho tel ->
+--         bindClosToExpr rho tb $ \ rho tb -> Quant piSig tel tb <$> closToExpr rho e
       Sing e1 e2     -> Sing <$> closToExpr rho e1 <*> closToExpr rho e2
       Ann taggedE    -> Ann <$> closToExpr rho taggedE
       Irr            -> return e

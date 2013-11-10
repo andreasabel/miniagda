@@ -838,6 +838,8 @@ pi :: TBind -> Expr -> Expr
 pi = piSig Pi
 
 piSig :: PiSigma -> TBind -> Expr -> Expr
+piSig = Quant
+{-
 piSig piSig ta e =
   case ta of
     ta@TBind{ boundDom = Domain{ decor = Hidden }} ->
@@ -846,6 +848,7 @@ piSig piSig ta e =
           -> Quant piSig (Telescope $ ta : telescope tel) tb c
         _ -> error $ "lone hidden binding" ++ show ta
     _ -> Quant piSig emptyTel ta e
+-}
 
 proj :: Expr -> PrePost -> Name -> Expr
 proj e Pre n  = App (Proj Pre n) e
@@ -1162,9 +1165,12 @@ instance FreeVars Expr where
       Max  es   -> freeVars es
       Plus es   -> freeVars es
       Lam _ x e -> Set.delete x (freeVars e)
+      Quant pisig ta b -> freeVars ta `Set.union` (freeVars b Set.\\ boundVars ta)
+{-
       Quant pisig tel ta b
                 -> freeVars tel' `Set.union` (freeVars b Set.\\ boundVars tel')
                      where tel' = Telescope $ telescope tel ++ [ta]
+-}
       Sing e t  -> freeVars (e, t)
       Below _ e -> freeVars e
       Ann te    -> freeVars te
@@ -1248,7 +1254,8 @@ instance UsedDefs Expr where
   usedDefs (Lam _ x e)        = usedDefs e
   usedDefs (Sing a b)         = usedDefs (a, b)
   usedDefs (Below _ b)        = usedDefs b
-  usedDefs (Quant _ tel tb b) = usedDefs (tel, tb, b)
+--  usedDefs (Quant _ tel tb b) = usedDefs (tel, tb, b)
+  usedDefs (Quant _ tb b)     = usedDefs (tb, b)
   usedDefs (LLet tb tel e1 e2)= usedDefs (tb, tel, e1, e2)
   usedDefs (Succ e)           = usedDefs e
   usedDefs (Case e mt cls)    = usedDefs (e, mt, cls)
@@ -1558,7 +1565,8 @@ instance ParSubst Expr where
   parSubst phi (Plus es)             = Plus (parSubst phi es)
   parSubst phi (Lam dec x e)         = Lam dec x (parSubst phi e)
   parSubst phi (Below ltle e)        = Below ltle (parSubst phi e)
-  parSubst phi (Quant pisig tel a b) = Quant pisig (parSubst phi tel) (parSubst phi a) (parSubst phi b)
+  parSubst phi (Quant pisig a b)     = Quant pisig (parSubst phi a) (parSubst phi b)
+--  parSubst phi (Quant pisig tel a b) = Quant pisig (parSubst phi tel) (parSubst phi a) (parSubst phi b)
   parSubst phi (Sing a b)            = Sing (parSubst phi a) (parSubst phi b)
   parSubst phi (Ann e)               = Ann $ parSubst phi e
   parSubst phi e                     = error $ "Abstract.parSubst phi (" ++ show e ++ ") undefined"
@@ -1617,7 +1625,7 @@ instance Substitute Expr where
   subst phi e@Def{}               = e
   subst phi e@Proj{}              = e
   subst phi (Case e mt cls)       = Case (subst phi e) (subst phi mt) (subst phi cls)
-  subst phi (LLet ta tel b c)      = LLet (subst phi ta) (subst phi tel) (subst phi b) (subst phi c)
+  subst phi (LLet ta tel b c)     = LLet (subst phi ta) (subst phi tel) (subst phi b) (subst phi c)
   subst phi (Pair f e)            = Pair (subst phi f) (subst phi e)
   subst phi (App f e)             = App (subst phi f) (subst phi e)
   subst phi (Record ri rs)        = Record ri (mapAssoc (subst phi) rs)
@@ -1625,7 +1633,8 @@ instance Substitute Expr where
   subst phi (Plus es)             = Plus (subst phi es)
   subst phi (Lam dec x e)         = Lam dec x (subst phi e)
   subst phi (Below ltle e)        = Below ltle (subst phi e)
-  subst phi (Quant pisig tel a b) = Quant pisig (subst phi tel) (subst phi a) (subst phi b)
+  subst phi (Quant pisig a b)     = Quant pisig (subst phi a) (subst phi b)
+--  subst phi (Quant pisig tel a b) = Quant pisig (subst phi tel) (subst phi a) (subst phi b)
   subst phi (Sing a b)            = Sing (subst phi a) (subst phi b)
   subst phi (Ann e)               = Ann $ subst phi e
   subst phi e                     = error $ "Abstract.subst phi (" ++ show e ++ ") undefined"
@@ -1792,10 +1801,11 @@ instance InjectiveVars Expr where
     (Record ri rs        , []) -> Set.unions $ List.map (injectiveVars . snd) rs
     (Succ e              , []) -> injectiveVars e
     (Lam _ x e           , []) -> Set.delete x (injectiveVars e)
-    (Quant _ tel ta b , []) ->
-      injectiveVars tel' `Set.union` (injectiveVars b Set.\\ boundVars tel')
-        where tel' = Telescope $ telescope tel ++ [ta]
-    (Sort s             , []) -> injectiveVars s
+    (Quant _ ta b , []) -> injectiveVars ta `Set.union` (injectiveVars b Set.\\ boundVars ta)
+--     (Quant _ tel ta b , []) ->
+--       injectiveVars tel' `Set.union` (injectiveVars b Set.\\ boundVars tel')
+--         where tel' = Telescope $ telescope tel ++ [ta]
+--     (Sort s             , []) -> injectiveVars s
     (Ann e              , []) -> injectiveVars e
     _                         -> Set.empty
 
@@ -2121,12 +2131,13 @@ typeToTele = typeToTele' (-1) -- take all Pis into the telescope
 
 -- | @typeToTele' k t@.
 --   If @k > 0@ it takes at most @k@ leading @Pi@s into the telescope
---   (hidden bindings do not count).
+--   STALE: (hidden bindings do not count).
 typeToTele' :: Int -> Type -> (Telescope, Type)
 typeToTele' k t = mapFst Telescope $ ttt k t []
     where
       ttt :: Int -> Type -> [TBind] -> ([TBind], Type)
-      ttt k (Quant Pi htel tb t2) tel | k /= 0 = ttt (k-1) t2 (telescope htel ++ tb : tel)
+--      ttt k (Quant Pi htel tb t2) tel | k /= 0 = ttt (k-1) t2 (telescope htel ++ tb : tel)
+      ttt k (Quant Pi tb t2) tel | k /= 0 = ttt (k-1) t2 (tb : tel)
       ttt k t tel = (reverse tel, t)
 
 ---- modification
