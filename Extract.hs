@@ -653,11 +653,11 @@ extractTypeAt k tv = do
       x <- nameOfGen i
       return $ foldl App (Var x) as
 
-    (VLam x env e, Quant Pi tel (TBind _ dom) k) | erased (decor dom) -> do
+    (VLam x env e, Quant Pi (TBind _ dom) k) | erased (decor dom) -> do
       tv <- whnf (update env x VIrr) e
       extractTypeAt k tv
 
-    (VLam x env e, Quant Pi tel (TBind _ dom) k) -> newTyVar x (typ dom) $ \ i -> do
+    (VLam x env e, Quant Pi (TBind _ dom) k) -> newTyVar x (typ dom) $ \ i -> do
       tv <- whnf (update env x (VGen i)) e
       x  <- nameOfGen i
       Lam defaultDec x <$> extractTypeAt k tv
@@ -674,8 +674,8 @@ extractTypes :: FKind -> [TVal] -> TypeCheck [FType]
 extractTypes k vs =
   case (k,vs) of
     (_, []) -> return []
-    (Quant Pi tel (TBind _ dom) k, v:vs) | erased (decor dom) -> extractTypes k vs
-    (Quant Pi tel (TBind _ dom) k, v:vs) -> do
+    (Quant Pi (TBind _ dom) k, v:vs) | erased (decor dom) -> extractTypes k vs
+    (Quant Pi (TBind _ dom) k, v:vs) -> do
       v  <- whnfClos v
       a  <- extractTypeAt (typ dom) v
       as <- extractTypes k vs

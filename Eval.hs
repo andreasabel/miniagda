@@ -531,14 +531,14 @@ whnf env e = enter ("whnf " ++ show e) $
 -}
     Lam dec x e1 -> return $ vLam x env e1
     Below ltle e -> VBelow ltle <$> whnf env e
-    Quant pisig tel (TBind x dom) b | null tel -> do
+    Quant pisig (TBind x dom) b -> do
       dom' <- Traversable.mapM (whnf env) dom  -- Pi is strict in its first argument
       return $ VQuant pisig x dom' $ vLam x env b
 
     -- a measured type evaluates to
     -- * a bounded type if measure present in environment (rhs of funs)
     -- * otherwise to a measured type (lhs of funs)
-    Quant Pi tel (TMeasure mu) b | null tel -> do
+    Quant Pi (TMeasure mu) b -> do
       muv <- whnfMeasure env mu
       bv  <- whnf env b -- not adding measure constraint to context!
       case (envBound env) of
@@ -546,16 +546,11 @@ whnf env e = enter ("whnf " ++ show e) $
            -- fail $ "panic: whnf " ++ show e ++ " : no measure in environment " ++ show env
         Just muv' -> return $ VGuard (Bound Lt muv muv') bv
 
-    Quant Pi tel (TBound (Bound ltle mu mu')) b | null tel -> do
+    Quant Pi (TBound (Bound ltle mu mu')) b -> do
           muv  <- whnfMeasure env mu
           muv' <- whnfMeasure env mu'
           bv   <- whnf env b  -- not adding measure constraint to context!
           return $ VGuard (Bound ltle muv muv') bv
-
-    -- Hidden Binders
-    Quant pisig (Telescope (TBind x dom : tel)) tb c -> do
-      dom <- Traversable.mapM (whnf env) dom  -- Pi is strict in its first argument
-      return $ VQuant pisig x dom $ vLam x env $ Quant pisig (Telescope tel) tb c
 
     Sing e t  -> do tv <- whnf env t
                     sing env e tv

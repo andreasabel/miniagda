@@ -781,9 +781,9 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           (LLet tb tel e1 e2) | null tel->
              (loop tso e1) ++ -- type won't get evaluated
              (loop tso e2)
-          (Quant _ (Telescope tel) tb@(TBind x dom) e2) -> foldMap (foldMap (loop tso)) tel ++ (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)
-          (Quant _ _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
-          (Quant _ _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
+          (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)
+          (Quant _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
+          (Quant _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
           (Below ltle e) -> loop tso e
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Pair e1 e2) -> (loop tso e1) ++ (loop tso e2)

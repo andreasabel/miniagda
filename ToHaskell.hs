@@ -165,8 +165,8 @@ translateKind :: FKind -> H.Kind
 translateKind k =
   case k of
     k | k == star -> H.KindStar
-    Quant Pi tel (TBind _ dom) k' | erased (decor dom) -> translateKind k'
-    Quant Pi tel (TBind _ dom) k' ->
+    Quant Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
+    Quant Pi (TBind _ dom) k' ->
       translateKind (typ dom) `H.mkKindFun` translateKind k'
 
 translateType :: FType -> Translate H.Type
@@ -175,12 +175,12 @@ translateType t =
 
     Irr -> return $ H.unit_tycon
 
-    Quant piSig tel (TBind _ dom) b | not (erased (decor dom)) ->
+    Quant piSig (TBind _ dom) b | not (erased (decor dom)) ->
       H.mkTyPiSig piSig <$> translateType (typ dom) <*> translateType b
 
-    Quant Pi tel (TBind _ dom) b | typ dom == Irr -> translateType b
+    Quant Pi (TBind _ dom) b | typ dom == Irr -> translateType b
 
-    Quant Pi tel (TBind x dom) b -> do
+    Quant Pi (TBind x dom) b -> do
       x <- hsVarName x
       let k = translateKind (typ dom)
       -- todo: add x to context
