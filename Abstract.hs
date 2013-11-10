@@ -765,8 +765,14 @@ data Expr
     --   after t.c. @Telescope@ is empty (fused into @LBind@)
   | App Expr Expr
   | Lam Dec Name Expr
-  | Quant PiSigma TBind Expr
-  | Sing Expr Expr  -- <t : A> singleton type
+  | Quant PiSigma Telescope TBind Expr
+    -- ^ @{x1 : A1} ... {xn : An} (y : B) -> C@
+    --   The @x1..xn@ must appear in @B@ in pattern position.
+    --   They are determined by the type @B'@ of the function argument.
+    --   If @n==0@, we can check the argument against @B@.
+    --   Otherwise, we infer its type @B'@ and compute @x1..xn@ by
+    --   unifying @B with B'@.
+  | Sing Expr Expr                      -- ^ <t : A> singleton type
   -- instead of bounded quantification, a type for subsets
   -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@
   | Below LtLe Expr                     -- ^ <(a : Size) or <=(a : Size)
@@ -852,7 +858,7 @@ proj e Pre n  = App (Proj Pre n) e
 proj e Post n = App e (Proj Post n)
 
 -- | Non-dependent function type.
-funType a b = Quant Pi (noBind a) b
+funType a b = Quant Pi emptyTel (noBind a) b
 
 erasedExpr e = Ann (Tagged [Erased] e)
 castExpr   e = Ann (Tagged [Cast]   e)
@@ -1043,9 +1049,9 @@ instance Functor TySig where
 
 -- eraseMeasure (Delta -> mu -> T) = Delta -> T
 eraseMeasure :: Expr -> Expr
-eraseMeasure (Quant Pi (TMeasure{}) b) = b -- there can only be one measure!
-eraseMeasure (Quant Pi a@(TBind{}) b)  = Quant Pi a $ eraseMeasure b
-eraseMeasure (Quant Pi a@(TBound{}) b) = Quant Pi a $ eraseMeasure b
+eraseMeasure (Quant Pi nil (TMeasure{}) b) = b -- there can only be one measure!
+eraseMeasure (Quant Pi tel a@(TBind{}) b)  = Quant Pi tel a $ eraseMeasure b
+eraseMeasure (Quant Pi tel a@(TBound{}) b) = Quant Pi tel a $ eraseMeasure b
 eraseMeasure (LLet a tel e b) = LLet a tel e $ eraseMeasure b
 eraseMeasure t = t
 
@@ -1343,31 +1349,35 @@ instance Pretty Expr where
     $$ (text "in" <+> pretty e2)
 -}
   prettyPrec k (Below ltle e) = pretty ltle <+> prettyPrec k e
-  prettyPrec k (Quant Pi (TMeasure mu) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant Pi tel (TMeasure mu) t2) | null tel = parensIf (precArrL <= k) $
     (pretty mu <+> text "->" <+> pretty t2)
-  prettyPrec k (Quant Pi (TBound beta) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant Pi tel (TBound beta) t2) | null tel = parensIf (precArrL <= k) $
     (pretty beta <+> text "->" <+> pretty t2)
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) | null (suggestion x) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig tel (TBind x (Domain t1 ki dec)) t2) | null tel && null (suggestion x) = parensIf (precArrL <= k) $
     ((if erased dec then ppol <> brackets (pretty t1)
        else ppol <+> prettyPrec precArrL t1)
       <+> pretty pisig <+> pretty t2)
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain (Below ltle t1) ki dec)) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig tel (TBind x (Domain (Below ltle t1) ki dec)) t2) | null tel= parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> pretty ltle <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig tel (TBind x (Domain t1 ki dec)) t2) | null tel = parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> colon <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
+
+  -- Hidden arguments
+  prettyPrec k (Quant pisig tel tb c) = parensIf (precArrL <= k) $
+    pretty tel <+> pretty (Quant pisig emptyTel tb c)
 
   prettyPrec k (Ann e) = pretty e
 
@@ -1948,7 +1958,7 @@ isPatIndFamC (App f e) = do
 --   ps  <- isPatIndFamC e
 --   ps' <- mapM exprToDotPat' es
 --   return $ ps ++ ps'
-isPatIndFamC (Quant Pi _ e) = isPatIndFamC e
+isPatIndFamC (Quant Pi _ _ e) = isPatIndFamC e
 isPatIndFamC _ = tell (All False) >> return []
 
 -- Pattern auxiliary functions ---------------------------------------
