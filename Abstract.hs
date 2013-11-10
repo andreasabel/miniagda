@@ -833,7 +833,20 @@ instance Show RecInfo where
 
 -- * smart constructors
 
-pi = Quant Pi
+-- | Create a universal binding.  Fuse hidden bindings.
+pi :: TBind -> Expr -> Expr
+pi = piSig Pi
+
+piSig :: PiSigma -> TBind -> Expr -> Expr
+piSig piSig ta e =
+  case ta of
+    ta@TBind{ boundDom = Domain{ decor = Hidden }} ->
+      case e of
+        Quant piSig' tel tb c | piSig == piSig'
+          -> Quant piSig (Telescope $ ta : telescope tel) tb c
+        _ -> error $ "lone hidden binding" ++ show ta
+    _ -> Quant piSig emptyTel ta e
+
 proj :: Expr -> PrePost -> Name -> Expr
 proj e Pre n  = App (Proj Pre n) e
 proj e Post n = App e (Proj Post n)
