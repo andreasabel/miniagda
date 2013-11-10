@@ -1,5 +1,14 @@
 module Main where
 
+import Prelude hiding (null)
+
+import System.Environment
+import System.Exit
+import System.IO (stdout, hSetBuffering, BufferMode(..))
+
+import qualified Language.Haskell.Exts.Syntax as H
+import qualified Language.Haskell.Exts.Pretty as H
+
 import Lexer
 import Parser
 
@@ -13,13 +22,7 @@ import TypeChecker
 import Extract
 import ToHaskell
 
-import qualified Language.Haskell.Exts.Syntax as H
-import qualified Language.Haskell.Exts.Pretty as H
-
-import System.Environment
-import System.Exit
-import System.IO (stdout, hSetBuffering, BufferMode(..))
-
+import Util
 
 main :: IO ()
 main = do
@@ -32,7 +35,7 @@ mainFile :: String -> IO ()
 mainFile fileName = do
   putStrLn $ "--- opening " ++ show fileName ++ " ---"
   file <- readFile fileName
-  let t = alexScanTokens file 
+  let t = alexScanTokens file
   let cdecls =  parse t
   -- putStrLn "--- parsing ---"
   -- mapM (putStrLn . show) cdecls
@@ -41,17 +44,17 @@ mainFile fileName = do
   -- mapM (putStrLn . show) adecls
   putStrLn "--- type checking ---"
   (edecls, sig) <- doTypeCheck adecls
-  putStrLn "--- evaluating ---" 
+  putStrLn "--- evaluating ---"
   showAll sig adecls
 {-
   putStrLn "--- extracting ---"
-  edecls <- doExtract sig edecls 
+  edecls <- doExtract sig edecls
   hsmodule <- doTranslate edecls
   putStrLn $ H.prettyPrint hsmodule
   -- printHsDecls hsdecls
 -}
   putStrLn $ "--- closing " ++ show fileName ++ " ---"
-  
+
 -- print extracted program
 
 ppHsMode :: H.PPHsMode
@@ -75,55 +78,55 @@ allLet :: Signature -> [A.Declaration] -> [(Name,A.Expr)]
 allLet sig [] = []
 allLet sig (decl:xs) =
     case decl of
-      (A.LetDecl True n [] _ e) -> 
+      (A.LetDecl True n tel _ e) | null tel ->
           (n,e):(allLet sig xs)
-      _ -> allLet sig xs 
+      _ -> allLet sig xs
 
 
 showAll :: Signature -> [A.Declaration] -> IO ()
-showAll sig decl = mapM_ (showLet sig) $ allLet sig decl 
+showAll sig decl = mapM_ (showLet sig) $ allLet sig decl
 
 showLet :: Signature -> (Name,A.Expr) -> IO ()
-showLet sig (n,e) = do 
-  r <- doWhnf sig e 
+showLet sig (n,e) = do
+  r <- doWhnf sig e
   case r of
     Right (v,_) -> putStrLn $ show n ++ " has whnf " ++ show v
     Left err    -> do putStrLn $ "error during evaluation:\n" ++ show err
                       exitFailure
-  r <- doNf sig e 
+  r <- doNf sig e
   case r of
     Right (v,_) -> putStrLn $ show n ++ " evaluates to " ++ show v
     Left err    -> do putStrLn $ "error during evaluation:\n" ++ show err
                       exitFailure
 
 doExtract :: Signature -> [A.EDeclaration] -> IO [A.EDeclaration]
-doExtract sig decls = do 
+doExtract sig decls = do
   k <- runExtract sig $ extractDecls decls
   case k of
-    Left err -> do 
+    Left err -> do
       putStrLn $ "error during extraction:\n" ++ show err
       exitFailure
     Right (hs, _) ->
       return hs
 
 doTranslate :: [A.EDeclaration] -> IO H.Module
-doTranslate decls = do 
+doTranslate decls = do
   k <- runTranslate $ translateModule decls
   case k of
-    Left err -> do 
+    Left err -> do
       putStrLn $ "error during extraction:\n" ++ show err
       exitFailure
     Right hs ->
       return hs
 
 doTypeCheck :: [A.Declaration] -> IO ([A.EDeclaration], Signature)
-doTypeCheck decls = do 
+doTypeCheck decls = do
   k <- typeCheck decls
   case k of
-    Left err -> do 
+    Left err -> do
       putStrLn $ "error during typechecking:\n" ++ show err
       exitFailure
-    Right (edecls, st) -> 
+    Right (edecls, st) ->
       return (edecls, signature st)
 
 doScopeCheck :: [C.Declaration] -> IO [A.Declaration]

@@ -7,15 +7,7 @@
 
 module ScopeChecker (scopeCheck) where
 
-import Polarity(Pol(..))
-import qualified Polarity as A
-import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
-import qualified Abstract as A
-import qualified Concrete as C
-
-import TraceError
-
-import Prelude hiding (mapM)
+import Prelude hiding (mapM, null)
 
 import Control.Applicative -- <$>
 import Control.Monad.IfElse
@@ -24,11 +16,19 @@ import Control.Monad.Reader hiding (mapM)
 import Control.Monad.State hiding (mapM)
 import Control.Monad.Error hiding (mapM)
 
-import Data.List as List
+import Data.List as List hiding (null)
 import Data.Maybe
 import Data.Traversable (mapM)
 
 import Debug.Trace
+
+import Polarity(Pol(..))
+import qualified Polarity as A
+import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
+import qualified Abstract as A
+import qualified Concrete as C
+
+import TraceError
 
 import Util
 
@@ -205,7 +205,7 @@ addTel ctel atel = local (addContext nxs)
 zipTels :: C.Telescope -> A.Telescope -> [(C.Name,A.Name)]
 zipTels ctel atel = zip ns xs
   where ns = collectTelescopeNames ctel
-        xs = map A.boundName atel
+        xs = map A.boundName $ A.telescope atel
 
 -- ** Global state.
 
@@ -438,10 +438,10 @@ scopeCheckMutual ds0 = do
   return $ A.MutualDecl measured ds'
 
 scopeCheckTele :: C.Telescope -> ScopeCheck a -> ScopeCheck (A.Telescope, a)
-scopeCheckTele []         cont = ([],) <$> cont
+scopeCheckTele []         cont = (A.emptyTel,) <$> cont
 scopeCheckTele (tb : tel) cont = do
-  (tbs, (tel, a)) <- scopeCheckTBind tb $ scopeCheckTele tel cont
-  return (tbs ++ tel, a)
+  (tbs, (A.Telescope tel, a)) <- scopeCheckTBind tb $ scopeCheckTele tel cont
+  return (A.Telescope $ tbs ++ tel, a)
 
 scopeCheckTBind :: C.TBind -> ScopeCheck a -> ScopeCheck ([A.TBind], a)
 scopeCheckTBind tb cont = do
@@ -582,7 +582,7 @@ checkDataBody tt' n x sz co tel cs fields = do
       -- fields <- addFields (LetK) delta fields
       -- 2012-01-26 register as projections
       fields <- addFields ProjK delta fields
-      let pos = map (A.polarity . A.decor . A.boundDom) tel'
+      let pos = map (A.polarity . A.decor . A.boundDom) $ A.telescope tel'
       return $ A.DataDecl x sz co pos tel' t' cs' fields
 
 -- check whether all declarations in mutual block are (co)funs
@@ -653,7 +653,7 @@ scopeCheckFunType t =
       t -> (Nothing,) <$> scopeCheckExpr t -- no measure found
 
 findMeasure :: A.Telescope -> ScopeCheck (Maybe Int)
-findMeasure tel =
+findMeasure (A.Telescope tel) =
   case [ mu | A.TMeasure mu <- tel ] of
     []           -> return Nothing
     [Measure mu] -> return $ Just $ length mu
@@ -739,7 +739,7 @@ scopeCheckConstructor d dx cxt co t0 a@(C.Constructor n tel mt) = do
        let dummyDom = A.Domain A.Irr A.NoKind $ A.Dec Param
            mtel     = fmap (map (\ (n,x) -> A.TBind x dummyDom)) mcxt
            ps       = [] -- patterns computed during type checking
-       return $ A.Constructor x (fmap (,ps) mtel) t
+       return $ A.Constructor x (fmap ((,ps) . A.Telescope) mtel) t
 
   case mt of
 
@@ -841,12 +841,12 @@ scopeCheckExpr' e =
       C.Quant pisig tel e -> do
         tel <- generalizeTel tel
         pol <- asks defaultPolarity
-        (tel, e) <- setDefaultPolarity A.Rec $ setConstraintAllowed False $ scopeCheckTele tel $
+        (A.Telescope tel, e) <- setDefaultPolarity A.Rec $ setConstraintAllowed False $ scopeCheckTele tel $
            setDefaultPolarity pol $ scopeCheckExpr' e
         return $ quant pisig tel e where
 --          quant A.Sigma [tb] = A.Quant A.Sigma tb
           quant A.Sigma tel e = foldr (A.Quant A.Sigma) e tel
-          quant A.Pi    tel e = A.teleToType tel e
+          quant A.Pi    tel e = A.teleToType (A.Telescope tel) e
 
       C.Lam n e1 -> do
         (n, e1') <- addBind e n $ scopeCheckExpr e1

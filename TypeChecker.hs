@@ -174,7 +174,7 @@ typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
 --  echoTySigE n te
 --  echoDefE   n ee
   echoKindedDef ki n ee
-  return [LetDecl eval n [] (Just te) ee]
+  return [LetDecl eval n emptyTel (Just te) ee]
 
 typeCheckDeclaration d@(PatternDecl x xs p) = do
 {- WHY DOES THIS NOT TYPECHECK?
@@ -256,7 +256,7 @@ typeCheckMutualBody measured@False ki (FunDecl co fun@(Fun ts@(TypeSig n t) n' a
 typeCheckDataDecl :: Name -> Sized -> Co -> [Pol] -> Telescope -> Type -> [Constructor] -> [Name] -> TypeCheck [EDeclaration]
 typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
  (do -- sig <- gets signature
-     let params = length tel0
+     let params = size tel0
      -- in case we are dealing with a sized type, check that
      -- the polarity annotation (if present) at the size arg. is correct.
      (p', pos, t) <- do
@@ -378,7 +378,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
                               , isTuple = length cis' >= 1 && isPatIndFam
                               })
      -- compute extracted data decl
-     let (tele, te) = typeToTele' (length tel) dte
+     let (tele, te) = typeToTele' (size tel) dte
      return $ (DataDecl n sz co pos tele te (map valueOf kcse) fields) : concat declse
 
    ) -- `throwTrace` n  -- in case of an error, add name n to the trace
@@ -397,7 +397,7 @@ computeConstructorTele dtel dt t = do
   -- target is data name applied to parameters and indices
   let (_, target) = typeToTele t
       (_, es)     = spineView target
-      pars = take (length dtel) es
+      pars = take (size dtel) es
   (cxt, ps) <- checkConstructorParams pars  =<< whnf' (teleToType dtel dt)
   (,ps) . setDec (Dec Param) <$> do local (const cxt) $ contextToTele cxt
 
@@ -429,10 +429,11 @@ contextToTele ce = do
       names :: Map Int Name
       names = naming ce                  -- names for dB levels
   -- traverse the context from left to right
-  forM [0..n-1] $ \ k -> do
-    x       <- lookupM k names
-    One dom <- lookupM k delta
-    TBind x <$> Traversable.traverse toExpr dom
+  Telescope <$> do
+    forM [0..n-1] $ \ k -> do
+      x       <- lookupM k names
+      One dom <- lookupM k delta
+      TBind x <$> Traversable.traverse toExpr dom
 
 -- | @typeCheckConstructor d dt sz co pols tel (TypeSig c t)@
 --
@@ -452,21 +453,21 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
     -- parameters are erased in types of constructors
   let tt = teleToType telE t
   echoTySig n tt
-  let params = length tel
+  let params = size tel
   -- when checking constructor types,  do NOT resurrect telescope
   --   data T [A : Set] : Set { inn : A -> T A }
   -- should be rejected, since A ~= T A, and T A = T B means A ~=B for arb. A, B!
   -- add data name as spos var, to check positivity
   -- and as NoKind, to compute the true kind from the constructors
-  let telWithD = (TBind d $ Domain dt NoKind $ Dec SPos) : tel
+  let telWithD = Telescope $ (TBind d $ Domain dt NoKind $ Dec SPos) : telescope tel
   Kinded ki te <- addBinds telWithD $
     checkConType sz t -- do NOT resurrect telescope!!
 
   -- Check target of constructor.
   dv <- whnf' dt
-  let (argts,target) = typeToTele te
+  let (Telescope argts,target) = typeToTele te
   whenNothing mctel $ -- only for old-style parameters
-    addBinds telWithD $ addBinds argts $ checkTarget d dv tel target
+    addBinds telWithD $ addBinds (Telescope argts) $ checkTarget d dv tel target
 
   -- Make type of a constructor a singleton type.
   let mkName i n | emptyName n = fresh $ "y" ++ show i
@@ -476,7 +477,7 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
       argtbs = zipWith (\ n tb -> tb { boundName = n }) argns argts
 --      core   = (foldl App (con (coToConK co) n) $ map Var argns)
       core   = Record (NamedRec (coToConK co) n False notDotted) $ zip fields $ map Var argns
-      tsing  = teleToType argtbs $ Sing core target
+      tsing  = teleToType (Telescope argtbs) $ Sing core target
 
   let tte = teleToType telE tsing -- te -- DO resurrect here!
   vt <- whnf' tte
@@ -500,8 +501,8 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
     return $ Just (x, ltv)
 
   -- Add the type constructor to the signature.
-  let cpars = fmap (mapFst (map boundName)) mctel -- deletes types, keeps names
-  addSigQ n (ConSig cpars isSz recOccs vt d (length dtel) fType)
+  let cpars = fmap (mapFst (map boundName . telescope)) mctel -- deletes types, keeps names
+  addSigQ n (ConSig cpars isSz recOccs vt d (size dtel) fType)
 --  let (tele, te) = typeToTele (length tel) tte -- NOT NECESSARY
   echoKindedTySig kTerm n tte
   -- traceM ("kind of " ++ n ++ "'s args: " ++ show ki)
@@ -694,9 +695,9 @@ checkTarget d dv tel tg = do
   tv <- whnf' tg
   case tv of
     VApp (VDef (DefId DatK (QName n))) vs | n == d -> do
-      telvs <- mapM (\ tb -> whnf' (Var (boundName tb))) tel
+      telvs <- mapM (\ tb -> whnf' (Var (boundName tb))) $ telescope tel
       enter ("checking datatype parameters in constructor target") $
-        leqVals' N mixed (One dv) (take (length tel) vs) telvs
+        leqVals' N mixed (One dv) (take (size tel) vs) telvs
       return ()
     _ -> fail $ "constructor should produce something in data type " ++ show d
 
@@ -884,7 +885,7 @@ checkExpr e v = do
 
  -}
 
-      (App (Lam dec x f) e, v) | inferable e -> checkLet dec x [] Nothing e f v
+      (App (Lam dec x f) e, v) | inferable e -> checkLet dec x emptyTel Nothing e f v
 
 {-
       (LLet (TBind x (Domain Nothing _ dec)) e1 e2, v) -> checkUntypedLet x dec e1 e2 v
@@ -983,7 +984,7 @@ checkLetBody x t1e v_t1 ki1 dec e1e e2 v = do
   new x (Domain v_t1 ki1 dec) $ \ vx -> do
     addRewrite (Rewrite vx v_e1) [v] $ \ [v'] -> do
       Kinded ki2 e2e <- checkExpr e2 v'
-      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) [] e1e e2e
+      return $ Kinded ki2 $ LLet (TBind x (Domain (Just t1e) ki1 dec)) emptyTel e1e e2e
 {-
 -- Dependent let: not checkable in rho;Delta style
 --            v_e1 <- whnf rho e1
