@@ -2,23 +2,26 @@
 -- So, special options are needed, plus NOINLINE for the affected functions.
 {-# OPTIONS -fno-cse -fno-full-laziness #-}
 
-{-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving, TypeSynonymInstances,
-      DeriveFunctor, DeriveFoldable, DeriveTraversable, NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeSynonymInstances,
+  GeneralizedNewtypeDeriving, DeriveFunctor, DeriveFoldable, DeriveTraversable,
+  NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Abstract where
 
-import Prelude hiding (showList, map, concat, foldl)
+import Prelude hiding (showList, map, concat, foldl, pi, null)
 
+import Control.Applicative hiding (empty)
 import Control.Monad.Writer (Writer, tell, All(..))
 import Control.Monad.Trans
 
-import Control.Applicative hiding (empty)
-import Data.Foldable (Foldable)
+import Data.Monoid hiding ((<>))
+import Data.Foldable (Foldable, foldMap)
 import qualified Data.Foldable as Foldable
 import Data.Traversable as Traversable
 import Data.Unique
 
+import Data.List (map)
 import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -31,6 +34,8 @@ import System.IO.Unsafe
 
 import Text.PrettyPrint as PP
 
+import Collection (Collection)
+import qualified Collection as Coll
 import Polarity as Pol
 import TreeShapedOrder (TSO)
 import qualified TreeShapedOrder as TSO
@@ -166,8 +171,17 @@ instance Show LtLe where
 -- further possibilities:
 -- 2. hidden
 
-newtype Decoration pos = Dec { polarity :: pos }
-           deriving (Eq, Ord, Functor, Foldable, Traversable, Show, Polarity)
+data Decoration pos
+    = Dec { polarity :: pos }
+    | Hidden
+  deriving (Eq, Ord, Functor, Foldable, Traversable, Show)
+
+instance Polarity a => Polarity (Decoration a) where
+  erased        = erased . polarity
+  compose  p p' = Dec $ compose (polarity p) (polarity p')
+  neutral       = Dec neutral
+  promote       = Dec . promote . polarity
+  demote        = Dec . demote . polarity
 
 type Dec = Decoration Pol
 type UDec = Decoration PProd
@@ -724,38 +738,41 @@ prettyCast False doc = doc
 -- expressions -------------------------------------------------------
 
 data Expr
-  = Sort (Sort Expr)   -- Size Set CoSet
+  = Sort (Sort Expr)   -- ^ @Size@ @Set@ @CoSet@
   -- sizes
   | Zero
   | Succ Expr
   | Infty
-  | Max [Expr]   -- list has at least 2 elements
-  | Plus [Expr]  -- list has at least 2 elements
+  | Max [Expr]   -- ^ (list has at least 2 elements)
+  | Plus [Expr]  -- ^ (list has at least 2 elements)
   -- identifiers
-  | Meta MVar    -- meta-variable
-  | Var Name     -- variables are named
-  | Def DefId    -- identifiers in the signature
+  | Meta MVar    -- ^ meta-variable
+  | Var Name     -- ^ variables are named
+  | Def DefId    -- ^ identifiers in the signature
 {-
   | Con Co Name [Expr] -- constructors applied to arguments
   | Def Name     -- fun/cofun ?
   | Let Name     -- definition (non-recursive)
 -}
   -- dependently typed lambda calculus
-  | Record RecInfo [(Name,Expr)] -- record { p1 = e1; ...; pn = en }
-  | Proj PrePost Name    -- proj _  or  _ .proj
+  | Record RecInfo [(Name,Expr)] -- ^ record { p1 = e1; ...; pn = en }
+  | Proj PrePost Name            -- ^ proj _  or  _ .proj
   | Pair Expr Expr
-  | Case Expr (Maybe Type) [Clause] -- Nothing in input, Just after t.c.
-  | LLet LBind Telescope Expr Expr --local let [x : A] = t in u, let [x] tel = t in u ...
+  | Case Expr (Maybe Type) [Clause]
+    -- ^ Type is @Nothing@ in input, @Just@ after t.c.
+  | LLet LBind Telescope Expr Expr
+    -- ^ @let [x : A] = t in u@, @let [x] tel = t in u@
+    --   after t.c. @Telescope@ is empty (fused into @LBind@)
   | App Expr Expr
   | Lam Dec Name Expr
   | Quant PiSigma TBind Expr
   | Sing Expr Expr  -- <t : A> singleton type
   -- instead of bounded quantification, a type for subsets
   -- use as @Pi/Sigma (TBind ... (Below ltle a)) b@
-  | Below LtLe Expr --  <(a : Size) or <=(a : Size)
+  | Below LtLe Expr                     -- ^ <(a : Size) or <=(a : Size)
   -- for extraction
-  | Ann (Tagged Expr) -- annotated expr, e.g. with Erased tag
-  | Irr -- for instance the term correponding to the absurd pattern
+  | Ann (Tagged Expr) -- ^ annotated expr, e.g. with Erased tag
+  | Irr -- ^ for instance the term correponding to the absurd pattern
     deriving (Eq,Ord)
 
 data PrePost = Pre | Post deriving (Eq, Ord, Show)
@@ -972,7 +989,10 @@ data Constructor = Constructor
 
 type ParamPats = Maybe (Telescope, [Pattern])
 
-type Telescope = [TBind]
+newtype Telescope = Telescope { telescope :: [TBind] }
+  deriving (Eq, Ord, Show, Size, Null)
+
+emptyTel = Telescope []
 
 data Arity = Arity
   { fullArity    :: Int        -- ^ arity of the function
@@ -1032,40 +1052,119 @@ inferable (App f e) = inferable f
 -- inferable Sing{}  = True  -- not with universes
 inferable _       = False
 
--- boilerplate to extract free variables in the usual sense
-freeVars :: Expr -> Set Name
-freeVars (Sort (CoSet e)) = freeVars e
-freeVars (Sort (Set e)) = freeVars e
-freeVars Sort{}       = Set.empty
-freeVars (Succ e)     = freeVars e
-freeVars Zero         = Set.empty
-freeVars Infty        = Set.empty
-freeVars Meta{}       = Set.empty
-freeVars (Var name)   = Set.singleton name
---freeVars Con{}        = Set.empty
-freeVars Def{}        = Set.empty
---freeVars Let{}        = Set.empty
-freeVars (Case e mt cls) = Set.unions (freeVars e : maybe Set.empty freeVars mt : List.map freeVarsClause cls)
-freeVars (LLet (TBind x dom) [] t u)
-  = maybe Set.empty freeVars (typ dom) `Set.union` (Set.delete x (freeVars u)) `Set.union` freeVars t
-freeVars (Pair f e)   = freeVars f `Set.union` freeVars e
-freeVars (App f e)    = freeVars f `Set.union` freeVars e
--- freeVars (App e es)   = Set.unions (freeVars e : map freeVars es)
-freeVars (Max es)     = Set.unions (List.map freeVars es)
-freeVars (Plus es)    = Set.unions (List.map freeVars es)
-freeVars (Lam _ x e)  = Set.delete x (freeVars e)
-freeVars (Quant pisig (TBind x dom) b) = freeVars (typ dom) `Set.union` Set.delete x (freeVars b)
-freeVars (Sing e t)   = freeVars e `Set.union` freeVars t
-freeVars (Below _ e)  = freeVars e
-freeVars (Ann te)  = freeVars (unTag te)
-freeVars Irr          = Set.empty
-freeVars e            = error $ "freeVars " ++ show e ++ " not implemented"
+-- | Collect the variables from the binders
+class BoundVars a where
+  boundVars :: Collection c Name => a -> c
 
-freeVarsClause :: Clause -> Set Name
-freeVarsClause (Clause _ ps Nothing) = Set.empty
-freeVarsClause (Clause _ ps (Just e)) = List.foldl (Set.\\) (freeVars e) (List.map (Set.fromList . patternVars) ps)
+instance BoundVars a => BoundVars [a] where
+  boundVars = foldMap boundVars
+
+instance BoundVars a => BoundVars (Maybe a) where
+  boundVars = foldMap boundVars
+
+instance (BoundVars a, BoundVars b) => BoundVars (a, b) where
+  boundVars (a, b) = mconcat [boundVars a, boundVars b]
+
+instance (BoundVars a, BoundVars b, BoundVars c) => BoundVars (a, b, c) where
+  boundVars (a, b, c) = mconcat [boundVars a, boundVars b, boundVars c]
+
+instance BoundVars (TBinding a) where
+  boundVars (TBind x a)  = Coll.singleton x
+  boundVars (TMeasure m) = mempty
+  boundVars (TBound b)   = mempty
+
+instance BoundVars Telescope where
+  boundVars = boundVars . telescope
+
+instance BoundVars (Pat e) where
+  boundVars (VarP name)   = Coll.singleton name
+  boundVars (SizeP x y)   = Coll.singleton y
+  boundVars (SuccP p)     = boundVars p
+  boundVars (ConP _ _ ps) = boundVars ps
+  boundVars (PairP p p')  = boundVars (p, p')
+  boundVars (ProjP _)     = mempty
+  boundVars (DotP _)      = mempty
+  boundVars (ErasedP p)   = boundVars p
+  boundVars (AbsurdP)     = mempty
+  boundVars (UnusableP p) = mempty
+
+
+
+-- | Boilerplate to extract free variables in the usual sense.
+class FreeVars a where
+  freeVars :: a -> Set Name
+
+instance FreeVars a => FreeVars [a] where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Maybe a) where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Sort a) where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Dom a) where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Measure a) where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Bound a) where
+  freeVars = foldMap freeVars
+
+instance FreeVars a => FreeVars (Tagged a) where
+  freeVars = foldMap freeVars
+
+instance (FreeVars a, FreeVars b) => FreeVars (a, b) where
+  freeVars (a, b) = mconcat [freeVars a, freeVars b]
+
+instance (FreeVars a, FreeVars b, FreeVars c) => FreeVars (a, b, c) where
+  freeVars (a, b, c) = mconcat [freeVars a, freeVars b, freeVars c]
+
+instance FreeVars a => FreeVars (TBinding a) where
+  freeVars (TBind x a)  = freeVars a  -- Note: x is bound in the stuff to come, not in a.
+  freeVars (TMeasure m) = freeVars m
+  freeVars (TBound b)   = freeVars b
+
+instance FreeVars Telescope where
+  freeVars (Telescope [])         = mempty
+  freeVars (Telescope (tb : tel)) = freeVars tb `Set.union`
+                          (freeVars (Telescope tel) Set.\\ boundVars tb)
+
+instance FreeVars Expr where
+  freeVars e0 =
+    case e0 of
+      Sort s    -> freeVars s
+      Zero      -> mempty
+      Succ e    -> freeVars e
+      Infty     -> mempty
+      Var name  -> Set.singleton name
+      Def{}     -> mempty
+      Case e mt cls
+                -> freeVars (e, mt, cls)
+      LLet (TBind x dom) tel t u | null tel
+                -> freeVars (dom, t) `Set.union` Set.delete x (freeVars u)
+      Pair f e  -> freeVars (f, e)
+      App  f e  -> freeVars (f, e)
+      Max  es   -> freeVars es
+      Plus es   -> freeVars es
+      Lam _ x e -> Set.delete x (freeVars e)
+      Quant pisig tel ta b
+                -> freeVars tel' `Set.union` (freeVars b Set.\\ boundVars tel')
+                     where tel' = Telescope $ telescope tel ++ [ta]
+      Sing e t  -> freeVars (e, t)
+      Below _ e -> freeVars e
+      Ann te    -> freeVars te
+      Irr       -> mempty
+      e         -> error $ "freeVars " ++ show e ++ " not implemented"
+
+instance FreeVars Clause where
+  freeVars (Clause _ ps Nothing)  = mempty  -- absurd clause
+  freeVars (Clause _ ps (Just e)) = freeVars e Set.\\ boundVars ps
 
 patternVars :: Pattern -> [Name]
+patternVars = boundVars
+{-
 patternVars (VarP name)   = [name]
 patternVars (SizeP x y)   = [y]
 patternVars (SuccP p)     = patternVars p
@@ -1074,39 +1173,81 @@ patternVars (PairP p p')  = patternVars p ++ patternVars p'
 patternVars (DotP _)      = []
 patternVars (ErasedP p)   = patternVars p
 patternVars (AbsurdP)     = []
+-}
 
--- get all the definitions that are refered to in expression
--- this is used e.g. to check whether a (co)fun is recursive
-usedDefs :: Expr -> [Name]
-usedDefs (Def id) | idKind id == FunK = [unqual $ idName id]
-usedDefs (Def id) | idKind id == DatK = [unqual $ idName id]
-usedDefs (Def{}) = []
-usedDefs (Pair f e) = usedDefs f ++ usedDefs e
-usedDefs (App f e) = usedDefs f ++ usedDefs e
--- usedDefs (App e es) = List.foldl (++) (usedDefs e) (List.map usedDefs es)
-usedDefs (Max es) = List.concat (List.map usedDefs es)
-usedDefs (Plus es) = List.concat (List.map usedDefs es)
-usedDefs (Lam _ x e) = usedDefs e
-usedDefs (Sing a b) = usedDefs a ++ usedDefs b
-usedDefs (Below _ b) = usedDefs b
-usedDefs (Quant pisig (TBind x dom) b) = usedDefs (typ dom) ++ usedDefs b
-usedDefs (Quant Pi (TMeasure mu) b) = Foldable.foldMap usedDefs mu ++ usedDefs b
-usedDefs (Quant Pi (TBound beta) b) = Foldable.foldMap usedDefs beta ++ usedDefs b
-usedDefs (LLet (TBind x dom) [] e1 e2) = Foldable.foldMap usedDefs (typ dom) ++ usedDefs e1 ++ usedDefs e2
-usedDefs (Succ e) = usedDefs e
-usedDefs (Case e mt cls) = List.foldl (++) (usedDefs e) (maybe [] usedDefs mt : List.map ((maybe [] usedDefs) . clExpr) cls)
-usedDefs (Ann e) = usedDefs (unTag e)
-usedDefs (Sort (CoSet e)) = usedDefs e
-usedDefs Sort{} = []
-usedDefs Zero  = []
-usedDefs Infty  = []
-usedDefs Meta{} = []
-usedDefs Var{} = []
-usedDefs Proj{} = []
-usedDefs (Record ri rs) = Foldable.foldMap (usedDefs . snd) rs
--- usedDefs Con{} = []
--- usedDefs Let{} = []
-usedDefs e            = error $ "usedDefs " ++ show e ++ " not implemented"
+-- | Get all the definitions that are refered to in expression.
+--   This is used e.g. to check whether a (co)fun is recursive.
+class UsedDefs a where
+  usedDefs :: a -> [Name]
+
+instance UsedDefs a => UsedDefs [a] where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Maybe a) where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Sort a) where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Dom a) where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Measure a) where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Bound a) where
+  usedDefs = foldMap usedDefs
+
+instance UsedDefs a => UsedDefs (Tagged a) where
+  usedDefs = foldMap usedDefs
+
+instance (UsedDefs a, UsedDefs b) => UsedDefs (a, b) where
+  usedDefs (a, b) = mconcat [usedDefs a, usedDefs b]
+
+instance (UsedDefs a, UsedDefs b, UsedDefs c) => UsedDefs (a, b, c) where
+  usedDefs (a, b, c) = mconcat [usedDefs a, usedDefs b, usedDefs c]
+
+instance (UsedDefs a, UsedDefs b, UsedDefs c, UsedDefs d) => UsedDefs (a, b, c, d) where
+  usedDefs (a, b, c, d) = mconcat [usedDefs a, usedDefs b, usedDefs c, usedDefs d]
+
+instance UsedDefs a => UsedDefs (TBinding a) where
+  usedDefs (TBind _ e)  = usedDefs e
+  usedDefs (TMeasure m) = usedDefs m
+  usedDefs (TBound b)   = usedDefs b
+
+instance UsedDefs Telescope where
+  usedDefs = usedDefs . telescope
+
+instance UsedDefs DefId where
+  usedDefs id
+    | idKind id `elem` [FunK, DatK] = [unqual $ idName id]
+    | otherwise                     = []
+
+instance UsedDefs Clause where
+  usedDefs = usedDefs . clExpr
+
+instance UsedDefs Expr where
+  usedDefs (Def id)           = usedDefs id
+  usedDefs (Pair f e)         = usedDefs (f, e)
+  usedDefs (App f e)          = usedDefs (f, e)
+  usedDefs (Max es)           = usedDefs es
+  usedDefs (Plus es)          = usedDefs es
+  usedDefs (Lam _ x e)        = usedDefs e
+  usedDefs (Sing a b)         = usedDefs (a, b)
+  usedDefs (Below _ b)        = usedDefs b
+  usedDefs (Quant _ tel tb b) = usedDefs (tel, tb, b)
+  usedDefs (LLet tb tel e1 e2)= usedDefs (tb, tel, e1, e2)
+  usedDefs (Succ e)           = usedDefs e
+  usedDefs (Case e mt cls)    = usedDefs (e, mt, cls)
+  usedDefs (Ann e)            = usedDefs e
+  usedDefs (Sort s)           = usedDefs s
+  usedDefs Zero               = []
+  usedDefs Infty              = []
+  usedDefs Meta{}             = []
+  usedDefs Var{}              = []
+  usedDefs Proj{}             = []
+  usedDefs (Record ri rs)     = foldMap (usedDefs . snd) rs
+  usedDefs e                  = error $ "usedDefs " ++ show e ++ " not implemented"
 
 rhsDefs :: [Clause] -> [Name]
 rhsDefs cls = List.foldl (\ ns (Clause _ ps e) -> maybe [] usedDefs e ++ ns) [] cls
@@ -1169,15 +1310,15 @@ instance Pretty Expr where
   prettyPrec k (Lam dec x e) = parensIf (0 < k) $
     (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->")
       <+> pretty e
-  prettyPrec k (LLet (TBind n (Domain mt ki dec)) [] e1 e2) = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) | null tel = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
        pretty n <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
                            <> (if erased dec then rbrack else PP.empty)
                        , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
   prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) = parensIf (0 < k) $
-    (text "let" <+> hsep (((if erased dec then brackets else id) $ pretty n)
-                         : List.map pretty tel)
+    (text "let" <+> ((if erased dec then brackets else id) $ pretty n)
+                <+> pretty tel
                 <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
                          , equals <+> pretty e1 ])
     $$ (text "in" <+> pretty e2)
@@ -1245,6 +1386,8 @@ instance Pretty TBind where
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
+instance Pretty Telescope where
+  prettyPrec k tel = sep $ map pretty $ telescope tel
 
 prettyRecFields rs =
     let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs
@@ -1309,46 +1452,6 @@ instance Show Expr where
 instance Show Pattern where
   show = render . pretty
 
-{- OBSOLETE
-showExpr :: Expr -> String
-showExpr e =
-    case e of
-      Set -> "Set"
-      Size -> "Size"
-      Succ e -> "($ " ++ showExpr e ++ ")"
-      Infty -> "#"
-      Meta i -> "?" ++ show i
-      Var n -> n
-      Con _ n -> n
-      Def n -> n -- "δ" ++ n
-      Let n -> n
-      Case e cs -> "case " ++ showExpr e ++ " { " ++ showCases cs ++ " } "
-      LLet n t1 e1 e2 ->
-          "(let " ++ n ++ " : " ++ showExpr t1 ++ " = " ++ showExpr e1 ++ " in " ++ showExpr e2 ++ ")"
-      App e1 el -> "(" ++ showExprs (e1:el) ++ ")"
-      Lam _ x e1 -> "(\\" ++ x ++ " -> " ++ showExpr e1 ++ ")"
-      Sing e t -> "<" ++ showExpr e ++ " : " ++ showExpr t ++ ">"
-      Pi dec x t1 t2 -> Util.parens $ (if erased dec then Util.brackets binding
-                                    else if x=="" then s1 else Util.parens binding)
-                                  ++ " -> " ++ showExpr t2
-         where s1 = showExpr t1
-               binding = if x == "" then s1 else x ++ " : " ++ s1
-      Erased e -> Util.brackets $ showExpr e
-
-
-showExprs :: [Expr] -> String
-showExprs = showList " " showExpr
-
-showPattern :: Pattern -> String
-showPattern = showExpr . patternToExpr
-{-
-showPattern (ConP c _ ps) = Util.parens $ List.foldl (\ acc p -> acc ++ " " ++ showPattern p) c ps
-showPattern (SuccP p) = Util.parens $ "$ " ++ showPattern p
-showPattern (DotP e)  = "." ++ showExpr e
-showPattern (VarP x) = x
--}
--}
-
 showCase (Clause _ [p] Nothing) = render (prettyPrec precAppR p)
 showCase (Clause _ [p] (Just e)) = render (prettyPrec precAppR p) ++ " -> " ++ show e
 showCases = showList "; " showCase
@@ -1385,76 +1488,134 @@ patSubst phi p =
 -- parallel substitution (CAUTION! NOT CAPTURE AVOIDING!)
 -- only needed to generate destructors
 -- does not substitute into patterns of a Case
-parSubst :: (Name -> Expr) -> Expr -> Expr
-parSubst phi (Sort (CoSet e)) = Sort (CoSet (parSubst phi e))
-parSubst phi e@Sort{}       = e
-parSubst phi (Succ e)       = Succ (parSubst phi e)
-parSubst phi e@Zero        = e
-parSubst phi e@Infty        = e
-parSubst phi e@Meta{}       = e
-parSubst phi e@Proj{}       = e
-parSubst phi (Var x)        = phi x
--- parSubst phi e@Con{}        = e
-parSubst phi e@Def{}        = e
--- parSubst phi e@Let{}        = e
-parSubst phi (Case e mt cls)   = Case (parSubst phi e) (fmap (parSubst phi) mt) $
-  List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (parSubst phi) t)) cls
-parSubst phi (LLet (TBind x dom) [] b c) = LLet (TBind x $ fmap (fmap (parSubst phi)) dom) [] (parSubst phi b) (parSubst phi c)
-parSubst phi (Pair f e)     = Pair (parSubst phi f) (parSubst phi e)
-parSubst phi (App f e)      = App (parSubst phi f) (parSubst phi e)
--- parSubst phi (App e es)     = App (parSubst phi e) (List.map (parSubst phi) es)
-parSubst phi (Record ri rs) = Record ri (mapAssoc (parSubst phi) rs)
-parSubst phi (Max es)       = Max (List.map (parSubst phi) es)
-parSubst phi (Plus es)      = Plus (List.map (parSubst phi) es)
-parSubst phi (Lam dec x e)  = Lam dec x (parSubst phi e)
--- parSubst phi (Pi (TBind x dom) b) = Pi (TBind x $ fmap (parSubst phi) dom) (parSubst phi b)
-parSubst phi (Below ltle e) = Below ltle (parSubst phi e)
-parSubst phi (Quant pisig a b) = Quant pisig (fmap (parSubst phi) a) (parSubst phi b)
-parSubst phi (Sing a b)     = Sing (parSubst phi a) (parSubst phi b)
-parSubst phi (Ann e)        = Ann $ fmap (parSubst phi) e
-parSubst phi e = error $ "Abstract.parSubst phi (" ++ show e ++ ") undefined"
-{- NOT NEEDED
-sgSubst :: Name -> Expr -> Expr -> Expr
-sgSubst x t u = parSubst (\ y -> if x == y then t else Var y) u
--}
+
+class ParSubst a where
+  parSubst :: (Name -> Expr) -> a -> a
+
+instance ParSubst a => ParSubst [a] where
+  parSubst = map . parSubst
+
+instance ParSubst a => ParSubst (Maybe a) where
+  parSubst = fmap . parSubst
+
+instance ParSubst a => ParSubst (Dom a) where
+  parSubst = fmap . parSubst
+
+instance ParSubst a => ParSubst (Measure a) where
+  parSubst = fmap . parSubst
+
+instance ParSubst a => ParSubst (Bound a) where
+  parSubst = fmap . parSubst
+
+instance ParSubst a => ParSubst (Tagged a) where
+  parSubst = fmap . parSubst
+
+instance ParSubst a => ParSubst (TBinding a) where
+  parSubst phi (TBind x a)  = TBind x  $ parSubst phi a
+  parSubst phi (TMeasure m) = TMeasure $ parSubst phi m
+  parSubst phi (TBound b)   = TBound   $ parSubst phi b
+
+instance ParSubst a => ParSubst (Sort a) where
+  parSubst phi (CoSet e) = CoSet $ parSubst phi e
+  parSubst phi (Set e)   = Set   $ parSubst phi e
+  parSubst phi s         = s
+
+instance ParSubst Telescope where
+  parSubst phi = Telescope . parSubst phi . telescope
+
+instance ParSubst Clause where
+  parSubst phi (Clause tel ps e) = Clause tel ps $ parSubst phi e
+
+-- TODO: Refactor!
+instance ParSubst Expr where
+  parSubst phi (Sort s)              =  Sort $ parSubst phi s
+  parSubst phi (Succ e)              = Succ (parSubst phi e)
+  parSubst phi e@Zero                = e
+  parSubst phi e@Infty               = e
+  parSubst phi e@Meta{}              = e
+  parSubst phi e@Proj{}              = e
+  parSubst phi (Var x)               = phi x
+  parSubst phi e@Def{}               = e
+  parSubst phi (Case e mt cls)       = Case (parSubst phi e) (parSubst phi mt) (parSubst phi cls)
+  parSubst phi (LLet ta tel b c)     = LLet (parSubst phi ta) (parSubst phi tel) (parSubst phi b) (parSubst phi c)
+  parSubst phi (Pair f e)            = Pair (parSubst phi f) (parSubst phi e)
+  parSubst phi (App f e)             = App (parSubst phi f) (parSubst phi e)
+  parSubst phi (Record ri rs)        = Record ri (mapAssoc (parSubst phi) rs)
+  parSubst phi (Max es)              = Max (parSubst phi es)
+  parSubst phi (Plus es)             = Plus (parSubst phi es)
+  parSubst phi (Lam dec x e)         = Lam dec x (parSubst phi e)
+  parSubst phi (Below ltle e)        = Below ltle (parSubst phi e)
+  parSubst phi (Quant pisig tel a b) = Quant pisig (parSubst phi tel) (parSubst phi a) (parSubst phi b)
+  parSubst phi (Sing a b)            = Sing (parSubst phi a) (parSubst phi b)
+  parSubst phi (Ann e)               = Ann $ parSubst phi e
+  parSubst phi e                     = error $ "Abstract.parSubst phi (" ++ show e ++ ") undefined"
+  {- NOT NEEDED
+  sgSubst :: Name -> Expr -> Expr -> Expr
+  sgSubst x t u = parSubst (\ y -> if x == y then t else Var y) u
+  -}
 
 
--- metavariable substitution (BY INTENTION NOT CAPTURE AVOIDING!)
--- does not substitute in patterns!
-subst :: Subst -> Expr -> Expr
-subst phi (Sort (CoSet e)) = Sort (CoSet (subst phi e))
-subst phi (Sort (Set e)) = Sort (Set (subst phi e))
-subst phi e@Sort{}       = e
-subst phi (Succ e)       = Succ (subst phi e)
-subst phi e@Zero         = e
-subst phi e@Infty        = e
-subst phi e@(Meta i) =
-  case Map.lookup i phi of
-    Just e' -> e'
-    _ -> e
-subst phi e@Var{}        = e
--- subst phi e@Con{}        = e
-subst phi e@Def{}        = e
-subst phi e@Proj{}        = e
--- subst phi e@Let{}        = e
-subst phi (Case e mt cls)   = Case (subst phi e) (fmap (subst phi) mt) $
-  List.map (\ (Clause tel [p] t) -> Clause tel [p] (fmap (subst phi) t)) cls
-subst phi (LLet (TBind x dom) [] b c) = LLet (TBind x $ fmap (fmap (subst phi)) dom) [] (subst phi b) (subst phi c)
-subst phi (Pair f e)     = Pair (subst phi f) (subst phi e)
-subst phi (App f e)      = App (subst phi f) (subst phi e)
--- subst phi (App e es)     = App (subst phi e) (List.map (subst phi) es)
-subst phi (Record ri rs)  = Record ri (mapAssoc (subst phi) rs)
-subst phi (Max es)       = Max (List.map (subst phi) es)
-subst phi (Plus es)      = Plus (List.map (subst phi) es)
-subst phi (Lam dec x e)  = Lam dec x (subst phi e)
-subst phi (Below ltle e) = Below ltle (subst phi e)
-subst phi (Quant pisig a b) = Quant pisig (fmap (subst phi) a) (subst phi b)
--- subst phi (Pi (TBind x dom) b) = Pi (TBind x $ fmap (subst phi) dom) (subst phi b)
--- subst phi (Pi (TMeasure mu) b) = Pi (TMeasure $ fmap (subst phi) mu) (subst phi b)
--- subst phi (Pi (TBound beta) b) = Pi (TBound $ fmap (subst phi) beta) (subst phi b)
-subst phi (Sing a b)     = Sing (subst phi a) (subst phi b)
-subst phi (Ann e)        = Ann $ fmap (subst phi) e
-subst phi e = error $ "Abstract.subst phi (" ++ show e ++ ") undefined"
+-- | Metavariable substitution. (BY INTENTION NOT CAPTURE AVOIDING!)
+--   Does not substitute in patterns!
+class Substitute a where
+  subst :: Subst -> a -> a
+
+instance Substitute a => Substitute [a] where
+  subst = map . subst
+
+instance Substitute a => Substitute (Maybe a) where
+  subst = fmap . subst
+
+instance Substitute a => Substitute (Dom a) where
+  subst = fmap . subst
+
+instance Substitute a => Substitute (Measure a) where
+  subst = fmap . subst
+
+instance Substitute a => Substitute (Bound a) where
+  subst = fmap . subst
+
+instance Substitute a => Substitute (Tagged a) where
+  subst = fmap . subst
+
+instance Substitute a => Substitute (TBinding a) where
+  subst phi (TBind x a)  = TBind x  $ subst phi a
+  subst phi (TMeasure m) = TMeasure $ subst phi m
+  subst phi (TBound b)   = TBound   $ subst phi b
+
+instance Substitute a => Substitute (Sort a) where
+  subst phi (CoSet e) = CoSet $ subst phi e
+  subst phi (Set e)   = Set   $ subst phi e
+  subst phi s         = s
+
+instance Substitute Telescope where
+  subst phi = Telescope . subst phi . telescope
+
+instance Substitute Clause where
+  subst phi (Clause tel ps e) = Clause tel ps $ subst phi e
+
+instance Substitute Expr where
+  subst phi (Sort s)              = Sort $ subst phi s
+  subst phi (Succ e)              = Succ (subst phi e)
+  subst phi e@Zero                = e
+  subst phi e@Infty               = e
+  subst phi e@(Meta i)            = Map.findWithDefault e i phi
+  subst phi e@Var{}               = e
+  subst phi e@Def{}               = e
+  subst phi e@Proj{}              = e
+  subst phi (Case e mt cls)       = Case (subst phi e) (subst phi mt) (subst phi cls)
+  subst phi (LLet ta tel b c)      = LLet (subst phi ta) (subst phi tel) (subst phi b) (subst phi c)
+  subst phi (Pair f e)            = Pair (subst phi f) (subst phi e)
+  subst phi (App f e)             = App (subst phi f) (subst phi e)
+  subst phi (Record ri rs)        = Record ri (mapAssoc (subst phi) rs)
+  subst phi (Max es)              = Max (subst phi es)
+  subst phi (Plus es)             = Plus (subst phi es)
+  subst phi (Lam dec x e)         = Lam dec x (subst phi e)
+  subst phi (Below ltle e)        = Below ltle (subst phi e)
+  subst phi (Quant pisig tel a b) = Quant pisig (subst phi tel) (subst phi a) (subst phi b)
+  subst phi (Sing a b)            = Sing (subst phi a) (subst phi b)
+  subst phi (Ann e)               = Ann $ subst phi e
+  subst phi e                     = error $ "Abstract.subst phi (" ++ show e ++ ") undefined"
 
 -- Printing declarations ---------------------------------------------
 
@@ -1568,24 +1729,65 @@ discriminate index arguments from fields
 
 -- TODO: analyze value, not expression!
 -- get all the variables which are under injective functions
-injectiveVars :: Expr -> Set Name
-injectiveVars e =
-  case spineView e of
-    (Var name           , []) -> Set.singleton name
-    (Def (DefId DatK{} _), es) -> Set.unions $ List.map injectiveVars es
-    (Def (DefId ConK{} _), es) -> Set.unions $ List.map injectiveVars es
+
+class InjectiveVars a where
+  injectiveVars :: a -> Set Name
+
+instance InjectiveVars a => InjectiveVars [a] where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Maybe a) where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Sort a) where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Dom a) where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Measure a) where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Bound a) where
+  injectiveVars = foldMap injectiveVars
+
+instance InjectiveVars a => InjectiveVars (Tagged a) where
+  injectiveVars = foldMap injectiveVars
+
+instance (InjectiveVars a, InjectiveVars b) => InjectiveVars (a, b) where
+  injectiveVars (a, b) = mconcat [injectiveVars a, injectiveVars b]
+
+instance (InjectiveVars a, InjectiveVars b, InjectiveVars c) => InjectiveVars (a, b, c) where
+  injectiveVars (a, b, c) = mconcat [injectiveVars a, injectiveVars b, injectiveVars c]
+
+instance InjectiveVars a => InjectiveVars (TBinding a) where
+  injectiveVars (TBind x a)  = injectiveVars a
+  injectiveVars (TMeasure m) = injectiveVars m
+  injectiveVars (TBound b)   = injectiveVars b
+
+instance InjectiveVars Telescope where
+  injectiveVars (Telescope []) = mempty
+  injectiveVars (Telescope (tb : tel)) = injectiveVars tb `Set.union`
+                          (injectiveVars (Telescope tel) Set.\\ boundVars tb)
+
+instance InjectiveVars Expr where
+  injectiveVars e =
+   case spineView e of
+    (Var name            , []) -> Set.singleton name
+    (Def (DefId DatK{} _), es) -> injectiveVars es
+    (Def (DefId ConK{} _), es) -> injectiveVars es
     (Record ri rs        , []) -> Set.unions $ List.map (injectiveVars . snd) rs
-    (Succ e             , []) -> injectiveVars e
-    (Lam _ x e          , []) -> Set.delete x (injectiveVars e)
-    (Quant _ (TBind x dom) b , []) -> injectiveVars (typ dom) `Set.union`
-                                        Set.delete x (injectiveVars b)
-    (Sort (CoSet e)     , []) -> injectiveVars e
-    (Sort (Set e)       , []) -> injectiveVars e
-    (Ann e              , []) -> injectiveVars (unTag e)
+    (Succ e              , []) -> injectiveVars e
+    (Lam _ x e           , []) -> Set.delete x (injectiveVars e)
+    (Quant _ tel ta b , []) ->
+      injectiveVars tel' `Set.union` (injectiveVars b Set.\\ boundVars tel')
+        where tel' = Telescope $ telescope tel ++ [ta]
+    (Sort s             , []) -> injectiveVars s
+    (Ann e              , []) -> injectiveVars e
     _                         -> Set.empty
 
 classifyFields :: Co -> Name -> Type -> [FieldInfo]
-classifyFields co dataName ty = List.map (classifyField fvs) tele
+classifyFields co dataName ty = List.map (classifyField fvs) $ telescope tele
   where (tele, core) = typeToTele ty
         fvs = freeVars core
         ivs = injectiveVars core
@@ -1619,12 +1821,12 @@ analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
       -- generate destructors
       -- choose a name for the record to destroy
       indices    = filter (\ f -> fClass f == Index) fields
-      indexTele  = List.map (\ f -> TBind (fName f) $ Domain (fType f) defaultKind (fDec f)) indices
+      indexTele  = Telescope $ List.map (\ f -> TBind (fName f) $ Domain (fType f) defaultKind (fDec f)) indices
       indexNames  = List.map fName indices
       -- do not generated destructors for erased arguments
       destrNames = destructorNames fields
       recName    = internal $ name constrName -- "constructed_by_" ++ constrName
-      parNames   = List.map boundName pars
+      parNames   = List.map boundName $ telescope pars
       parAndIndexNames = parNames ++ indexNames
       -- substitute variable "fst" by application "fst A B p"
       phi x = if x `elem` destrNames
@@ -1643,15 +1845,15 @@ analyzeConstructor co dataName dataPars (Constructor constrName conPars ty) =
                          (fName fi))
               fields)
       destrType t = -- teleToTypeErase (pars ++ indexTele)
-                    teleToTypeErase pars $ teleToType indexTele
-                      $ (Quant Pi (TBind recName (defaultDomain core)) . parSubst phi) t
+                    teleToTypeErase pars $ teleToType indexTele $
+                      pi (TBind recName $ defaultDomain core) $ parSubst phi t
       destrBody (dn) = clause (List.map VarP parAndIndexNames ++ [pattern]) (Just (Var dn))
       fields' = mapOver fields $
         \ f -> if isNamedField f then
                   f { fClass = Field $ Just
                          ( destrType (fType f)
-                         , let npars = length pars
-                           in  Arity { fullArity = npars + length indexTele + 1
+                         , let npars = size pars
+                           in  Arity { fullArity = npars + size indexTele + 1
                                      , isProjection = Just npars
                                      }
                          , destrBody (prefix (fName f)) )}
@@ -1701,7 +1903,7 @@ reassembleConstructor ci = Constructor (cName ci) (cPars ci) (reassembleConstruc
 reassembleConstructorType :: ConstructorInfo -> Type
 reassembleConstructorType ci = buildPi (cFields ci) where
   buildPi [] = cTyCore ci
-  buildPi (f:fs) = Quant Pi (TBind (fName f) $ Domain (fType f) defaultKind (decor (fDec f) (fClass f))) $ buildPi fs
+  buildPi (f:fs) = pi (TBind (fName f) $ Domain (fType f) defaultKind (decor (fDec f) (fClass f))) $ buildPi fs
     where decor dec Index = irrelevantDec -- DONE: SWITCH ON!
           decor dec _     = dec
 
@@ -1904,29 +2106,30 @@ shallowSuccP p = case p of
 typeToTele :: Type -> (Telescope, Type)
 typeToTele = typeToTele' (-1) -- take all Pis into the telescope
 
--- typeToTele' k t
--- if k > 0 it takes at most k leading Pis into the telescope
+-- | @typeToTele' k t@.
+--   If @k > 0@ it takes at most @k@ leading @Pi@s into the telescope
+--   (hidden bindings do not count).
 typeToTele' :: Int -> Type -> (Telescope, Type)
-typeToTele' k t = ttt k t []
+typeToTele' k t = mapFst Telescope $ ttt k t []
     where
-      ttt :: Int -> Type -> Telescope -> (Telescope,Type)
-      ttt k (Quant Pi tb t2) tel | k /= 0 = ttt (k-1) t2 (tb : tel)
+      ttt :: Int -> Type -> [TBind] -> ([TBind], Type)
+      ttt k (Quant Pi htel tb t2) tel | k /= 0 = ttt (k-1) t2 (telescope htel ++ tb : tel)
       ttt k t tel = (reverse tel, t)
 
 ---- modification
 
 instance LensDec Telescope where
-  getDec = error "getDec not defined for Telescope"
-  mapDec = List.map . mapDec
+  getDec   = error "getDec not defined for Telescope"
+  mapDec f = Telescope . List.map (mapDec f) . telescope
 
 ---- destruction
 
 teleLam :: Telescope -> Expr -> Expr
 teleLam tel e = foldr (uncurry Lam) e $
-  List.map (\ tb -> (decor $ boundDom tb, boundName tb)) tel
+  List.map (\ tb -> (decor $ boundDom tb, boundName tb)) $ telescope tel
 
 teleToType' :: (Dec -> Dec) -> Telescope -> Type -> Type
-teleToType' mod tel t = foldr (\ tb -> Quant Pi (mapDec mod tb)) t tel
+teleToType' mod tel t = foldr (\ tb -> pi (mapDec mod tb)) t $ telescope tel
 {-
 teleToType' mod []       t = t
 teleToType' mod (tb:tel) t = Pi (mapDec mod tb) (teleToType' mod tel t)
@@ -1944,7 +2147,7 @@ adjustTopDecs f t = teleToType' f tel core where
 
 teleToTypeM :: (Applicative m) => (Dec -> m Dec) -> Telescope -> Type -> m Type
 teleToTypeM mod tel t =
-  foldr (\ tb mt -> Quant Pi <$> mapDecM mod tb <*> mt) (pure t) tel
+  foldr (\ tb mt -> pi <$> mapDecM mod tb <*> mt) (pure t) $ telescope tel
 
 adjustTopDecsM :: (Applicative m) => (Dec -> m Dec) -> Type -> m Type
 adjustTopDecsM f t = teleToTypeM f tel core where

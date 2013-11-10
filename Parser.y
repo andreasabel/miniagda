@@ -243,17 +243,32 @@ Telescope :  {- empty -}          { [] }
               | TBind Telescope { $1 : $2 }
               | Measure Telescope { C.TMeasure $1 : $2 }
 
+-- Binding.
 TBind :: { C.TBind }
-TBind :  '(' EIds ':' Expr ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
-      |  '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
-      |  Pol '(' EIds ':' Expr ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
---      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
-      | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
-      | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
-      | Pol '(' Id '<'  Expr ')'  { C.TBounded (Dec $1)    $3 A.Lt $5 }
-      | '(' Id '<=' Expr ')'  { C.TBounded A.defaultDec    $2 A.Le $4 }
-      | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
-      | Pol '(' Id '<='  Expr ')' { C.TBounded (Dec $1)    $3 A.Le $5 }
+TBind
+  :     '(' EIds ':' Expr ')' { C.TBind   (Dec Default) $2      $4 }
+  |     '(' Id  '<'  Expr ')' { C.TBounded A.defaultDec $2 A.Lt $4 }
+  |     '(' Id  '<=' Expr ')' { C.TBounded A.defaultDec $2 A.Le $4 }
+  | Pol '(' EIds ':' Expr ')' { C.TBind    (Dec $1)     $3      $5 }
+  | Pol '(' Id  '<'  Expr ')' { C.TBounded (Dec $1)     $3 A.Lt $5 }
+  | Pol '(' Id '<='  Expr ')' { C.TBounded (Dec $1)     $3 A.Le $5 }
+  | EBind                     { $1 }
+  | HBind                     { $1 }
+
+-- Erased binding
+EBind :: { C.TBind }
+EBind
+  : '[' Ids ':' Expr ']' { C.TBind    A.irrelevantDec $2      $4 }
+  | '[' Id '<'  Expr ']' { C.TBounded A.irrelevantDec $2 A.Lt $4 }
+  | '[' Id '<=' Expr ']' { C.TBounded A.irrelevantDec $2 A.Le $4 }
+
+-- Hidden binding
+HBind :: { C.TBind }
+HBind
+  : '{' Ids ':' Expr '}' { C.TBind    A.Hidden $2      $4 }
+  | '{' Id '<'  Expr '}' { C.TBounded A.Hidden $2 A.Lt $4 }
+  | '{' Id '<=' Expr '}' { C.TBounded A.Hidden $2 A.Le $4 }
+
 
 UntypedBind :: { C.LBind }
 UntypedBind : Id              { C.TBind A.defaultDec [$1] Nothing }
@@ -291,52 +306,11 @@ Domain : Expr0             { [C.TBind (Dec Default) {- A.defaultDec -} [] $1] }
        | Bound             { [C.TBound $1] }
        | Telescope         { $1 }
 
-{-
-
-Domain :: { C.TBind }
-Domain : Expr0             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
-       | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
-       | Pol Expr0         { C.TBind (Dec $1) [] $2 }
---       | Pol '[' Expr ']'  { C.TBind (Dec True  $1) [] $3 }
-       | TBind             { $1 }
-       | Measure           { C.TMeasure $1 }
-       | Bound             { C.TBound $1 }
-
-TBind :: { C.TBind }
-TBind :  '(' Ids ':' Type ')' { C.TBind (Dec Default) {- A.defaultDec -} $2 $4 } -- ordinary binding
-      |  '[' Ids ':' Type ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
-      |  Pol '(' Ids ':' Type ')' { C.TBind (Dec $1) $3 $5 } -- ordinary binding
---      |  Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }  -- erased binding
-      | '(' Id '<'  Expr ')'  { C.TBounded A.defaultDec    $2 A.Lt $4 }
-      | '[' Id '<'  Expr ']'  { C.TBounded A.irrelevantDec $2 A.Lt $4 }
-      | '(' Id '<=' Expr ')'  { C.TBounded A.defaultDec    $2 A.Le $4 }
-      | '[' Id '<=' Expr ']'  { C.TBounded A.irrelevantDec $2 A.Le $4 }
-
--- let binding
-LBind :: { C.TBind }
-LBind :  Id ':' Type         { C.TBind A.defaultDec [$1] $3 } -- ordinary binding
-      |  '(' Id ':' Type ')' { C.TBind A.defaultDec [$2] $4 } -- ordinary binding
-      |  '[' Id ':' Type ']' { C.TBind A.irrelevantDec [$2] $4 }  -- erased binding
-      |  Pol '(' Id ':' Type ')' { C.TBind (Dec $1) [$3] $5 } -- ordinary binding
---      |  Pol '[' Id ':' Type ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
-
-Domain :: { C.TBind }
-Domain : Type1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
-       | '[' Type ']'      { C.TBind A.irrelevantDec [] $2 }
-       | Pol Type1         { C.TBind (Dec $1) [] $2 }
---       | Pol '[' Type ']'  { C.TBind (Dec True  $1) [] $3 }
-       | TBind             { $1 }
-       | Measure           { C.TMeasure $1 }
-       | Bound             { C.TBound $1 }
--}
 
 -- expressions which can be tuples e , e'
 ExprT :: { C.Expr}
 ExprT : ExprList           { foldr1 C.Pair $1 }
-{-
-ExprT : Expr               { $1 }
-      | Expr ',' ExprT     { C.Pair $1 $3 }
--}
+
 ExprList :: { [C.Expr] }
 ExprList : Expr               { [$1] }
          | Expr ',' ExprList     { $1 : $3 }
@@ -345,21 +319,20 @@ ExprList : Expr               { [$1] }
 -- general form of expression
 Expr :: { C.Expr }
 Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
---     | Domain '&' Expr                  { C.Quant A.Sigma $1 $3 }
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LLetDef in ExprT             { C.LLet $2 $4 }
---     | let LBind '=' ExprT in ExprT     { C.LLet $2 $4 $6 }
      | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }
-     | Expr0                            { $1 }
+     | Expr0                            { $1 }                -- Sigma type
      | Expr1 '+' Expr                   { C.Plus $1 $3 }
      | Expr1 '<|' Expr                  { C.App $1 [$3] }
      | Expr1 '|>' Expr                  { C.App $3 [$1] }
 
-
+-- Sigma types (A & B, (x : A) & B)
 Expr0 :: { C.Expr }
 Expr0 : Expr1                            { $1 }
       | SigDom '&' Expr0                 { C.Quant A.Sigma [$1] $3 }
 
+-- SigDom ~ Domain, but no Telescope and no Expr0
 SigDom :: { C.TBind }
 SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
        | '[' Expr ']'      { C.TBind A.irrelevantDec [] $2 }
@@ -367,19 +340,20 @@ SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
 --       | Pol '[' Expr ']'  { C.TBind (Dec True  $1) [] $3 }
        | TBind             { $1 }
        | Measure           { C.TMeasure $1 }
-       | Bound             { C.TBound $1 }
+       | Bound             { C.TBound $1   }  -- constraint
 
 -- perform applications
 Expr1 :: { C.Expr }
 Expr1 : Expr2 { let (f : args) = reverse $1 in
                 if null args then f else C.App f args
 	      }
-       | coset Expr3                      { C.CoSet $2 }
-       | set                              { C.Set C.Zero }
-       | set Expr3                        { C.Set $2 }
-       | number '*' Expr1                 { let n = read $1 in
-                                            if n==0 then C.Zero else
-                                            iterate (C.Plus $3) $3 !! (n-1) }
+       | coset Expr3      { C.CoSet $2 }
+       | set              { C.Set C.Zero }
+       | set Expr3        { C.Set $2 }
+       | number '*' Expr1 { let n = read $1 in
+                            if n==0 then C.Zero else
+                            iterate (C.Plus $3) $3 !! (n-1) }
+--       | EBind Expr1      { C.EBind $1 $2 }
 
 -- gather applications
 Expr2 :: { [C.Expr] }
@@ -448,12 +422,6 @@ RecordDefs
 RecordDef :: { ([Name],C.Expr) }
 RecordDef : SpcIds '=' ExprT    { ($1,$3) }
 
-{- RETIRED
-SE :: { C.Expr}
-SE : succ SE { C.Succ $2}
-SE : Expr3 { $1}
-  -}
-
 TypeSig :: { C.TypeSig }
 TypeSig : Id ':' Expr { C.TypeSig $1 $3 }
 
@@ -518,47 +486,26 @@ DotId :: { C.Pattern }
 DotId : Id                 { C.IdentP (C.QName $1) }
       | '.' Id             { C.ConP True (C.QName $2) [] }
 
-{-
-Pattern :: { C.Pattern }
-Pattern : ConP               { $1            }
-        | Id                 { C.IdentP $1   }
-        | '.' set            { C.DotP (C.Set C.Zero) }
-        | '.' Expr3          { C.DotP $2     }
-        | '(' Id '>' Id ')'  { C.SizeP $2 $4 }
-        | '(' Id '<' Id ')'  { C.SizeP $4 $2 }
---        | '*'       { C.AbsurdP }
-
-ConP :: { C.Pattern }
-ConP : '(' Id Patterns ')' { C.ConP $2 (reverse $3) }
-     | '(' succ SP ')'     { C.SuccP $3             }
-     | '(' Pa
-     | '(' ')'             { C.AbsurdP              }
-
-SP :: { C.Pattern}
-SP : succ SP {C.SuccP $2}
-   | Pattern ',' Pattern  { C.PairP $1 $3 }
-   | Pattern { $1 }
--}
 
 Clauses :: { [C.Clause] }
 Clauses : RClauses { reverse $1 }
 
 RClauses :: { [C.Clause ] }
-RClauses :
-   RClauses ';' Clause { $3 : $1 }
- | RClauses ';' { $1 }
- | Clause { [$1] }
- | {- empty -} { [] }
+RClauses
+ : RClauses ';' Clause { $3 : $1 }
+ | RClauses ';'        { $1      }
+ | Clause              { [$1]    }
+ | {- empty -}         { []      }
 
--- for backwards compatibility
+-- Binding in data telescope, supports (+ X : Set) for backwards compatibility
 TBindSP :: { C.TBind }
-TBindSP : '(' Ids ':' Expr ')' { C.TBind (Dec Default) $2 $4 } -- ordinary binding
-        | '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased binding
-        | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 }
---        | Pol '[' Ids ':' Expr ']' { C.TBind (Dec True $1) $3 $5 }
-        |  '(' '+' Ids ':' Expr ')' { C.TBind (Dec SPos) $3 $5 }
---        |  '[' '+' Ids ':' Expr ']' { C.TBind (Dec True SPos) $3 $5 }
---        | '(' sized Id ')'     { C.TSized $3 }
+TBindSP
+  :     '(' Ids ':' Expr ')' { C.TBind (Dec Default) $2 $4 } -- ordinary binding
+  |     '[' Ids ':' Expr ']' { C.TBind A.irrelevantDec $2 $4 }  -- erased bind.
+  | Pol '(' Ids ':' Expr ')' { C.TBind (Dec $1) $3 $5 }
+  | '(' '+' Ids ':' Expr ')' { C.TBind (Dec SPos) $3 $5 }
+
+--  | '(' sized Id ')'     { C.TSized $3 }
 
 DataTelescope :: { C.Telescope }
 DataTelescope :  {- empty -}          { [] }

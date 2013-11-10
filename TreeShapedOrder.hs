@@ -24,7 +24,8 @@ each link a non-negative number.
 
 module TreeShapedOrder where
 
-import Data.List hiding (insert) -- groupBy
+import Prelude hiding (null)
+import Data.List hiding (insert, null) -- groupBy
 
 import Data.Map (Map)
 import qualified Data.Map as Map

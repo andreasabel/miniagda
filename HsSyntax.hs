@@ -14,18 +14,18 @@ mkQual m s = Qual (ModuleName m) (Ident s)
 mkModule :: [Decl] -> Module
 mkModule hs = Module noLoc main_mod pragmas warning exports imports decls where
   pragmas = [ LanguagePragma noLoc $ map Ident
-    [ "NoImplicitPrelude" 
+    [ "NoImplicitPrelude"
     , "GADTs"
     , "KindSignatures"
     ]]
   warning = Nothing
   exports = Nothing
-  imports = 
+  imports =
     [ mkQualImport "GHC.Show" "Show"
     , mkQualImport "System.IO" "IO"
     , mkQualImport "Unsafe.Coerce" "Coerce"
     ]
-  decls   = hs ++ 
+  decls   = hs ++
     [ TypeSig noLoc [ main_name ] io
     , FunBind [ mkClause main_name [] rhs ]
     ] where rhs  = Var (mkQual "IO" "putStrLn") `App` Lit (String "Hello, world!")
@@ -33,15 +33,15 @@ mkModule hs = Module noLoc main_mod pragmas warning exports imports decls where
 
 mkQualImport :: String -> String -> ImportDecl
 mkQualImport modName asName =
-  ImportDecl 
-  { importLoc       = noLoc 
+  ImportDecl
+  { importLoc       = noLoc
   , importModule    = ModuleName modName
-  , importQualified = True 
-  , importSrc       = False 
+  , importQualified = True
+  , importSrc       = False
   , importPkg       = Nothing
   , importAs        = Just $ ModuleName asName
   , importSpecs     = Nothing
-  } 
+  }
 
 noContext = []
 noDeriving = []
@@ -115,13 +115,13 @@ mkParen e@(Con{}) = e
 mkParen e = Paren e
 
 mkApp :: Exp -> Exp -> Exp
-mkApp f e = App f e -- (mkParen e) 
+mkApp f e = App f e -- (mkParen e)
 
 mkLLet :: Name -> Maybe Type -> Exp -> Exp -> Exp
 mkLLet x t e e' = Let (BDecls [mkLet x e]) e'
 
 mkPair :: Exp -> Exp -> Exp
-mkPair e1 e2 = Tuple [e1,e2]
+mkPair e1 e2 = Tuple Boxed [e1,e2]
 
 {- this is already predefined as unit_con
 hsDummyExp :: HsExp

@@ -7,7 +7,7 @@
 
 module Eval where
 
-import Prelude hiding (mapM)
+import Prelude hiding (mapM, null, pi)
 
 import Control.Applicative
 import Control.Monad.Identity hiding (mapM)
@@ -19,10 +19,10 @@ import Control.Monad.IfElse  -- unlessM
 
 import qualified Data.Array as Array
 import Data.Maybe -- fromMaybe
-import Data.List as List -- find
+import Data.List as List hiding (null) -- find
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Traversable (Traversable,mapM)
+import Data.Traversable (Traversable, mapM, traverse)
 import qualified Data.Traversable as Traversable
 
 import Debug.Trace
@@ -48,12 +48,13 @@ traceEtaM msg = traceM msg
 traceRecord msg a = a
 traceRecordM msg = return ()
 
+{-
 traceMatch msg a = a -- trace msg a
 traceMatchM msg = return () -- traceM msg
-{-
+-}
 traceMatch msg a = trace msg a
 traceMatchM msg = traceM msg
--}
+
 
 traceLoop msg a = a -- trace msg a
 traceLoopM msg = return () -- traceM msg
@@ -314,7 +315,7 @@ reify' m v0 = do
           dom' <- Traversable.mapM reify dom
           underAbs_ x dom fv $ \ k xv vb -> do
             let x' = unsafeName (suggestion x ++ "~" ++ show k)
-            Quant pisig (TBind x' dom') <$> reify vb
+            piSig pisig (TBind x' dom') <$> reify vb
     (VSing v tv)         -> liftM2 Sing (reify v) (reify tv)
     fv | isFun fv        -> do
           let x = absName fv
@@ -358,12 +359,12 @@ toExpr v =
     VSort (Set v)   -> (Sort . Set) <$> toExpr v
     VSort (SortC s) -> return $ Sort (SortC s)
 -}
-    VMeasured mu bv -> Quant Pi <$> (TMeasure <$> mapM toExpr mu) <*> toExpr bv
-    VGuard beta bv  -> Quant Pi <$> (TBound <$> mapM toExpr beta) <*> toExpr bv
+    VMeasured mu bv -> pi <$> (TMeasure <$> mapM toExpr mu) <*> toExpr bv
+    VGuard beta bv  -> pi <$> (TBound <$> mapM toExpr beta) <*> toExpr bv
     VBelow Le VInfty -> return $ Sort $ SortC Size
     VBelow ltle bv  -> Below ltle <$> toExpr bv
     VQuant pisig x dom fv -> underAbs' x fv $ \ xv bv ->
-      Quant pisig <$> (TBind x <$> mapM toExpr dom) <*> toExpr bv
+      piSig pisig <$> (TBind x <$> mapM toExpr dom) <*> toExpr bv
     VSing v tv      -> Sing <$> toExpr v <*> toExpr tv
     fv | isFun fv   -> addName (absName fv) $ \ xv -> toExpr =<< app fv xv
 {-
@@ -417,49 +418,89 @@ addPatternsEnv (p:ps) rho cont =
     addPatternsEnv ps rho $ \ ps rho ->
       cont (p:ps) rho
 
-closToExpr :: Env -> Expr -> TypeCheck Expr
-closToExpr rho e =
-  case e of
-    Sort (Set e)   -> (Sort . Set) <$> closToExpr rho e
-    Sort (CoSet e) -> (Sort . CoSet) <$> closToExpr rho e
-    Sort (SortC s) -> return e
-    Zero           -> return e
-    Succ e         -> Succ <$> closToExpr rho e
-    Infty          -> return e
-    Max es         -> Max <$> mapM (closToExpr rho) es
-    Plus es        -> Plus <$> mapM (closToExpr rho) es
-    Meta x         -> return e
-    Var x          -> toExpr =<< whnf rho e
-    Def d          -> return e
-    Case e mt cls  -> Case <$> closToExpr rho e <*> mapM (closToExpr rho) mt <*> mapM (clauseToExpr rho) cls
-    LLet (TBind x dom) [] e1 e2 -> addNameEnv x rho $ \ x rho' ->
-      LLet <$> (TBind x <$> mapM (mapM (closToExpr rho)) dom)
-           <*> pure []
-           <*> closToExpr rho e1
-           <*> closToExpr rho' e2
 {-
-    LLet tb e1 e2  ->
-      LLet <$> mapM (closToExpr rho) tb
-           <*> closToExpr rho e1
-           <*> do addNameEnv (boundName tb) rho $ \ rho -> closToExpr rho e2
---           <*> do addBindEnv tb rho $ \ rho -> closToExpr rho e2
+class BindClosToExpr a where
+  bindClosToExpr :: Env -> a -> (Env -> a -> TCM b) -> TCM b
+
+instance ClosToExpr a => BindClosToExpr (TBinding a) where
+  bindClosToExpr
 -}
-    Proj fx n      -> return e
-    Record ri rs   -> Record ri <$> mapAssocM (closToExpr rho) rs
-    Pair e1 e2     -> Pair <$> closToExpr rho e1 <*> closToExpr rho e2
-    App e1 e2      -> App <$> closToExpr rho e1 <*> closToExpr rho e2
-    Lam dec x e    -> addNameEnv x rho $ \ x rho ->
-      Lam dec x <$> closToExpr rho e
-    Below ltle e   -> Below ltle <$> closToExpr rho e
-    Quant Pi (TMeasure mu) e ->
-      Quant Pi <$> (TMeasure <$> mapM (closToExpr rho) mu) <*> closToExpr rho e
-    Quant Pi (TBound beta) e ->
-      Quant Pi <$> (TBound <$> mapM (closToExpr rho) beta) <*> closToExpr rho e
-    Quant piSig (TBind x dom) e -> addNameEnv x rho $ \ x rho' ->
-      Quant piSig <$> (TBind x <$> mapM (closToExpr rho) dom) <*> closToExpr rho' e
-    Sing e1 e2     -> Sing <$> closToExpr rho e1 <*> closToExpr rho e2
-    Ann taggedE    -> Ann <$> mapM (closToExpr rho) taggedE
-    Irr            -> return e
+
+class ClosToExpr a where
+  closToExpr     :: Env -> a -> TypeCheck a
+  bindClosToExpr :: Env -> a -> (Env -> a -> TypeCheck b) -> TypeCheck b
+
+  -- default : no binding
+  closToExpr rho a = bindClosToExpr rho a $ \ rho a -> return a
+  bindClosToExpr rho a cont = cont rho =<< closToExpr rho a
+
+instance ClosToExpr a => ClosToExpr [a] where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Maybe a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Dom a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Sort a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Measure a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Bound a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (Tagged a) where
+  closToExpr = traverse . closToExpr
+
+instance ClosToExpr a => ClosToExpr (TBinding a) where
+  bindClosToExpr rho (TBind x a) cont = do
+    a <- closToExpr rho a
+    addNameEnv x rho $ \ x rho -> cont rho $ TBind x a
+  bindClosToExpr rho (TMeasure mu) cont = cont rho . TMeasure =<< closToExpr rho mu
+  bindClosToExpr rho (TBound beta) cont = cont rho . TBound =<< closToExpr rho beta
+
+instance ClosToExpr Telescope where
+  bindClosToExpr rho (Telescope tel) cont = loop rho tel $ \ rho -> cont rho . Telescope
+    where
+      loop rho []         cont = cont rho []
+      loop rho (tb : tel) cont = bindClosToExpr rho tb $ \ rho tb ->
+        loop rho tel $ \ rho tel -> cont rho $ tb : tel
+
+instance ClosToExpr Expr where
+  closToExpr rho e =
+    case e of
+      Sort s         -> Sort <$> closToExpr rho s
+      Zero           -> return e
+      Succ e         -> Succ <$> closToExpr rho e
+      Infty          -> return e
+      Max es         -> Max  <$> closToExpr rho es
+      Plus es        -> Plus <$> closToExpr rho es
+      Meta x         -> return e
+      Var x          -> toExpr =<< whnf rho e
+      Def d          -> return e
+      Case e mt cls  -> Case <$> closToExpr rho e <*> closToExpr rho mt <*> mapM (clauseToExpr rho) cls
+      LLet tb tel e1 e2 | null tel -> do
+        e1 <- closToExpr rho e1
+        bindClosToExpr rho tb $ \ rho tb -> LLet tb tel e1 <$> closToExpr rho e2
+      Proj fx n      -> return e
+      Record ri rs   -> Record ri <$> mapAssocM (closToExpr rho) rs
+      Pair e1 e2     -> Pair <$> closToExpr rho e1 <*> closToExpr rho e2
+      App e1 e2      -> App <$> closToExpr rho e1 <*> closToExpr rho e2
+      Lam dec x e    -> addNameEnv x rho $ \ x rho ->
+        Lam dec x <$> closToExpr rho e
+      Below ltle e   -> Below ltle <$> closToExpr rho e
+{-
+      Quant Pi tel mu@TMeasure{} e | null tel -> pi <$> closToExpr rho mu   <*> closToExpr rho e
+      Quant Pi tel beta@TBound{} e | null tel -> pi <$> closToExpr rho beta <*> closToExpr rho e
+-}
+      Quant piSig tel tb e -> bindClosToExpr rho tel $ \ rho tel ->
+        bindClosToExpr rho tb $ \ rho tb -> Quant piSig tel tb <$> closToExpr rho e
+      Sing e1 e2     -> Sing <$> closToExpr rho e1 <*> closToExpr rho e2
+      Ann taggedE    -> Ann <$> closToExpr rho taggedE
+      Irr            -> return e
 
 metaToExpr :: Int -> Env -> Int -> TypeCheck Expr
 metaToExpr x rho k = return $ iterate Succ (Meta x) !! k
@@ -470,9 +511,9 @@ clauseToExpr rho (Clause vtel ps me) = addPatternsEnv ps rho $ \ ps rho ->
 
 -- evaluation --------------------------------------------------------
 
--- weak head normal form
--- monadic, since it reads the globally defined constants from the signature
--- lets are expanded away
+-- | Weak head normal form.
+--   Monadic, since it reads the globally defined constants from the signature.
+--   @let@s are expanded away.
 
 whnf :: Env -> Expr -> TypeCheck Val
 whnf env e = enter ("whnf " ++ show e) $
@@ -480,7 +521,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Meta i -> do let v = VMeta i env 0
                  traceMetaM $ "whnf meta " ++ show v
                  return v
-    LLet (TBind x dom) [] e1 e2 -> do
+    LLet (TBind x dom) tel e1 e2 | null tel -> do
       let v1 = mkClos env e1
       whnf (update env x v1) e2
 {-

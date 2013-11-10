@@ -2,6 +2,8 @@
 
 module Value where
 
+import Prelude hiding (null)
+
 import Control.Applicative
 
 import qualified Data.List as List

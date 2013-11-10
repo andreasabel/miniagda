@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.20130405
+version:         0.20131111
 build-type:      Simple
 cabal-version:   >= 1.8 && < 2
 license:         AllRightsReserved
@@ -45,6 +45,7 @@ executable miniagda
                     TupleSections
   main-is:          Main.hs
   other-modules:    Abstract
+                    Collection
                     Concrete
                     Eval
                     Extract

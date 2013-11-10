@@ -2,6 +2,8 @@
 
 module TCM where
 
+import Prelude hiding (null)
+
 import Control.Monad
 import Control.Monad.IfElse
 import Control.Monad.Identity
@@ -937,7 +939,7 @@ addBind (TBind x dom) cont = do
   new' x dom' cont
 
 addBinds :: Telescope -> TypeCheck a -> TypeCheck a
-addBinds tel k0 = foldr addBind k0 tel
+addBinds tel k0 = foldr addBind k0 $ telescope tel
 
 -- introduce patterns into context and environment -------------------
 -- DOES NOT ETA-EXPAND VARIABLES!! -----------------------------------

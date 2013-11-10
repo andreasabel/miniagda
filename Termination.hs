@@ -2,12 +2,15 @@
 
 module Termination where
 
+import Prelude hiding (null)
+
 import Data.Monoid
 import Control.Monad.Writer -- (Writer, runWriter, tell, listen, Any(..), ...)
 
-import Data.List as List
+import Data.List as List hiding (null)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Foldable (Foldable, foldMap)
 import qualified Data.Foldable as Foldable
 
 import Debug.Trace
@@ -775,7 +778,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
                                  [cg]
           (Case e _ cls) -> loop tso e ++ concatMap (loop (tsoCase tso e cls)) (map (maybe Irr id . clExpr) cls)
           (Lam _ _ e1) -> loop tso e1
-          (LLet tb [] e1 e2) ->
+          (LLet tb tel e1 e2) | null tel->
              (loop tso e1) ++ -- type won't get evaluated
              (loop tso e2)
           (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)

@@ -39,6 +39,8 @@ Translation from MiniAgda identifiers to Haskell identifiers
 
 -}
 
+import Prelude hiding (null)
+
 import Data.Char
 
 import Control.Applicative
@@ -60,6 +62,7 @@ import Abstract
 import Extract
 import qualified HsSyntax as H
 import TraceError
+import Util
 
 -- translation monad
 
@@ -101,7 +104,7 @@ translateDecl d =
     OverrideDecl{} -> fail $ "translateDecls internal error: overrides impossible"
     MutualFunDecl _ _ funs -> translateFuns funs
     FunDecl _ fun -> translateFun fun
-    LetDecl _ x [] (Just t) e -> translateLet x t e
+    LetDecl _ x tel (Just t) e | null tel -> translateLet x t e
     DataDecl n _ _ _ tel fkind cs _ -> translateDataDecl n tel fkind cs
 
 translateFuns :: [Fun] -> Translate [H.Decl]
@@ -149,7 +152,7 @@ translateClause n (Clause _ ps (Just rhs)) = do
   return [H.mkClause n ps rhs]
 
 translateTelescope :: FTelescope -> Translate [H.TyVarBind]
-translateTelescope tel = mapM translateTBind tel'
+translateTelescope (Telescope tel) = mapM translateTBind tel'
   -- throw away erasure marks
   where tel' = filter (\ tb -> not $ erased $ decor $ boundDom tb) tel
 
@@ -220,7 +223,7 @@ translateExpr e =
       e <- translateExpr e
       return $ if erased dec then e else H.mkLam y e
 
-    LLet (TBind x dom) [] e1 e2 -> do
+    LLet (TBind x dom) tel e1 e2 | null tel-> do
       x  <- hsVarName x
       e2 <- translateExpr e2
       if erased (decor dom) then return e2 else do
@@ -240,7 +243,7 @@ translatePattern :: Pattern -> Translate H.Pat
 translatePattern p =
   case p of
     VarP y       -> H.PVar <$> hsVarName y
-    PairP p1 p2  -> H.PTuple <$> mapM translatePattern [p1,p2]
+    PairP p1 p2  -> H.PTuple H.Boxed <$> mapM translatePattern [p1,p2]
     ConP pi n ps ->
        H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n))
               <*> mapM translatePattern ps

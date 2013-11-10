@@ -3,6 +3,8 @@
 
 module TypeChecker where
 
+import Prelude hiding (null)
+
 import Control.Applicative hiding (Const) -- ((<$>))
 import Control.Monad
 import Control.Monad.IfElse
@@ -25,7 +27,7 @@ import qualified Text.PrettyPrint as PP
 import Util
 import qualified Util as Util
 
-import Abstract
+import Abstract hiding (Substitute)
 import Polarity as Pol
 import Value
 import TCM
@@ -1581,25 +1583,14 @@ checkSmallType e  = (resurrect $ checkExpr' e $ VSort Set) `throwTrace` ("not a 
 
 -- check telescope and add bindings to contexts
 checkTele :: Telescope -> TypeCheck a -> TypeCheck (ETelescope, a)
-checkTele []                                    k = ([],) <$> k
-checkTele (tb@(TBind x (Domain t _ dec)) : tel) k = do
-  Kinded ki te <- checkType t
-  let tb = TBind x (Domain te (predKind ki) dec)
-  (tel, a) <- addBind tb $ -- (TBind x (Domain t ki dec)) $
-    checkTele tel k
-  return (tb : tel, a)
-{-
--- check telescope and add bindings to contexts
-checkTele :: Telescope -> (ETelescope -> TypeCheck a) -> TypeCheck a
-checkTele = checkTele' []
-
-checkTele' :: ETelescope -> Telescope -> (ETelescope -> TypeCheck a) -> TypeCheck a
-checkTele' acc [] k = k (reverse acc)
-checkTele' acc (tb@(TBind x (Domain t _ dec)) : tel) k = do
-  Kinded ki te <- checkType t
-  addBind (TBind x (Domain t ki dec)) $
-    checkTele' (TBind x (Domain te ki dec) : acc) tel k
- -}
+checkTele (Telescope tel) k = loop tel where
+  loop tel = case tel of
+    []                                  -> (emptyTel,) <$> k
+    tb@(TBind x (Domain t _ dec)) : tel -> do
+      Kinded ki te <- checkType t
+      let tb = TBind x (Domain te (predKind ki) dec)
+      (tel, a) <- addBind tb $ loop tel
+      return (Telescope $ tb : telescope tel, a)
 
 -- the integer argument is the number of the clause, used just for user feedback
 checkCases :: Val -> TVal -> [Clause] -> TypeCheck (Kinded [EClause])
@@ -2452,7 +2443,7 @@ compSubst (Valuation subst1) subst2@(Valuation subst2') =
 
 mkConLType :: Int -> Expr -> (Name, Expr)
 mkConLType npars t =
-  let (sizetb:tel, t0) = typeToTele t
+  let (Telescope (sizetb : tel), t0) = typeToTele t
   in case spineView t0 of
     (d@(Def (DefId DatK _)), args) ->
       let (pars, sizeindex : inds) = splitAt npars args
@@ -2461,7 +2452,7 @@ mkConLType npars t =
           core  = foldl App d args'
           tbi   = TBind i $ sizeDomain irrelevantDec
           tbj   = sizetb { boundDom = belowDomain irrelevantDec Lt (Var i) }
-          tel'  = tbi : tbj : tel
+          tel'  = Telescope $ tbi : tbj : tel
       in (i, teleToType tel' core)
     _ -> error $ "conLType " ++ show npars ++ " (" ++ show t ++ "): illformed constructor type"
 

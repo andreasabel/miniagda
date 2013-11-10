@@ -2,6 +2,8 @@
 -- concrete syntax
 module Concrete where
 
+import Prelude hiding (null)
+
 import Util
 import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
 import qualified Abstract as A
@@ -44,13 +46,14 @@ data Expr
   | Lam Name Expr                   -- ^ @\ x -> e@.
   | Case Expr (Maybe Type) [Clause] -- ^ @case e : A { cls }@.
   | LLet LetDef Expr                -- ^ @let x = e in e'@ local let.
-  | Quant PiSigma Telescope Expr    -- ^ @(x : A) -> B@, @(x : A) & B@.
+  | Quant PiSigma Telescope Expr    -- ^ @(x : A) -> B@, @[x : A] -> B@, @(x : A) & B@.
   | Pair Expr Expr                  -- ^ @e , e'@.
   | Record [([Name],Expr)]          -- ^ @record { x = e, x' y = e' }@.
   | Proj Name                       -- ^ @.x@.
   | Ident QName                     -- ^ @x@ or @D.c@.
   | Unknown                         -- ^ @_@.
   | Sing Expr Expr                  -- ^ @<e : A>@ singleton type.
+--  | EBind TBind Expr                -- ^ @[x : A] B@
   deriving (Eq)
 
 data LetDef = LetDef

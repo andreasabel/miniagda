@@ -148,7 +148,7 @@ Inferring application:
 
 -}
 
-import Data.Char
+import Prelude hiding (pi, null)
 
 import Control.Applicative
 import Control.Monad
@@ -157,6 +157,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
 
+import Data.Char
 import Data.Traversable (Traversable)
 import qualified Data.Traversable as Traversable
 import Data.Map (Map)
@@ -200,7 +201,7 @@ extractDecl d =
     OverrideDecl{} -> fail $ "extractDecls internal error: overrides impossible"
     MutualFunDecl _ co funs -> extractFuns co funs
     FunDecl co fun -> extractFun co fun
-    LetDecl evl x [] (Just t) e -> extractLet evl x t e
+    LetDecl evl x tel (Just t) e | null tel -> extractLet evl x t e
     PatternDecl{}    -> return []
     DataDecl n _ co _ tel ty cs fields -> extractDataDecl n co tel ty cs
 
@@ -247,7 +248,7 @@ extractLet :: Bool -> Name -> Type -> Expr -> TypeCheck [FDeclaration]
 extractLet evl n t e = extractIfTerm n $ do
   TypeSig n t <- extractTypeSig (TypeSig n t)
   e <- extractCheck e =<< whnf' t
-  return [LetDecl evl n [] (Just t) e]
+  return [LetDecl evl n emptyTel (Just t) e]
 
 extractTypeSig :: TypeSig -> TypeCheck FTypeSig
 extractTypeSig (TypeSig n t) = do
@@ -279,7 +280,7 @@ extractConstructor tel0 (Constructor n pars t) = do
   -- compute full extracted constructor type and add to the signature
   t' <- extractType =<< whnf emptyEnv (teleToTypeErase tel t)
   setExtrTypQ n t'
-  let (tel',core) = typeToTele' (length tel) t'
+  let (tel',core) = typeToTele' (size tel) t'
   return $ Constructor n pars core
   -- compute type minus telescope
   -- TypeSig n <$> (extractType =<< whnf' t)
@@ -438,14 +439,14 @@ extractCheck e tv = do
              new' y (defaultDomain VIrr) $
                extractCheck e VIrr
 
-    LLet (TBind x dom0) [] e1 e2 -> do
+    LLet (TBind x dom0) tel e1 e2 | null tel -> do
       let dom = fmap Maybe.fromJust dom0
       if erased (decor dom) then extractCheck e2 tv else do -- discard let
        vdom <- Traversable.mapM whnf' dom         -- MiniAgda type val
        dom  <- Traversable.mapM extractType vdom  -- Fomega type
        vdom <- Traversable.mapM whnf' dom         -- Fomega type val
        e1  <- extractCheck e1 (typ vdom)
-       LLet (TBind x (fmap Just dom)) [] e1 <$> do
+       LLet (TBind x (fmap Just dom)) emptyTel e1 <$> do
          new' x vdom $ extractCheck e2 tv
 
     Pair e1 e2 -> do
@@ -523,16 +524,17 @@ extractSet s =
 
 -- keep irrelevant entries
 extractKindTel :: Telescope -> TypeCheck FTelescope
-extractKindTel [] = return []
-extractKindTel (TBind x dom : tel) = do
-  dom  <- Traversable.mapM whnf' dom
-  dom' <- extractKindDom dom
-  if erased (decor dom') then
-    newIrr x $
-      (TBind x dom' :) <$> extractKindTel tel
-   else newTyVar x (typ dom') $ \ i -> do
-      x <- nameOfGen i
-      (TBind x dom' :) <$> extractKindTel tel
+extractKindTel (Telescope tel) = Telescope <$> loop tel where
+  loop [] = return []
+  loop (TBind x dom : tel) = do
+    dom  <- Traversable.mapM whnf' dom
+    dom' <- extractKindDom dom
+    if erased (decor dom') then
+      newIrr x $
+        (TBind x dom' :) <$> loop tel
+     else newTyVar x (typ dom') $ \ i -> do
+        x <- nameOfGen i
+        (TBind x dom' :) <$> loop tel
 
 {-
 -- keep irrelevant entries
@@ -566,7 +568,7 @@ extractKind tv =
          Just k' -> do
            dom' <- extractKindDom dom
            let x = fresh ""
-           return $ Just $ Quant Pi (TBind x dom') k'
+           return $ Just $ pi (TBind x dom') k'
     _ -> return Nothing
 
 -- extracting a type constructor from a value ------------------------
@@ -587,16 +589,18 @@ newTyVar x k cont = newWithGen x (defaultDomain (VClos emptyEnv k)) $
   \ i _ -> cont i                  -- store kinds unevaluated
 
 addFKindTel :: FTelescope -> TypeCheck a -> TypeCheck a
-addFKindTel [] cont = cont
-addFKindTel (TBind x dom : tel) cont = newTyVar x (typ dom) $ const $
-  addFKindTel tel cont
+addFKindTel (Telescope tel) = loop tel where
+  loop []                  cont = cont
+  loop (TBind x dom : tel) cont = newTyVar x (typ dom) $ \ _ ->
+    loop tel cont
 
 extractTeleVal :: TeleVal -> TypeCheck FTelescope
-extractTeleVal [] = return []
-extractTeleVal (tb : vtel) = do
-  tb <- Traversable.mapM extractType tb
-  addBind tb $ do
-    (tb :) <$> extractTeleVal vtel
+extractTeleVal = Telescope <.> loop where
+  loop []          = return []
+  loop (tb : vtel) = do
+    tb <- Traversable.mapM extractType tb
+    addBind tb $ do
+      (tb :) <$> loop vtel
 
 extractType :: TVal -> TypeCheck FType
 extractType = extractTypeAt star
@@ -609,13 +613,13 @@ extractTypeAt k tv = do
     (VGuard beta vb, _) -> extractTypeAt k vb
 
     -- relevant function space / sigma type --> non-dependent
-    (VQuant piSig x dom fv, _) | not (erased (decor dom)) -> do
+    (VQuant pisig x dom fv, _) | not (erased (decor dom)) -> do
       a <- extractType (typ dom)
       -- new' x dom $ do
       bv <- app fv VIrr
       b  <- extractType bv
       let x = fresh ""
-      return $ Quant piSig (TBind x (defaultDomain a)) b
+      return $ piSig pisig (TBind x (defaultDomain a)) b
 
     -- irrelevant function space --> forall or erasure marker
     (VQuant Pi x dom fv, _) | erased (decor dom) -> do
@@ -625,13 +629,13 @@ extractTypeAt k tv = do
           bv <- app fv VIrr
           b  <- extractType bv
           let x = fresh ""
-          return $ Quant Pi (TBind x (defaultIrrDom Irr)) b
+          return $ pi (TBind x (defaultIrrDom Irr)) b
         Just k' -> do
           newTyVar x k' $ \ i -> do
             bv <- app fv $ VGen i
             b  <- extractType bv
             x  <- nameOfGen i
-            return $ Quant Pi (TBind x (defaultIrrDom k')) b
+            return $ pi (TBind x (defaultIrrDom k')) b
 
     (VApp (VDef (DefId DatK n)) vs, _) -> do
       k  <- extrTyp <$> lookupSymbQ n  -- get kind of dname from signature

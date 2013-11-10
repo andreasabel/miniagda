@@ -3,10 +3,12 @@
 
 module Util where
 
-import Prelude hiding (showList)
+import Prelude hiding (showList, null)
 
 import Control.Applicative hiding (empty)
 import Control.Monad.Writer (Writer, runWriter, All, getAll)
+
+import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Debug.Trace
@@ -58,6 +60,12 @@ fromAllWriter m = let (a, w) = runWriter m
 
 traceM :: (Monad m) => String -> m ()
 traceM msg = trace msg $ return ()
+
+infixr 9 <.>
+
+-- | Composition: pure function after monadic function.
+(<.>) :: Functor m => (b -> c) -> (a -> m b) -> a -> m c
+(f <.> g) a = f <$> g a
 
 liftMaybe :: (Monad m) => Maybe a -> m a
 liftMaybe = maybe (fail "Util.liftMaybe: unexpected Nothing") return
@@ -183,11 +191,6 @@ mapAssocM f = mapM (\ (n, a) -> (n,) <$> f a)
 compAssoc :: Eq b => [(a,b)] -> [(b,c)] -> [(a,c)]
 compAssoc xs ys = [ (a,c) | (a,b) <- xs, (b',c) <- ys, b == b' ]
 
-{- this is Traversable.mapM
-fmapM :: (Functor f) => (a -> m b) -> f a -> m (f b)
-fmapM = Traversable.traverse
--}
-
 -- * Lists and stacks of lists
 
 class Push a b where
@@ -214,3 +217,15 @@ instance Retrieve a [[(a,b)]] b where
 
 -- instance Retrieve a b c => Retrieve a [b] c where
 --   retrieve a = firstJust . map (retrieve a)
+
+class Size a where
+  size :: a -> Int
+
+instance Size [a] where
+  size = length
+
+class Null a where
+  null :: a -> Bool
+
+instance Null [a] where
+  null = List.null
