@@ -24,5 +24,5 @@ delta
                    { InvI.inv X p -> X (I cantor) -> Empty
                    }
 /// case 1
-/// dot pattern cantor
+/// dot pattern Just cantor
 /// not instantiated

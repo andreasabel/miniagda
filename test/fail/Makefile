@@ -16,6 +16,9 @@
 
 mugda=../../Main
 
+# Enable read -n
+SHELL=bash
+
 # Getting all agda files
 allagda=$(shell find . -name '*.ma')
 allstems=$(patsubst %.ma,%,$(allagda))

@@ -26,5 +26,5 @@ delta
                { inv .cantor refl -> \ f -> f f
                } : invertible (I cantor) .Inverse (I cantor) -> Empty
 /// case 1
-/// dot pattern cantor
+/// dot pattern Just cantor
 /// not instantiated

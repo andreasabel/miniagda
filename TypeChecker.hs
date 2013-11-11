@@ -38,7 +38,7 @@ import Extract
 import PrettyTCM
 import TraceError
 
-import Warshall -- size constraint checking
+import Warshall hiding (Flex) -- size constraint checking
 
 import Termination
 
@@ -1691,9 +1691,12 @@ lookupSub i = lookup i . valuation
 type DotFlex = (Int,(Expr,Domain))
 
 -- left over goals
-data Goal = DotFlex Int Expr Domain
-          | MaxMatches Int TVal
-          | DottedCons Dotted Pattern TVal
+data Goal
+    = DotFlex Int (Maybe Expr) Domain
+      -- ^ @Just@ : Flexible variable from inaccessible pattern.
+      -- ^ @Nothing@ : Flexible variable from hidden function type.
+    | MaxMatches Int TVal
+    | DottedCons Dotted Pattern TVal
   deriving Show
 
 -- checkPatterns is initially called with an empty local context
@@ -1761,6 +1764,13 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
                   return (flex, ins, cxt, tv, p, VProj proj, False)
 -}
         _ -> failDoc (text "cannot eliminate type" <+> prettyTCM tv <+> text "with a non-projection pattern")
+
+    -- intersection type
+    VQuant Pi x dom@(Domain av ki Hidden) fv -> do
+      -- introduce new flexible variable
+      newWithGen x dom $ \ i xv -> do
+        tv <- fv `app` xv
+        checkPattern dec0 (DotFlex i Nothing dom : flex) ins tv p
 
     -- function type can be eliminated
     VQuant Pi x (Domain av ki dec) fv -> do
@@ -2004,7 +2014,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
             newWithGen xp domEr $ \ k xv -> do
                        cxt' <- ask
                        -- traceCheck ("Returning type " ++ show vb) $
-                       return (DotFlex k e domEr : flex
+                       return (DotFlex k (Just e) domEr : flex
                               ,ins
                               ,cxt'
                               ,maybeErase $ DotP e -- $ Var xp -- DotP $ Meta k -- e -- Meta k
@@ -2149,10 +2159,10 @@ checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
 -- checkDot does not need to extract
 -- 2012-01-25 now we do since "extraction" turns also con.terms into records
 checkGoal :: Substitution -> Goal -> TypeCheck ()
-checkGoal subst (DotFlex i e it) = enter ("dot pattern " ++ show e) $
+checkGoal subst (DotFlex i me it) = enter ("dot pattern " ++ show me) $
   case lookupSub i subst of
     Nothing -> recoverFail $ "not instantiated"
-    Just v -> do
+    Just v -> whenJust me $ \ e -> do
       tv <- substitute subst (typ it)
       ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv)
 --      applyDec (decor it) $ do
