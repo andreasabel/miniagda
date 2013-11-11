@@ -33,7 +33,7 @@ import Value
 import TCM
 import Eval
 import Extract
-import SPos (nocc)
+-- import SPos (nocc) -- RETIRED
 -- import CallStack
 import PrettyTCM
 import TraceError
@@ -2227,6 +2227,15 @@ instWh pos flex tv w1 w2 = do
   v2 <- whnfClos w2
   inst pos flex tv v1 v2
 
+-- | Check occurrence and return singleton substitution.
+assignFlex :: Int -> Val -> TypeCheck Substitution
+assignFlex k v = do
+  unlessM (nocc [k] v) $
+    failDoc $
+      text "variable " <+> prettyTCM (VGen k) <+>
+      text " may not occur in " <+> prettyTCM v
+  return $ sgSub k v
+
 -- match v1 against v2 by unification , yielding a substition
 inst :: Pol -> [Int] -> TVal -> Val -> Val -> TypeCheck Substitution
 inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (context cxt) ++ " |-") <+> prettyTCM v1 <+> text ("?<=" ++ show pos) <+> prettyTCM v2 <+> colon <+> prettyTCM tv) $ do
@@ -2234,18 +2243,8 @@ inst pos flex tv v1 v2 = ask >>= \ cxt -> enterDoc (text ("inst " ++ show (conte
 --    (VPi dec x av env b) ->
   case (v1,v2) of
     (VGen k, VGen j) | k == j -> return emptySub
-    (VGen k,_) | elem k flex -> do
-                       l <- getLen
-                       noc <- nocc l v1 v2
-                       case noc of
-                         True -> return $ sgSub k v2
-                         False -> throwErrorMsg "occurs check failed"
-    (_,VGen k) | elem k flex -> do
-                   l <- getLen
-                   noc <- nocc l v2 v1
-                   case noc of
-                         True -> return $ sgSub k v1
-                         False -> throwErrorMsg "occurs check failed"
+    (VGen k, _) | elem k flex -> assignFlex k v2
+    (_, VGen k) | elem k flex -> assignFlex k v1
 
     -- injectivity of data type constructors is unsound in general
     (VApp (VDef (DefId DatK d1)) vl1,
@@ -2527,13 +2526,17 @@ szSizeVarDataArgs n p i tv = enterDoc (text "sizeVarDataArgs" <+> prettyTCM (VGe
 
      {- case D pars sizeArg args -}
      VApp (VDef (DefId DatK (QName m))) vl | n == m -> do
-        v0 <- whnfClos $ vl !! p
+        let (pars, v0 : idxs) = splitAt p vl
+        v0 <- whnfClos v0
         case v0 of
-          (VGen i') | i' == i  -> do
-              let rargs = take p vl ++ drop (p+1) vl
-              k <- getLen
-              mapM_ (\ v -> (nocc k (VGen i) v) >>= boolToErrorDoc (text "variable" <+> prettyTCM (VGen i) <+> text "may not occur in" <+> prettyTCM v)) rargs
-          _ -> failDoc (text "wrong size index" <+> prettyTCM v0 <+> text "at recursive occurrence" <+> prettyTCM tv)
+          VGen i' | i' == i -> do
+            forM_ (pars ++ idxs) $ \ v -> nocc [i] v >>= do
+              boolToErrorDoc $
+                text "variable" <+> prettyTCM (VGen i) <+>
+                text "may not occur in" <+> prettyTCM v
+          _ -> failDoc $
+                text "wrong size index" <+> prettyTCM v0 <+>
+                text "at recursive occurrence" <+> prettyTCM tv
 
 -- not necessary: check for monotonicity above
 --     {- case D' pars sizeArg args -}

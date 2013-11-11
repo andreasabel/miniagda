@@ -58,7 +58,6 @@ executable miniagda
                     ScopeChecker
                     Semiring
                     SparseMatrix
-                    SPos
                     TCM
                     Termination
                     ToHaskell

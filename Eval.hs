@@ -19,9 +19,11 @@ import Control.Monad.IfElse  -- unlessM
 
 import qualified Data.Array as Array
 import Data.Maybe -- fromMaybe
+import Data.Monoid hiding ((<>))
 import Data.List as List hiding (null) -- find
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Foldable (foldMap)
 import Data.Traversable (Traversable, mapM, traverse)
 import qualified Data.Traversable as Traversable
 
@@ -48,13 +50,13 @@ traceEtaM msg = traceM msg
 traceRecord msg a = a
 traceRecordM msg = return ()
 
-{-
+
 traceMatch msg a = a -- trace msg a
 traceMatchM msg = return () -- traceM msg
--}
+{-
 traceMatch msg a = trace msg a
 traceMatchM msg = traceM msg
-
+-}
 
 traceLoop msg a = a -- trace msg a
 traceLoopM msg = return () -- traceM msg
@@ -1266,6 +1268,81 @@ expandDefPat p@(ConP pi c ps) | coPat pi == DefPat = do
   let pat' = if dottedPat pi then dotConstructors pat else pat
   return $ patSubst (zip ns ps) pat'
 expandDefPat p = return p
+
+---------------------------------------------------------------------------
+-- * Unification
+---------------------------------------------------------------------------
+
+instance Monoid (TypeCheck Bool) where
+  mempty  = return True
+  mappend = andLazy
+  mconcat = andM
+
+-- | Occurrence check @nocc ks v@ (used by 'SPos' and 'TypeCheck').
+--   Checks that generic values @ks@ does not occur in value @v@.
+--   In the process, @tv@ is normalized.
+class Nocc a where
+  nocc :: [Int] -> a -> TypeCheck Bool
+
+instance Nocc a => Nocc [a] where
+  nocc = foldMap . nocc
+
+instance Nocc a => Nocc (Dom a) where
+  nocc = foldMap . nocc
+
+instance Nocc a => Nocc (Measure a) where
+  nocc = foldMap . nocc
+
+instance Nocc a => Nocc (Bound a) where
+  nocc = foldMap . nocc
+
+instance (Nocc a, Nocc b) => Nocc (a,b) where
+  nocc ks (a, b) = nocc ks a `andLazy` nocc ks b
+
+instance Nocc a => Nocc (Sort a) where
+  nocc ks (Set   v) = nocc ks v
+  nocc ks (CoSet v) = nocc ks v
+  nocc ks (SortC _) = mempty
+
+instance Nocc Val where
+  nocc ks v = do
+    -- traceM ("nocc " ++ show v)
+    v <- whnfClos v
+    case v of
+      -- neutrals
+      VGen k                -> return $ not $ k `elem` ks
+      VApp v1 vl            -> nocc ks $ v1 : vl
+      VDef{}                -> mempty
+      VProj{}               -> mempty
+      -- Binders:
+      -- ALT: do not evaluate under binders (just check environment).
+      -- This is less precise but more efficient. Can give false alarms.
+      -- Still sound. (Should maybe done first, like in Agda).
+      VQuant pisig x dom fv -> nocc ks dom `mappend` do
+                               underAbs  x dom  fv $ \ _i _xv bv -> nocc ks bv
+      fv@(VLam x env b)     -> underAbs' x      fv $ \ _xv bv -> nocc ks bv
+      fv@(VAbs x i u valu)  -> underAbs' x      fv $ \ _xv bv -> nocc ks bv
+      fv@(VConst v)         -> underAbs' noName fv $ \ _xv bv -> nocc ks bv
+      -- pairs
+      VRecord _ rs          -> nocc ks $ map snd rs
+      VPair v w             -> nocc ks (v, w)
+      -- sizes
+      VZero                 -> mempty
+      VSucc v               -> nocc ks v
+      VInfty                -> mempty
+      VMax vl               -> nocc ks vl
+      VPlus vl              -> nocc ks vl
+      VSort s               -> nocc ks s
+      VMeasured mu tv       -> nocc ks (mu, tv)
+      VGuard beta tv        -> nocc ks (beta, tv)
+      VBelow ltle v         -> nocc ks v
+      VSing v tv            -> nocc ks (v, tv)
+      VUp v tv              -> nocc ks (v, tv)
+      VIrr                  -> mempty
+      VCase v tv env cls    -> nocc ks $ v : tv : map snd (envMap env)
+      -- impossible: closure (reduced away)
+      VClos{}               -> fail $ "internal error: nocc " ++ show (ks,v)
+
 
 -- heterogeneous typed equality and subtyping ------------------------
 
