@@ -218,6 +218,13 @@ instance Retrieve a [[(a,b)]] b where
 -- instance Retrieve a b c => Retrieve a [b] c where
 --   retrieve a = firstJust . map (retrieve a)
 
+{-
+class ListLike a where
+  length :: a -> Int
+  null   :: a -> Bool
+  nil    :: a
+-}
+
 class Size a where
   size :: a -> Int
 
