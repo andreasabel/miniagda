@@ -18,26 +18,26 @@ import qualified Data.List as List
    |   |
    +   -    positive/negative function (types only)
     \ /
-     ^      parametric function (lambda cube), default for types 
+     ^      parametric function (lambda cube), default for types
      |
      *      recursive function (pattern matching), default for terms
 
 
- Composition (AC)     
-                      
-  . p = .             
-  * p = *  (p not .)  
+ Composition (AC)
+
+  . p = .
+  * p = *  (p not .)
   ^ p = ^  (p not .,*)
- ++ p = p             
-  + p = p  (p not ++) 
-  - - = +             
+ ++ p = p
+  + p = p  (p not ++)
+  - - = +
 
 Equality/subtyping <=p
 
   x <=. y  iff  true
   x <=- y  iff  x >= y
   x <=^ y  iff  x == y
-  x <=* y  iff  x == y 
+  x <=* y  iff  x == y
  -}
 
 -- polarities and strict positivity ----------------------------------
@@ -48,14 +48,15 @@ class Polarity pol where
   neutral   :: pol                 -- ^ neutral for compose.
   promote   :: pol -> pol
   demote    :: pol -> pol
+  hidden    :: pol                 -- ^ corresponding to hidden quantification
 
 type PVarId = Int
 
-data Pol 
+data Pol
   = Const -- non-occurring, irrelevant
-  | SPos  -- strictly positive 
+  | SPos  -- strictly positive
   | Pos   -- positive
-  | Neg   -- negative, used internally for contravariance of sized codata  
+  | Neg   -- negative, used internally for contravariance of sized codata
   | Param -- parametric (lambda) function
   | Rec   -- recursive (takes decision)
   | Default     -- no polarity given (for parsing)
@@ -74,6 +75,7 @@ instance Polarity Pol where
   neutral = SPos
   promote = invComp Const
   demote  = invComp Rec
+  hidden  = Const
 
 instance Show Pol where
   show Const = "."
@@ -98,7 +100,7 @@ leqPol Rec y    = True   -- Rec is bottom
 leqPol x Rec    = False
 leqPol Param y  = True   -- Param is second bottom
 leqPol x Param  = False
-leqPol Pos SPos = True 
+leqPol Pos SPos = True
 leqPol x   y    = x == y
 
 {- RETIRED
@@ -116,7 +118,7 @@ isPos x = isSPos x
 
 -- polarity negation
 -- used in Eval.hs leqVals' for switching sides
--- this means it is only applied to Pos, Neg, Param, 
+-- this means it is only applied to Pos, Neg, Param,
 -- never to SPos, Const, or polarity expressions
 polNeg :: Pol -> Pol
 polNeg Const  = Const
@@ -147,13 +149,13 @@ polComp Neg Neg   = Pos    -- order 2
    only if q = ++ (then it is trivial anyway) -}
 
 -- polarity inverse composition (see Abel, MSCS 2008)
--- invComp p q1 <= q2  <==> q1 <= polComp p q2 
+-- invComp p q1 <= q2  <==> q1 <= polComp p q2
 -- used in TCM.hs cxtApplyDec
 invComp :: Pol -> Pol -> Pol
 invComp Rec   Rec   = Rec       -- in rec. arg. keep only rec. vars
 invComp Rec   x     = Const     -- all others are declared unusable
 invComp Param Param = Param     -- in parametric mixed arg, keep only mixed vars
-invComp Param x     = Const  
+invComp Param x     = Const
 invComp Const x     = Param     -- a constant function can take any argument
 invComp SPos  x     = x         -- SPos is the identity
 invComp p     SPos  = Const     -- SPos preserved only under SPos
@@ -163,7 +165,7 @@ invComp Neg   x     = polNeg x  -- x not SPos
 {- UNUSED
 invCompExpr :: Pol -> PExpr -> PExpr
 invCompExpr q (PValue p)   = PValue $ invComp q p
-invCompExpr q (PExpr q' i) = PExpr (polComp q q') i 
+invCompExpr q (PExpr q' i) = PExpr (polComp q q') i
 -}
 
 -- polarity conjuction (infimum)
@@ -223,15 +225,15 @@ addMultiplicity PTwo y = y
 addMultiplicity x PTwo = x
 addMultiplicity POne POne = PTwo
 
-type VarMults = Map PVarId Multiplicity -- multiplicity of variables (1 or 2) 
+type VarMults = Map PVarId Multiplicity -- multiplicity of variables (1 or 2)
 
 showMults :: VarMults -> String
-showMults mults = 
+showMults mults =
   let ml = Map.toList mults  -- get list of (key,value) pairs
       l  = concat $ map f ml where
              f (k, POne) = [k]
              f (k, PTwo) = [k,k]
-  in Util.showList "." showPVar l    
+  in Util.showList "." showPVar l
 
 multsEmpty = Map.empty
 
@@ -239,17 +241,18 @@ multsSingle :: Int -> VarMults
 multsSingle i = Map.insert i POne multsEmpty
 
 
-data PProd = PProd 
+data PProd = PProd
   { coeff    :: Pol      -- a coefficient, excluding PVar
-  , varMults :: VarMults -- multiplicity of variables (1 or 2) 
+  , varMults :: VarMults -- multiplicity of variables (1 or 2)
   } deriving (Eq,Ord)
 
 instance Polarity PProd where
-  erased  = erased . coeff 
+  erased  = erased . coeff
   compose = polProd
   neutral = PProd SPos multsEmpty
   demote  = undefined
   promote = undefined
+  hidden  = PProd hidden multsEmpty
 
 instance Show PProd where
   show (PProd Const _) = show Const
@@ -297,7 +300,7 @@ polProduct :: PPoly -> PPoly -> PPoly
 polProduct (PPoly l1) (PPoly l2) =
   let ps = [ polProd x y | x <- l1, y <- l2]
   in PPoly $ List.nub $ ps
- 
+
 instance SemiRing PPoly where
   oplus  = polSum
   otimes = polProduct
@@ -305,14 +308,14 @@ instance SemiRing PPoly where
   oone   = PPoly [PProd SPos Map.empty]
 
 {-
-data PExpr 
+data PExpr
   = PValue Pol     -- constant polarity
   | PExpr Pol Int  -- PExpr q pi means q^_1 pi  (pi is the number of the var)
 
 -- a polarity variable
 pvar :: Int -> PExpr
 pvar = PExpr SPos  -- ++ is the neutral element of inverse polarity composition
-  
+
 instance Show PExpr where
   show (PValue p) = show p
   show (PExpr SPos i) = "?p" ++ show i
@@ -373,7 +376,7 @@ What kind of constraints do arise
    this means ++ <= pi for all pi in pis
 
 Solving constraints
- 
+
 - discard  o <= pi  and q <= /  (do not even need to add them)
 - all pvars which are not bounded below (appearing in one q in 1)
   can be instantiated to /  which will remove some constraints
@@ -381,7 +384,7 @@ Solving constraints
 
 -}
 
-{- Mutual recursion 
+{- Mutual recursion
 
 In mutual declarations, use the following Ansatz:  data/codata ++, functions o
 
@@ -393,12 +396,12 @@ A (B) is positive in its own body and negative in the body of B (A)
   F A B = B -> A   F(-,++)
   G A B = A -> B   G(-,++)
 
-  F A B = G A B -> F A B  
+  F A B = G A B -> F A B
   G A B = F A B -> G A B
 
-  Polarities: 
+  Polarities:
   F : fa * -> fb * -> *
-  G : ga * -> gb * -> *  
+  G : ga * -> gb * -> *
 
   A : -fa, B : -fb |- G A B : *  ==> -fa <= ga, -fb <= gb
   A : -ga, B : -gb |- F A B : *  ==> -ga <= fa, -gb <= fb

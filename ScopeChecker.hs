@@ -24,7 +24,7 @@ import Debug.Trace
 
 import Polarity(Pol(..))
 import qualified Polarity as A
-import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity)
+import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity,polarity,LensPol(..))
 import qualified Abstract as A
 import qualified Concrete as C
 
@@ -293,13 +293,14 @@ insertingPolVars b = local (\ sccxt -> sccxt { insertPolVars = b })
 
 -- | Insert polarity variables for omitted polarities.
 generalizeDec :: A.Dec -> ScopeCheck A.Dec
-generalizeDec dec =
+generalizeDec dec@A.Hidden = return dec
+generalizeDec dec@A.Dec{}  =
   if (polarity dec == Default) then do
     p0 <- asks defaultPolarity
     case p0 of
       PVar{} -> nextPVar $ \ i ->
-                  return $ dec { polarity = PVar i }
-      _      -> return $ dec { polarity = p0 }
+                  return $ setPol (PVar i) dec
+      _      -> return $ setPol p0 dec
    else return dec
 
 generalizeTBind :: C.TBind -> ScopeCheck C.TBind
@@ -780,7 +781,7 @@ scopeCheckConstructor ctel atel co t0 a@(C.Constructor n tel mt) = addTel ctel a
   where isTelPar (c,_) (C.Ident (C.QName x)) = c == x
         isTelPar _     _                     = False
         defaultToParam dec = case (A.polarity dec) of
-          A.Default -> return $ dec { A.polarity = A.Param }
+          A.Default -> return $ setPol A.Param dec
           A.Param   -> return dec
           A.Const   -> return dec
           A.PVar{}  -> return dec

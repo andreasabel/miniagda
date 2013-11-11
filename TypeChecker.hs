@@ -267,7 +267,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
              Quant Pi (TBind x (Domain domt ki dec)) b | isSize domt ->
                case (polarity dec) of
                  -- insert correct polarity annotation if none was there
-                 pol | pol `elem` [Param,Rec] -> return $ Quant Pi (TBind x $ Domain tSize kSize $ dec { polarity = polsz }) b
+                 pol | pol `elem` [Param,Rec] -> return $ Quant Pi (TBind x $ Domain tSize kSize $ setPol polsz dec) b
                  pol | pol == polsz -> return t0
                  pol -> fail $ "sized type " ++ show n ++ " has wrong polarity annotation " ++ show pol ++ " at Size argument, it should be " ++ show polsz
              t0 -> return t0

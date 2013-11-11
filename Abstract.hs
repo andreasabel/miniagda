@@ -172,9 +172,13 @@ instance Show LtLe where
 -- 2. hidden
 
 data Decoration pos
-    = Dec { polarity :: pos }
+    = Dec { thePolarity :: pos }
     | Hidden
   deriving (Eq, Ord, Functor, Foldable, Traversable, Show)
+
+polarity :: Polarity pol => Decoration pol -> pol
+polarity Hidden    = hidden
+polarity (Dec pol) = pol
 
 instance Polarity a => Polarity (Decoration a) where
   erased        = erased . polarity
@@ -182,6 +186,7 @@ instance Polarity a => Polarity (Decoration a) where
   neutral       = Dec neutral
   promote       = Dec . promote . polarity
   demote        = Dec . demote . polarity
+  hidden        = Hidden
 
 type Dec = Decoration Pol
 type UDec = Decoration PProd
@@ -195,27 +200,29 @@ class LensPol a where
 
 instance LensPol Dec where
   getPol = polarity
-  setPol p dec = dec { polarity = p }
+  setPol p Hidden = Hidden
+  setPol p dec    = dec { thePolarity = p }
 
 udec :: Dec -> UDec
 udec = fmap pprod
 
-irrelevantDec = Dec { polarity = Pol.Const }
-paramDec = Dec { polarity = Param }
-defaultDec = Dec { polarity = defaultPol }
+irrelevantDec = Dec Pol.Const
+paramDec = Dec Param
+defaultDec = Dec defaultPol
 -- defaultDec = paramDec -- TODO: Dec { polarity = Rec }
-defaultUpperDec = Dec { polarity = pprod SPos }
+defaultUpperDec = Dec $ pprod SPos
   -- a variable may not be erased and its polarity must be below SPos
 -- notErased = Dec False
 -- resurrectDec d = d { erased = False }
 
 -- | Composing with 'neutralDec' should do nothing.
-neutralDec = Dec { polarity = SPos }
+neutralDec = Dec SPos
 
 coDomainDec :: Dec -> Dec
+coDomainDec Hidden = Dec Param -- REDUNDANT
 coDomainDec dec
-    | polarity dec == Pol.Const = dec { polarity = Param }
-    | otherwise                 = dec { polarity = Rec   }
+    | polarity dec == Pol.Const = Dec Param
+    | otherwise                 = Dec Rec
 
 -- compDec dec dec'
 -- composition of decoration, used when type checking arguments

@@ -5,7 +5,7 @@ module Concrete where
 import Prelude hiding (null)
 
 import Util
-import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..))
+import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..),polarity)
 import qualified Abstract as A
 import Polarity
 

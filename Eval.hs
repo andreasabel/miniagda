@@ -1737,7 +1737,7 @@ leqVals' f q tv12 vl1 vl2 = do
 
     (w1:vs1, w2:vs2, ShQuant Pi x12 dom12 fv12) -> do
       let p = oneOrTwo id polAnd (fmap (polarity . decor) dom12)
-      let dec = Dec { polarity = p } -- WAS: , erased = erased $ decor $ first12 dom12 }
+      let dec = Dec p -- WAS: , erased = erased $ decor $ first12 dom12 }
       v1 <- whnfClos w1
       v2 <- whnfClos w2
       tv12 <- do
