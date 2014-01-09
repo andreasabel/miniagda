@@ -1,0 +1,88 @@
+name:            MiniAgda
+version:         0.2014.1.9
+build-type:      Simple
+cabal-version:   >= 1.8 
+license:         OtherLicense
+license-file:    LICENSE
+author:          Andreas Abel and Karl Mehltretter
+maintainer:      Andreas Abel <andreas.abel@ifi.lmu.de>
+homepage:        http://www.tcs.ifi.lmu.de/~abel/miniagda/
+bug-reports:     http://hub.darcs.net/abel/miniagda/issues
+category:        Dependent types
+synopsis:        A toy dependently typed programming language with type-based termination.
+description:
+  MiniAgda is a tiny dependently-typed programming language in the style
+  of Agda. It serves as a laboratory to test potential additions to the
+  language and type system of Agda. MiniAgda's termination checker is a
+  fusion of sized types and size-change termination and supports
+  coinduction. Equality incorporates eta-expansion at record and
+  singleton types. Function arguments can be declared as static; such
+  arguments are discarded during equality checking and compilation.
+
+  Recent features include bounded size quantification and destructor
+  patterns for a more general handling of coinduction. 
+
+tested-with:        GHC == 7.6.3
+
+extra-source-files: Makefile
+
+data-files:         test/succeed/Makefile
+                    test/succeed/*.ma
+                    test/fail/Makefile
+                    test/fail/*.ma
+                    test/fail/*.err
+                    test/fail/adm/*.ma
+                    test/fail/adm/*.err
+                    lib/*.ma
+source-repository head
+  type:     darcs
+  location: http://hub.darcs.net/abel/miniagda
+
+executable miniagda
+  hs-source-dirs:   .
+  build-depends:    array >= 0.3 && < 0.5,
+                    base >= 4.2 && < 4.7,
+                    containers >= 0.3 && < 0.6,
+                    haskell-src-exts >= 1.14 && < 1.15,
+                    -- mtl-2.1 contains a severe bug
+                    mtl >= 2.0 && < 2.1 || >= 2.1.1 && < 2.2,
+                    pretty >= 1.0 && < 1.2,
+--                    utility-ht >= 0.0.1 && < 1.0,
+                    IfElse >= 0.85 && < 2.0
+  build-tools:      happy >= 1.15 && < 2,
+                    alex >= 3.0 && < 4
+  extensions:       CPP
+                    MultiParamTypeClasses
+                    TypeSynonymInstances
+                    FlexibleInstances
+                    FlexibleContexts
+                    GeneralizedNewtypeDeriving
+                    NoMonomorphismRestriction
+                    PatternGuards
+                    TupleSections
+                    NamedFieldPuns
+  main-is:          Main.hs
+  other-modules:    Abstract
+                    Collection
+                    Concrete
+                    Eval
+                    Extract
+                    HsSyntax
+                    Lexer
+                    Main
+                    Parser
+                    Polarity
+                    PrettyTCM
+                    ScopeChecker
+                    Semiring
+                    SparseMatrix
+                    TCM
+                    Termination
+                    ToHaskell
+                    Tokens
+                    TraceError
+                    TreeShapedOrder
+                    TypeChecker
+                    Util
+                    Value
+                    Warshall
