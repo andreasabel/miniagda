@@ -173,6 +173,7 @@ data TCContext = TCContext
   , funsTemplate :: Map Name (Kinded Fun) -- types of mutual funs with measures checking body
   , mutualFuns :: Map Name SigDef -- types of mutual funs while checking body
   , mutualCo :: Co                -- mutual block (co)recursive ?
+  , mutualNames :: [Name] -- ^ The defined names of the current mutual block (and parents).
   , checkingMutualName :: Maybe DefId -- which body of a mutual block am I checking?
   , callStack :: [QName] -- ^ Used to avoid looping when going into recursive data definitions.
   }
@@ -196,6 +197,7 @@ emptyContext = TCContext
   , funsTemplate = Map.empty
   , mutualFuns = Map.empty
   , mutualCo = Ind
+  , mutualNames = []
   , checkingMutualName = Nothing
   , callStack = []
   }

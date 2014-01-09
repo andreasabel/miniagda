@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TupleSections, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE TupleSections, NoMonomorphismRestriction,
+      FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 
 module Util where
 
@@ -181,6 +182,8 @@ firstJustM (mm : mms) = do
 
 mapOver :: (Functor f) => f a -> (a -> b) -> f b
 mapOver = flip fmap
+
+for = mapOver
 
 mapAssoc :: (a -> b) -> [(n,a)] -> [(n,b)]
 mapAssoc f = map (\ (n, a) -> (n, f a))

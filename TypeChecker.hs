@@ -202,9 +202,12 @@ typeCheckDeclaration (MutualDecl measured ds) = do
   -- first check type signatures
   -- we add the typings into the context, not the signature
   ktss <- typeCheckMutualSigs ds
+  -- register the mutually defined names
+  let ns = for ktss $ \ (Kinded _ (TypeSig n _)) -> n
+      addMutualNames = local $ \ e -> e { mutualNames = ns ++ mutualNames e }
   -- then check bodies
   -- we need to construct a positivity graph
-  edss <- addKindedTypeSigs ktss $
+  edss <- addKindedTypeSigs ktss $ addMutualNames $
     zipWithM (typeCheckMutualBody measured) (map (predKind . kindOf) ktss) ds
   -- check and reset positivity graph
   checkPositivityGraph
@@ -488,8 +491,10 @@ typeCheckConstructor d dt sz co pos dtel (Constructor n mctel t) = enter ("const
      for recursive occurrence.
   recOccs <- sposConstructor d 0 pos vt -- get recursive occurrences
   -}
-  let recOccs = map (\ tb -> d `elem` usedDefs (boundType tb)) argts
-  let isRec = foldl (||) False recOccs
+  mutualNames <- asks mutualNames
+  let mutOcc tb = not $ null $ List.intersect (d:mutualNames) $ usedDefs $ boundType tb
+      recOccs   = map mutOcc argts
+      isRec     = or recOccs
   -- fType <- extractType vt -- moved to Extract
   let fType = undefinedFType n
   isSz <- if sz /= Sized then return Nothing else do
