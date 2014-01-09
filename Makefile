@@ -1,7 +1,6 @@
 # Makefile for miniagda
 
-files=Main Lexer Parser Polarity Abstract ScopeChecker TypeChecker Value TCM Eval Termination SPos Concrete Warshall Util TreeShapedOrder TraceError Extract HsSyntax ToHaskell PrettyTCM Semiring SparseMatrix
-# RETIRED: Completness
+files=Abstract Collection Concrete Eval Extract HsSyntax Lexer Main Parser Polarity PrettyTCM ScopeChecker Semiring SparseMatrix TCM Termination ToHaskell Tokens TraceError TreeShapedOrder TypeChecker Util Value Warshall
 hsfiles=$(foreach file,$(files),$(file).hs)
 ghcflags=-ignore-package monads-fd -rtsopts
 # -fglasgow-exts 
