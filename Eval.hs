@@ -335,7 +335,7 @@ reify' m v0 = do
                              then force v0 >>= reify' (fst m - 1, True) -- forgotten the meaning of the boolean, WAS: False)
                              else let m' = (fst m, True) in
                                liftM2 (foldl App) (reify' m' v) (mapM (reify' m') vl)
-    (VCase v tv rho cls)    -> do
+    (VCase v tv rho cls) -> do
           e <- reify v
           t <- reify tv
           return $ Case e (Just t) cls -- TODO: properly evaluate clauses!!
