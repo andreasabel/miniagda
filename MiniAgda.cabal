@@ -22,7 +22,8 @@ description:
   Recent features include bounded size quantification and destructor
   patterns for a more general handling of coinduction. 
 
-tested-with:        GHC == 7.6.3
+tested-with:        GHC == 7.6.3,
+                    GHC == 7.8.2
 
 extra-source-files: Makefile
 
