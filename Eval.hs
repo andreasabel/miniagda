@@ -27,7 +27,7 @@ import Data.Foldable (foldMap)
 import Data.Traversable (Traversable, mapM, traverse)
 import qualified Data.Traversable as Traversable
 
-import Debug.Trace
+import Debug.Trace (trace)
 
 import Abstract
 import Polarity as Pol
