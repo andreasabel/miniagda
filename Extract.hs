@@ -152,7 +152,7 @@ import Prelude hiding (pi, null)
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
@@ -176,7 +176,7 @@ import Util
 
 traceExtrM s = return ()
 
-runExtract sig k = runErrorT (runReaderT (runStateT k (initWithSig sig)) emptyContext)
+runExtract sig k = runExceptT (runReaderT (runStateT k (initWithSig sig)) emptyContext)
 
 -- extraction
 
@@ -198,7 +198,7 @@ extractDecl :: EDeclaration -> TypeCheck [FDeclaration]
 extractDecl d =
   case d of
     MutualDecl _ ds -> extractDecls ds -- TODO!
-    OverrideDecl{} -> fail $ "extractDecls internal error: overrides impossible"
+    OverrideDecl{} -> throwErrorMsg $ "extractDecls internal error: overrides impossible"
     MutualFunDecl _ co funs -> extractFuns co funs
     FunDecl co fun -> extractFun co fun
     LetDecl evl x tel (Just t) e | null tel -> extractLet evl x t e
@@ -354,7 +354,7 @@ extractPattern' av p cont =
             Prod av1 av2 ->
               extractPattern' av1 p1 $ \ [p1] -> do
                 extractPattern' av2 p2 $ \ [p2] -> cont [PairP p1 p2]
-            _ -> fail $ "extractPattern': IMPOSSIBLE: pattern " ++
+            _ -> throwErrorMsg $ "extractPattern': IMPOSSIBLE: pattern " ++
                           show p ++ " : " ++ show av
 -}
         ConP pi n ps -> do
@@ -369,7 +369,7 @@ extrConType c av = do
   ConSig { conPars, extrTyp, dataPars } <- lookupSymbQ c
   traceExtrM ("extrConType " ++ show c ++ " has extrTyp = " ++ show extrTyp)
   tv <- whnf' extrTyp
-  numPars <- maybe (return dataPars) (const $ fail $ "NYI: extrConType for pattern parameters") conPars
+  numPars <- maybe (return dataPars) (const $ throwErrorMsg $ "NYI: extrConType for pattern parameters") conPars
   case numPars of
    0 -> return tv
    _ -> do
@@ -387,7 +387,7 @@ extrConType c av = do
         piApps tv pars
 -}
       _ -> piApps tv $ replicate numPars VIrr
---      _ -> fail $ "extrConType " ++ show c ++ ": expected datatype, found " ++ show av
+--      _ -> throwErrorMsg $ "extrConType " ++ show c ++ ": expected datatype, found " ++ show av
 
 -- extracting a term from a term -------------------------------------
 
@@ -412,7 +412,7 @@ extractInfer e = do
 
     Def f -> (Def f,) <$> do (whnf' . extrTyp) =<< lookupSymbQ (idName f)
 
-    Pair{} -> fail $ "extractInfer: IMPOSSIBLE: pair " ++ show e
+    Pair{} -> throwErrorMsg $ "extractInfer: IMPOSSIBLE: pair " ++ show e
     -- other expressions are erased or types
 
     _ -> return (Irr, VIrr)
@@ -458,7 +458,7 @@ extractCheck e tv = do
 {-
       case view of
         Prod av1 av2 -> Pair <$> extractCheck e1 av1 <*> extractCheck e2 av2
-        _ -> fail $ "extractCheck: tuple type expected " ++ show e ++ " : " ++ show tv
+        _ -> throwErrorMsg $ "extractCheck: tuple type expected " ++ show e ++ " : " ++ show tv
 -}
 
     -- TODO: case

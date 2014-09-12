@@ -167,9 +167,6 @@ vApp f [] = f
 vApp f vs = VApp f vs
 -}
 
-failValInv :: (Monad m) => Val -> m a
-failValInv v = fail $ "internal error: value " ++ show v ++ " violates representation invariant"
-
 vAbs :: Name -> Int -> Val -> FVal
 vAbs x i v = VAbs x i v emptyVal
 

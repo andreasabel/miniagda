@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, FlexibleInstances, NamedFieldPuns #-}
+{-# LANGUAGE TupleSections, FlexibleInstances, FlexibleContexts, NamedFieldPuns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE CPP #-}
 
@@ -12,10 +12,8 @@ import Prelude hiding (mapM, null, pi)
 import Control.Applicative
 import Control.Monad.Identity hiding (mapM)
 import Control.Monad.State hiding (mapM)
-import Control.Monad.Error hiding (mapM)
+import Control.Monad.Except hiding (mapM)
 import Control.Monad.Reader hiding (mapM)
-import Control.Monad.IfElse  -- unlessM
--- import Control.Monad.HT      -- andLazy  -- because liftM2 (&&) is NOT lazy!
 
 import qualified Data.Array as Array
 import Data.Maybe -- fromMaybe
@@ -71,6 +69,9 @@ traceSizeM msg = return () -- traceM msg
 traceSize msg a = trace msg a
 traceSizeM msg = traceM msg
 -}
+
+failValInv :: (MonadError TraceError m) => Val -> m a
+failValInv v = throwErrorMsg $ "internal error: value " ++ show v ++ " violates representation invariant"
 
 -- evaluation with rewriting -------------------------------------
 
@@ -546,7 +547,7 @@ whnf env e = enter ("whnf " ++ show e) $
       bv  <- whnf env b -- not adding measure constraint to context!
       case (envBound env) of
         Nothing   -> return $ VMeasured muv bv
-           -- fail $ "panic: whnf " ++ show e ++ " : no measure in environment " ++ show env
+           -- throwErrorMsg $ "panic: whnf " ++ show e ++ " : no measure in environment " ++ show env
         Just muv' -> return $ VGuard (Bound Lt muv muv') bv
 
     Quant Pi (TBound (Bound ltle mu mu')) b -> do
@@ -603,7 +604,7 @@ whnf env e = enter ("whnf " ++ show e) $
         whnfClos (definingVal item)
 
     Def (DefId (ConK DefPat) n) -> whnfClos . definingVal =<< lookupSymbQ n
---    Def (DefId (ConK DefPat) n) -> fail $ "internal error: whnf of defined pattern " ++ show n
+--    Def (DefId (ConK DefPat) n) -> throwErrorMsg $ "internal error: whnf of defined pattern " ++ show n
     Def id   -> return $ vDef id
 {-
     Con co n -> return $ VCon co n
@@ -619,7 +620,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Var y -> lookupEnv env y >>= whnfClos
     Ann e -> whnf env (unTag e) -- return VIrr -- NEED TO KEEP because of eta-exp!
     Irr -> return VIrr
-    e   -> fail $ "NYI whnf " ++ show e
+    e   -> throwErrorMsg $ "NYI whnf " ++ show e
 
 whnfMeasure :: Env -> Measure Expr -> TypeCheck (Measure Val)
 whnfMeasure rho (Measure mu) = mapM (whnf rho) mu >>= return . Measure
@@ -704,7 +705,7 @@ app' expandDefs u v = do
             VProj Pre n -> flip (app' expandDefs) (VProj Post n) =<< whnfClos v
             VRecord ri rho -> do
               let VProj Post n = v
-              maybe (fail $ "app: projection " ++ show n ++ " not found in " ++ show u)
+              maybe (throwErrorMsg $ "app: projection " ++ show n ++ " not found in " ++ show u)
                 whnfClos (lookup n rho)
             VDef (DefId FunK n) -> appDef_ n [v]
             VApp (VDef (DefId FunK n)) vl -> appDef_ n (vl ++ [v])
@@ -739,7 +740,7 @@ app' expandDefs u v = do
 
             VIrr -> return VIrr
 {- 2010-11-01 this breaks extraction for System U example
-            VIrr -> fail $ "app internal error: " ++ show (VApp u [v])
+            VIrr -> throwErrorMsg $ "app internal error: " ++ show (VApp u [v])
 -}
             _ -> return $ VApp u [v]
 --
@@ -764,7 +765,7 @@ app' expandDefs u v = do
 -- -- ALT: VIrr consumes applications
 --             (VIrr,_) -> return VIrr
 --  -}
---             (VIrr,_) -> fail $ "app internal error: " ++ show (VApp u c)
+--             (VIrr,_) -> throwErrorMsg $ "app internal error: " ++ show (VApp u c)
 --             _ -> return $ VApp u c
 
 
@@ -871,7 +872,7 @@ matchingConstructors :: Val -> TypeCheck (Maybe [(ConstructorInfo,Env)])
 matchingConstructors v@(VDef d) = failValInv v -- matchingConstructors' d []
 matchingConstructors (VApp (VDef (DefId DatK d)) vl) = matchingConstructors' d vl >>= return . Just
 matchingConstructors v = return Nothing
--- fail $ "matchingConstructors: not a data type: " ++ show v -- return []
+-- throwErrorMsg $ "matchingConstructors: not a data type: " ++ show v -- return []
 
 matchingConstructors' :: QName -> [Val] -> TypeCheck [(ConstructorInfo,Env)]
 matchingConstructors' n vl = do
@@ -1183,7 +1184,7 @@ matchList env []     []     = return $ Just env
 matchList env (p:pl) (v:vl) =
   match env p v `bindMaybe` \ env' ->
   matchList env' pl vl
-matchList env pl     vl     = fail $ "matchList internal error: inequal length while trying to match patterns " ++ show pl ++ " against values " ++ show vl
+matchList env pl     vl     = throwErrorMsg $ "matchList internal error: inequal length while trying to match patterns " ++ show pl ++ " against values " ++ show vl
 
 -- * Typed Non-linear Matching -----------------------------------------
 
@@ -1255,7 +1256,7 @@ nonLinMatchList' undot symm st (p:pl) (v:vl) tv = do
     VQuant Pi x dom fv ->
       nonLinMatch undot symm st p v (typ dom) `bindMaybe` \ st' ->
       nonLinMatchList' undot symm st' pl vl =<< app fv v
-    _ -> fail $ "nonLinMatchList': cannot match in absence of pi-type"
+    _ -> throwErrorMsg $ "nonLinMatchList': cannot match in absence of pi-type"
 nonLinMatchList' _ _ _ _ _ _ = return Nothing
 
 
@@ -1264,7 +1265,7 @@ expandDefPat :: Pattern -> TypeCheck Pattern
 expandDefPat p@(ConP pi c ps) | coPat pi == DefPat = do
   PatSig ns pat v <- lookupSymbQ c
   unless (length ns == length ps) $
-    fail ("underapplied defined pattern in " ++ show p)
+    throwErrorMsg ("underapplied defined pattern in " ++ show p)
   let pat' = if dottedPat pi then dotConstructors pat else pat
   return $ patSubst (zip ns ps) pat'
 expandDefPat p = return p
@@ -1341,7 +1342,7 @@ instance Nocc Val where
       VIrr                  -> mempty
       VCase v tv env cls    -> nocc ks $ v : tv : map snd (envMap env)
       -- impossible: closure (reduced away)
-      VClos{}               -> fail $ "internal error: nocc " ++ show (ks,v)
+      VClos{}               -> throwErrorMsg $ "internal error: nocc " ++ show (ks,v)
 
 
 -- heterogeneous typed equality and subtyping ------------------------
@@ -1450,7 +1451,7 @@ sortView s =
     Set   v -> ShSet   (One v)
     CoSet v -> ShCoSet (One v)
 
-typeView12 :: (Functor m, Error e, MonadError e m) => OneOrTwo TVal -> m TypeShape
+typeView12 :: (Functor m, Monad m, MonadError TraceError m) => OneOrTwo TVal -> m TypeShape
 -- typeView12 :: OneOrTwo TVal -> TypeCheck TypeShape
 typeView12 (One tv) = return $ typeView tv
 typeView12 (Two tv1 tv2) =
@@ -1465,16 +1466,16 @@ typeView12 (Two tv1 tv2) =
            (ShSort s1, ShSort s2) | s1 == s2 -> return $ ShSort $ s1
            (ShData n1 _, ShData n2 _) | n1 == n2 -> return $ ShData n1 (Two tv1 tv2)
            (ShNe{}     , ShNe{}     )            -> return $ ShNe (Two tv1 tv2)
-           _ -> throwError $ strMsg $ "type " ++ show tv1 ++ " has different shape than " ++ show tv2
+           _ -> throwErrorMsg $ "type " ++ show tv1 ++ " has different shape than " ++ show tv2
 
-sortView12 :: (Monad m) => OneOrTwo (Sort Val) -> m SortShape
+sortView12 :: (Monad m, MonadError TraceError m) => OneOrTwo (Sort Val) -> m SortShape
 sortView12 (One s) = return $ sortView s
 sortView12 (Two s1 s2) =
   case (s1, s2) of
     (SortC c1, SortC c2) | c1 == c2 -> return $ ShSortC c1
     (Set v1, Set v2)                -> return $ ShSet (Two v1 v2)
     (CoSet v1, CoSet v2)            -> return $ ShCoSet (Two v1 v2)
-    _ -> fail $ "sort " ++ show s1 ++ " has different shape than " ++ show s2
+    _ -> throwErrorMsg $ "sort " ++ show s1 ++ " has different shape than " ++ show s2
 
 whnf12 :: OneOrTwo Env -> OneOrTwo Expr -> TypeCheck (OneOrTwo Val)
 whnf12 env12 e12 = Traversable.traverse id $ zipWith12 whnf env12 e12
@@ -1514,9 +1515,9 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
     mt12f <- mapM (mapM force) mt12 -- leads to LOOP, see HungryEta.ma
     sh12 <- case mt12f of
               Nothing -> return Nothing
-              Just tv12 -> case typeView12 tv12 of
+              Just tv12 -> case runExcept $ typeView12 tv12 of
                 Right sh -> return $ Just sh
-                Left err -> (recoverFail err) >> return Nothing
+                Left err -> (recoverFail $ show err) >> return Nothing
     case sh12 of
 
       -- subtyping directed by common type shape
@@ -1740,14 +1741,14 @@ leqClauses f pol mt12 v tvp env1 cls1 env2 cls2 = loop cls1 cls2 where
             loop cls1' cls2'
 
 eqPattern :: Pattern -> Pattern -> TypeCheck ()
-eqPattern p1 p2 = if p1 == p2 then return () else fail $ "pattern " ++ show p1 ++ " != " ++ show p2
+eqPattern p1 p2 = if p1 == p2 then return () else throwErrorMsg $ "pattern " ++ show p1 ++ " != " ++ show p2
 -}
 
 type NameMap = [(Name,Name)]
 
 alphaPattern :: Pattern -> Pattern -> StateT NameMap TypeCheck ()
 alphaPattern p1 p2 = do
-  let failure = fail $ "pattern " ++ show p1 ++ " != " ++ show p2
+  let failure = throwErrorMsg $ "pattern " ++ show p1 ++ " != " ++ show p2
       alpha x1 x2 = do
         ns <- get
         case lookup x1 ns of
@@ -1836,7 +1837,7 @@ leqVals' f q tv12 vl1 vl2 = do
            <+> prettyTCM vl1 <+> text " to "
            <+> prettyTCM vl2 <+> text " at type "
            <+> prettyTCM tv12
---    _ -> fail $ "leqVals': not (compatible) function types or mismatch number of arguments when comparing  " ++ show vl1 ++ "  to  " ++ show vl2 ++ "  at type  " ++ show tv12
+--    _ -> throwErrorMsg $ "leqVals': not (compatible) function types or mismatch number of arguments when comparing  " ++ show vl1 ++ "  to  " ++ show vl2 ++ "  at type  " ++ show tv12
 
 {-
 leqVals' f q (VPi x1 dom1@(Domain av1 _ dec1) env1 b1,
@@ -2084,8 +2085,8 @@ leSize' ltle v1 v2 = -- enter ("leSize' " ++ show v1 ++ " " ++ show ltle ++ " " 
          (v1,VMeta i rho n) -> addLe ltle v1 v2
          _ -> leSize'' ltle 0 v1 v2
 {- HANDLED BY leSize'' ltle
-         (VSucc{}, VGen{}) -> fail err
-         (VSucc{}, VPlus{}) -> fail err
+         (VSucc{}, VGen{}) -> throwErrorMsg err
+         (VSucc{}, VPlus{}) -> throwErrorMsg err
 -}
 -- leSize'' ltle bal v v'  checks whether  Succ^bal v `lt` v'
 -- invariant: bal is zero in cases for VMax and VMeta
@@ -2254,7 +2255,7 @@ compareSize a1 a2 = do
     (True,False) -> ret LT -- THIS IS COMPLETE BOGUS!!!
     (True,True)  -> ret EQ
     (False,True) -> ret GT
-    (False,False) -> fail $ "compareSize (" ++ show a1 ++ ", " ++ show a2 ++ "): sizes incomparable"
+    (False,False) -> throwErrorMsg $ "compareSize (" ++ show a1 ++ ", " ++ show a2 ++ "): sizes incomparable"
 -}
 
 {- Bound entailment

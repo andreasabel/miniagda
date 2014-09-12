@@ -14,7 +14,7 @@ import Control.Applicative
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Except
 -- import Control.Monad.HT (andLazy) -- now also in Util.hs
 
 import Debug.Trace
@@ -66,7 +66,7 @@ instance Nocc Val where
       VUp v tv                       -> nocc k a v
       VIrr                           -> return $ True
       VCase v _ env cls              -> nocc k a $ v : map snd (envMap env)
-      _                              -> fail $ "internal error: NYI: nocc " ++ show (k,a,tv)
+      _                              -> throwErrorMsg $ "internal error: NYI: nocc " ++ show (k,a,tv)
 
 noccFromBool :: Bool -> Pol
 noccFromBool True  = Polarity.Const

@@ -7,6 +7,7 @@ module Util where
 import Prelude hiding (showList, null)
 
 import Control.Applicative hiding (empty)
+import Control.Monad
 import Control.Monad.Writer (Writer, runWriter, All, getAll)
 
 import qualified Data.List as List
@@ -68,8 +69,14 @@ infixr 9 <.>
 (<.>) :: Functor m => (b -> c) -> (a -> m b) -> a -> m c
 (f <.> g) a = f <$> g a
 
-liftMaybe :: (Monad m) => Maybe a -> m a
-liftMaybe = maybe (fail "Util.liftMaybe: unexpected Nothing") return
+whenM :: Monad m => m Bool -> m () -> m ()
+whenM mb k = mb >>= (`when` k)
+
+unlessM :: Monad m => m Bool -> m () -> m ()
+unlessM mb k = mb >>= (`unless` k)
+
+whenJustM :: (Monad m) => m (Maybe a) -> (a -> m ()) -> m ()
+whenJustM mm k = mm >>= (`whenJust` k)
 
 whenJust :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
 whenJust (Just a) k = k a
@@ -84,9 +91,6 @@ ifNothingM mma mb f = maybe mb f =<< mma
 
 ifJustM :: (Monad m) => m (Maybe a) -> (a -> m b) -> m b -> m b
 ifJustM mma f mb = maybe mb f =<< mma
-
-lookupM :: (Monad m, Show k, Ord k) => k -> Map k v -> m v
-lookupM k m = maybe (fail $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
 
 mapMapM :: (Monad m, Ord k) => (a -> m b) -> Map k a -> m (Map k b)
 mapMapM f = Map.foldrWithKey step (return $ Map.empty)
@@ -164,10 +168,6 @@ zipPair f g (a,d) (b,e) = (f a b, g d e)
 headMaybe :: [a] -> Maybe a
 headMaybe [] = Nothing
 headMaybe (a:as) = Just a
-
-headM :: Monad m => [a] -> m a
-headM [] = fail "headM"
-headM (a:as) = return a
 
 firstJust :: [Maybe a] -> Maybe a
 firstJust = headMaybe . compressMaybes

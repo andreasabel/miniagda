@@ -1,7 +1,7 @@
 name:            MiniAgda
-version:         0.2014.1.9
+version:         0.2014.9.12
 build-type:      Simple
-cabal-version:   >= 1.8 
+cabal-version:   >= 1.8
 license:         OtherLicense
 license-file:    LICENSE
 author:          Andreas Abel and Karl Mehltretter
@@ -20,10 +20,9 @@ description:
   arguments are discarded during equality checking and compilation.
 
   Recent features include bounded size quantification and destructor
-  patterns for a more general handling of coinduction. 
+  patterns for a more general handling of coinduction.
 
-tested-with:        GHC == 7.6.3,
-                    GHC == 7.8.2
+tested-with:        GHC == 7.8.3
 
 extra-source-files: Makefile
 
@@ -44,12 +43,9 @@ executable miniagda
   build-depends:    array >= 0.3 && < 0.6,
                     base >= 4.2 && < 4.8,
                     containers >= 0.3 && < 0.6,
-                    haskell-src-exts >= 1.14 && < 1.15,
-                    -- mtl-2.1 contains a severe bug
-                    mtl >= 2.0 && < 2.1 || >= 2.1.1 && < 2.2,
-                    pretty >= 1.0 && < 1.2,
---                    utility-ht >= 0.0.1 && < 1.0,
-                    IfElse >= 0.85 && < 2.0
+                    haskell-src-exts >= 1.14 && < 1.16,
+                    mtl >= 2.2.0.1 && < 2.3,
+                    pretty >= 1.0 && < 1.2
   build-tools:      happy >= 1.15 && < 2,
                     alex >= 3.0 && < 4
   extensions:       CPP

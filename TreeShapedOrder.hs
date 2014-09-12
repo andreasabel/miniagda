@@ -61,7 +61,7 @@ parents a (TSO o) = loop (Map.lookup a o) where
 
 -- | @parent a o@ returns the immediate parent, if it exists.
 parent :: (Ord a, Eq a) => a -> TSO a -> Maybe (Int,a)
-parent a t = headM $ parents a t
+parent a t = headMaybe $ parents a t
 
 -- | @isAncestor a b o = Just n@ if there are n steps up from a to b.
 isAncestor :: (Ord a, Eq a) => a -> a -> TSO a -> Maybe Int

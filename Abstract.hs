@@ -676,11 +676,11 @@ succMeasure succ (Measure mu) = Measure (succMeas mu)
         succMeas (e:es) = e : succMeas es
 -}
 
-applyLastM :: Monad m => (a -> m a) -> Measure a -> m (Measure a)
-applyLastM f (Measure mu) = loop mu >>= return . Measure
+applyLastM :: (a -> Maybe a) -> Measure a -> Maybe (Measure a)
+applyLastM f (Measure mu) = Measure <$> loop mu
   where loop []     = fail "empty measure"
-        loop [e]    = f e >>= return . (:[])
-        loop (e:es) = loop es >>= return . (e:)
+        loop [e]    = (:[]) <$> f e
+        loop (e:es) = (e:)  <$> loop es
 
 instance HasPred a => HasPred (Measure a) where
   predecessor mu = applyLastM predecessor mu

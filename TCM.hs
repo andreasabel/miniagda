@@ -5,10 +5,9 @@ module TCM where
 import Prelude hiding (null)
 
 import Control.Monad
-import Control.Monad.IfElse
 import Control.Monad.Identity
 import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 
 import Control.Applicative
@@ -226,7 +225,7 @@ type PositivityGraph = [PosConstrnt]
 emptyPosGraph = []
 
 -- type TypeCheck = StateT TCState (ReaderT TCContext (CallStackT String IO))
-type TypeCheck = StateT TCState (ReaderT TCContext (ErrorT TraceError IO))
+type TypeCheck = StateT TCState (ReaderT TCContext (ExceptT TraceError IO))
 
 instance MonadAssert TypeCheck where
   assert b s = do
@@ -412,48 +411,20 @@ cxtSetType k dom delta =
         -- upperDecs need not be updated
         }
 
-{-
--- only defined for single bindings
-cxtSetType :: Int -> Dec -> TVal -> SemCxt -> SemCxt
-cxtSetType k dec tv delta =
-  delta { cxt  = Map.insert k (One tv) (cxt delta)
-        , decs = Map.insert k (One dec) (decs delta)
-        -- upperDecs need not be updated
-        }
---        , decs = Map.insert k dec (decs delta) }
--}
-{-
-cxtLookupGen :: Monad m => SemCxt -> Int -> m Domain
-cxtLookupGen delta k = do
-  One tv  <- lookupM k (cxt delta)
-  One dec <- lookupM k (decs delta)
---  dec    <- lookupM k (decs delta)
-  return $ Domain { typ = tv, decor = dec }
+-- | Version of 'Map.lookup' that throws 'TraceError'.
+lookupM :: (MonadError TraceError m, Show k, Ord k) => k -> Map k v -> m v
+lookupM k m = maybe (throwErrorMsg $ "lookupM: unbound key " ++ show k) return $ Map.lookup k m
 
-cxtLookupGen :: Monad m => SemCxt -> Int -> m CxtEntry
-cxtLookupGen delta k = do
-  tv12  <- lookupM k (cxt delta)
-  dec12 <- lookupM k (decs delta)
-  udec  <- lookupM k (upperDecs delta)
-  return $ CxtEntry (zipWith12 Domain tv12 dec12) udec
--}
-cxtLookupGen :: Monad m => SemCxt -> Int -> m CxtEntry
+cxtLookupGen :: MonadError TraceError m => SemCxt -> Int -> m CxtEntry
 cxtLookupGen delta k = do
   dom12 <- lookupM k (cxt delta)
   udec  <- lookupM k (upperDecs delta)
   return $ CxtEntry dom12 udec
 
-cxtLookupName :: Monad m => SemCxt -> Ren -> Name -> m CxtEntry
+cxtLookupName :: MonadError TraceError m => SemCxt -> Ren -> Name -> m CxtEntry
 cxtLookupName delta ren x = do
   i <- lookupM x ren
   cxtLookupGen delta i
-
-{-
-cxtLookupName :: Monad m => SemCxt -> Ren -> Name -> m Domain
-cxtLookupName delta ren x = do
-  i <- lookupM x ren
-  cxtLookupGen delta i
--}
 
 -- apply decoration, possibly resurrecting (see Pfenning, LICS 2001)
 -- and changing polarities (see Abel, MSCS 2008)
@@ -631,14 +602,14 @@ instance MonadCxt TypeCheck where
   genOfName x = do
     ce <- ask
     case Map.lookup x (renaming ce) of
-      Nothing -> fail $ "internal error: variable not bound: " ++ show x
+      Nothing -> throwErrorMsg $ "internal error: variable not bound: " ++ show x
       Just k -> return k
 
   nameOfGen k = do
     ce <- ask
     case Map.lookup k (naming ce) of
       Nothing -> return $ fresh $ "error_unnamed_gen" ++ show k
-       -- fail $ "internal error: no name for variable " ++ show k
+       -- throwErrorMsg $ "internal error: no name for variable " ++ show k
       Just x -> return x
 
 {-
@@ -784,7 +755,7 @@ instance MonadCxt TypeCheck where
            TSO.increasesHeight son (dist, father) <$> asks sizeRels) $ do
       recoverFail $ "cannot add hypothesis " ++ s ++ " because it is not satisfyable under all possible valuations of the current hypotheses"
     -- if the new son is an ancestor of the father, we are cyclic
-    awhenM (TSO.isAncestor father son <$> asks sizeRels) $ \ n -> -- n steps from father up to son
+    whenJustM (TSO.isAncestor father son <$> asks sizeRels) $ \ n -> -- n steps from father up to son
       when (dist > - n) $ -- still ok if dist == n == 0, otherwise fail
         recoverFail$ "cannot add hypothesis " ++ s ++ " because it makes the set of hyptheses unsatisfiable"
     local (\ cxt -> cxt
@@ -982,11 +953,11 @@ introPatType (p,v) tv cont = do
     VApp (VDef (DefId DatK d)) vl ->
       case p of
         ProjP n -> cont =<< projectType tv n VIrr -- no record value here
-        _       -> fail $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv
+        _       -> throwErrorMsg $ "introPatType: internal error, expected projection pattern, found " ++ show p ++ " at type " ++ show tv
     VQuant Pi x dom fv -> do
        v  <- whnfClos v
        matchPatType (p,v) dom . cont =<< app fv v
-    _ -> fail $ "introPatType: internal error, expected Pi-type, found " ++ show tv
+    _ -> throwErrorMsg $ "introPatType: internal error, expected Pi-type, found " ++ show tv
 
 introPatTypes :: [(Pattern,Val)] -> TVal -> (TVal -> TypeCheck a) -> TypeCheck a
 introPatTypes pvs tv f = do
@@ -1021,12 +992,12 @@ matchPatType (p,v) dom cont =
                  matchPatType (p1,v1) dom1 $ do
                    bv <- app fv v1
                    matchPatType (p2,v2) (Domain bv ki dec) cont
-               _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show p ++ "  :  " ++ show dom
+               _ -> throwErrorMsg $ "matchPatType: IMPOSSIBLE " ++ show p ++ "  :  " ++ show dom
 
           (DotP e, _) -> cont
           (AbsurdP, _) -> cont
           (ErasedP p,_) -> matchPatType (p,v) dom cont
-          _ -> fail $ "matchPatType: IMPOSSIBLE " ++ show (p,v)
+          _ -> throwErrorMsg $ "matchPatType: IMPOSSIBLE " ++ show (p,v)
 
 
 -- Signature -----------------------------------------------------
@@ -1164,7 +1135,7 @@ disambigCon c tv =
       dv <- dataView tv
       case dv of
         Data d _ -> return $ Qual d n
-        _ -> fail $ "cannot resolve constructor " ++ show n
+        _ -> throwErrorMsg $ "cannot resolve constructor " ++ show n
 
 -- | @conType c tv@ returns the type of constructor @c@ at datatype @tv@
 --   with parameters instantiated.
@@ -1209,7 +1180,7 @@ instConType c numPars symbTyp dataName tv = do
     NoData    -> failDoc (text ("conType " ++ show c ++ ": expected")
                    <+> prettyTCM tv <+> text "to be a data type")
     Data d vs -> do
-      unless (d == dataName) $ fail $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show dataName
+      unless (d == dataName) $ throwErrorMsg $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show dataName
       let (pars, inds) = splitAt numPars vs
       unless (length pars == numPars) $
         failDoc (text ("conType " ++ show c ++ ": expected")
@@ -1247,8 +1218,8 @@ instConLType' c conPars symbTyp isSized md dataPars tv =
                    <+> prettyTCM tv <+> text "to be a data type")
     Data d vs -> do
       whenJust md $ \ d' ->
-        unless (d == d') $ fail $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show d'
-      -- whenJust conPars $ fail $ "NYI: constructor with pattern parameters"
+        unless (d == d') $ throwErrorMsg $ "expected constructor of datatype " ++ show d ++ ", but found one of datatype " ++ show d'
+      -- whenJust conPars $ throwErrorMsg $ "NYI: constructor with pattern parameters"
       let (pars, inds) = splitAt dataPars vs
       unless (length pars == dataPars) failure
       case (isSized, inds) of
@@ -1364,7 +1335,7 @@ lookupSymbInSig n = lookupSig n =<< gets signature
       -- lookupSig :: Name -> Signature -> TypeCheck SigDef
       lookupSig n sig =
         case (Map.lookup n sig) of
-          Nothing -> fail $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
+          Nothing -> throwErrorMsg $ "identifier " ++ show n ++ " not in signature "  ++ show (Map.keys sig)
           Just k -> return k
 
 
@@ -1411,8 +1382,8 @@ instance MonadMeta TypeCheck where
   mkConstraint v (VMax vs) = do
     bs <- mapM (errorToBool . leqSize' v) vs
     if any id bs then return Nothing else
-     fail $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs)
-  mkConstraint w@(VMax vs) v = fail $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
+     throwErrorMsg $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs)
+  mkConstraint w@(VMax vs) v = throwErrorMsg $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
   mkConstraint (VMeta i rho n) (VMeta j rho' m) = retret $ arc (Flex i) (m-n) (Flex j)
   mkConstraint (VMeta i rho n) VInfty      = retret $ arc (Flex i) 0 (Rigid (RConst Infinite))
   mkConstraint (VMeta i rho n) v           = retret $ arc (Flex i) (m-n) (Rigid (RVar j))
@@ -1420,7 +1391,7 @@ instance MonadMeta TypeCheck where
   mkConstraint VInfty (VMeta i rho n)      = retret $ arc (Rigid (RConst Infinite)) 0 (Flex i)
   mkConstraint v (VMeta j rho m)           = retret $ arc (Rigid (RVar i)) (m-n) (Flex j)
     where (i,n) = vGenSuccs v 0
-  mkConstraint v1 v2 = fail $ "mkConstraint undefined for " ++ show (v1,v2)
+  mkConstraint v1 v2 = throwErrorMsg $ "mkConstraint undefined for " ++ show (v1,v2)
 
   -- addMeta k x  adds a metavariable which can refer to VGens < k
   -- addMeta :: Ren -> MVar -> TypeCheck ()
@@ -1450,7 +1421,7 @@ instance MonadMeta TypeCheck where
      else case solve cs of
         Just subst -> traceMeta ("solution" ++ show subst) $
                       return subst
-        Nothing    -> fail $ "size constraints " ++ show cs ++ " unsolvable"
+        Nothing    -> throwErrorMsg $ "size constraints " ++ show cs ++ " unsolvable"
 
 
 nameOf :: EnvMap -> Int -> Maybe Name

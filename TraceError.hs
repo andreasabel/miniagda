@@ -2,7 +2,7 @@
 
 module TraceError where
 
-import Control.Monad.Error
+import Control.Monad.Except
 import Debug.Trace
 
 import Util
@@ -10,9 +10,9 @@ import Text.PrettyPrint
 
 data TraceError = Err String | TrErr String TraceError
 
-instance Error TraceError where
-    noMsg = Err "no message"
-    strMsg s = Err s
+-- instance Error TraceError where
+--     noMsg = Err "no message"
+--     strMsg s = Err s
 
 instance Show TraceError where
     show (Err str) = str
@@ -35,8 +35,8 @@ enterDoc md cont = do
   d <- md
   enter (render (pretty d)) cont
 
-failDoc :: (Monad m) => m Doc -> m a
-failDoc d = fail . render =<< d
+failDoc :: (MonadError TraceError m) => m Doc -> m a
+failDoc d = throwErrorMsg . render =<< d
 
 newErrorDoc :: (MonadError TraceError m) => m a -> m Doc -> m a
 newErrorDoc c d = c `catchError` (\ _ -> failDoc d)
@@ -47,13 +47,13 @@ errorToMaybe m = (m >>= return . Just) `catchError` (const $ return Nothing)
 errorToBool :: (MonadError e m) => m () -> m Bool
 errorToBool m = (m >> return True) `catchError` (\ _ -> return False)
 
-boolToErrorDoc :: (Monad m) => m Doc -> Bool -> m ()
+boolToErrorDoc :: (MonadError TraceError m) => m Doc -> Bool -> m ()
 boolToErrorDoc d True  = return ()
 boolToErrorDoc d False = failDoc d
 
-boolToError :: (Monad m) => String -> Bool -> m ()
+boolToError :: (MonadError TraceError m) => String -> Bool -> m ()
 boolToError msg True  = return ()
-boolToError msg False = fail msg
+boolToError msg False = throwErrorMsg msg
 
 instance MonadError () Maybe where
   catchError Nothing k = k ()
@@ -68,13 +68,13 @@ orM m1 m2 = m1 `catchError` (const m2)
 data AssertionHandling = Failure | Warning | Ignore
                        deriving (Eq,Ord,Show)
 
-assert' :: (MonadIO m) => AssertionHandling -> Bool -> String -> m ()
+assert' :: (MonadError TraceError m, MonadIO m) => AssertionHandling -> Bool -> String -> m ()
 assert' Ignore b s      = return ()
 assert' h True s        = return ()
 assert' Warning False s = liftIO $ putStrLn $ "warning: ignoring error: " ++ s
-assert' Failure False s = fail s
+assert' Failure False s = throwErrorMsg s
 
-assertDoc' :: (MonadIO m) => AssertionHandling -> Bool -> m Doc -> m ()
+assertDoc' :: (MonadError TraceError m, MonadIO m) => AssertionHandling -> Bool -> m Doc -> m ()
 assertDoc' h b md = assert' h b . render =<< md
 
 class Monad m => MonadAssert m where

@@ -3,11 +3,11 @@
 files=Abstract Collection Concrete Eval Extract HsSyntax Lexer Main Parser Polarity PrettyTCM ScopeChecker Semiring SparseMatrix TCM Termination ToHaskell Tokens TraceError TreeShapedOrder TypeChecker Util Value Warshall
 hsfiles=$(foreach file,$(files),$(file).hs)
 ghcflags=-ignore-package monads-fd -rtsopts
-# -fglasgow-exts 
+# -fglasgow-exts
 optflags=
 # -O  #slow compilation, not much speedup
 profflags=-prof -auto-all
-distfiles=*.hs *.hs-boot Lexer.x Parser.y Makefile 
+distfiles=*.hs *.hs-boot Lexer.x Parser.y Makefile
 distdirs=test/succeed test/fail examples
 
 cabalp=cabal install -p --enable-executable-profiling
@@ -43,10 +43,10 @@ current : Main
 #	Main test/fail/OverlappingPatternIndFam.ma # vec.ma # examples/List.ma
 
 # ship : ../dist/miniagda-2009-07-03.tgz # 06-27.tgz
-# 
+#
 # ../dist/%.tgz : $(distfiles)
 # 	tar czf $@ $^ $(distdirs)
-# 
+#
 
 miniagda-prof : Main.hs $(hsfiles)
 	ghc $(ghcflags) $(profflags) $< --make -o $@
@@ -76,13 +76,13 @@ Lexer.hs : Lexer.x
 
 test : Main succeed fail
 
-succeed : 
+succeed :
 	@echo "======================================================================"
 	@echo "===================== Suite of successfull tests ====================="
 	@echo "======================================================================"
 	make -C test/succeed
 
-fail : 
+fail :
 	@echo "======================================================================"
 	@echo "======================= Suite of failing tests ======================="
 	@echo "======================================================================"
@@ -101,7 +101,7 @@ lib : Main
 	make -C lib
 
 
-clean : 
+clean :
 	-rm *.o *.hi Main miniagda-prof
 # 	make -C test/fail clean
 

@@ -1,11 +1,11 @@
 -- ABANDONED
 
-{-# LANGUAGE UndecidableInstances #-} 
+{-# LANGUAGE UndecidableInstances #-}
 module CallStack where
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.State
 
 {- This implements a call-stack for error messages and debugging.
@@ -36,34 +36,34 @@ class Monad m => MonadCall s m | m -> s where
 newtype CallStack s a = CallStack { runCallStack :: [s] -> Either String a }
 
 instance Show s => Monad (CallStack s) where
-  return a             = CallStack $ \ stack -> return a 
-  (CallStack ma) >>= k = CallStack $ \ stack -> do 
+  return a             = CallStack $ \ stack -> return a
+  (CallStack ma) >>= k = CallStack $ \ stack -> do
                            a <- ma stack
                            runCallStack (k a) stack
-  fail msg             = CallStack $ \ stack -> fail $ 
+  fail msg             = CallStack $ \ stack -> fail $
     foldr (\ a b -> show a ++ "\n///" ++ b) msg stack
-  
+
 instance Show s => MonadCall s (CallStack s) where
   enter msg k = CallStack $ \ stack -> runCallStack k (msg:stack)
 
 
 
-newtype CallStackT s m a = CallStackT { runCallStackT :: [s] -> ErrorT String m a }
+newtype CallStackT s m a = CallStackT { runCallStackT :: [s] -> ExceptT String m a }
 
 instance (Show s, Monad m) => Monad (CallStackT s m) where
-  return a             = CallStackT $ \ stack -> return a 
-  (CallStackT ma) >>= k = CallStackT $ \ stack -> do 
+  return a             = CallStackT $ \ stack -> return a
+  (CallStackT ma) >>= k = CallStackT $ \ stack -> do
                            a <- ma stack
                            runCallStackT (k a) stack
-  fail msg             = CallStackT $ \ stack -> fail $ 
+  fail msg             = CallStackT $ \ stack -> fail $
     foldr (\ a b -> show a ++ "\n///" ++ b) msg stack
 
 instance MonadTrans (CallStackT s) where
-  lift ma = CallStackT $ \ stack -> lift ma 
+  lift ma = CallStackT $ \ stack -> lift ma
 
 instance (Show s, Monad m) => MonadError String (CallStackT s m) where
   throwError = fail
-  catchError ma k = CallStackT $ \ stack -> 
+  catchError ma k = CallStackT $ \ stack ->
     catchError (runCallStackT ma stack) $ \ msg -> runCallStackT (k msg) stack
 
 instance (Show s, MonadIO m) => MonadIO (CallStackT s m) where
@@ -79,14 +79,14 @@ instance MonadCall s m => MonadCall s (StateT st m) where
 
 -- functions from TraceError
 
-throwErrorMsg m = throwError m 
+throwErrorMsg m = throwError m
 
 -- newErrorMsg :: (MonadError TraceError m) => m a -> String -> m a
 newErrorMsg c s = c `catchError` (\ _ -> throwErrorMsg s)
 -- addErrorMsg c s = c `catchError` (\ s' -> throwErrorMsg (s' ++ "\n" ++ s))
 
 -- extend the current error message by n
--- throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e) 
+-- throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e)
 throwTrace ma msg = enter msg ma
 
 errorToBool :: (MonadError e m) => m () -> m Bool

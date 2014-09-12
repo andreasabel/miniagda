@@ -7,10 +7,9 @@ import Prelude hiding (null)
 
 import Control.Applicative hiding (Const) -- ((<$>))
 import Control.Monad
-import Control.Monad.IfElse
 import Control.Monad.Identity
 import Control.Monad.State
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 
 import qualified Data.List as List
@@ -68,17 +67,17 @@ traceAdmM msg = traceM msg
 
 {- DEAD CODE
 runWhnf :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
-runWhnf sig tc = (runErrorT (runStateT tc  sig))
+runWhnf sig tc = (runExceptT (runStateT tc  sig))
 -}
 
-doNf sig e = runErrorT (runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) emptyContext)
-doWhnf sig e = runErrorT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) emptyContext)
+doNf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) emptyContext)
+doWhnf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) emptyContext)
 
 
 -- top-level functions -------------------------------------------
 
 runTypeCheck :: TCState -> TypeCheck a -> IO (Either TraceError (a,TCState))
-runTypeCheck st tc = runErrorT (runReaderT (runStateT tc st) emptyContext)
+runTypeCheck st tc = runExceptT (runReaderT (runStateT tc st) emptyContext)
 -- runTypeCheck st tc = runCallStackT (runReaderT (runStateT tc st) emptyContext) []
 
 typeCheck dl = runTypeCheck initSt (typeCheckDecls dl)
@@ -130,7 +129,7 @@ typeCheckDeclaration (OverrideDecl Fail ds) = do
   r <- (typeCheckDecls ds >> return True) `catchError`
         (\ s -> do liftIO $ putStrLn ("block fails as expected, error message:\n" ++ show s)
                    return False)
-  if r then fail "unexpected success" else do
+  if r then throwErrorMsg "unexpected success" else do
     put st
     return []
 
@@ -242,7 +241,7 @@ typeCheckMutualSig (OverrideDecl TrustMe [d]) =
   newAssertionHandling Warning $ typeCheckMutualSig d
 typeCheckMutualSig (OverrideDecl Impredicative [d]) =
   goImpredicative $ typeCheckMutualSig d
-typeCheckMutualSig d = fail $ "typeCheckMutualSig: panic: unexpected declaration " ++ show d
+typeCheckMutualSig d = throwErrorMsg $ "typeCheckMutualSig: panic: unexpected declaration " ++ show d
 
 -- typeCheckMutualBody measured kindCandidate
 typeCheckMutualBody :: Bool -> Kind -> Declaration -> TypeCheck [EDeclaration]
@@ -272,7 +271,7 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
                  -- insert correct polarity annotation if none was there
                  pol | pol `elem` [Param,Rec] -> return $ Quant Pi (TBind x $ Domain tSize kSize $ setPol polsz dec) b
                  pol | pol == polsz -> return t0
-                 pol -> fail $ "sized type " ++ show n ++ " has wrong polarity annotation " ++ show pol ++ " at Size argument, it should be " ++ show polsz
+                 pol -> throwErrorMsg $ "sized type " ++ show n ++ " has wrong polarity annotation " ++ show pol ++ " at Size argument, it should be " ++ show polsz
              t0 -> return t0
            return (params + 1, pos0 ++ [polsz], t)
          NotSized -> return (params, pos0, t0)
@@ -418,7 +417,7 @@ checkConstructorParams es tv = do
   return (cxt, ps)
 
   where
-    errorParamNotPattern e = fail $
+    errorParamNotPattern e = throwErrorMsg $
       "expected parameter to be a pattern, but I found " ++ show es
 
 -- |
@@ -683,7 +682,7 @@ checkConType Sized t =
              addBind (mapDec (const paramDec) tb) $ do  -- size is parametric in constructor type
                Kinded ki t2e <- checkConType' t2
                return $ Kinded ki $ Quant Pi (mapDec (const irrelevantDec) tb) t2e -- size is irrelevant in constructor
-      _ -> fail $ "checkConType: expecting size quantification, found " ++ show t
+      _ -> throwErrorMsg $ "checkConType: expecting size quantification, found " ++ show t
 
 checkConType' :: Expr -> TypeCheck (Kinded Extr)
 checkConType' t = do
@@ -691,7 +690,7 @@ checkConType' t = do
   case s of
     Set{} -> return kte
     CoSet{} -> return kte
-    _ -> fail $ "checkConType: type " ++ show t ++ " of constructor not a universe"
+    _ -> throwErrorMsg $ "checkConType: type " ++ show t ++ " of constructor not a universe"
 
 -- check that the data type and the parameter arguments (written down like declared in telescope)
 -- precondition: target tg type checks in current context
@@ -704,7 +703,7 @@ checkTarget d dv tel tg = do
       enter ("checking datatype parameters in constructor target") $
         leqVals' N mixed (One dv) (take (size tel) vs) telvs
       return ()
-    _ -> fail $ "constructor should produce something in data type " ++ show d
+    _ -> throwErrorMsg $ "constructor should produce something in data type " ++ show d
 
 {- RETIRED (syntactic check)
 checkTarget :: Name -> Telescope -> Type -> TypeCheck ()
@@ -1263,7 +1262,7 @@ ptsRule er s1 s2 = do
   let parametric = checkingConType cxt  -- are we dealing with a parametric pi?
   let err = "ptsRule " ++ show (s1,s2) ++ " " ++ (if parametric then "(in type of constructor)" else "") ++ ": "
   case (s1,s2) of
-    (Set VInfty,_) -> fail $ err ++ "domain too big"
+    (Set VInfty,_) -> throwErrorMsg $ err ++ "domain too big"
     (Set v1, Set v2) ->
       if parametric then do
          unless er $ leqSize Pos v1 v2 -- when we are checking a constructor, to reject
@@ -1273,15 +1272,15 @@ ptsRule er s1 s2 = do
     (CoSet v1, Set VZero)
        | parametric   -> return $ CoSet v1
        | v1 == VInfty -> return $ Set VZero
-       | otherwise    -> fail $ err ++ "domain cannot be sized"
+       | otherwise    -> throwErrorMsg $ err ++ "domain cannot be sized"
     (CoSet v1, CoSet v2)
        | parametric   -> do
            let v2' = maybe v2 id $ predSize v2
            case minSize v1 v2 of
              Just v  -> return $ CoSet v
-             Nothing -> fail $ err ++ "min" ++ show (v1,v2) ++ " does not exist"
+             Nothing -> throwErrorMsg $ err ++ "min" ++ show (v1,v2) ++ " does not exist"
        | v1 == VInfty -> return $ CoSet $ succSize v2
-       | otherwise    -> fail $ err ++ "domain cannot be sized"
+       | otherwise    -> throwErrorMsg $ err ++ "domain cannot be sized"
     _ -> return s2
 
 checkOrInfer :: Dec -> Expr -> Maybe Type -> TypeCheck (TVal, EType, Kinded Extr)
@@ -1302,7 +1301,7 @@ inferType t = do
   (sv, te) <- inferExpr t
   case sv of
     VSort s | not (s `elem` map SortC [Tm,Size]) -> return (s,te)
-    _ -> fail $ "inferExpr: expected " ++ show t ++ " to be a type!"
+    _ -> throwErrorMsg $ "inferExpr: expected " ++ show t ++ " to be a type!"
 
 -- inferExpr e = (tv, s, ee)
 -- input : expr e | inferable e
@@ -1380,9 +1379,9 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         let dec = decor item
         let pol = polarity dec
         if erased dec then
-          fail $ err ++ ", because it is marked as erased"
+          throwErrorMsg $ err ++ ", because it is marked as erased"
          else if not (leqPol pol SPos) then
-          fail $ err ++ ", because it has polarity " ++ show pol
+          throwErrorMsg $ err ++ ", because it has polarity " ++ show pol
          else do
            -- traceCheckM ("infer variable " ++ x ++ " : " ++ show  (typ item))
            return $ (typ item, Var x) -- TODO: (typ item, kind item, Var x)
@@ -1408,7 +1407,7 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         checkCon <- asks checkingConType
 {- TODO
         when (checkCon && polarity dec /= Mixed) $
-          fail $ "constructor arguments must be declared mixed-variant"
+          throwErrorMsg $ "constructor arguments must be declared mixed-variant"
 -}
         (s1, Kinded ki0 t1e) <- (if pisig==Pi then checkingDom else id) $
           checkingCon False $ inferType t1 -- switch off parametric Pi
@@ -1579,7 +1578,7 @@ checkSmallType t =
       case s of
         Set VZero -> return te
         CoSet{} -> return te
-        _ -> fail $ "expected " ++ show s ++ " to be Set or CoSet _"
+        _ -> throwErrorMsg $ "expected " ++ show s ++ " to be Set or CoSet _"
 
 {-
 -- small type
@@ -1620,8 +1619,8 @@ checkCase i v tv cl@(Clause _ [p] mrhs) = enter ("case " ++ show i) $
         tel <- getContextTele -- TODO!
         case (absp,mrhs) of
            (True,Nothing) -> return $ Kinded NoKind (Clause tel [pe] Nothing)
-           (False,Nothing) -> fail ("missing right hand side in case " ++ showCase cl)
-           (True,Just rhs) -> fail ("absurd pattern requires no right hand side in case " ++ showCase cl)
+           (False,Nothing) -> throwErrorMsg ("missing right hand side in case " ++ showCase cl)
+           (True,Just rhs) -> throwErrorMsg ("absurd pattern requires no right hand side in case " ++ showCase cl)
            (False,Just rhs) -> do
               -- pv <- whnf' (patternToExpr p) -- DIFFICULT FOR DOT PATTERNS!
       --        vp <- patternToVal p -- BUG: INTRODUCES FRESH GENS, BUT THEY HAVE ALREADY BEEN INTRODUCED IN checkPattern
@@ -1676,8 +1675,8 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
       tel <- getContextTele -- WRONG TELE, has VGens for DotPs
       case (absp,mrhs) of
          (True,Nothing) -> return $ Kinded NoKind (Clause tel ple Nothing)
-         (False,Nothing) -> fail ("missing right hand side in clause " ++ show cl)
-         (True,Just rhs) -> fail ("absurd pattern requires no right hand side in clause " ++ show cl)
+         (False,Nothing) -> throwErrorMsg ("missing right hand side in clause " ++ show cl)
+         (True,Just rhs) -> throwErrorMsg ("absurd pattern requires no right hand side in clause " ++ show cl)
          (False,Just rhs) -> do
             Kinded ki rhse <- checkRHS ins rhs tv0
             env  <- getEnv
@@ -1712,7 +1711,7 @@ checkPatterns dec0 flex ins v pl =
     VMeasured mu vb -> setMeasure mu $ checkPatterns dec0 flex ins vb pl
     VGuard beta vb -> addBoundHyp beta $ checkPatterns dec0 flex ins vb pl
 {-
-    VGuard beta vb -> fail $ "checkPattern at type " ++ show v ++ " --- introduction of constraints not supported"
+    VGuard beta vb -> throwErrorMsg $ "checkPattern at type " ++ show v ++ " --- introduction of constraints not supported"
 -}
     _ -> case pl of
       [] -> do cxt <- ask
@@ -1794,7 +1793,7 @@ checkPattern dec0 flex ins tv p = -- ask >>= \ TCContext { context = delta, envi
 
                  co <- asks mutualCo
                  when (co /= CoInd) $
-                   fail ("successor pattern only allowed in cofun")
+                   throwErrorMsg ("successor pattern only allowed in cofun")
 
                  enterDoc (text ("checkPattern " ++ show p ++" : matching on size, checking that target") <+> prettyTCM tv <+> text "ends in correct coinductive sized type") $
                    underAbs x domEr fv $ \ i _ bv -> endsInSizedCo i bv
@@ -1911,7 +1910,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
                  return (flex, ins, cxt', maybeErase $ SizeP e y, xv, False)
 
           AbsurdP -> do
-                 when (isFunType av) $ fail ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)
+                 when (isFunType av) $ throwErrorMsg ("absurd pattern " ++ show p ++ " does not match function types, like " ++ show av)
                  cxt' <- ask
                  return (MaxMatches 0 av : flex, ins, cxt', maybeErase $ AbsurdP, VIrr, True)
 {-
@@ -1945,7 +1944,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
 -}
                  (vc,(flex',ins',cxt',vc',ple,pvs,absp)) <- checkConstructorPattern co n pl
 
-                 when (isFunType vc') $ fail ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
+                 when (isFunType vc') $ throwErrorMsg ("higher-order matching of pattern " ++ show p ++ " of type " ++ show vc' ++ " not allowed")
                  let flexgen = concat $ map (\ g -> case g of
                         DotFlex i _ _ -> [i]
                         _ -> []) flex'
@@ -2040,7 +2039,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
       maybeErase p = if erased decEr then ErasedP p else p
 
       checkConstructorPattern co n pl = do
-                 when (isFunType av) $ fail ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")
+                 when (isFunType av) $ throwErrorMsg ("higher-order matching of pattern " ++ show p ++ " at type " ++ show av ++ " not allowed")
 -- TODO: ensure that matchings against erased arguments are forced
 --                 when (erased dec) $ throwErrorMsg $ "checkPattern: cannot match on erased argument " ++ show p ++ " : " ++ show av
 
@@ -2076,7 +2075,7 @@ checkPattern' flex ins domEr@(Domain av ki decEr) p = do
         when (co == CoCons && isJust sz) $ do
           let sizep = head pl  -- 2012-01-22: WAS (pl !! nPars)
           unless (isDotPattern sizep) $
-            fail $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
+            throwErrorMsg $ "in pattern " ++ show p  ++ ", coinductive size sub pattern " ++ show sizep ++ " must be dotted"
 
         when (not $ decEr `elem` map Dec [Const,Rec]) $
           recoverFail $ "cannot match pattern " ++ show p ++ " against non-computational argument"
@@ -2150,7 +2149,7 @@ Only a size variable matches a size arguments
 checkDot :: Substitution -> DotFlex -> TypeCheck ()
 checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
   case (lookup i subst) of
-    Nothing -> fail $ "not instantiated"
+    Nothing -> throwErrorMsg $ "not instantiated"
     Just v -> do
       tv <- substitute subst (typ it)
       ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv)
@@ -2325,7 +2324,7 @@ instList' np posl flex tv (v1:vl1) (v2:vl2) = do
       (VQuant Pi x dom fv) -> do
         vb   <- app fv v2
         instList' (np - 1) (tailPosl posl) flex vb vl1 vl2
-instList' np pos flex tv vl1 vl2 = fail $ "internal error: instList' " ++ show (np,pos,flex,tv,vl1,vl2) ++ " not handled"
+instList' np pos flex tv vl1 vl2 = throwErrorMsg $ "internal error: instList' " ++ show (np,pos,flex,tv,vl1,vl2) ++ " not handled"
 
 headPosl :: [Pol] -> Pol
 headPosl [] = mixed
@@ -2497,7 +2496,7 @@ szConstructor n co p tv = enterDoc (text ("szConstructor " ++ show n ++ " :") <+
        VQuant Pi x dom fv | isVSize (typ dom) ->
           underAbs x dom fv $ \ k xv bv -> do
             szSizeVarUsage n co p k bv
-       _ -> fail $ "not a valid sized constructor: expected size quantification"
+       _ -> throwErrorMsg $ "not a valid sized constructor: expected size quantification"
 
 szSizeVarUsage :: Name -> Co -> Int -> Int -> TVal -> TypeCheck ()
 szSizeVarUsage n co p i tv = enterDoc (text "szSizeVarUsage of" <+> prettyTCM (VGen i) <+> text "in" <+> prettyTCM tv) $
@@ -2637,7 +2636,7 @@ admFunDef :: Co -> [Clause] -> TVal -> TypeCheck [Clause]
 admFunDef co cls tv = do
   (cls, inco) <- admClauses cls tv
   when (co==CoInd && not (co `elem` inco)) $
-    fail $ show tv ++ " is not a type of a cofun" -- ++ if co==Ind then "fun" else "cofun"
+    throwErrorMsg $ show tv ++ " is not a type of a cofun" -- ++ if co==Ind then "fun" else "cofun"
   return cls
 
 admClauses :: [Clause] -> TVal -> TypeCheck ([Clause], [Co])
@@ -2988,7 +2987,7 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
       VApp (VDef (DefId DatK d)) vl -> do
          case p of
            ProjP n -> return (p, [])
-           _ -> fail "admPattern: IMPOSSIBLE: non-projection pattern for record type"
+           _ -> throwErrorMsg "admPattern: IMPOSSIBLE: non-projection pattern for record type"
       VQuant Pi x dom fv -> underAbs x dom fv $ \ k xv bv -> do
   {-
          if p is successor pattern
@@ -3004,7 +3003,7 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
             else return (UnusableP p, inco)
           else return (p, [])
 
-      _ -> fail "admPattern: IMPOSSIBLE: pattern for a non-function type"
+      _ -> throwErrorMsg "admPattern: IMPOSSIBLE: pattern for a non-function type"
 
 cannotMatchDeep p tv = recoverFailDoc $
   text "cannot match against deep successor pattern"
@@ -3297,6 +3296,6 @@ szUsed' co i tv =
                       do s <- whnfClos $ vl !! p
                          case s of
                            VGen i' | i == i' -> return ()
-                           _ -> fail $ "expected size variable"
-                  _ -> fail $ "expected (co)inductive sized type"
-         _ -> fail $ "expected (co)inductive sized type"
+                           _ -> throwErrorMsg $ "expected size variable"
+                  _ -> throwErrorMsg $ "expected (co)inductive sized type"
+         _ -> throwErrorMsg $ "expected (co)inductive sized type"

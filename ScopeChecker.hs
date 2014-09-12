@@ -9,12 +9,11 @@ module ScopeChecker (scopeCheck) where
 
 import Prelude hiding (mapM, null)
 
-import Control.Applicative -- <$>
-import Control.Monad.IfElse
+import Control.Applicative
 import Control.Monad.Identity hiding (mapM)
 import Control.Monad.Reader hiding (mapM)
 import Control.Monad.State hiding (mapM)
-import Control.Monad.Error hiding (mapM)
+import Control.Monad.Except hiding (mapM)
 
 import Data.List as List hiding (null)
 import Data.Maybe
@@ -153,7 +152,7 @@ initSt = SCState emptySig 0 0
 -- State monad (hidden) for global signature.
 -- Error monad for reporting scope violations.
 newtype ScopeCheck a = ScopeCheck { unScopeCheck ::
-  ReaderT SCCxt (StateT SCState (ErrorT TraceError Identity)) a }
+  ReaderT SCCxt (StateT SCState (ExceptT TraceError Identity)) a }
   deriving (Functor, Applicative, Monad,
     MonadReader SCCxt, MonadError TraceError)
 
@@ -162,7 +161,7 @@ runScopeCheck
   -> SCState        -- ^ Global identifier mapping.
   -> ScopeCheck a   -- ^ The computation.
   -> Either TraceError (a, SCState)
-runScopeCheck ctx st (ScopeCheck sc) = runIdentity $ runErrorT $
+runScopeCheck ctx st (ScopeCheck sc) = runIdentity $ runExceptT $
   runStateT (runReaderT sc ctx) st
 
 -- ** Local state.
@@ -419,7 +418,7 @@ scopeCheckMutual ds0 = do
   let (ns, mll) = unzip $ compressMaybes mmm
   let measured = null mll || isJust (head mll)
   let ok = null mll || all ((head mll)==) (tail mll)
-  when (not ok) $ fail $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
+  when (not ok) $ throwErrorMsg $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
 {-
   -- switch to internal fun ids
   let funNames = [ n | (FunK _ , A.TypeSig n _) <- ktsigs ] -- internal fun names
@@ -483,11 +482,11 @@ mutualFlattenDecls ds = mapM mutualFlattenDecl ds >>= return . concat
 
 mutualFlattenDecl :: C.Declaration -> ScopeCheck [C.Declaration]
 mutualFlattenDecl (C.MutualDecl ds) = mutualFlattenDecls ds
-mutualFlattenDecl (C.OverrideDecl Fail _) = fail $ "fail declaration not supported in mutual block"
+mutualFlattenDecl (C.OverrideDecl Fail _) = throwErrorMsg $ "fail declaration not supported in mutual block"
 mutualFlattenDecl (C.OverrideDecl o ds) = do
   ds' <- mutualFlattenDecls ds
   return $ map (\ d -> C.OverrideDecl o [d]) ds'
-mutualFlattenDecl (C.LetDecl{}) = fail $ "let in mutual block not supported"
+mutualFlattenDecl (C.LetDecl{}) = throwErrorMsg $ "let in mutual block not supported"
 mutualFlattenDecl d = return $ [d]
 
 -- extract type sigs of a mutual block in order, error on nested mutual
@@ -600,7 +599,7 @@ scopeCheckFunDecls co l = do
   r <- mapM (\ (C.FunDecl _ tysig _) -> scopeCheckFunSig tysig) l
   let (ml:mll, tsl') = unzip r
   let ok = all (ml==) mll
-  when (not ok) $ fail $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
+  when (not ok) $ throwErrorMsg $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
   -- add names as internal ids and check bodies
   let nxs = zipWith (\ (C.FunDecl _ (C.TypeSig n _) _) (A.TypeSig x _) -> (n,x)) l tsl'
   --let addFuns b = mapM (uncurry $ addAName $ FunK b) nxs
@@ -785,7 +784,7 @@ scopeCheckConstructor ctel atel co t0 a@(C.Constructor n tel mt) = addTel ctel a
           A.Param   -> return dec
           A.Const   -> return dec
           A.PVar{}  -> return dec
-          _         -> fail $ "illegal polarity " ++ show (polarity dec) ++ " in type of constructor " ++ show a
+          _         -> throwErrorMsg $ "illegal polarity " ++ show (polarity dec) ++ " in type of constructor " ++ show a
 
 -- | Allow shadowing of previous locals.
 --   Always if we enter a subexpression which is not the body
@@ -827,7 +826,7 @@ scopeCheckExpr' e =
       -- measure & bound
       -- measures can only appear in fun sigs!
       C.Quant pisig [C.TMeasure mu] e1 -> do
-        fail $ "measure not allowed in expression " ++ show e
+        throwErrorMsg $ "measure not allowed in expression " ++ show e
 
       -- measure bound mu < mu'
       C.Quant A.Pi [C.TBound beta] e1 -> do
@@ -836,7 +835,7 @@ scopeCheckExpr' e =
         e1'   <- scopeCheckExpr' e1
         return $ A.pi (A.TBound beta') e1'
 
-      C.Quant A.Sigma [C.TBound beta] e1 -> fail $
+      C.Quant A.Sigma [C.TBound beta] e1 -> throwErrorMsg $
         "measure bound not allowed in expression " ++ show e
 
       C.Quant pisig tel e -> do
@@ -875,7 +874,7 @@ scopeCheckExpr' e =
           Just x -> return $ A.Var x
           Nothing -> scopeCheckGlobalVar n
 
-      _ -> fail $ "NYI: scopeCheckExpr " ++ show e
+      _ -> throwErrorMsg $ "NYI: scopeCheckExpr " ++ show e
 
 scopeCheckGlobalVar :: C.QName -> ScopeCheck A.Expr
 scopeCheckGlobalVar n = do
@@ -1065,7 +1064,7 @@ scopeCheckParameter e =
     C.Record fs          -> mapM_ (scpField e) fs
     C.Ident n            -> scpApp e n []
     C.App (C.Ident n) es -> scpApp e n es
-    C.App C.App{} es     -> fail $ "scopeCheckParameter " ++ show e ++ ": internal invariant violated"
+    C.App C.App{} es     -> throwErrorMsg $ "scopeCheckParameter " ++ show e ++ ": internal invariant violated"
     _ -> errorInvalidParameter e
   where
     -- we can only treat a record expression as pattern

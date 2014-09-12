@@ -45,7 +45,7 @@ import Data.Char
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.State
@@ -66,7 +66,7 @@ import Util
 
 -- translation monad
 
-type Translate = StateT TState (ReaderT TContext (ErrorT TraceError IO))
+type Translate = StateT TState (ReaderT TContext (ExceptT TraceError IO))
 
 {- no longer needed with mtl-2
 instance Applicative Translate where
@@ -85,7 +85,7 @@ initCxt :: TContext
 initCxt = TContext
 
 runTranslate :: Translate a -> IO (Either TraceError a)
-runTranslate t = runErrorT (runReaderT (evalStateT t initSt) initCxt)
+runTranslate t = runExceptT (runReaderT (evalStateT t initSt) initCxt)
 
 -- translation
 
@@ -101,7 +101,7 @@ translateDecl :: EDeclaration -> Translate [H.Decl]
 translateDecl d =
   case d of
     MutualDecl _ ds -> translateDecls ds
-    OverrideDecl{} -> fail $ "translateDecls internal error: overrides impossible"
+    OverrideDecl{} -> throwErrorMsg $ "translateDecls internal error: overrides impossible"
     MutualFunDecl _ _ funs -> translateFuns funs
     FunDecl _ fun -> translateFun fun
     LetDecl _ x tel (Just t) e | null tel -> translateLet x t e
@@ -196,7 +196,7 @@ translateType t =
     _ -> return H.unit_tycon
 
 {- TODO:
-    _ -> fail $ "no Haskell representation for type " ++ show t
+    _ -> throwErrorMsg $ "no Haskell representation for type " ++ show t
  -}
 
 translateExpr :: FExpr -> Translate H.Exp
@@ -269,7 +269,7 @@ hsName id = enter ("error translating identifier " ++ show id) $
   (DefId DatK (QName x)) -> do
     let n = suggestion x
     unless (isUpper $ head n) $
-      fail $ "data names need to be capitalized"
+      throwErrorMsg $ "data names need to be capitalized"
     return $ H.Ident n
   (DefId (ConK co) (Qual d x)) -> do
     let n = suggestion x
@@ -283,7 +283,7 @@ hsName id = enter ("error translating identifier " ++ show id) $
     let n = suggestion $ unqual x
 {- ignore for now
      unless (isLower $ head n) $
-       fail $ "function names need to start with a lowercase letter"
+       throwErrorMsg $ "function names need to start with a lowercase letter"
  -}
     return $ H.Ident n
 
