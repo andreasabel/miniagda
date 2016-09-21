@@ -52,7 +52,7 @@ mkDataDecl :: Name -> [TyVarBind] -> Kind -> [GadtDecl] -> Decl
 mkDataDecl n tel k cs = GDataDecl noLoc DataType noContext n tel (Just k) cs [showDeriving]
 
 mkConDecl :: Name -> Type -> GadtDecl
-mkConDecl n t = GadtDecl noLoc n t
+mkConDecl n t = GadtDecl noLoc n [] t
 
 mkKindFun :: Kind -> Kind -> Kind
 mkKindFun = KindFn
@@ -94,7 +94,7 @@ mkLet :: Name -> Exp -> Decl
 mkLet x e = FunBind [mkClause x [] e]
 
 mkClause :: Name -> [Pat] -> Exp -> Match
-mkClause f ps e = Match noLoc f ps Nothing (UnGuardedRhs e) noBinds
+mkClause f ps e = Match noLoc f ps Nothing (UnGuardedRhs e) Nothing
 
 mkCast :: Exp -> Exp
 mkCast e = Var (mkQual "Coerce" "unsafeCoerce") `App` e
