@@ -1,6 +1,6 @@
 -- 2011-12-20 Andreas, gcd example using generic Either
 
-sized data Nat : Size -> Set 
+sized data Nat : Size -> Set
 { zero : [i : Size] -> Nat ($ i)
 ; suc  : [i : Size] -> Nat i -> Nat ($ i)
 }
@@ -24,18 +24,18 @@ fun either : [A,B,C : Set] -> Either A B ->
 -- plus a bit indicating the bigger number of the two
 
 fun minus : [i,j : Size] -> Nat i -> Nat j -> Either (Nat i) (Nat j)
-{ minus i j (zero (i > i'))   m               = right m 
+{ minus i j (zero (i > i'))   m               = right m
 ; minus i j (suc  (i > i') n) (zero (j > j')) = left  (suc i' n)
 ; minus i j (suc  (i > i') n) (suc  (j > j') m) = minus i' j' n m
 }
 
--- greated common divisor (gcd) 
+-- greated common divisor (gcd)
 -- distinguishing cases using either
 
-fun gcd : [i,j : Size] -> Nat i -> Nat j -> Nat (max i j)
+fun gcd : [i,j : Size] -> |i,j| -> Nat i -> Nat j -> Nat (max i j)
 { gcd i j (zero (i > i')) m = m
 ; gcd i j (suc (i > i') n) (zero (j > j')) = suc i' n
-; gcd i j (suc (i > i') n) (suc (j > j') m) = 
+; gcd i j (suc (i > i') n) (suc (j > j') m) =
   case minus i' j' n m
   { (left  n') -> gcd i' j n' (suc j' m)
   ; (right m') -> gcd i j' (suc i' n) m'
