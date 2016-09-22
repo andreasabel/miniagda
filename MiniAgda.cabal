@@ -48,7 +48,8 @@ executable miniagda
                     pretty >= 1.0 && < 1.2
   build-tools:      happy >= 1.15 && < 2,
                     alex >= 3.0 && < 4
-  extensions:       CPP
+  default-language: Haskell98
+  default-extensions: CPP
                     MultiParamTypeClasses
                     TypeSynonymInstances
                     FlexibleInstances
