@@ -1,0 +1,9 @@
+*~
+*.hi
+*.hi-boot
+*.o
+*.o-boot
+/Main
+/Lexer.hs
+/Parser.hs
+/Parser.y-grm.txt
