@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.2016.9.21
+version:         0.2016.12.19
 build-type:      Simple
 cabal-version:   >= 1.22
 license:         OtherLicense
@@ -7,7 +7,7 @@ license-file:    LICENSE
 author:          Andreas Abel and Karl Mehltretter
 maintainer:      Andreas Abel <andreas.abel@ifi.lmu.de>
 homepage:        http://www.tcs.ifi.lmu.de/~abel/miniagda/
-bug-reports:     http://hub.darcs.net/abel/miniagda/issues
+bug-reports:     https://github.com/andreasabel/miniagda/issues
 category:        Dependent types
 synopsis:        A toy dependently typed programming language with type-based termination.
 description:
@@ -35,11 +35,11 @@ data-files:         test/succeed/Makefile
                     test/fail/adm/*.err
                     lib/*.ma
 source-repository head
-  type:     darcs
-  location: http://hub.darcs.net/abel/miniagda
+  type:     git
+  location: https://github.com/andreasabel/miniagda
 
 executable miniagda
-  hs-source-dirs:   .
+  hs-source-dirs:   src
   build-depends:    array >= 0.3 && < 0.6,
                     base >= 4.7 && < 4.9,
                     containers >= 0.3 && < 0.6,

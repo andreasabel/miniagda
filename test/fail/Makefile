@@ -14,7 +14,7 @@
 # an error.  Then one has to verify the new error message is actually the
 # intended one (manually), and remove the .err file.
 
-mugda=../../Main
+mugda=../../src/Main
 
 # Enable read -n
 SHELL=bash
@@ -29,7 +29,7 @@ allout=$(patsubst %.ma,%.err,$(allagda))
 default : all
 all : $(allstems)
 
-debug : 
+debug :
 	@echo $(allagda)
 
 # No error recorded
@@ -91,7 +91,7 @@ $(allstems) : % : %.err
 # RETARDED!!!!!!!
 
 #		echo rm -f $*.tmp; echo rm -f $*.tmp.2; \
-#		false; 
+#		false;
 
 # Clean
 

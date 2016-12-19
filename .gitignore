@@ -7,3 +7,8 @@
 /Lexer.hs
 /Parser.hs
 /Parser.y-grm.txt
+/src/Lexer.hs
+/src/Main
+/src/Parser.hs
+/src/Parser.y-grm.txt
+/dist/
