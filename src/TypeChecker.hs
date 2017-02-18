@@ -19,7 +19,7 @@ import Data.Maybe
 import qualified Data.Foldable as Foldable
 import qualified Data.Traversable as Traversable
 
-import Debug.Trace
+import Debug.Trace (trace)
 
 import qualified Text.PrettyPrint as PP
 
@@ -274,7 +274,14 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
                  pol -> throwErrorMsg $ "sized type " ++ show n ++ " has wrong polarity annotation " ++ show pol ++ " at Size argument, it should be " ++ show polsz
              t0 -> return t0
            return (params + 1, pos0 ++ [polsz], t)
-         NotSized -> return (params, pos0, t0)
+         NotSized -> do
+           -- Warn if it looks like a sized type, but there was no keyword "sized".
+           case t0 of
+             Quant Pi (TBind x (Domain domt ki dec)) b | isSize domt -> do
+               traceM $ "Warning: data " ++ show n ++
+                 " looks like you want to define a sized type, did you forget keyword `sized`?"
+             _ -> return ()
+           return (params, pos0, t0)
      -- compute full type signature (including parameter telescope)
      let dt = (teleToType tel0 t)
      echoTySig n dt
@@ -3029,8 +3036,9 @@ admType i tv = enter ("admType: checking " ++ show tv ++ " admissible in v" ++ s
 szUsed :: Co -> Int -> TVal -> TypeCheck Bool
 szUsed co i tv = traceAdm ("szUsed: " ++ show tv ++ " " ++ show co ++ " in v" ++ show i) $
     case tv of
-         (VApp (VDef (DefId DatK n)) vl) ->
-             do sige <- lookupSymbQ n
+         (VApp (VDef (DefId DatK n)) vl) -> do
+                traceAdmM ("szUsed: case data type: " ++ show n ++ show vl)
+                sige <- lookupSymbQ n
                 case sige of
                   DataSig { numPars = p
                           , isSized = Sized
