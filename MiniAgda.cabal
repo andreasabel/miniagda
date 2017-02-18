@@ -1,5 +1,5 @@
 name:            MiniAgda
-version:         0.2016.12.19
+version:         0.2017.02.18
 build-type:      Simple
 cabal-version:   >= 1.22
 license:         OtherLicense

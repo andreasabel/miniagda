@@ -1,5 +1,9 @@
 CHANGELOG for MiniAgda
 
+0.2017.02.18  Updated install instructions.
+
+0.2016.12.19  Travis instance ensures compilation with ghc 7.6 -- 8.0.
+
 0.2014.9.12
 
 Internal changes:
