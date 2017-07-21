@@ -15,7 +15,7 @@ cofun fib : [i : Size] -> Stream Nat i
 }
 {- checking ok
 
-k < j < i |- 
+k < j < i |-
   fib j : Stream Nat j
   fib j : Stream Nat $k  -- by subtyping
   tail k (fib j) : Stream Nat k
@@ -42,8 +42,8 @@ cofun id2 : [i : Size] -> Stream A i -> Stream A i
 
 seems fine, no paradox
 -}
- 
-{-    
+
+{-
 cofun even : [i : Size] ? Stream (2 * i) ? Stream i
 { even (1 + i) (cons (2 + 2 * i) x (cons (1 + 2 * i) y t))
 = cons i x (even (2 * i) t)
@@ -52,11 +52,9 @@ cofun even : [i : Size] ? Stream (2 * i) ? Stream i
 
 cofun evens : [i : Size] -> Stream A (2i) -> Stream A i
 { head (i > j) (evens i s) = head (2j + 1) s
-; tail (i > j) (evens i s) = evens j (tail (2j) (tail (2j+1) s)) 
+; tail (i > j) (evens i s) = evens j (tail (2j) (tail (2j+1) s))
 }
 
 {- s : Stream 2i <= Stream 2(j+1)
    evens j (t (t s)) : Stream j
 -}
-
- 

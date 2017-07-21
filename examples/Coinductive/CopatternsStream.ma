@@ -1,5 +1,5 @@
 
-record Stream +(A : Set) -(i : Size) 
+record Stream +(A : Set) -(i : Size)
 { cons (head : A) (tail : [j < i] -> Stream A j)
 } fields head, tail
 
@@ -28,13 +28,13 @@ fun plus : Nat -> Nat -> Nat
 fun fib : [i : Size] -> Stream Nat i
 { fib i .head                       = zero
 ; fib i .tail (j < i) .head         = suc zero
-; fib i .tail (j < i) .tail (k < j) = 
+; fib i .tail (j < i) .tail (k < j) =
    zipWith Nat Nat Nat plus k (fib k) (fib j .tail k)
 }
 
 {- no sizes
 
-record Stream (A : Set) 
+record Stream (A : Set)
 { cons (head : A) (tail : Stream A)
 } fields head, tail
 

@@ -33,7 +33,7 @@ let p2 : Eq (Bits #) (lows #) (low # (lows #))
 
 -- Thorsten's stuff
 
-let l1 : Eq (Bits #) (lows #) (low # (lows #)) 
+let l1 : Eq (Bits #) (lows #) (low # (lows #))
        = refl -- (Bits #) (lows #)
 
 fun l2 :  (s : Bits #) -> (t : Bits #) -> (Eq (Bits #) s t)

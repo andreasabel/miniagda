@@ -1,4 +1,4 @@
-sized codata Stream (A : Set) : Size -> Set 
+sized codata Stream (A : Set) : Size -> Set
 { cons : [i : Size] -> (head : A) -> (tail : Stream A i) -> Stream A $i
 } fields head, tail
 
@@ -19,7 +19,7 @@ cofun odds : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A i
 }
 
 let weave : [A : Set] -> [i : Size] -> Stream A (i + i) -> Stream A (i + i)
-  = \ A i xs -> interleave A i (evens A i xs) (odds A i xs) 
+  = \ A i xs -> interleave A i (evens A i xs) (odds A i xs)
 
 cofun map : [A, B : Set] -> (A -> B) -> [i : Size] -> Stream A i -> Stream B i
 { map A B f ($ i) (cons .i a as) = cons i (f a) (map A B f i as)
@@ -32,8 +32,8 @@ data Nat : Set
 
 {-
 cofun nats : [i : Size] -> Stream Nat i
-{ nats $i = 
-   let nats' : Stream Nat i 
+{ nats $i =
+   let nats' : Stream Nat i
              = map Nat Nat succ i (nats i)
    in cons Nat i zero (interleave Nat (evens nats') (odds nats'))
 }

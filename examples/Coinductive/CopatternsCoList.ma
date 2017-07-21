@@ -1,5 +1,5 @@
-data CoListF ++(A : Set) ++(X : Set) 
-{ nil 
+data CoListF ++(A : Set) ++(X : Set)
+{ nil
 ; cons (head : A) (tail : X)
 }
 

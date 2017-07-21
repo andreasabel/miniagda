@@ -15,7 +15,7 @@ CoInductive trace: Type :=
 -}
 
 -- "trace" is the type of colists
-sized codata CoList (A : Set) : Size -> Set 
+sized codata CoList (A : Set) : Size -> Set
 { tnil  : [i : Size] -> CoList A $i
 ; tcons : [i : Size] -> A -> CoList A i -> CoList A $i
 }
@@ -25,7 +25,7 @@ CoInductive repet (s : A) : Prop :=
  | repet_S : S s -> repet s
  | repet_R : forall s', R s s' -> repet s' -> repet s.
 -}
- 
+
 -- "repet"
 sized codata Reach (A : Set) (S : A -> Set) (R : A -> A -> Set) *(a : A) : Size -> Set
 { start : [i : Size] -> S a -> Reach A S R a $i
@@ -42,7 +42,7 @@ CoInductive repet1 (s : A) : trace -> Prop :=
 -}
 
 -- "repet1"
-sized codata Traced (A : Set) (S : A -> Set) (R : A -> A -> Set) *(a : A) : 
+sized codata Traced (A : Set) (S : A -> Set) (R : A -> A -> Set) *(a : A) :
   (i : Size) -> CoList A i -> Set
 { tstart : [i : Size] -> S a -> Traced A S R a $i (tnil i)
 ; tstep  : [i : Size] -> (a' : A) -> (t : CoList A i) ->  R a a' -> Traced A S R a' i t ->
@@ -53,15 +53,15 @@ sized codata Traced (A : Set) (S : A -> Set) (R : A -> A -> Set) *(a : A) :
 Goal  forall s, repet s -> exists t, repet1 s t.
 -}
 
-data Exists (A : Set) (B : A -> Set) : Set 
+data Exists (A : Set) (B : A -> Set) : Set
 { pair : (fst : A) -> (snd : B fst) -> Exists A B
 } fields fst, snd
 
 fun map2 : (A, A' : Set) -> (B : A -> Set) -> (B' : A' -> Set) ->
-  (f : A -> A') -> (g : (a : A) -> B a -> B' (f a)) -> 
+  (f : A -> A') -> (g : (a : A) -> B a -> B' (f a)) ->
   Exists A B -> Exists A' B'
 { map2 A A' B B' f g (pair a b) = pair (f a) (g a b)
-} 
+}
 
 let tcons_ : [A : Set] -> [i : Size] -> A -> CoList A i -> CoList A $i
   = \ A i a as -> tcons i a as
@@ -74,17 +74,17 @@ let tstep_ : [A : Set] -> [S : A -> Set] -> [R : A -> A -> Set] -> (a : A) ->
 cofun trace : (A : Set) -> (S : A -> Set) -> (R : A -> A -> Set) ->
    [i : Size] -> (a : A) -> Reach A S R a i ->
    Exists (CoList A i) (Traced A S R a i)
-{ trace A S R ($i) a (start {-.A .S .R .a-} .i s) = 
-    pair -- (CoList A $i) (Traced A S R a $i) 
-      (tnil i) 
+{ trace A S R ($i) a (start {-.A .S .R .a-} .i s) =
+    pair -- (CoList A $i) (Traced A S R a $i)
+      (tnil i)
       (tstart {-A S R a-} i s)
 ; trace A S R ($i) a (step {-.A .S .R .a-} .i a' r x) =
     map2 (CoList A i) (CoList A $i)
-         (Traced A S R a' i) (Traced A S R a $i)    
+         (Traced A S R a' i) (Traced A S R a $i)
          (tcons_ A i a')
          (\ t -> tstep_ A S R a i a' t r)
          (trace A S R i a' x)
-}      
+}
 
 {-
 I expect that it requires classical reasoning & the axiom of choice,
@@ -108,4 +108,3 @@ CoFixpoint witness s (H: repet s) :=
 
 to provide a witness to the existential.
 -}
-
