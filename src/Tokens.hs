@@ -1,6 +1,6 @@
 module Tokens where
 
-data Token 
+data Token
   = Id String
   | Data
   | Fun
@@ -26,4 +26,3 @@ data Token
   | UScore
   | NotUsed -- so happy doesn't generate overlap case pattern warning
     deriving (Eq,Ord,Show)
-

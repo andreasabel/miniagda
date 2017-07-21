@@ -111,7 +111,7 @@ data Matrix i b = M { size :: Size i, unM :: [(MIx i, b)] }
   deriving (Ord)
 
 instance (Ord i, Eq a, HasZero a) => Eq (Matrix i a) where
-  m1 == m2 = size m1 == size m2 && 
+  m1 == m2 = size m1 == size m2 &&
     SparseMatrix.all (uncurry (==)) (SparseMatrix.zip m1 m2)
 
 instance Functor (Matrix i) where
@@ -206,7 +206,7 @@ prop_fromIndexList m = matrixInvariant m' && m' == m
 -- Precondition: @'length' rs '==' 'rows' sz '&&' 'all' (('==' 'cols' sz) . 'length') rs@.
 
 fromLists :: (Ord i, Num i, Enum i, HasZero b) => Size i -> [[b]] -> Matrix i b
-fromLists sz bs = fromIndexList sz $ 
+fromLists sz bs = fromIndexList sz $
   List.zip ([ MIx i j | i <- [1..rows sz] , j <- [1..cols sz]]) (concat bs)
 
 -- | Converts a sparse matrix to a sparse list of rows
@@ -294,7 +294,7 @@ all p m = List.all (\ (i,a) -> p a) (unM m)
 any :: (a -> Bool) -> Matrix i a -> Bool
 any p m = List.any (\ (i,a) -> p a) (unM m)
 
--- | @'zip' m1 m2@ zips @m1@ and @m2@. 
+-- | @'zip' m1 m2@ zips @m1@ and @m2@.
 --
 -- Precondition: @'size' m1 == 'size' m2@.
 
@@ -456,4 +456,3 @@ zipWith f m1 m2
                       cols = toInteger $ length (head ll) }) ll
     where ll = List.zipWith (List.zipWith f) (toLists m1) (toLists m2)
 -}
-

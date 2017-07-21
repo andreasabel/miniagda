@@ -10,4 +10,4 @@ Internal changes:
 * Removed dependency on IfElse.
 * Use ExceptT instead of ErrorT, depend on mtl > 2.2.
   This also required to switch from fail to throwError
-  for catchable errors.x
+  for catchable errors.

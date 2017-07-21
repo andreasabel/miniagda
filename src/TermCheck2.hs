@@ -1,4 +1,5 @@
--- size change termination
+-- | Size change termination.
+
 module TermCheck2 (terminationCheckDecl) where
 
 import Abstract
@@ -42,14 +43,14 @@ data CallGraph = CG { source :: Name , target :: Name , edges :: Set.Set Edge , 
                deriving (Show)
 
 instance Eq CallGraph where
-    (CG s t e _) == (CG s2 t2 e2 _) = (s,t,e) == (s2,t2,e2)  
+    (CG s t e _) == (CG s2 t2 e2 _) = (s,t,e) == (s2,t2,e2)
 
 instance Ord CallGraph where
-    (CG s t e _) <= (CG s2 t2 e2 _) = (s,t,e) <= (s2,t2,e2) 
+    (CG s t e _) <= (CG s2 t2 e2 _) = (s,t,e) <= (s2,t2,e2)
 
 composeCG :: CallGraph -> CallGraph -> CallGraph
 composeCG cg1 cg2 =
-        let l3 = [ ( s1 , t2 , comp o1 o2) | 
+        let l3 = [ ( s1 , t2 , comp o1 o2) |
                    (s1,t1,o1) <- Set.toList $ edges cg1
                  , (s2,t2,o2) <- Set.toList $ edges cg2
                  , t1 == s2 ]
@@ -59,13 +60,13 @@ composeCG cg1 cg2 =
                , path = (path cg1) ++ (path cg2)}
 
 cgComb :: Set.Set CallGraph -> Set.Set CallGraph -> Set.Set CallGraph
-cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 | 
+cgComb cg1 cg2 = Set.fromList ( [ composeCG c1 c2 |
                                   c1 <- (Set.toList cg1)
                                 , c2 <- (Set.toList cg2)
                                 , (target c1 == source c2)])
 
 complete :: Set.Set CallGraph -> Set.Set CallGraph
-complete cg = let cg' = Set.union cg (cgComb cg cg) 
+complete cg = let cg' = Set.union cg (cgComb cg cg)
               in
                 if (cg' == cg) then cg' else complete cg'
 
@@ -84,7 +85,7 @@ isDecr (k1,k2,o) = k1 == k2 && case o of
                                   Lt -> True
                                   (Mat m) -> isDecrO (Mat m)
                                   _ -> False
-             
+
 -- a matrix is decreasing if one diagonal element is decreasing
 isDecrO :: Order -> Bool
 isDecrO Lt = True
@@ -110,11 +111,11 @@ collectCGFunDecl funs adml =
       concatMap (collectClauses names) funs
           where
             collectClauses names ((TypeSig n _),cll) = collectClause names n cll
-            collectClause names n ((Clause pl rhs):rest) = 
-                (collectCallsExpr names n adml pl rhs) ++ (collectClause names n rest) 
+            collectClause names n ((Clause pl rhs):rest) =
+                (collectCallsExpr names n adml pl rhs) ++ (collectClause names n rest)
             collectClause names n [] = []
 
-collectNames [] = []                                     
+collectNames [] = []
 collectNames ((TypeSig n e):rest) = n : collectNames rest
 
 -- pre : all clauses have same pattern length
@@ -122,7 +123,7 @@ collectCallsExpr :: [Name] -> Name -> [[Int]] -> [Pattern] -> Expr -> [CallGraph
 collectCallsExpr nl f adml pl e =
     case e of
       (App (Def g) args) -> let calls = concatMap (collectCallsExpr nl f adml pl) args
-                                gIn = elem g nl 
+                                gIn = elem g nl
                             in
                               case gIn of
                                 False -> calls
@@ -131,13 +132,13 @@ collectCallsExpr nl f adml pl e =
                                             admf = adml !! f'
                                             admg = adml !! g'
                                             m = compareArgs pl args admf admg
-                                            el = Set.fromList $ matrixToEdges m 
+                                            el = Set.fromList $ matrixToEdges m
                                             cg = CG { source = f
                                                     , target =  g
                                                     , edges = el
                                                     , path = ["<" ++ f ++ g ++ ">" ]}
                                         in cg:calls
-      (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) []) 
+      (Def g) ->  collectCallsExpr nl f adml pl (App (Def g) [])
       (App e args) -> concatMap (collectCallsExpr nl f adml pl) (e:args)
       (Lam _ e1) -> collectCallsExpr nl f adml pl e1
       (Pi _ e1 e2) -> (collectCallsExpr nl f adml pl e1) ++
@@ -154,10 +155,10 @@ matrixToEdges m = concat $ mte 0 m
           rowToEdges k1 r = te 0 r
               where
                 te _ [] = []
-                te k2 (o:os) = let ys = te (k2 + 1) os 
+                te k2 (o:os) = let ys = te (k2 + 1) os
                                in case o of
                                     Un -> ys
-                                    (Mat m) -> if (any (/= Un) (diag m)) then (k1,k2,o) : ys 
+                                    (Mat m) -> if (any (/= Un) (diag m)) then (k1,k2,o) : ys
                                                else ys
-                               
+
                                     _ -> (k1,k2,o) : ys

@@ -25,10 +25,10 @@ import Debug.Trace
 import Util
 
 
-traceSolve msg a = a -- trace msg a 
+traceSolve msg a = a -- trace msg a
 traceSolveM msg = return () -- traceM msg
 {-
-traceSolve msg a = trace msg a 
+traceSolve msg a = trace msg a
 traceSolveM msg = traceM msg
 -}
 
@@ -45,17 +45,17 @@ type Matrix a = Array (Int,Int) a
 
 -- assuming a square matrix
 warshall :: SemiRing a => Matrix a -> Matrix a
-warshall a0 = loop r a0 where 
+warshall a0 = loop r a0 where
   b@((r,c),(r',c')) = bounds a0 -- assuming r == c and r' == c'
-  loop k a | k <= r' = 
-    loop (k+1) (array b [ ((i,j), 
+  loop k a | k <= r' =
+    loop (k+1) (array b [ ((i,j),
                            (a!(i,j)) `oplus` ((a!(i,k)) `otimes` (a!(k,j))))
                         | i <- [r..r'], j <- [c..c'] ])
            | otherwise = a
 
--- edge weight in the graph, forming a semi ring 
+-- edge weight in the graph, forming a semi ring
 
-data Weight = Finite Int | Infinite 
+data Weight = Finite Int | Infinite
               deriving (Eq)
 
 inc :: Weight -> Int -> Weight
@@ -80,12 +80,12 @@ instance SemiRing Weight where
 
   ozero = Infinite
   oone  = Finite 0
- 
+
 -- constraints ---------------------------------------------------
 
--- nodes of the graph are either 
--- * flexible variables (with identifiers drawn from Int), 
--- * rigid variables (also identified by Ints), or 
+-- nodes of the graph are either
+-- * flexible variables (with identifiers drawn from Int),
+-- * rigid variables (also identified by Ints), or
 -- * constants (like 0, infinity, or anything between)
 
 data Node rigid
@@ -109,13 +109,13 @@ instance Show Rigid where
 type NodeId  = Int
 type RigidId = Int
 type FlexId  = Int
-type Scope   = RigidId -> Bool  
+type Scope   = RigidId -> Bool
 -- which rigid variables a flex may be instatiated to
 
 infinite (RConst Infinite) = True
 infinite _ = False
 
--- isBelow r w r'  
+-- isBelow r w r'
 -- checks, if r and r' are connected by w (meaning w not infinite)
 -- wether r + w <= r'
 -- precondition: not the same rigid variable
@@ -130,7 +130,7 @@ isBelow _ _ _ = False -- rigid variables are not related
 data Constrnt edgeLabel rigid flexScope
   = NewFlex FlexId flexScope
   | Arc (Node rigid) edgeLabel (Node rigid)
--- Arc v1 k v2  at least one of v1,v2 is a VMeta (Flex), 
+-- Arc v1 k v2  at least one of v1,v2 is a VMeta (Flex),
 --              the other a VMeta or a VGen (Rigid)
 -- if k <= 0 this means  $^(-k) v1 <= v2
 -- otherwise                    v1 <= $^k v3
@@ -142,7 +142,7 @@ arc a k b = Arc a (Finite k) b
 
 instance Show Constraint where
   show (NewFlex i s) = "SizeMeta(?" ++ show i ++ ")"
-  show (Arc v1 (Finite k) v2) 
+  show (Arc v1 (Finite k) v2)
     | k == 0 = show v1 ++ "<=" ++ show v2
     | k < 0  = show v1 ++ "+" ++ show (-k) ++ "<=" ++ show v2
     | otherwise  = show v1 ++ "<=" ++ show v2 ++ "+" ++ show k
@@ -153,7 +153,7 @@ emptyConstraints = []
 
 -- graph (matrix) ------------------------------------------------
 
-data Graph edgeLabel rigid flexScope = Graph 
+data Graph edgeLabel rigid flexScope = Graph
   { flexScope :: Map FlexId flexScope       -- scope for each flexible var
   , nodeMap :: Map (Node rigid) NodeId      -- node labels to node numbers
   , intMap  :: Map NodeId (Node rigid)      -- node numbers to node labels
@@ -187,7 +187,7 @@ addNode n = do
                            }
                   return i
 
--- addEdge n1 k n2  
+-- addEdge n1 k n2
 -- improves the weight of egde n1->n2 to be at most k
 -- also adds nodes if not yet present
 addEdge :: (Eq rigid, Ord rigid, SemiRing edgeLabel) => (Node rigid) -> edgeLabel -> (Node rigid) -> GM edgeLabel rigid flexScope ()
@@ -199,7 +199,7 @@ addEdge n1 k n2 = do
                    else graph st x y
   put $ st { graph = graph' }
 
-addConstraint :: (Eq rigid, Ord rigid, SemiRing edgeLabel) =>  
+addConstraint :: (Eq rigid, Ord rigid, SemiRing edgeLabel) =>
   Constrnt edgeLabel rigid flexScope -> GM edgeLabel rigid flexScope ()
 addConstraint (NewFlex x scope) = do
   addFlex x scope
@@ -207,18 +207,18 @@ addConstraint (NewFlex x scope) = do
                               -- is in the matrix and gets solved
 addConstraint (Arc n1 k n2)     = addEdge n1 k n2
 
-buildGraph :: (Eq rigid, Ord rigid, SemiRing edgeLabel) =>  
+buildGraph :: (Eq rigid, Ord rigid, SemiRing edgeLabel) =>
   [Constrnt edgeLabel rigid flexScope] -> Graph edgeLabel rigid flexScope
 buildGraph cs = execState (mapM_ addConstraint cs) initGraph
 
 mkMatrix :: Int -> (Int -> Int -> a) -> Matrix a
-mkMatrix n g = array ((0,0),(n-1,n-1)) 
+mkMatrix n g = array ((0,0),(n-1,n-1))
                  [ ((i,j), g i j) | i <- [0..n-1], j <- [0..n-1]]
 
 -- displaying matrices with row and column labels --------------------
 
 -- a matrix with row descriptions in b and column descriptions in c
-data LegendMatrix a b c = LegendMatrix 
+data LegendMatrix a b c = LegendMatrix
   { matrix   :: Matrix a
   , rowdescr :: Int -> b
   , coldescr :: Int -> c
@@ -228,13 +228,13 @@ instance (Show a, Show b, Show c) => Show (LegendMatrix a b c) where
   show (LegendMatrix m rd cd) =
     -- first show column description
     let ((r,c),(r',c')) = bounds m
-    in foldr (\ j s -> "\t" ++ show (cd j) ++ s) "" [c .. c'] ++ 
+    in foldr (\ j s -> "\t" ++ show (cd j) ++ s) "" [c .. c'] ++
     -- then output rows
        foldr (\ i s -> "\n" ++ show (rd i) ++
-                foldr (\ j t -> "\t" ++ show (m!(i,j)) ++ t) 
-                      (s) 
+                foldr (\ j t -> "\t" ++ show (m!(i,j)) ++ t)
+                      (s)
                       [c .. c'])
-             "" [r .. r'] 
+             "" [r .. r']
 
 -- solving the constraints -------------------------------------------
 
@@ -263,15 +263,15 @@ instance Show SizeExpr where
 -- sizeRigid r n  returns the size expression corresponding to r + n
 sizeRigid :: Rigid -> Int -> SizeExpr
 sizeRigid (RConst k) n = SizeConst (inc k n)
-sizeRigid (RVar i)   n = SizeVar i n 
+sizeRigid (RVar i)   n = SizeVar i n
 
 {-
 apply :: SizeExpr -> Solution -> SizeExpr
 apply e@(SizeExpr (Rigid _) _) phi = e
 apply e@(SizeExpr (Flex  x) i) phi = case Map.lookup x phi of
   Nothing -> e
-  Just (SizeExpr v j) -> SizeExpr v (i + j) 
- 
+  Just (SizeExpr v j) -> SizeExpr v (i + j)
+
 after :: Solution -> Solution -> Solution
 after psi phi = Map.map (\ e -> e `apply` phi) psi
 -}
@@ -313,7 +313,7 @@ while flexible variables and rigid rows left
 
 while flexible variables j left
   search the row j for entry i
-    if j --n--> i with n >= 0 (meaning j <= i + n) then j = i 
+    if j --n--> i with n >= 0 (meaning j <= i + n) then j = i
 
 
 -}
@@ -322,7 +322,7 @@ solve :: Constraints -> Maybe Solution
 solve cs = traceSolve (show lm0) $ traceSolve (show lm) $ traceSolve (show cs) $
      let solution = if solvable then loop1 rigids emptySolution
                     else Nothing
-     in traceSolve ("solution = " ++ show solution) $ 
+     in traceSolve ("solution = " ++ show solution) $
           solution
    where -- compute the graph and its transitive closure m
          gr  = buildGraph cs
@@ -336,7 +336,7 @@ solve cs = traceSolve (show lm0) $ traceSolve (show lm) $ traceSolve (show cs) $
          lm  = LegendMatrix m legend legend             -- trace only
 
          -- compute the sets of flexible and rigid node numbers
-         ns  = Map.keys (nodeMap gr)                    
+         ns  = Map.keys (nodeMap gr)
          -- a set of flexible variables
          flexs  = foldl (\ l k -> case k of (Flex i) -> i : l
                                             (Rigid _) -> l) [] ns
@@ -350,21 +350,21 @@ solve cs = traceSolve (show lm0) $ traceSolve (show lm) $ traceSolve (show cs) $
 
          -- check whether there is a solution
          -- d   = [ m!(i,i) | i <- [0 .. (n-1)] ]  -- diagonal
--- a rigid variable might not be less than it self, so no -.. on the 
+-- a rigid variable might not be less than it self, so no -.. on the
 -- rigid part of the diagonal
          solvable = all (\ x -> x >= oone) [ m!(i,i) | i <- rInds ] &&
 -- a rigid variable might not be bounded below by infinity or
 -- bounded above by a constant
 -- it might not be related to another rigid variable
-           all (\ (r,  r') -> r == r' || 
+           all (\ (r,  r') -> r == r' ||
                 let Just row = (Map.lookup (Rigid r)  (nodeMap gr))
                     Just col = (Map.lookup (Rigid r') (nodeMap gr))
                     edge = m!(row,col)
-                in  isBelow r edge r' ) 
+                in  isBelow r edge r' )
              [ (r,r') | r <- rigids, r' <- rigids ]
            &&
 -- a flexible variable might not be strictly below a rigid variable
-           all (\ (x, v) -> 
+           all (\ (x, v) ->
                 let Just row = (Map.lookup (Flex x)  (nodeMap gr))
                     Just col = (Map.lookup (Rigid (RVar v)) (nodeMap gr))
                     edge = m!(row,col)
@@ -376,33 +376,33 @@ solve cs = traceSolve (show lm0) $ traceSolve (show lm) $ traceSolve (show cs) $
          inScope x (RConst _) = True
          inScope x (RVar v)   = case Map.lookup x (flexScope gr) of
                      Just scope -> scope v
-                     Nothing    -> error $ "Warshall.inScope panic: flexible " ++ show x ++ " does not carry scope info when assigning it rigid variable " ++ show v  
+                     Nothing    -> error $ "Warshall.inScope panic: flexible " ++ show x ++ " does not carry scope info when assigning it rigid variable " ++ show v
 
 {- loop1
 
 while flexible variables and rigid rows left
   find a rigid variable row i
     for all flexible columns j
-      if i --n--> j with n<=0 (meaning i + n <= j) then 
+      if i --n--> j with n<=0 (meaning i + n <= j) then
         add i + n to the solution of j
 
 -}
 
          loop1 :: [Rigid] -> Solution -> Maybe Solution
-         loop1 (r:rgds) subst = loop1 rgds subst' where 
+         loop1 (r:rgds) subst = loop1 rgds subst' where
             row = fromJust $ Map.lookup (Rigid r) (nodeMap gr)
             subst' =
-                  foldl (\ sub f -> 
+                  foldl (\ sub f ->
                           let col = fromJust $ Map.lookup (Flex f) (nodeMap gr)
                           in  case (True -- inScope f r  -- SEEMS WRONG TO IGNORE THINGS NOT IN SCOPE
                                    , m!(row,col)) of
---                                Finite z | z <= 0 -> 
-                                (True, Finite z) -> 
+--                                Finite z | z <= 0 ->
+                                (True, Finite z) ->
                                    let trunc z | z >= 0 = 0
                                             | otherwise = -z
                                    in extendSolution sub f (sizeRigid r (trunc z))
                                 _ -> sub
-                     ) subst flexs       
+                     ) subst flexs
          loop1 [] subst = case flexs List.\\ (Map.keys subst) of
             [] -> Just subst
             flexs' -> loop2 flexs' subst
@@ -411,23 +411,23 @@ while flexible variables and rigid rows left
 
 while flexible variables j left
   search the row j for entry i
-    if j --n--> i with n >= 0 (meaning j <= i + n) then j = i 
+    if j --n--> i with n >= 0 (meaning j <= i + n) then j = i
 
 -}
          loop2 :: [FlexId] -> Solution -> Maybe Solution
-         loop2 [] subst = Just subst 
+         loop2 [] subst = Just subst
          loop2 (f:flxs) subst = loop3 0 subst
            where row = fromJust $ Map.lookup (Flex f) (nodeMap gr)
-                 loop3 col subst | col >= n = 
+                 loop3 col subst | col >= n =
                    -- default to infinity
-                    loop2 flxs (extendSolution subst f (SizeConst Infinite)) 
+                    loop2 flxs (extendSolution subst f (SizeConst Infinite))
                  loop3 col subst =
                    case Map.lookup col (intMap gr) of
-                     Just (Rigid r) | not (infinite r) -> 
+                     Just (Rigid r) | not (infinite r) ->
                        case (True -- inScope f r
                             ,m!(row,col)) of
-                        (True, Finite z) | z >= 0 -> 
+                        (True, Finite z) | z >= 0 ->
                             loop2 flxs (extendSolution subst f (sizeRigid r z))
-                        (_, Infinite) -> loop3 (col+1) subst 
-                        _ -> Nothing 
+                        (_, Infinite) -> loop3 (col+1) subst
+                        _ -> Nothing
                      _ -> loop3 (col+1) subst

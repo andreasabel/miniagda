@@ -24,15 +24,15 @@ type Doc = P.Doc
 
 empty, comma, colon :: Monad m => m Doc
 
-empty	   = return P.empty
-comma	   = return P.comma
+empty      = return P.empty
+comma      = return P.comma
 colon      = text ":"
 pretty x   = return $ Util.pretty x
 -- prettyA x  = P.prettyA x
-text s	   = return $ P.text s
+text s     = return $ P.text s
 pwords s   = map return $ Util.pwords s
 fwords s   = return $ Util.fwords s
-sep ds	   = P.sep <$> sequence ds
+sep ds     = P.sep <$> sequence ds
 fsep ds    = P.fsep <$> sequence ds
 hsep ds    = P.hsep <$> sequence ds
 vcat ds    = P.vcat <$> sequence ds
@@ -49,7 +49,7 @@ prettyList ds = brackets $ fsep $ punctuate comma ds
 punctuate _ [] = []
 punctuate d ds = zipWith (<>) ds (replicate n d ++ [empty])
     where
-	n = length ds - 1
+        n = length ds - 1
 
 -- monadic pretty printing
 

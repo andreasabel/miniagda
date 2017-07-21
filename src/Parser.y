@@ -346,7 +346,7 @@ SigDom : Expr1             { C.TBind (Dec Default) {- A.defaultDec -} [] $1 }
 Expr1 :: { C.Expr }
 Expr1 : Expr2 { let (f : args) = reverse $1 in
                 if null args then f else C.App f args
-	      }
+              }
        | coset Expr3      { C.CoSet $2 }
        | set              { C.Set C.Zero }
        | set Expr3        { C.Set $2 }
@@ -392,7 +392,7 @@ Type : Domain '->' Type                 { C.Quant A.Pi $1 $3 }
 Type1 :: { C.Expr }
 Type1 : Type2 { let (f : args) = reverse $1 in
                 if null args then f else C.App f args
-	      }
+              }
        | coset Expr3                      { C.CoSet $2 }
        | set                              { C.Set C.Zero }
        | set Expr3                        { C.Set $2 }

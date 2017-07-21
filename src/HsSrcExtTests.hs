@@ -33,15 +33,15 @@ mkCon c = Con $ UnQual $ Ident $ c
 mkJust = mkCon "Just"
 mkNothing = mkCon "Nothing"
 
-hsmodule = mkModule 
-  [ mkDataDecl (Ident "Unit") [] KindStar 
+hsmodule = mkModule
+  [ mkDataDecl (Ident "Unit") [] KindStar
       [ mkConDecl (Ident "Unit") (TyCon $ UnQual $ Ident "Unit") ]
-  , FunBind [ mkClause (Ident "bla") 
-      [ PApp (mkId "Just") 
-      [ PApp (mkId "Just") 
-      [ PApp (mkId "Nothing") [ 
+  , FunBind [ mkClause (Ident "bla")
+      [ PApp (mkId "Just")
+      [ PApp (mkId "Just")
+      [ PApp (mkId "Nothing") [
       ] ] ] ] $
-        App mkJust (App mkJust mkNothing)  
+        App mkJust (App mkJust mkNothing)
       ]
   ]
 
