@@ -55,10 +55,11 @@ boolToError :: (MonadError TraceError m) => String -> Bool -> m ()
 boolToError msg True  = return ()
 boolToError msg False = throwErrorMsg msg
 
-instance MonadError () Maybe where
-  catchError Nothing k = k ()
-  catchError (Just a) k = Just a
-  throwError () = Nothing
+-- defined in Control.Monad.Error.Class in mtl-2.2.2
+-- instance MonadError () Maybe where
+--   catchError Nothing k = k ()
+--   catchError (Just a) k = Just a
+--   throwError () = Nothing
 
 orM :: (MonadError e m) => m a -> m a -> m a
 orM m1 m2 = m1 `catchError` (const m2)
