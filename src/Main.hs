@@ -70,7 +70,7 @@ ppHsMode = H.PPHsMode  -- H.defaultMode
   , H.linePragmas  = False
   }
 
-printHsDecls :: [H.Decl] -> IO ()
+printHsDecls :: [H.Decl ()] -> IO ()
 printHsDecls hs = mapM_ (putStrLn . H.prettyPrintWithMode ppHsMode) hs
 
 -- all let declarations
@@ -109,7 +109,7 @@ doExtract sig decls = do
     Right (hs, _) ->
       return hs
 
-doTranslate :: [A.EDeclaration] -> IO H.Module
+doTranslate :: [A.EDeclaration] -> IO (H.Module ())
 doTranslate decls = do
   k <- runTranslate $ translateModule decls
   case k of

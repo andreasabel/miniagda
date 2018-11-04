@@ -54,7 +54,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Traversable as Trav
 
-import qualified Language.Haskell.Exts.Syntax as H
+import qualified Language.Haskell.Exts.Syntax as Hs
 import Text.PrettyPrint
 
 import Polarity
@@ -112,9 +112,9 @@ translateFuns funs = concat <$> mapM translateFun funs
 
 translateFun :: Fun -> Translate [H.Decl]
 translateFun (Fun ts@(TypeSig n t) n' ar cls) = do
-  ts@(H.TypeSig _ [n] t) <- translateTypeSig ts
+  ts@(Hs.TypeSig _ [n] t) <- translateTypeSig ts
   cls <- concat <$> mapM (translateClause n) cls
-  return [ts, H.FunBind cls]
+  return [ts, H.hFunBind cls]
 
 translateLet :: Name -> Type -> FExpr -> Translate [H.Decl]
 translateLet n t e
@@ -159,12 +159,12 @@ translateTelescope (Telescope tel) = mapM translateTBind tel'
 translateTBind :: TBind -> Translate H.TyVarBind
 translateTBind (TBind x dom) = do
   x <- hsVarName x
-  return $ H.KindedVar x $ translateKind (typ dom)
+  return $ H.hKindedVar x $ translateKind (typ dom)
 
 translateKind :: FKind -> H.Kind
 translateKind k =
   case k of
-    k | k == star -> H.KindStar
+    k | k == star -> H.hKindStar
     Quant Pi (TBind _ dom) k' | erased (decor dom) -> translateKind k'
     Quant Pi (TBind _ dom) k' ->
       translateKind (typ dom) `H.mkKindFun` translateKind k'
@@ -189,9 +189,9 @@ translateType t =
 
     App f a -> H.mkTyApp <$> translateType f <*> translateType a
 
-    Def d@(DefId DatK n) -> (H.TyCon . H.UnQual) <$> hsName d
+    Def d@(DefId DatK n) -> (H.hTyCon . H.hUnQual) <$> hsName d
 
-    Var x -> H.TyVar <$> hsVarName x
+    Var x -> H.hTyVar <$> hsVarName x
 
     _ -> return H.unit_tycon
 
@@ -237,16 +237,16 @@ translateExpr e =
 
     Ann (Tagged [Cast] e) -> H.mkCast <$> translateExpr e
 
-    _ -> return $ H.unit_con
+    _ -> return $ Hs.unit_con ()
 
 translatePattern :: Pattern -> Translate H.Pat
 translatePattern p =
   case p of
-    VarP y       -> H.PVar <$> hsVarName y
-    PairP p1 p2  -> H.PTuple H.Boxed <$> mapM translatePattern [p1,p2]
+    VarP y       -> H.hPVar <$> hsVarName y
+    PairP p1 p2  -> H.hPTuple Hs.Boxed <$> mapM translatePattern [p1,p2]
     ConP pi n ps ->
-       H.PApp <$> (H.UnQual <$> hsName (DefId (ConK $ coPat pi) n))
-              <*> mapM translatePattern ps
+       H.hPApp <$> (H.hUnQual <$> hsName (DefId (ConK $ coPat pi) n))
+               <*> mapM translatePattern ps
 
 {-
 Name translation
@@ -261,7 +261,7 @@ Name translation
 -}
 
 hsVarName :: Name -> Translate H.Name
-hsVarName x = return $ H.Ident $ show x
+hsVarName x = return $ H.hIdent $ show x
 
 hsName :: DefId -> Translate H.Name
 hsName id = enter ("error translating identifier " ++ show id) $
@@ -270,22 +270,22 @@ hsName id = enter ("error translating identifier " ++ show id) $
     let n = suggestion x
     unless (isUpper $ head n) $
       throwErrorMsg $ "data names need to be capitalized"
-    return $ H.Ident n
+    return $ H.hIdent n
   (DefId (ConK co) (Qual d x)) -> do
     let n = suggestion x
         m = suggestion d
-    return $ H.Ident $ m ++ "_" ++ n
+    return $ H.hIdent $ m ++ "_" ++ n
     -- dataName <- getDataName x
-    -- return $ H.Ident $ dataName ++ "_" ++ n
+    -- return $ H.hIdent $ dataName ++ "_" ++ n
   -- lets, funs, cofuns. TODO: type-valued funs!
---   (DefId Let ('_':n)) | -> return $ H.Ident n
+--   (DefId Let ('_':n)) | -> return $ H.hIdent n
   (DefId _ x) -> do
     let n = suggestion $ unqual x
 {- ignore for now
      unless (isLower $ head n) $
        throwErrorMsg $ "function names need to start with a lowercase letter"
  -}
-    return $ H.Ident n
+    return $ H.hIdent n
 
 -- getDataName constructorName = return dataNamec
 getDataName :: Name -> Translate String
