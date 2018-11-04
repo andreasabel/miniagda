@@ -928,7 +928,8 @@ scopeCheckMeasure (A.Measure es) = do
 
 scopeCheckBound :: A.Bound C.Expr -> ScopeCheck (A.Bound A.Expr)
 scopeCheckBound (A.Bound ltle e1 e2) = do
-  [e1',e2'] <- mapM scopeCheckMeasure [e1,e2]
+  e1' <- scopeCheckMeasure e1
+  e2' <- scopeCheckMeasure e2
   return $ A.Bound ltle e1' e2'
 
 checkPatternLength :: [C.Clause] -> Maybe Int
