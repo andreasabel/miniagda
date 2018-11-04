@@ -1276,7 +1276,7 @@ expandDefPat p = return p
 ---------------------------------------------------------------------------
 
 
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,11,0)
 
 -- From ghc 8.4, Semigroup superinstace of Monoid instance is mandatory.
 
