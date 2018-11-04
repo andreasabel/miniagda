@@ -90,6 +90,7 @@ mkQualImport modName asName =
   , H.importModule    = hModuleName modName
   , H.importQualified = True
   , H.importSrc       = False
+  , H.importSafe      = False
   , H.importPkg       = Nothing
   , H.importAs        = Just $ hModuleName asName
   , H.importSpecs     = Nothing

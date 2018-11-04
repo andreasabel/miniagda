@@ -61,6 +61,7 @@ ppHsMode :: H.PPHsMode
 ppHsMode = H.PPHsMode  -- H.defaultMode
   { H.classIndent  = 2
   , H.doIndent     = 3
+  , H.multiIfIndent = 3
   , H.caseIndent   = 3
   , H.letIndent    = 4
   , H.whereIndent  = 2
