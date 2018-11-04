@@ -68,12 +68,15 @@ semiringInvariant (Semiring { add = (+), mul = (*)
 instance HasZero Integer where
   zeroElement = 0
 
-instance Monoid Integer where
-  mempty = 0
-  mappend = (+)
+-- The following (unused) instance has been removed for GHC-8.4 compatibility
+-- (Semigroup instance missing).
+--
+-- instance Monoid Integer where
+--   mempty = 0
+--   mappend = (+)
 
-instance SemiRing Integer where
-  multiply = (*)
+-- instance SemiRing Integer where
+--   multiply = (*)
 
 
 integerSemiring :: Semiring Integer

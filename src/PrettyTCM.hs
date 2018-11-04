@@ -3,7 +3,7 @@
 
 module PrettyTCM where
 
-import Prelude hiding (sequence, mapM)
+import Prelude hiding (sequence, mapM, (<>))
 
 import Abstract
 import {-# SOURCE #-} Eval

@@ -4,7 +4,7 @@
 
 module Util where
 
-import Prelude hiding (showList, null)
+import Prelude hiding (showList, null, (<>))
 
 import Control.Applicative hiding (empty)
 import Control.Monad

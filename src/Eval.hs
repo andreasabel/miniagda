@@ -31,7 +31,8 @@ import Abstract
 import Polarity as Pol
 import Value
 import TCM
-import PrettyTCM
+import PrettyTCM hiding ((<>))
+import qualified PrettyTCM as P
 import Warshall  -- positivity checking
 
 import TraceError
@@ -971,7 +972,7 @@ getFieldsAtType n vl = do
 -- similar to piApp, but for record types and projections
 projectType :: TVal -> Name -> Val -> TypeCheck TVal
 projectType tv p rv = do
-  let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj Post p) <> comma <+> text "but found type" <+> prettyTCM tv)
+  let fail1 = failDoc (text "expected record type when taking the projection" <+> prettyTCM (Proj Post p) P.<> comma <+> text "but found type" <+> prettyTCM tv)
   let fail2 = failDoc (text "record type" <+> prettyTCM tv <+> text "does not have field" <+> prettyTCM p)
   case tv of
     VApp (VDef (DefId DatK d)) vl -> do
@@ -1274,10 +1275,27 @@ expandDefPat p = return p
 -- * Unification
 ---------------------------------------------------------------------------
 
+
+#if MIN_VERSION_base(4,9,0)
+
+-- From ghc 8.4, Semigroup superinstace of Monoid instance is mandatory.
+
+instance Semigroup (TypeCheck Bool) where
+  (<>) = andLazy
+
+instance Monoid (TypeCheck Bool) where
+  mempty  = return True
+  mappend = (<>)
+  mconcat = andM
+
+#else
+
 instance Monoid (TypeCheck Bool) where
   mempty  = return True
   mappend = andLazy
   mconcat = andM
+
+#endif
 
 -- | Occurrence check @nocc ks v@ (used by 'SPos' and 'TypeCheck').
 --   Checks that generic values @ks@ does not occur in value @v@.

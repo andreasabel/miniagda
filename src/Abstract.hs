@@ -9,7 +9,7 @@
 
 module Abstract where
 
-import Prelude hiding (showList, map, concat, foldl, pi, null)
+import Prelude hiding (showList, map, concat, foldl, pi, null, (<>))
 
 import Control.Applicative hiding (empty)
 import Control.Monad.Writer (Writer, tell, All(..))
