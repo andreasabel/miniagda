@@ -1,7 +1,7 @@
 name:            MiniAgda
-version:         0.2018.11.03
+version:         0.2018.11.6
 build-type:      Simple
-cabal-version:   >= 1.24
+cabal-version:   1.24
 license:         OtherLicense
 license-file:    LICENSE
 author:          Andreas Abel and Karl Mehltretter
@@ -28,8 +28,11 @@ tested-with:        GHC == 7.6.3
                     GHC == 8.0.2
                     GHC == 8.2.2
                     GHC == 8.4.4
+                    GHC == 8.6.2
 
 extra-source-files: Makefile
+                    CHANGELOG
+                    README.md
 
 data-files:         test/succeed/Makefile
                     test/succeed/*.ma
