@@ -9,7 +9,7 @@ In a shell, type
   cabal update
   cabal install alex
   cabal install happy
-  cabal install miniagda
+  cabal install MiniAgda
 ```
 
 ## Examples
