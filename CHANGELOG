@@ -1,5 +1,7 @@
 CHANGELOG for MiniAgda
 
+0.2019.3.29   Bumped haskell-src-exts to 1.21
+
 0.2018.11.6   Tested compilation with 8.6.2.
 
 0.2018.11.4   Fixed compilation with ghc 8.4 and 8.6.
