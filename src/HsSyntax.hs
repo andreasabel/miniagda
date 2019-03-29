@@ -40,7 +40,7 @@ hTyVar        = H.TyVar ()
 hTyCon        = H.TyCon ()
 hTyApp        = H.TyApp ()
 hDataType     = H.DataType ()
-hKindFn       = H.KindFn ()
+hKindFn       = H.TyFun () -- H.KindFn ()
 hTyTuple      = H.TyTuple ()
 hTyFun        = H.TyFun ()
 hTyForall     = H.TyForall ()
@@ -54,7 +54,7 @@ hTuple        = H.Tuple ()
 hPVar         = H.PVar ()
 hPApp         = H.PApp ()
 hPTuple       = H.PTuple ()
-hKindStar     = H.KindStar ()
+hKindStar     = H.TyStar () -- H.KindStar ()
 
 main_name  = H.main_name ()
 main_mod   = H.main_mod ()
@@ -110,7 +110,7 @@ mkDataDecl n tel k cs =
     (Just k) cs [showDeriving]
 
 mkConDecl :: Name -> Type -> GadtDecl
-mkConDecl n t = H.GadtDecl noLoc n Nothing t
+mkConDecl n t = H.GadtDecl noLoc n Nothing Nothing Nothing t
 
 mkKindFun :: Kind -> Kind -> Kind
 mkKindFun = hKindFn
