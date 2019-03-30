@@ -3,7 +3,7 @@
 # Authors: Andreas Abel, Ulf Norell
 # Created: 2004-12-03, 2008-09-03
 
-mugda = ../../src/Main
+mugda = ../../dist/build/miniagda/miniagda
 
 # Getting all miniagda files
 allagda=$(patsubst %.ma,%,$(shell find . -name "*.ma"))
