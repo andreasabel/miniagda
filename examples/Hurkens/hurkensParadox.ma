@@ -4,7 +4,7 @@
 -- Modified: 2010-06-30 port to MiniAgda
 -- Source:
 -- Coquand/Barthe "Equational Theory of Non-Normalizing PTS" (buggy)
--- Dybjer: http://www.cs.chalmers.se/~peterd/kurser/tt03/project.ps
+-- Dybjer: http://www.cse.chalmers.se/~peterd/kurser/tt03/project.ps
 
 
 -- sorts and axioms
