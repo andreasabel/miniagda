@@ -2,18 +2,18 @@
 -- Author: Andreas Abel
 -- Created: 2004-12-06
 -- Modified: 2010-06-30 port to MiniAgda
--- Source: 
+-- Source:
 -- Coquand/Barthe "Equational Theory of Non-Normalizing PTS" (buggy)
--- Dybjer: http://www.cs.chalmers.se/~peterd/kurser/tt03/project.ps 
+-- Dybjer: http://www.cse.chalmers.se/~peterd/kurser/tt03/project.ps
 
- 
+
 -- sorts and axioms
 
 let triangle : Set 3    = Set 2
 let box      : triangle = Set 1
 let star     : box      = Set 0
 
--- rules 
+-- rules
 
 -- (->) : star -> star -> star -- automatically
 -- (->) : box -> box -> box    -- automatically
@@ -57,7 +57,7 @@ impredicative
 let B : P U
     = \ y -> not ([p : P U] -> sigma y p -> p (rho y))  -- (box,star,star)
 
-let C : U 
+let C : U
     = tau Q
 
 impredicative
@@ -73,7 +73,6 @@ let L : not D
 let R : D
     = \ p h -> h C (\ x -> h (rho x))
 
--- eval 
+-- eval
 let loop : False
     = L R
-
