@@ -59,18 +59,18 @@ $(allstems) : % : %.err
 	@echo "$*.ma"
 	@echo "----------------------------------------------------------------------"
 	@if $(mugda) $(shell if [ -e $*.flags ]; then cat $*.flags; fi) $*.ma \
-		 > $*.tmp.2; \
-		then echo "Unexpected success"; rm -f $*.tmp.2; false; \
-    else sed -e "s/[^ ]*test.fail.//g" $*.tmp.2 > $*.tmp; \
-				 echo `tail -1 $*.err` > $*.tmp.2; \
-				 echo `tail -1 $*.tmp` > $*.tmp.3; \
+		 > $*.tmp.1; \
+		then echo "Unexpected success"; rm -f $*.tmp.1; false; \
+    else sed -e "s/[^ ]*test.fail.//g" $*.tmp.1 > $*.tmp; \
+				 echo "`tail -1 $*.err`" > $*.tmp.2; \
+				 echo "`tail -1 $*.tmp`" > $*.tmp.3; \
 				 true; \
 		fi;
 	@if cmp $*.tmp.2 $*.tmp.3; \
 	   then if cmp $*.tmp $*.err; \
-                   then rm -f $*.tmp $*.tmp.2 $*.tmp.3; true; \
+                   then rm -f $*.tmp $*.tmp.1 $*.tmp.2 $*.tmp.3; true; \
                    else mv $*.tmp $*.err; \
-                        rm -f $*.tmp.2 $*.tmp.3; true; \
+                        rm -f $*.tmp.1 $*.tmp.2 $*.tmp.3; true; \
                 fi; \
 	   else echo "== Old error ==="; \
 		cat $*.err; \
@@ -83,7 +83,7 @@ $(allstems) : % : %.err
                   then echo "Keeping old error"; false; \
 		  else echo "Replacing error, continuing..."; \
                     mv $*.tmp $*.err; \
-		    rm -f $*.tmp.2 $*.tmp.3; true; \
+		    rm -f $*.tmp.1 $*.tmp.2 $*.tmp.3; true; \
                 fi; \
 	    fi
 
