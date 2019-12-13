@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 
 module Value where
 
 import Prelude hiding (null)
 
 import Control.Applicative
+import Control.Monad.Except
 
 import qualified Data.List as List
 import Data.Set (Set)
@@ -381,11 +382,11 @@ lookupPure rho x =
       Just v -> v
       Nothing -> error $ "lookupPure: unbound identifier " ++ show x ++ " in environment " ++ show rho
 
-lookupEnv :: Monad m => Environ a -> Name -> m a
+lookupEnv :: MonadError TraceError m => Environ a -> Name -> m a
 lookupEnv rho x =
     case lookup x (envMap rho) of
       Just v -> return $ v
-      Nothing -> fail $ "lookupEnv: unbound identifier " ++ show x --  ++ " in environment " ++ show rho
+      Nothing -> throwErrorMsg $ "lookupEnv: unbound identifier " ++ show x --  ++ " in environment " ++ show rho
 {-
 lookupEnv :: Monad m => Environ a -> Name -> m a
 lookupEnv [] n = fail $ "lookupEnv: identifier " ++ show n ++ " not bound"

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances,
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances,
       PatternGuards, TupleSections, NamedFieldPuns #-}
 
 module TypeChecker where
