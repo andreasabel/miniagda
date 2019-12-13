@@ -2,7 +2,7 @@ data Empty : Set
 {
 }
 
-mutual 
+mutual
 {
 
 
