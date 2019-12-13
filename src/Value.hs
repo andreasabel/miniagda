@@ -387,12 +387,6 @@ lookupEnv rho x =
     case lookup x (envMap rho) of
       Just v -> return $ v
       Nothing -> throwErrorMsg $ "lookupEnv: unbound identifier " ++ show x --  ++ " in environment " ++ show rho
-{-
-lookupEnv :: Monad m => Environ a -> Name -> m a
-lookupEnv [] n = fail $ "lookupEnv: identifier " ++ show n ++ " not bound"
-lookupEnv ((x,v):xs) n = if x == n then return v
-                          else lookupEnv xs n
--}
 
 showValuation :: Valuation -> String
 showValuation (Valuation [])  = ""
