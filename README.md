@@ -1,4 +1,4 @@
-# MiniAgda
+# MiniAgda [![Build Status](https://travis-ci.org/andreasabel/miniagda.svg?branch=master)](https://travis-ci.org/andreasabel/miniagda)
 A prototypical dependently typed languages with sized types and variances.
 
 ## Installation
@@ -14,4 +14,6 @@ In a shell, type
 
 ## Examples
 
-See test/succeed/ and examples/
+See directories ``test/succeed/`` and ``examples/``.
+
+Some examples are commented on the (dormant) [MiniAgda blog](http://www.cse.chalmers.se/~abela/miniagda/index.html).
