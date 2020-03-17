@@ -1,4 +1,11 @@
-# MiniAgda [![Build Status](https://travis-ci.org/andreasabel/miniagda.svg?branch=master)](https://travis-ci.org/andreasabel/miniagda)
+# MiniAgda
+
+[![Build Status](https://travis-ci.org/andreasabel/miniagda.svg?branch=master)](https://travis-ci.org/andreasabel/miniagda)
+[![Hackage][hackage-badge]][hackage]
+
+ [hackage]:       <https://hackage.haskell.org/package/MiniAgda>
+ [hackage-badge]: <https://img.shields.io/hackage/v/MiniAgda.svg>
+
 A prototypical dependently typed languages with sized types and variances.
 
 ## Installation
