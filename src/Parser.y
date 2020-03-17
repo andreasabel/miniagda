@@ -269,12 +269,13 @@ HBind
   | '{' Id '<'  Expr '}' { C.TBounded A.Hidden $2 A.Lt $4 }
   | '{' Id '<=' Expr '}' { C.TBounded A.Hidden $2 A.Le $4 }
 
-
+{-
 UntypedBind :: { C.LBind }
 UntypedBind : Id              { C.TBind A.defaultDec [$1] Nothing }
             | '[' Id ']'      { C.TBind A.irrelevantDec [$2] Nothing }
             | Pol Id          { C.TBind (Dec $1) [$2] Nothing }
             | Pol '(' Id ')'  { C.TBind (Dec $1) [$3] Nothing }
+-}
 
 PolId :: { (Dec, C.Name) }
 PolId : Id              {  (A.defaultDec   , $1) }
@@ -287,6 +288,7 @@ LLetDef : LetDef        { $1 }
         |  '[' Id ':' Expr ']' '=' Expr     { C.LetDef A.irrelevantDec $2 [] (Just $4) $7 }  -- erased binding
         |  Pol '(' Id ':' Expr ')' '=' Expr { C.LetDef (Dec $1) $3 [] (Just $5) $8 } -- ordinary binding
 
+{-
 -- let binding
 LBind :: { C.LBind }
 LBind :  UntypedBind         { $1 }
@@ -295,6 +297,7 @@ LBind :  UntypedBind         { $1 }
       |  '[' Id ':' Expr ']' { C.TBind A.irrelevantDec [$2] (Just $4) }  -- erased binding
       |  Pol '(' Id ':' Expr ')' { C.TBind (Dec $1) [$3] (Just $5) } -- ordinary binding
 --      |  Pol '[' Id ':' Expr ']' { C.TBind (Dec True $1) [$3] $5 }  -- erased binding
+-}
 
 Domain :: { C.Telescope }
 Domain : Expr0             { [C.TBind (Dec Default) {- A.defaultDec -} [] $1] }
