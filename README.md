@@ -6,10 +6,16 @@ A prototypical dependently typed languages with sized types and variances.
 Requires GHC and cabal, for instance via the Haskell Platform.
 In a shell, type
 ```
-  cabal update
-  cabal install alex
-  cabal install happy
-  cabal install MiniAgda
+  cabal v1-update
+  cabal v1-install alex
+  cabal v1-install happy
+  cabal v1-install MiniAgda
+```
+
+To build MiniAgda from source, replace the last command with
+
+```
+ make
 ```
 
 ## Examples
