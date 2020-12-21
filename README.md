@@ -1,6 +1,6 @@
 # MiniAgda
 
-[![Build Status](https://travis-ci.org/andreasabel/miniagda.svg?branch=master)](https://travis-ci.org/andreasabel/miniagda)
+[![Build Status](https://travis-ci.com/andreasabel/miniagda.svg?branch=master)](https://travis-ci.com/andreasabel/miniagda)
 [![Hackage][hackage-badge]][hackage]
 
  [hackage]:       <https://hackage.haskell.org/package/MiniAgda>
