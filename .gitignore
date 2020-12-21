@@ -12,3 +12,4 @@
 /src/Parser.hs
 /src/Parser.y-grm.txt
 /dist/
+/dist-newstyle/
