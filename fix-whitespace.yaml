@@ -1,0 +1,32 @@
+excluded-dirs:
+  - "dist*"
+  - .git
+  - .stack-work
+
+included-dirs:
+
+included-files:
+  - .authorspellings
+  - .dockerignore
+  - .gitignore
+  - LICENSE
+  - "cabal.*"
+  - "*.cabal"
+  - "*.css"
+  - "*.example"
+  - "*.hs"
+  - "*.hs-boot"
+  - "*.html"
+  - "*.js"
+  - "*.json"
+  - "*.lhs"
+  - "*.ma"
+  - "*.md"
+  - "*.rst"
+  - "*.sh"
+  - "*.tex"
+  - "*.txt"
+  - "*.x"
+  - "*.y"
+  - "*.yaml"
+  - "*.yml"
