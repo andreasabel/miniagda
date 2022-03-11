@@ -1,0 +1,36 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NewSyntaxTour.ma" ---
+--- scope checking ---
+--- type checking ---
+term  two : .[A : Set] -> (f : A -> A) -> (a : A) -> A
+term  two = [\ A ->] \ f -> \ a -> f (f a)
+term  two1 : .[A : Set] -> (f : A -> A) -> (a : A) -> A
+term  two1 = [\ A ->] \ f -> \ a -> f (f a)
+term  two2 : .[A : Set] -> (f : A -> A) -> (a : A) -> A
+term  two2 = [\ A ->] \ f -> \ a -> f (f a)
+block fails as expected, error message:
+boundedSize
+/// new j <= #
+/// new i < v0
+/// adding size rel. v1 + 1 <= v0
+/// cannot add hypothesis v1 + 1 <= v0 because it is not satisfyable under all possible valuations of the current hypotheses
+term  twice : .[F : Set -> Set] -> (f : .[A : Set] -> A -> F A) -> .[A : Set] -> (a : A) -> F (F A)
+term  twice = [\ F ->] \ f -> [\ A ->] \ a -> let [FA : Set]
+                                        = F A
+                                in let fa : F A
+                                          = f [A] a
+                                   in f [FA] fa
+size  localLetTel : Size
+size  localLetTel = let two1 : .[A : Set] -> (f : A -> A) -> (a : A) -> A
+         = [\ A ->] \ f -> \ a -> f (f a)
+in 0
+size  localLetIrr : .[A : Set] -> (f : .[A -> A] -> Size) -> .[a : A] -> Size
+size  localLetIrr = [\ A ->] \ f -> [\ a ->] let [g : (x : A) -> A]
+                                = \ x -> a
+                         in f [g]
+size  localLetIrr1 : .[A : Set] -> (f : .[A -> A] -> Size) -> .[a : A] -> Size
+size  localLetIrr1 = [\ A ->] \ f -> [\ a ->] let [g : (x : A) -> A]
+                                = \ x -> a
+                         in f [g]
+--- evaluating ---
+--- closing "NewSyntaxTour.ma" ---

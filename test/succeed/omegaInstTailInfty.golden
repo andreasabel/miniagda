@@ -1,0 +1,48 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "omegaInstTailInfty.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Inf : (F : Size -> Set) -> -(i : Size) -> Set
+{ Inf F i = .[j < i] -> F j
+}
+term  uppersemi : .[F : Size -> Set] -> (f : Inf (Inf F) #) -> Inf F #
+{ uppersemi [F] f [j < #] = f [#] [j]
+}
+type  Stream : +(A : Set) -> -(i : Size) -> Set
+term  Stream.scons : .[A : Set] -> .[i : Size] -> ^(shead : .[j < i] -> A) -> ^(stail : .[j < i] -> Stream A j) -> < Stream.scons shead stail : Stream A i >
+term  shead : .[A : Set] -> .[i : Size] -> (scons : Stream A i) -> .[j < i] -> A
+{ shead [A] [i] (Stream.scons #shead #stail) = #shead
+}
+term  stail : .[A : Set] -> .[i : Size] -> (scons : Stream A i) -> .[j < i] -> Stream A j
+{ stail [A] [i] (Stream.scons #shead #stail) = #stail
+}
+term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> Stream A i
+{ repeat [A] a $[i < #] = Stream.scons ([\ j ->] a) ([\ j ->] repeat [A] a [j])
+}
+term  tailInf : .[A : Set] -> (s : Stream A #) -> Stream A #
+term  tailInf = [\ A ->] \ s -> s .stail [#]
+type  Front : +(A : Set) -> -(i : Size) -> Set
+term  Front.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : .[j < i] -> Front A j) -> < Front.cons head tail : Front A i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Front A i) -> A
+{ head [A] [i] (Front.cons #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Front A i) -> .[j < i] -> Front A j
+{ tail [A] [i] (Front.cons #head #tail) = #tail
+}
+term  eta : .[F : Size -> Set] -> .[i : Size] -> (f : .[j < i] -> F j) -> .[j < i] -> F j
+{ eta [F] [i] f [j < i] = f [j]
+}
+term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> Front A i
+{ repeat [A] a [i] = Front.cons a (repeat [A] a)
+; repeat [A] a [i] = Front.cons a (eta [Front A] [i] (repeat [A] a))
+}
+term  tailInf : .[A : Set] -> (s : Front A #) -> Front A #
+term  tailInf = [\ A ->] \ s -> s .tail [#]
+warning: ignoring error: leSize: 0 + 1 <= 0 failed
+term  uppersemicont : .[F : Size -> Set] -> (f : .[i < #] -> F i) -> F #
+term  uppersemicont = [\ F ->] \ f -> f [#]
+warning: ignoring error: leSize: 0 + 1 <= 0 failed
+term  lowersemicont : .[F : Size -> Set] -> (a : F #) -> .[i < #] & F i
+term  lowersemicont = [\ F ->] \ a -> ([#] , a)
+--- evaluating ---
+--- closing "omegaInstTailInfty.ma" ---

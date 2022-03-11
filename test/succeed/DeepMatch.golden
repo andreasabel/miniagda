@@ -1,0 +1,18 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DeepMatch.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.Z : < Nat.Z : Nat >
+term  Nat.S : ^(y0 : Nat) -> < Nat.S y0 : Nat >
+term  plus : Nat -> Nat -> Nat
+{ plus Nat.Z m = m
+; plus (Nat.S n) m = Nat.S (plus n m)
+}
+term  fib : Nat -> Nat
+{ fib Nat.Z = Nat.S Nat.Z
+; fib (Nat.S Nat.Z) = Nat.S Nat.Z
+; fib (Nat.S (Nat.S n)) = plus (fib n) (fib (Nat.S n))
+}
+--- evaluating ---
+--- closing "DeepMatch.ma" ---

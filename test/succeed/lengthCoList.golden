@@ -1,0 +1,43 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "lengthCoList.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+type  Colist : ^(A : Set) -> - Size -> Set
+term  Colist.nil : .[A : Set] -> .[i : Size] -> < Colist.nil i : Colist A $i >
+term  Colist.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < Colist.cons i y1 y2 : Colist A $i >
+term  olist' : .[i : Size] -> Colist (Nat #) i
+{ olist' $[i < #] = Colist.cons [i] (Nat.zero [#]) (olist' [i])
+}
+type  CoNat : - Size -> Set
+term  CoNat.cozero : .[i : Size] -> < CoNat.cozero i : CoNat $i >
+term  CoNat.cosucc : .[i : Size] -> ^(y1 : CoNat i) -> < CoNat.cosucc i y1 : CoNat $i >
+term  z : CoNat #
+term  z = CoNat.cozero [#]
+term  length2 : .[i : Size] -> .[A : Set] -> Colist A i -> CoNat i
+{ length2 $[i < #] [A] (Colist.nil [.i]) = CoNat.cozero [i]
+; length2 $[i < #] [A] (Colist.cons [.i] a as) = CoNat.cosucc [i] (length2 [i] [A] as)
+}
+term  omega' : .[i : Size] -> CoNat i
+{ omega' $[i < #] = CoNat.cosucc [i] (omega' [i])
+}
+term  omega : CoNat #
+term  omega = omega' [#]
+term  convert2 : .[i : Size] -> Nat i -> CoNat i
+{ convert2 $[i < #] (Nat.zero [.i]) = CoNat.cozero [i]
+; convert2 $[i < #] (Nat.succ [.i] x) = CoNat.cosucc [i] (convert2 [i] x)
+}
+term  convert3 : .[i : Size] -> Nat i -> CoNat #
+{ convert3 [i] (Nat.zero [j < i]) = CoNat.cozero [#]
+; convert3 [i] (Nat.succ [j < i] x) = omega' [#]
+}
+term  convert4 : .[i : Size] -> Nat i -> CoNat i
+{ convert4 $[i < #] (Nat.zero [.i]) = CoNat.cozero [$i]
+; convert4 $[i < #] (Nat.succ [.i] x) = CoNat.cosucc [i] (convert4 [i] x)
+}
+--- evaluating ---
+--- closing "lengthCoList.ma" ---

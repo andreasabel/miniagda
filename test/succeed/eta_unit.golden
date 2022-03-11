@@ -1,0 +1,30 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "eta_unit.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  P : Unit -> Set
+{ P un!t = Unit
+}
+term  p : (u : Unit) -> P u
+{ p x = Unit.unit
+}
+term  q : (u : Unit) -> P u
+{ q un!t = Unit.unit
+}
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  r' : Bool -> Unit
+term  r' = \ b -> Unit.unit
+term  pr' : (b : Bool) -> P (r' b)
+term  pr' = \ b -> Unit.unit
+term  r : Bool -> Unit
+{ r Bool.true = Unit.unit
+; r Bool.false = Unit.unit
+}
+term  pr : (b : Bool) -> P (r b)
+term  pr = \ b -> Unit.unit
+--- evaluating ---
+--- closing "eta_unit.ma" ---

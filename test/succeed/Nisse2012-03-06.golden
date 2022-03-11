@@ -1,0 +1,36 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Nisse2012-03-06.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ++(A : Set) -> ^(x : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[x : A] -> < Id.refl : Id A x x >
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Either : ++(A : Set) -> ++(B : Set) -> Set
+term  Either.left : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> < Either.left y0 : Either A B >
+term  Either.right : .[A : Set] -> .[B : Set] -> ^(y0 : B) -> < Either.right y0 : Either A B >
+type  Maybe : ++(A : Set) -> Set
+type  Maybe = \ A -> Either Unit A
+pattern nothing = left unit
+pattern just x = right x
+ty-u  Monad : ^(F : + Set -> Set) -> Set 1
+term  Monad.monad : .[F : + Set -> Set] -> ^(return : .[A : Set] -> A -> F A) -> ^(bind : .[A : Set] -> .[B : Set] -> F A -> (A -> F B) -> F B) -> ^(leftIdentity : .[A : Set] -> .[B : Set] -> (x : A) -> (f : A -> F B) -> Id (F B) (bind [A] [B] (return [A] x) f) (f x)) -> < Monad.monad return bind leftIdentity : Monad F >
+term  return : .[F : + Set -> Set] -> (monad : Monad F) -> .[A : Set] -> A -> F A
+{ return [F] (Monad.monad #return #bind #leftIdentity) = #return
+}
+term  bind : .[F : + Set -> Set] -> (monad : Monad F) -> .[A : Set] -> .[B : Set] -> F A -> (A -> F B) -> F B
+{ bind [F] (Monad.monad #return #bind #leftIdentity) = #bind
+}
+term  leftIdentity : .[F : + Set -> Set] -> (monad : Monad F) -> .[A : Set] -> .[B : Set] -> (x : A) -> (f : A -> F B) -> Id (F B) (bind [F] monad [A] [B] (return [F] monad [A] x) f) (f x)
+{ leftIdentity [F] (Monad.monad #return #bind #leftIdentity) = #leftIdentity
+}
+term  maybeT : (F : + Set -> Set) -> (M : Monad F) -> Monad (\ A -> F (Maybe A))
+term  maybeT = \ F -> \ M -> Monad.monad ([\ A ->] \ x -> return M [Maybe A] (Either.right x)) ([\ A ->] [\ B ->] \ m -> \ f -> bind M [Maybe A] [Maybe B] m (\ x -> case x : Either Unit A
+                                                                                                                                                      { Either.left un!t -> return M [Maybe B] (Either.left Unit.unit)
+                                                                                                                                                      ; Either.right x -> f x
+                                                                                                                                                      })) ([\ A ->] [\ B ->] \ x -> \ f -> leftIdentity M [Maybe A] [Maybe B] (Either.right x) (\ x -> case x : Either Unit A
+                                                                                                                                                                                                                                                       { Either.left un!t -> return M [Maybe B] (Either.left Unit.unit)
+                                                                                                                                                                                                                                                       ; Either.right x -> f x
+                                                                                                                                                                                                                                                       }))
+--- evaluating ---
+--- closing "Nisse2012-03-06.ma" ---

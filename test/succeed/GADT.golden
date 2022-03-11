@@ -1,0 +1,18 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "GADT.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  Pair : ^(A : Set) -> ^(B : Set) -> Set
+term  Pair.pair : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> ^(y1 : B) -> < Pair.pair y0 y1 : Pair A B >
+ty-u  Exp : ^ Set -> Set 1
+term  Exp.nat : ^(y0 : Nat) -> < Exp.nat y0 : Exp Nat >
+term  Exp.bool : ^(y0 : Bool) -> < Exp.bool y0 : Exp Bool >
+term  Exp.tup : .[A : Set] -> .[B : Set] -> ^(y2 : Pair A B) -> < Exp.tup A B y2 : Exp (Pair A B) >
+--- evaluating ---
+--- closing "GADT.ma" ---

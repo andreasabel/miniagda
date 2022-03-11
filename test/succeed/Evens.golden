@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Evens.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
+}
+term  evens : .[A : Set] -> .[i : Size] -> Stream A (i + i) -> Stream A i
+{ evens [A] $[i < #] (Stream.cons [.(i + i + 1)] a (Stream.cons [.(i + i)] b as)) = Stream.cons [i] a (evens [A] [i] as)
+}
+term  map2 : .[A : Set] -> .[B : Set] -> (A -> B) -> .[i : Size] -> Stream A (i + i) -> Stream B (i + i)
+{ map2 [A] [B] f $[i < #] (Stream.cons [.$(i + i)] a1 (Stream.cons [.(i + i)] a2 as)) = Stream.cons [$(i + i)] (f a1) (Stream.cons [i + i] (f a2) (map2 [A] [B] f [i] as))
+}
+--- evaluating ---
+--- closing "Evens.ma" ---

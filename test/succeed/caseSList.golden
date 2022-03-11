@@ -1,0 +1,56 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "caseSList.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  leq : Nat -> Nat -> Bool
+{ leq Nat.zero n = Bool.true
+; leq (Nat.suc m) Nat.zero = Bool.false
+; leq (Nat.suc m) (Nat.suc n) = leq m n
+}
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+type  True : ^ Bool -> Set
+{ True b = Id Bool b Bool.true
+}
+term  triv : True Bool.true
+term  triv = Id.refl
+type  False : Bool -> Set
+{ False b = Id Bool b Bool.false
+}
+term  triv' : False Bool.false
+term  triv' = Id.refl
+term  leFalse : (n : Nat) -> (m : Nat) -> False (leq n m) -> True (leq m n)
+{ leFalse n Nat.zero p = triv
+; leFalse (Nat.suc n) (Nat.suc m) p = leFalse n m p
+; leFalse Nat.zero (Nat.suc m) ()
+}
+type  SList : ^ Nat -> Set
+term  SList.snil : < SList.snil : SList Nat.zero >
+term  SList.scons : .[shead : Nat] -> ^(stailindex : Nat) -> .[y2 : True (leq stailindex shead)] -> ^(stail : SList stailindex) -> < SList.scons shead stailindex y2 stail : SList shead >
+term  maxN : Nat -> Nat -> Nat
+{ maxN n m = case leq n m : Bool
+             { Bool.true -> m
+             ; Bool.false -> n
+             }
+}
+term  maxLemma : (n : Nat) -> (m : Nat) -> (k : Nat) -> True (leq n k) -> True (leq m k) -> True (leq (maxN n m) k)
+{ maxLemma n m k p q = case leq n m : Bool
+                       { Bool.true -> q
+                       ; Bool.false -> p
+                       }
+}
+term  insert : (m : Nat) -> (n : Nat) -> SList n -> SList (maxN n m)
+{ insert m .Nat.zero SList.snil = SList.scons [m] Nat.zero [triv] SList.snil
+; insert m n (SList.scons [.n] k [p] l) = case leq n m : Bool
+                                          { Bool.true -> SList.scons [m] n [triv] (SList.scons [n] k [p] l)
+                                          ; Bool.false -> SList.scons [n] (maxN k m) [maxLemma k m n p (leFalse n m triv')] (insert m k l)
+                                          }
+}
+--- evaluating ---
+--- closing "caseSList.ma" ---

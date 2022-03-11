@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "IrrHeterogeneousFun.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  T : Bool -> Set
+{ T Bool.true = Nat
+; T Bool.false = Bool
+}
+term  good : .[F : Nat -> Set] -> .[f : .[b : Bool] -> (.[T b] -> Nat) -> Nat] -> (g : (n : Nat) -> F (f [Bool.true] ([\ x ->] n))) -> (h : F (f [Bool.false] ([\ x ->] Nat.zero)) -> Bool) -> Bool
+{ good [F] [f] g h = h (g Nat.zero)
+}
+term  good' : .[F : .[b : Bool] -> (.[T b] -> Nat) -> Set] -> (g : F [Bool.false] ([\ x ->] Nat.zero) -> Bool) -> (h : (n : Nat) -> F [Bool.true] ([\ x ->] n)) -> Bool
+term  good' = [\ F ->] \ g -> \ h -> g (h Nat.zero)
+--- evaluating ---
+--- closing "IrrHeterogeneousFun.ma" ---

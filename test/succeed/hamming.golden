@@ -1,0 +1,33 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "hamming.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero = \ y -> y
+; add (Nat.succ x) = \ y -> Nat.succ (add x y)
+}
+term  double : Nat -> Nat
+term  double = \ n -> add n n
+term  triple : Nat -> Nat
+term  triple = \ n -> add n (double n)
+term  leq : Nat -> Nat -> .[C : Set] -> C -> C -> C
+{ leq Nat.zero y [C] tt ff = tt
+; leq (Nat.succ x) Nat.zero [C] tt ff = ff
+; leq (Nat.succ x) (Nat.succ y) [C] tt ff = leq x y [C] tt ff
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  map : .[A : Set] -> .[B : Set] -> .[i : Size] -> (A -> B) -> Stream A i -> Stream B i
+{ map [A] [B] $[i < #] f (Stream.cons [.i] x xl) = Stream.cons [i] (f x) (map [A] [B] [i] f xl)
+}
+term  merge : .[i : Size] -> Stream Nat i -> Stream Nat i -> Stream Nat i
+{ merge $[i < #] (Stream.cons [.i] x xs) (Stream.cons [.i] y ys) = leq x y [Stream Nat $i] (Stream.cons [i] x (merge [i] xs (Stream.cons [i] y ys))) (Stream.cons [i] y (merge [i] (Stream.cons [i] x xs) ys))
+}
+term  ham : .[i : Size] -> Stream Nat i
+{ ham $[i < #] = Stream.cons [i] (Nat.succ Nat.zero) (merge [i] (map [Nat] [Nat] [i] double (ham [i])) (map [Nat] [Nat] [i] triple (ham [i])))
+}
+--- evaluating ---
+--- closing "hamming.ma" ---

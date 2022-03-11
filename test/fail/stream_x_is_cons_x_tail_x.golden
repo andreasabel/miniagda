@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "stream_x_is_cons_x_tail_x.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  n0 : Nat
+term  n0 = Nat.zero
+term  n1 : Nat
+term  n1 = Nat.succ n0
+term  n2 : Nat
+term  n2 = Nat.succ n1
+term  n3 : Nat
+term  n3 = Nat.succ n2
+term  n4 : Nat
+term  n4 = Nat.succ n3
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] x xs) = xs
+}
+term  bad : .[i : Size] -> Stream Nat i
+error during typechecking:
+bad
+/// clause 1
+/// pattern $$i
+/// cannot match against deep successor pattern $$i at type .[i : Size] -> Stream Nat i

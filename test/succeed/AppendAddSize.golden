@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AppendAddSize.ma" ---
+--- scope checking ---
+--- type checking ---
+type  List : ^(A : Set) -> + Size -> Set
+term  List.nil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> List A s!ze
+term  List.nil : .[A : Set] -> .[i : Size] -> < List.nil i : List A $i >
+term  List.cons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List A i -> List A s!ze
+term  List.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List A i) -> < List.cons i y1 y2 : List A $i >
+term  append : .[A : Set] -> .[i : Size] -> .[j : Size] -> List A i -> List A $j -> List A (i + j)
+{ append [A] [i] [j] (List.nil [i' < i]) l = l
+; append [A] [i] [j] (List.cons [i' < i] a as) l = List.cons [i' + j] a (append [A] [i'] [j] as l)
+}
+--- evaluating ---
+--- closing "AppendAddSize.ma" ---

@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Fields.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+term  f : Nat -> Nat
+{}
+type  D : ++(A : Nat -> Set) -> ^ Nat -> Set
+term  D.mkD : .[A : Nat -> Set] -> ^(index : Nat) -> ^(content : A index) -> < D.mkD index content : D A (f index) >
+--- evaluating ---
+--- closing "Fields.ma" ---

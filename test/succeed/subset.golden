@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "subset.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
+term  Subset.put : .[A : Set] -> .[P : A -> Set] -> ^(get : A) -> .[y1 : P get] -> < Subset.put get y1 : Subset A P >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  Odd : ^ Nat -> Set
+term  Odd.odd1 : < Odd.odd1 : Odd (Nat.succ Nat.zero) >
+term  Odd.odd3 : < Odd.odd3 : Odd (Nat.succ (Nat.succ (Nat.succ Nat.zero))) >
+term  Odd.oddSS : .[n : Nat] -> ^(y1 : Odd n) -> < Odd.oddSS n y1 : Odd (Nat.succ (Nat.succ n)) >
+type  Eq : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Eq.refl : .[A : Set] -> .[a : A] -> < Eq.refl : Eq A a a >
+type  OddN : Set
+type  OddN = Subset Nat Odd
+term  one : Nat
+term  one = Nat.succ Nat.zero
+term  three : Nat
+term  three = Nat.succ (Nat.succ one)
+term  o3 : OddN
+term  o3 = Subset.put three [Odd.odd3]
+term  o3' : OddN
+term  o3' = Subset.put three [Odd.oddSS [one] Odd.odd1]
+term  p : Eq OddN o3 o3'
+term  p = Eq.refl
+--- evaluating ---
+--- closing "subset.ma" ---

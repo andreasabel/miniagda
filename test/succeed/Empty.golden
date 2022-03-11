@@ -1,0 +1,35 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Empty.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+term  abort : .[A : Set] -> (x : Empty) -> A
+term  abort = [\ A ->] \ x -> x
+term  abort1 : .[A : Set] -> (x : Empty) -> A -> A
+term  abort1 = [\ A ->] \ x -> x
+term  abort2 : .[F : + Set -> Set] -> .[A : Set] -> (x : F Empty) -> F A
+term  abort2 = [\ F ->] [\ A ->] \ x -> x
+term  toEmp : .[A : Set] -> .[B : Set] -> (x : A -> B) -> Empty -> B
+term  toEmp = [\ A ->] [\ B ->] \ x -> x
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+term  abort3 : (x : Empty) -> Unit
+term  abort3 = \ x -> x
+warning: ignoring error: hypothetical constraint |i| < |0| ignored
+term  abort5 : (x : Empty) -> .[i < 0] -> Unit
+term  abort5 = \ x -> x
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  f : Bool -> Unit
+{ f x = x
+}
+term  noReturnNeeded : .[M : + Set -> Set] -> .[A : Set] -> (x : M A) -> M Unit
+term  noReturnNeeded = [\ M ->] [\ A ->] \ x -> x
+term  g : Unit -> Bool
+{ g un!t = Bool.true
+}
+term  test : .[T : Bool -> Set] -> (x : T (g Unit.unit)) -> T Bool.true
+term  test = [\ T ->] \ x -> x
+--- evaluating ---
+--- closing "Empty.ma" ---

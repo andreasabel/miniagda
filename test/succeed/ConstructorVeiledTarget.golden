@@ -1,0 +1,11 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ConstructorVeiledTarget.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ++(A : Set) -> Set
+type  Id = \ A -> A
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Id Bool >
+--- evaluating ---
+--- closing "ConstructorVeiledTarget.ma" ---

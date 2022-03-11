@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ho.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
+term  apply : (Bool -> Bool) -> Bool -> Bool
+{ apply f b = f b
+}
+term  neg : Bool -> Bool
+{ neg Bool.tt = Bool.ff
+; neg Bool.ff = Bool.tt
+}
+term  f : Bool
+term  f = apply neg Bool.tt
+term  t : Bool
+term  t = apply (\ x -> Bool.tt) Bool.ff
+--- evaluating ---
+--- closing "ho.ma" ---

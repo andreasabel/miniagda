@@ -1,0 +1,64 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "msort-implicit.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
+term  ifthenelse : .[A : Set] -> Bool -> A -> A -> A
+{ ifthenelse [A] Bool.tt x y = x
+; ifthenelse [A] Bool.ff x y = y
+}
+type  Pair : ++(A : Set) -> Set
+term  Pair.pair : .[A : Set] -> ^(y0 : A) -> ^(y1 : A) -> < Pair.pair y0 y1 : Pair A >
+term  pr1 : .[A : Set] -> Pair A -> A
+{ pr1 [A] (Pair.pair a b) = a
+}
+term  pr2 : .[A : Set] -> Pair A -> A
+{ pr2 [A] (Pair.pair a b) = b
+}
+type  SList : ++(A : Set) -> + Size -> Set
+term  SList.nil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> SList A s!ze
+term  SList.nil : .[A : Set] -> .[i : Size] -> < SList.nil i : SList A $i >
+term  SList.cons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ SList A i -> SList A s!ze
+term  SList.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : SList A i) -> < SList.cons i y1 y2 : SList A $i >
+term  split : .[A : Set] -> .[i : Size] -> SList A i -> Pair (SList A i)
+{ split [A] [.$i] (SList.nil [i]) = Pair.pair (SList.nil [i]) (SList.nil [i])
+; split [A] [.$$i] (SList.cons [.$i] a (SList.nil [i])) = Pair.pair (SList.cons [$i] a (SList.nil [i])) (SList.nil [$i])
+; split [A] [.$$i] (SList.cons [.$i] a (SList.cons [i] b as)) = let rec : Pair (SList A i)
+                                                                        = split [A] [i] as
+                                                                in let l1 : SList A i
+                                                                          = pr1 [SList A i] rec
+                                                                   in let l2 : SList A i
+                                                                             = pr2 [SList A i] rec
+                                                                      in Pair.pair (SList.cons [i] a l1) (SList.cons [i] b l2)
+}
+term  merge : .[A : Set] -> (leq : A -> A -> Bool) -> SList A # -> SList A # -> SList A #
+{ merge [A] leq (SList.nil [.#]) ys = ys
+; merge [A] leq (SList.cons [.#] x xs) (SList.nil [.#]) = SList.cons [#] x xs
+; merge [A] leq (SList.cons [.#] x xs) (SList.cons [.#] y ys) = ifthenelse [SList A #] (leq x y) (SList.cons [#] x (SList.cons [#] y (merge [A] leq xs ys))) (SList.cons [#] y (SList.cons [#] x (merge [A] leq xs ys)))
+}
+term  msort : .[A : Set] -> (leq : A -> A -> Bool) -> .[i : Size] -> SList A i -> SList A #
+{ msort [A] leq [.$j] (SList.nil [j]) = SList.nil [#]
+; msort [A] leq [.$$i] (SList.cons [.$i] a (SList.nil [i])) = SList.cons [#] a (SList.nil [#])
+; msort [A] leq [.$$i] (SList.cons [.$i] a (SList.cons [i] b l)) = let sl : Pair (SList A i)
+                                                                          = split [A] [i] l
+                                                                   in let l1 : SList A #
+                                                                             = msort [A] leq [$i] (SList.cons [i] a (pr1 [SList A i] sl))
+                                                                      in let l2 : SList A #
+                                                                                = msort [A] leq [$i] (SList.cons [i] b (pr2 [SList A i] sl))
+                                                                         in merge [A] leq l1 l2
+}
+term  msort' : .[A : Set] -> (leq : A -> A -> Bool) -> (.[i : Size] -> SList A i -> Pair (SList A i)) -> .[i : Size] -> SList A i -> SList A #
+{ msort' [A] leq splt [.$j] (SList.nil [j]) = SList.nil [#]
+; msort' [A] leq splt [.$$i] (SList.cons [.$i] a (SList.nil [i])) = SList.cons [#] a (SList.nil [#])
+; msort' [A] leq splt [.$$i] (SList.cons [.$i] a (SList.cons [i] b l)) = let sl : Pair (SList A i)
+                                                                                = splt [i] l
+                                                                         in let l1 : SList A #
+                                                                                   = msort' [A] leq splt [$i] (SList.cons [i] a (pr1 [SList A i] sl))
+                                                                            in let l2 : SList A #
+                                                                                      = msort' [A] leq splt [$i] (SList.cons [i] b (pr2 [SList A i] sl))
+                                                                               in merge [A] leq l1 l2
+}
+--- evaluating ---
+--- closing "msort-implicit.ma" ---

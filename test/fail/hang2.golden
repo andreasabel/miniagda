@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "hang2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+term  F : Empty -> Empty
+term  f : Empty -> Empty
+{ F x = F x
+}
+{ f x = f (F x)
+}
+error during typechecking:
+Termination check for mutual block [F,f] fails for [F,f]

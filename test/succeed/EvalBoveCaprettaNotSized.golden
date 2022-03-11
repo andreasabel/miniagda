@@ -1,0 +1,61 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "EvalBoveCaprettaNotSized.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(y0 : A) -> ^(y1 : List A) -> < List.cons y0 y1 : List A >
+type  Exp : Set
+term  Exp.var : ^(y0 : Nat) -> < Exp.var y0 : Exp >
+term  Exp.abs : ^(y0 : Exp) -> < Exp.abs y0 : Exp >
+term  Exp.app : ^(y0 : Exp) -> ^(y1 : Exp) -> < Exp.app y0 y1 : Exp >
+type  D : Set
+term  D.clos : ^(y0 : Exp) -> ^(y1 : List D) -> < D.clos y0 y1 : D >
+type  Env : Set
+type  Env = List D
+term  empty : Env
+term  empty = List.nil
+term  update : Env -> D -> Env
+term  update = \ rho -> \ d -> List.cons d rho
+term  dummy : D
+term  dummy = D.clos (Exp.var Nat.zero) empty
+term  lookup : Env -> Nat -> D
+{ lookup List.nil n = dummy
+; lookup (List.cons d rho) Nat.zero = d
+; lookup (List.cons d rho) (Nat.succ n) = lookup rho n
+}
+type  Eval : ^ Exp -> ^ Env -> ^ D -> Set
+term  Eval.evVar : .[k : Nat] -> .[rho : Env] -> < Eval.evVar k rho : Eval (Exp.var k) rho (lookup rho k) >
+term  Eval.evAbs : .[e : Exp] -> .[rho : Env] -> < Eval.evAbs e rho : Eval (Exp.abs e) rho (D.clos e rho) >
+term  Eval.evApp : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> ^(evldFun : Exp) -> ^(evldEnv : Env) -> ^(evldArg : D) -> .[d' : D] -> ^(theFun : Eval f rho (D.clos evldFun evldEnv)) -> ^(theArg : Eval e rho evldArg) -> ^(theApp : Eval evldFun (update evldEnv evldArg) d') -> < Eval.evApp f e rho evldFun evldEnv evldArg d' theFun theArg theApp : Eval (Exp.app f e) rho d' >
+term  evldFun : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> Exp
+{ evldFun [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #evldFun
+}
+term  evldEnv : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> Env
+{ evldEnv [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #evldEnv
+}
+term  evldArg : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> D
+{ evldArg [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #evldArg
+}
+term  theFun : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> Eval f rho (D.clos (evldFun [f] [e] [rho] [d'] evApp) (evldEnv [f] [e] [rho] [d'] evApp))
+{ theFun [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #theFun
+}
+term  theArg : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> Eval e rho (evldArg [f] [e] [rho] [d'] evApp)
+{ theArg [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #theArg
+}
+term  theApp : .[f : Exp] -> .[e : Exp] -> .[rho : Env] -> .[d' : D] -> (evApp : Eval (Exp.app f e) rho d') -> Eval (evldFun [f] [e] [rho] [d'] evApp) (update (evldEnv [f] [e] [rho] [d'] evApp) (evldArg [f] [e] [rho] [d'] evApp)) d'
+{ theApp [f] [e] [rho] [d'] (Eval.evApp [.f] [.e] [.rho] #evldFun #evldEnv #evldArg [.d'] #theFun #theArg #theApp) = #theApp
+}
+term  evaluate : (e : Exp) -> (rho : Env) -> .[d : D] -> .[Eval e rho d] -> < d : D >
+term  apply : .[f' : Exp] -> .[rho' : Env] -> < D.clos f' rho' : D > -> (d : D) -> .[d' : D] -> .[Eval f' (update rho' d) d'] -> < d' : D >
+{ evaluate (Exp.var k) rho [.(lookup rho k)] [Eval.evVar [.k] [.rho]] = lookup rho k
+; evaluate (Exp.abs e) rho [.(clos e rho)] [Eval.evAbs [.e] [.rho]] = D.clos e rho
+; evaluate (Exp.app f e) rho [.d'] [Eval.evApp [.f] [.e] [.rho] [f'] [rho'] [d] [d'] [evF] [evE] [evF']] = apply [f'] [rho'] (evaluate f rho [D.clos f' rho'] [evF]) (evaluate e rho [d] [evE]) [d'] [evF']
+}
+{ apply [.f'] [.rho'] (D.clos f' rho') d [d'] [p] = evaluate f' (update rho' d) [d'] [p]
+}
+--- evaluating ---
+--- closing "EvalBoveCaprettaNotSized.ma" ---

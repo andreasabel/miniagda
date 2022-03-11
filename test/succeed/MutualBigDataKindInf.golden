@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MutualBigDataKindInf.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+ty-u  MaybeBig : Set 1
+term  MaybeBig.Nothing : < MaybeBig.Nothing : MaybeBig >
+term  MaybeBig.Just : ^(y0 : Unit) -> ^(y1 : Big) -> < MaybeBig.Just y0 y1 : MaybeBig >
+ty-u  Big : Set 1
+term  Big.BigIn : ^(BigOut : Set) -> < Big.BigIn BigOut : Big >
+type  BigOut : (BigIn : Big) -> Set
+{ BigOut (Big.BigIn #BigOut) = #BigOut
+}
+type  Maybe : MaybeBig -> Set -> (Set -> Set) -> Set
+{ Maybe MaybeBig.Nothing A F = A
+; Maybe (MaybeBig.Just u B) A F = F (BigOut B)
+}
+--- evaluating ---
+--- closing "MutualBigDataKindInf.ma" ---

@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "StrictInfty.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : Size -> Set
+{ D i = .[j < i] -> |i| <= |$j| -> D j -> D j
+}
+term  app_ : .[i : Size] -> D $i -> D i -> D i
+{ app_ [i] f = f [i]
+}
+term  app : D # -> D # -> D #
+term  app = app_ [#]
+term  abs_ : .[i : Size] -> (D i -> D i) -> D $i
+{ abs_ [i] f [j < $i] x = f x
+}
+term  abs : (D # -> D #) -> D #
+term  abs = abs_ [#]
+term  delta : D #
+term  delta = abs (\ x -> app x x)
+term  Omega : D #
+term  Omega = app delta delta
+--- evaluating ---
+--- closing "StrictInfty.ma" ---

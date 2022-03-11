@@ -1,0 +1,49 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ConorMcBrideCalco09inflationary.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Map : (F : Set -> Set) -> Set 1
+type  Map = \ F -> .[A : Set] -> .[B : Set] -> (A -> B) -> F A -> F B
+type  Nu : (F : Set -> Set) -> -(i : Size) -> Set
+{ Nu F i = .[j < i] -> F (Nu F j)
+}
+type  Inf : (G : Size -> Set) -> -(i : Size) -> Set
+{ Inf G i = .[j < i] -> G j
+}
+term  usc : .[F : Set -> Set] -> (r : Inf (Nu F) #) -> Nu F #
+term  usc = [\ F ->] \ r -> r [#]
+term  toInf : .[F : Set -> Set] -> (r : Nu F #) -> Inf (Nu F) #
+{ toInf [F] r [i < #] [j < i] = r [j]
+}
+type  All : (G : Size -> Set) -> Set
+type  All = \ G -> .[i : Size] -> G i
+term  fromAll : .[F : Set -> Set] -> (r : All (Nu F)) -> Nu F #
+term  fromAll = [\ F ->] \ r -> r [#]
+term  toAll : .[F : Set -> Set] -> (r : Nu F #) -> All (Nu F)
+{ toAll [F] r [i] [j < i] = r [j]
+}
+term  postfp : .[F : Set -> Set] -> (r : Nu F #) -> F (Nu F #)
+block fails as expected, error message:
+postfp
+/// clause 1
+/// right hand side
+/// checkExpr 2 |- r # : F (Nu (F ) #)
+/// inferExpr' r #
+/// checkApp (.[j < #] -> F (Nu F j){i = #, F = (v0 Up (Set -> Set))}) eliminated by #
+/// leqVal' (subtyping)  < # : Size >  <=+  < #
+/// leSize # <+ #
+/// leSize: # < # failed
+term  out : .[F : Set -> Set] -> .[i : Size] -> (r : Nu F $i) -> F (Nu F i)
+term  out = [\ F ->] [\ i ->] \ r -> r [i]
+term  inn : .[F : + Set -> Set] -> .[i : Size] -> F (Nu F i) -> Nu F $i
+{ inn [F] [i] t [j < $i] = t
+}
+term  inn : .[F : + Set -> Set] -> .[i : Size] -> (t : F (Nu F i)) -> Nu F $i
+term  inn = [\ F ->] [\ i ->] \ t -> [\ j ->] t
+term  coit : .[F : + Set -> Set] -> (map : Map F) -> .[S : Set] -> (step : S -> F S) -> .[i : Size] -> (start : S) -> Nu F i
+{ coit [F] map [S] step [i] = \ start -> [\ j ->] map [S] [Nu F j] (coit [F] map [S] step [j]) (step start)
+}
+term  caseNu : .[F : + Set -> Set] -> .[P : (i : Size) -> Nu F i -> Set] -> (f : .[i : Size] -> (t : F (Nu F i)) -> P $i (inn [F] [i] t)) -> .[i : Size] -> (x : Nu F $i) -> P $i x
+term  caseNu = [\ F ->] [\ P ->] \ f -> [\ i ->] \ x -> f [i] (x [i])
+--- evaluating ---
+--- closing "ConorMcBrideCalco09inflationary.ma" ---

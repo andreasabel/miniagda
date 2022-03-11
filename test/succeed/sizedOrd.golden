@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizedOrd.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  Ord : + Size -> Set
+term  Ord.ozero : .[s!ze : Size] -> .[i < s!ze] -> Ord s!ze
+term  Ord.ozero : .[i : Size] -> < Ord.ozero i : Ord $i >
+term  Ord.osucc : .[s!ze : Size] -> .[i < s!ze] -> ^ Ord i -> Ord s!ze
+term  Ord.osucc : .[i : Size] -> ^(y1 : Ord i) -> < Ord.osucc i y1 : Ord $i >
+term  Ord.olim : .[s!ze : Size] -> .[i < s!ze] -> ^ (Nat -> Ord i) -> Ord s!ze
+term  Ord.olim : .[i : Size] -> ^(y1 : Nat -> Ord i) -> < Ord.olim i y1 : Ord $i >
+term  maxO : .[i : Size] -> Ord i -> Ord i -> Ord i
+{ maxO [i] (Ord.ozero [j < i]) q = q
+; maxO [i] p (Ord.ozero [k < i]) = p
+; maxO [i] (Ord.olim [j < i] f) (Ord.olim [k < i] g) = Ord.olim [max j k] (\ n -> maxO [max j k] (f n) (g n))
+; maxO [i] (Ord.osucc [j < i] p) (Ord.osucc [k < i] q) = Ord.osucc [max j k] (maxO [max j k] p q)
+}
+term  idO : .[i : Size] -> Ord i -> Ord i
+{ idO [i] (Ord.ozero [j < i]) = Ord.ozero [j]
+; idO [i] (Ord.osucc [j < i] p) = Ord.osucc [j] (idO [j] p)
+; idO [i] (Ord.olim [j < i] f) = Ord.olim [j] (\ n -> idO [j] (f n))
+}
+--- evaluating ---
+--- closing "sizedOrd.ma" ---

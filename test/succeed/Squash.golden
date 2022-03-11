@@ -1,0 +1,102 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Squash.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : .[A : Set] -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id [A] a a >
+term  elimId : .[A : Set] -> .[P : A -> Set] -> .[a : A] -> .[b : A] -> .[Id [A] a b] -> P a -> P b
+{ elimId [A] [P] [a] [.a] [Id.refl] h = h
+}
+type  Ex : ^(A : Set) -> ^(P : A -> Set) -> Set
+term  Ex.exIntro : .[A : Set] -> .[P : A -> Set] -> .[a : A] -> ^(y1 : P a) -> < Ex.exIntro a y1 : Ex A P >
+type  Exists : .[i : Size] -> ^(A : Set i) -> ^(P : A -> Set) -> Set
+term  Exists.ExIntro : .[i : Size] -> .[A : Set i] -> .[P : A -> Set] -> .[a : A] -> ^(y1 : P a) -> < Exists.ExIntro a y1 : Exists [i] A P >
+mixk  proj1 : .[i : Size] -> .[A : Set i] -> .[P : A -> Set] -> Exists [i] A P -> A
+block fails as expected, error message:
+proj1
+/// clause 1
+/// right hand side
+/// checkExpr 5 |- a : A
+/// inferExpr' a
+/// inferExpr: variable a : A may not occur
+/// , because it is marked as erased
+term  ExElim : .[i : Size] -> .[A : Set i] -> .[P : A -> Set] -> Exists [i] A P -> .[C : Set] -> (.[a : A] -> P a -> C) -> C
+{ ExElim [i] [A] [P] (Exists.ExIntro [a] p) [C] k = k [a] p
+}
+type  Subset : ^(A : Set) -> ^(P : A -> Set) -> Set
+term  Subset.inSub : .[A : Set] -> .[P : A -> Set] -> ^(outSub : A) -> .[y1 : P outSub] -> < Subset.inSub outSub y1 : Subset A P >
+term  outSub' : .[A : Set] -> .[P : A -> Set] -> Subset A P -> A
+{ outSub' [A] [P] (Subset.inSub a [p]) = a
+}
+type  Prf : ++(A : Set) -> Set
+term  Prf.prf : .[A : Set] -> .[y0 : A] -> < Prf.prf y0 : Prf A >
+term  proofIrr : .[A : Set] -> .[a : Prf A] -> .[b : Prf A] -> Id [Prf A] a b
+{ proofIrr [A] [Prf.prf [a]] [Prf.prf [b]] = Id.refl
+}
+term  proofIrr' : .[A : Set] -> .[a : Prf A] -> .[b : Prf A] -> Id [Prf A] a b
+block fails as expected, error message:
+proofIrr'
+/// clause 1
+/// right hand side
+/// checkExpr 3 |- refl : Id (Prf A) a b
+/// checkForced fromList [(a,1),(A,0),(b,2)] |- refl : Id (Prf A) a b
+/// leqVal' (subtyping)  < Id.refl : Id (Prf A) a a >  <=+  Id (Prf A) a b
+/// leqVal' (subtyping)  Id (Prf A) a a  <=+  Id (Prf A) a b
+/// leqVal'  a : Prf A  <=^  b : Prf A
+/// leqApp: head mismatch a != b
+term  mapPrf : .[A : Set] -> .[B : Set] -> (A -> B) -> Prf A -> Prf B
+{ mapPrf [A] [B] f (Prf.prf [a]) = Prf.prf [f a]
+}
+term  joinPrf : .[A : Set] -> Prf (Prf A) -> Prf A
+{ joinPrf [A] (Prf.prf [Prf.prf [a]]) = Prf.prf [a]
+}
+term  bindPrf : .[A : Set] -> .[B : Set] -> Prf A -> (A -> Prf B) -> Prf B
+block fails as expected, error message:
+bindPrf
+/// clause 1
+/// right hand side
+/// checkExpr 4 |- f a : Prf B
+/// inferExpr' f a
+/// checkApp (v0::Tm -> {Prf B {B = v1, A = v0}}) eliminated by a
+/// inferExpr' a
+/// inferExpr: variable a : A may not occur
+/// , because it is marked as erased
+term  bindPrf : .[A : Set] -> .[B : Set] -> Prf A -> (A -> Prf B) -> Prf B
+term  bindPrf = [\ A ->] [\ B ->] \ pa -> \ f -> joinPrf [B] (mapPrf [A] [Prf B] f pa)
+term  elimPrf : .[A : Set] -> .[P : Prf A -> Set] -> (f : .[a : A] -> P (Prf.prf [a])) -> .[x : Prf A] -> P x
+{ elimPrf [A] [P] f [Prf.prf [a]] = f [a]
+}
+term  isoForall1 : .[A : Set] -> .[B : A -> Set] -> ((x : A) -> Prf (B x)) -> Prf ((x : A) -> B x)
+block fails as expected, error message:
+isoForall1
+/// clause 1
+/// right hand side
+/// checkExpr 3 |- prf (\ x -> f x) : Prf ((x : A) -> B  x)
+/// checkForced fromList [(B,1),(A,0),(f,2)] |- prf (\ x -> f x) : Prf ((x : A) -> B  x)
+/// checkApp (.[y0 : ((x : v0::Tm) -> B x{B = (v1 Up (v0::Tm -> {Set {A = v0}})), A = v0})::Tm] -> < Prf.prf y0 : Prf A >{A = {(x : A) -> B x {B = (v1 Up (v0::Tm -> {Set {A = v0}})), A = v0}}}) eliminated by \ x -> f x
+/// checkExpr 3 |- \ x -> f x : (x : A) -> B x
+/// checkForced fromList [(B,1),(A,0),(f,2)] |- \ x -> f x : (x : A) -> B x
+/// new x : v0
+/// checkExpr 4 |- f x : B x
+/// leqVal' (subtyping)  < f x x : Prf (B  x) >  <=+  B x
+/// leqVal' (subtyping)  Prf (B  x)  <=+  B x
+/// leqApp: head mismatch Prf != B
+term  isoForall2 : .[A : Set] -> .[B : A -> Set] -> Prf ((x : A) -> B x) -> (x : A) -> Prf (B x)
+{ isoForall2 [A] [B] (Prf.prf [f]) x = Prf.prf [f x]
+}
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+term  isoAnd1 : .[A : Set] -> .[B : Set] -> Prod (Prf A) (Prf B) -> Prf (Prod A B)
+{ isoAnd1 [A] [B] (Prod.pair (Prf.prf [a]) (Prf.prf [b])) = Prf.prf [Prod.pair a b]
+}
+term  isoAnd2 : .[A : Set] -> .[B : Set] -> Prf (Prod A B) -> Prod (Prf A) (Prf B)
+{ isoAnd2 [A] [B] (Prf.prf [Prod.pair [a] [b]]) = Prod.pair (Prf.prf [a]) (Prf.prf [b])
+}
+--- evaluating ---
+--- closing "Squash.ma" ---

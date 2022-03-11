@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "notAdmMonotoneArg.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+type  Unit : Set
+term  Unit.triv : < Unit.triv : Unit >
+term  bla : .[i : Size] -> (Stream Unit i -> Stream Unit i) -> Stream Unit i
+error during typechecking:
+bla
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> (Stream Unit i -> Stream Unit i) -> Stream Unit i ends in correct coinductive sized type
+/// new i <= #
+/// endsInSizedCo: (Stream Unit i -> Stream Unit i) -> Stream Unit i
+/// type  Stream Unit i -> Stream Unit i  not lower semi continuous in  i

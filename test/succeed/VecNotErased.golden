@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "VecNotErased.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(pred : Nat) -> < Nat.succ pred : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero y = y
+; add (Nat.succ x) y = Nat.succ (add x y)
+}
+type  Vec' : ++(A : Set) -> ^ Nat -> Set
+term  Vec'.vnil' : .[A : Set] -> < Vec'.vnil' : Vec' A Nat.zero >
+term  Vec'.vcons' : .[A : Set] -> .[n : Nat] -> ^(head' : A) -> ^(tail' : Vec' A n) -> < Vec'.vcons' n head' tail' : Vec' A (Nat.succ n) >
+term  head' : .[A : Set] -> ^(n : Nat) -> (vcons' : Vec' A (Nat.succ n)) -> A
+{ head' [A] n (Vec'.vcons' [.n] #head' #tail') = #head'
+}
+term  tail' : .[A : Set] -> ^(n : Nat) -> (vcons' : Vec' A (Nat.succ n)) -> Vec' A n
+{ tail' [A] n (Vec'.vcons' [.n] #head' #tail') = #tail'
+}
+--- evaluating ---
+--- closing "VecNotErased.ma" ---

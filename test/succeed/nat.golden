@@ -1,0 +1,41 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "nat.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+term  add : SNat # -> SNat # -> SNat #
+{ add (SNat.zero [.#]) y = y
+; add (SNat.succ [.#] x) y = SNat.succ [#] (add x y)
+}
+term  inc : .[i : Size] -> .[j : Size] -> SNat i -> SNat $i
+{ inc [i] [j] x = SNat.succ [i] x
+}
+term  minus : .[i : Size] -> SNat i -> SNat # -> SNat i
+{ minus [i] (SNat.zero [j < i]) y = SNat.zero [j]
+; minus [i] x (SNat.zero [.#]) = x
+; minus [i] (SNat.succ [j < i] x) (SNat.succ [.#] y) = minus [j] x y
+}
+term  test : SNat #
+term  test = minus [#] (SNat.succ [#] (SNat.succ [#] (SNat.zero [#]))) (SNat.succ [#] (SNat.zero [#]))
+term  div : .[i : Size] -> SNat i -> SNat # -> SNat i
+{ div [i] (SNat.zero [j < i]) y = SNat.zero [j]
+; div [i] (SNat.succ [j < i] x) y = SNat.succ [j] (div [j] (minus [j] x y) y)
+}
+type  Bool : Set
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
+term  true : .[i : Size] -> SNat i -> Bool
+{ true [.$i] (SNat.zero [i]) = Bool.tt
+; true [.$i] (SNat.succ [i] x) = true [i] x
+}
+term  ok : .[Size] -> Bool
+{ ok [i] = Bool.tt
+}
+--- evaluating ---
+test has whnf (minus # (succ # (succ # (zero #))) (succ # (zero #)))
+test evaluates to minus # (succ # (succ # (zero #))) (succ # (zero #))
+--- closing "nat.ma" ---

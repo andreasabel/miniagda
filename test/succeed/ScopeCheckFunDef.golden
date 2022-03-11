@@ -1,0 +1,24 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ScopeCheckFunDef.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  not : Bool -> Bool
+{ not Bool.true = Bool.false
+; not Bool.false = Bool.true
+}
+term  notnot : Bool -> Bool
+{ notnot x = not (not x)
+}
+type  T : Bool -> Set
+{ T Bool.true = Bool
+; T Bool.false = Bool
+}
+term  f : (b : Bool) -> T b -> T b
+{ f Bool.true x = x
+; f Bool.false x = x
+}
+--- evaluating ---
+--- closing "ScopeCheckFunDef.ma" ---

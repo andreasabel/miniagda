@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "incompleteSizePattern1.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+term  bad' : .[Size] -> Empty
+error during typechecking:
+bad'
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[Size] -> Empty ends in correct coinductive sized type
+/// new  <= #
+/// endsInSizedCo: Empty
+/// endsInSizedCo: target Empty of corecursive function is neither a CoSet or codata of size  nor a tuple type

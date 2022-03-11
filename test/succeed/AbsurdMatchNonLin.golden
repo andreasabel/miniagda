@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AbsurdMatchNonLin.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  BB : ^ Bool -> Set
+term  BB.tt : < BB.tt : BB Bool.true >
+term  BB.ff : < BB.ff : BB Bool.false >
+type  Empty : Set
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  True : Bool -> Set
+{ True Bool.true = Unit
+; True Bool.false = Empty
+}
+term  not : Bool -> Bool
+{ not Bool.true = Bool.false
+; not Bool.false = Bool.true
+}
+term  bla : (b : Bool) -> True b -> True (not b) -> BB b -> Empty
+{ bla .Bool.false () x BB.ff
+; bla .Bool.true x () BB.tt
+}
+--- evaluating ---
+--- closing "AbsurdMatchNonLin.ma" ---

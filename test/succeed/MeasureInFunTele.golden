@@ -1,0 +1,12 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MeasureInFunTele.ma" ---
+--- scope checking ---
+--- type checking ---
+type  T : -(i : Size) -> Set
+{ T i = .[j < i] -> T j
+}
+term  bla : .[i : Size] -> T i
+{ bla [i] = bla
+}
+--- evaluating ---
+--- closing "MeasureInFunTele.ma" ---

@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DataTypesNotFamilies.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(head : A) -> ^(tail : List A) -> < List.cons head tail : List A >
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+type  Id : ^(a : Bool) -> ^ Bool -> Set
+block fails as expected, error message:
+Id
+/// constructor Id.refl
+/// new Id : (^(a : Bool::Tm) -> ^ Bool -> Set)
+/// new a : Bool
+/// inferExpr: expected Id a to be a type!
+--- evaluating ---
+--- closing "DataTypesNotFamilies.ma" ---

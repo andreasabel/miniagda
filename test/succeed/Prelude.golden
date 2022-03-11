@@ -1,0 +1,40 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Prelude.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  If : (b : Bool) -> ++(A : Set) -> ++(B : Set) -> Set
+{ If Bool.true A B = A
+; If Bool.false A B = B
+}
+type  Either : ++(A : Set) -> ++(B : Set) -> Set
+type  Either = \ A -> \ B -> (b : Bool) & If b B A
+pattern left a = (false, a)
+pattern right b = (true, b)
+type  Maybe : ++(A : Set) -> Set
+type  Maybe = \ A -> Either Unit A
+pattern nothing = left unit
+pattern just a = right a
+type  Nat : + Size -> Set
+{ Nat i = .[j < i] & Maybe (Nat j)
+}
+pattern zero j = (j, nothing)
+pattern succ j n = (j, just n)
+term  zer : .[i : Size] -> Nat $i
+term  zer = [\ i ->] ([0] , (Bool.false , Unit.unit))
+term  suc : .[i < #] -> (n : Nat i) -> Nat $i
+term  suc = [\ i ->] \ n -> ([i] , (Bool.true , n))
+term  suc : .[i : Size] -> (n : Nat i) -> Nat $i
+{ suc [i] ([i' < i], m) = ([$i'] , (Bool.true , ([i'] , m)))
+}
+term  plus : .[i : Size] -> (n : Nat i) -> .[j : Size] -> (m : Nat j) -> Nat (i + j)
+{ plus [i] ([i' < i], (Bool.false, un!t)) [j] m = m
+; plus [i] ([i' < i], (Bool.true, n)) [j] m = suc [i' + j] (plus [i'] n [j] m)
+}
+--- evaluating ---
+--- closing "Prelude.ma" ---

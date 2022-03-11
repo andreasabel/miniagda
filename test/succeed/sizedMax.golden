@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizedMax.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+term  maxN : .[i : Size] -> Nat i -> Nat i -> Nat i
+{ maxN [.$i] (Nat.zero [.i]) (Nat.zero [i]) = Nat.zero [i]
+; maxN [.$i] (Nat.zero [.i]) (Nat.succ [i] n) = Nat.succ [i] n
+; maxN [.$i] (Nat.succ [.i] n) (Nat.zero [i]) = Nat.succ [i] n
+; maxN [.$i] (Nat.succ [.i] n) (Nat.succ [i] m) = Nat.succ [i] (maxN [i] n m)
+}
+term  maxN : .[i : Size] -> Nat i -> Nat i -> Nat i
+{ maxN [i] (Nat.zero [j < i]) (Nat.zero [k < i]) = Nat.zero [j]
+; maxN [i] (Nat.zero [j < i]) (Nat.succ [k < i] m) = Nat.succ [k] m
+; maxN [i] (Nat.succ [j < i] n) (Nat.zero [k < i]) = Nat.succ [j] n
+; maxN [i] (Nat.succ [j < i] n) (Nat.succ [k < i] m) = Nat.succ [max j k] (maxN [max j k] n m)
+}
+--- evaluating ---
+--- closing "sizedMax.ma" ---

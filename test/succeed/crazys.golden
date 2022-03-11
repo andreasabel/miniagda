@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "crazys.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+term  o2e : .[i : Size] -> SNat i -> SNat i
+{ o2e [.$i] (SNat.zero [i]) = SNat.zero [i]
+; o2e [.$$i] (SNat.succ [.$i] (SNat.zero [i])) = SNat.zero [$i]
+; o2e [.$$i] (SNat.succ [.$i] (SNat.succ [i] x)) = SNat.succ [$i] (SNat.succ [i] (o2e [i] x))
+}
+term  crazy : .[i : Size] -> .[j : Size] -> SNat i -> SNat j -> SNat #
+{ crazy [.$i] [j] (SNat.zero [i]) y = y
+; crazy [.$i] [j] (SNat.succ [i] x) y = SNat.succ [#] (crazy [j] [i] y (o2e [i] x))
+}
+--- evaluating ---
+--- closing "crazys.ma" ---

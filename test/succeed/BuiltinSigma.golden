@@ -1,0 +1,36 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BuiltinSigma.ma" ---
+--- scope checking ---
+--- type checking ---
+term  fst' : .[A : Set] -> .[B : Set] -> (A & B) -> A
+{ fst' [A] [B] (a, b) = a
+}
+term  snd' : .[A : Set] -> .[B : Set] -> (A & B) -> B
+{ snd' [A] [B] (a, b) = b
+}
+term  swap : .[A : Set] -> .[B : Set] -> (A & B) -> B & A
+term  swap = [\ A ->] [\ B ->] \ p -> (snd' [A] [B] p , fst' [A] [B] p)
+term  reassoc' : .[A : Set] -> .[B : Set] -> .[C : Set] -> ((A & B) & C) -> A & B & C
+{ reassoc' [A] [B] [C] ((a, b), c) = let bc : B & C
+                                            = (b , c)
+                                     in (a , bc)
+}
+term  reassoc'' : .[A : Set] -> .[B : Set] -> .[C : Set] -> ((A & B) & C) -> A & B & C
+{ reassoc'' [A] [B] [C] ((a, b), c) = (a , (b , c))
+}
+term  reassoc3 : .[A : Set] -> .[B : Set] -> .[C : Set] -> .[D : Set] -> (((A & B) & C) & D) -> A & B & C & D
+{ reassoc3 [A] [B] [C] [D] (((a, b), c), d) = (a , (b , (c , d)))
+}
+term  fst : .[A : Set] -> .[B : A -> Set] -> ((x : A) & B x) -> A
+{ fst [A] [B] (a, b) = a
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (p : (x : A) & B x) -> B (fst [A] [B] p)
+{ snd [A] [B] (a, b) = b
+}
+term  curry : .[A : Set] -> .[B : A -> Set] -> .[C : (x : A) -> B x -> Set] -> ((p : (x : A) & B x) -> C (fst [A] [B] p) (snd [A] [B] p)) -> (x : A) -> (y : B x) -> C x y
+term  curry = [\ A ->] [\ B ->] [\ C ->] \ f -> \ x -> \ y -> f (x , y)
+term  uncurry : .[A : Set] -> .[B : A -> Set] -> .[C : (x : A) -> B x -> Set] -> ((x : A) -> (y : B x) -> C x y) -> (p : (x : A) & B x) -> C (fst [A] [B] p) (snd [A] [B] p)
+{ uncurry [A] [B] [C] f (x, y) = f x y
+}
+--- evaluating ---
+--- closing "BuiltinSigma.ma" ---

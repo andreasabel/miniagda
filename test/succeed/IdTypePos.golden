@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "IdTypePos.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ++(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+type  Exists : ^(A : Set) -> ++(P : A -> Set) -> Set
+term  Exists.exI : .[A : Set] -> .[P : A -> Set] -> ^(witness : A) -> ^(proof : P witness) -> < Exists.exI witness proof : Exists A P >
+term  witness : .[A : Set] -> .[P : A -> Set] -> (exI : Exists A P) -> A
+{ witness [A] [P] (Exists.exI #witness #proof) = #witness
+}
+term  proof : .[A : Set] -> .[P : A -> Set] -> (exI : Exists A P) -> P (witness [A] [P] exI)
+{ proof [A] [P] (Exists.exI #witness #proof) = #proof
+}
+--- evaluating ---
+--- closing "IdTypePos.ma" ---

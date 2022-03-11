@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "mapStream2sizeMatchDepth2.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  map2 : .[i : Size] -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i
+error during typechecking:
+map2
+/// clause 1
+/// pattern $$i
+/// cannot match against deep successor pattern $$i at type .[i : Size] -> (Nat -> Nat) -> Stream Nat i -> Stream Nat i

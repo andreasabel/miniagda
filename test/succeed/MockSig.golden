@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MockSig.ma" ---
+--- scope checking ---
+--- type checking ---
+type  MockSig : ++(A : Set) -> ++(B : .[A] -> Set) -> Set
+term  MockSig.pair : .[A : Set] -> .[B : .[A] -> Set] -> ^(fst : A) -> ^(snd : B [fst]) -> < MockSig.pair fst snd : MockSig A B >
+term  fst : .[A : Set] -> .[B : .[A] -> Set] -> (pair : MockSig A B) -> A
+{ fst [A] [B] (MockSig.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : .[A] -> Set] -> (pair : MockSig A B) -> B [fst [A] [B] pair]
+{ snd [A] [B] (MockSig.pair #fst #snd) = #snd
+}
+--- evaluating ---
+--- closing "MockSig.ma" ---

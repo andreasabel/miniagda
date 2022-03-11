@@ -1,0 +1,52 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "OverloadedConstructors.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
+term  one : Nat
+term  one = Nat.suc Nat.zero
+term  two : Nat
+term  two = Nat.suc one
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero n = n
+; add (Nat.suc m) n = Nat.suc (add m n)
+}
+type  Fin : ^(n : Nat) -> Set
+term  Fin.zero : .[n : Nat] -> < Fin.zero : Fin (Nat.suc n) >
+term  Fin.suc : .[n : Nat] -> ^(i : Fin n) -> < Fin.suc i : Fin (Nat.suc n) >
+term  weakF1 : .[m : Nat] -> Fin m -> Fin (Nat.suc m)
+{ weakF1 [.Nat.suc [m]] Fin.zero = Fin.zero
+; weakF1 [.Nat.suc [m]] (Fin.suc i) = Fin.suc (weakF1 [m] i)
+}
+term  weakF : (n : Nat) -> .[m : Nat] -> Fin m -> Fin (add n m)
+{ weakF Nat.zero [m] i = i
+; weakF (Nat.suc n) [m] i = weakF1 [add n m] (weakF n [m] i)
+}
+term  addF : (n : Nat) -> .[m : Nat] -> Fin n -> Fin m -> Fin (add n m)
+{ addF (.Nat.suc n) [m] Fin.zero j = weakF (Nat.suc n) [m] j
+; addF (.Nat.suc n) [m] (Fin.suc i) j = Fin.suc (addF n [m] i j)
+}
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(x : A) -> ^(xs : List A) -> < List.cons x xs : List A >
+term  lookupL : .[A : Set] -> (i : Nat) -> (xs : List A) -> A
+{ lookupL [A] Nat.zero (List.cons x xs) = x
+; lookupL [A] (Nat.suc i) (List.cons x xs) = lookupL [A] i xs
+}
+type  Vec : ++(A : Set) -> ^(n : Nat) -> Set
+term  Vec.nil : .[A : Set] -> < Vec.nil : Vec A Nat.zero >
+term  Vec.cons : .[A : Set] -> .[n : Nat] -> ^(head : A) -> ^(tail : Vec A n) -> < Vec.cons head tail : Vec A (Nat.suc n) >
+term  head : .[A : Set] -> .[n : Nat] -> (cons : Vec A (Nat.suc n)) -> A
+{ head [A] [n] (Vec.cons #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[n : Nat] -> (cons : Vec A (Nat.suc n)) -> Vec A n
+{ tail [A] [n] (Vec.cons #head #tail) = #tail
+}
+term  lookup : .[A : Set] -> .[n : Nat] -> (i : Fin n) -> (xs : Vec A n) -> A
+{ lookup [A] [.Nat.suc [n]] Fin.zero (.Vec.cons x xs) = x
+; lookup [A] [.Nat.suc [n]] (Fin.suc i) (.Vec.cons x xs) = lookup [A] [n] i xs
+}
+--- evaluating ---
+--- closing "OverloadedConstructors.ma" ---

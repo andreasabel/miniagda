@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "implicitSizeVarUsedExplicitely.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  leq : Nat -> Nat -> Bool
+{}
+term  plus : .[A : Set] -> A -> A -> A
+{}
+type  List : + Size -> Set
+term  List.nil : .[s!ze : Size] -> .[i < s!ze] -> List s!ze
+term  List.nil : .[i : Size] -> < List.nil i : List $i >
+term  List.cons : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat -> ^ List i -> List s!ze
+term  List.cons : .[i : Size] -> ^(y1 : Nat) -> ^(y2 : List i) -> < List.cons i y1 y2 : List $i >
+term  filter : .[i : Size] -> List i -> List i
+{ filter [.$i] (List.nil [i]) = List.nil [i]
+; filter [.$i] (List.cons [i] n l) = plus [List $i] (filter [i] l) (List.cons [i] n (filter [i] l))
+}
+term  quicksort : .[i : Size] -> List i -> List #
+{ quicksort [.$i] (List.nil [i]) = List.nil [#]
+; quicksort [.$i] (List.cons [i] n l) = plus [List #] (quicksort [i] (filter [i] l)) (List.cons [#] n (quicksort [i] (filter [i] l)))
+}
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+--- evaluating ---
+--- closing "implicitSizeVarUsedExplicitely.ma" ---

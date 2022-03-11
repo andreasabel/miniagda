@@ -1,0 +1,97 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "IrrHeterogeneousEta.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  T : Bool -> Set
+{ T Bool.true = Bool -> Bool
+; T Bool.false = Bool
+}
+block fails as expected, error message:
+etaFun'
+/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h true) : .[F : .[b : Bool] -> (T b -> T b) -> Bool -> Set] -> (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h true) : .[F : .[b : Bool] -> (T b -> T b) -> Bool -> Set] -> (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// new F : (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set)
+/// checkExpr 1 |- \ g -> \ h -> g (h true) : (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ h -> g (h true) : (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})
+/// checkExpr 2 |- \ h -> g (h true) : (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ h -> g (h true) : (h : (a : Bool) -> F Bool.true (\ x -> \ y -> x y) a) -> Bool
+/// new h : ((a : Bool::Tm) -> F [Bool.true] (\ x -> \ y -> x y) a{g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))})
+/// checkExpr 3 |- g (h true) : Bool
+/// inferExpr' g (h true)
+/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Bool -> Set))}}) eliminated by h true
+/// leqVal' (subtyping)  < h a Bool.true : F Bool.true (\ x -> \ y -> x y) Bool.true >  <=+  F Bool.false (\ x -> x) Bool.true
+/// leqVal' (subtyping)  F Bool.true (\ x -> \ y -> x y) Bool.true  <=+  F Bool.false (\ x -> x) Bool.true
+/// leqVal'  x y : (Bool -> Bool) -> Bool -> Bool  <=*  x : Bool -> Bool
+/// new x : (Bool::Tm -> Bool)||Bool
+/// leqVal'  x y : Bool -> Bool  <=*  x : Bool
+/// type (Bool::Tm -> Bool) has different shape than Bool
+block fails as expected, error message:
+etaFun
+/// checkExpr 0 |- \ F -> \ g -> \ a -> g a : .[F : .[b : Bool] -> (T b -> T b) -> Set] -> (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ a -> g a : .[F : .[b : Bool] -> (T b -> T b) -> Set] -> (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// new F : (.[b : Bool::Tm] -> (T b -> T b) -> Set)
+/// checkExpr 1 |- \ g -> \ a -> g a : (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ a -> g a : (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})
+/// checkExpr 2 |- \ a -> g a : (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ a -> g a : (a : F Bool.true (\ x -> \ y -> x y)) -> Bool
+/// new a : (v0 {Bool.true {g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> \ y -> x y {g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})
+/// checkExpr 3 |- g a : Bool
+/// inferExpr' g a
+/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (T b -> T b) -> Set))}}) eliminated by a
+/// leqVal' (subtyping)  < a : F Bool.true (\ x -> \ y -> x y) >  <=+  F Bool.false (\ x -> x)
+/// leqVal' (subtyping)  F Bool.true (\ x -> \ y -> x y)  <=+  F Bool.false (\ x -> x)
+/// leqVal'  x y : (Bool -> Bool) -> Bool -> Bool  <=*  x : Bool -> Bool
+/// new x : (Bool::Tm -> Bool)||Bool
+/// leqVal'  x y : Bool -> Bool  <=*  x : Bool
+/// type (Bool::Tm -> Bool) has different shape than Bool
+type  U : Bool -> Set
+{ U Bool.true = Unit
+; U Bool.false = Bool
+}
+block fails as expected, error message:
+etaUnit'
+/// checkExpr 0 |- \ F -> \ g -> \ h -> g (h true) : .[F : .[b : Bool] -> (U b -> U b) -> Bool -> Set] -> (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ h -> g (h true) : .[F : .[b : Bool] -> (U b -> U b) -> Bool -> Set] -> (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// new F : (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set)
+/// checkExpr 1 |- \ g -> \ h -> g (h true) : (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ h -> g (h true) : (g : F Bool.false (\ x -> x) Bool.true -> Bool) -> (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})
+/// checkExpr 2 |- \ h -> g (h true) : (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ h -> g (h true) : (h : (a : Bool) -> F Bool.true (\ x -> Unit.unit) a) -> Bool
+/// new h : ((a : Bool::Tm) -> F [Bool.true] (\ x -> Unit.unit) a{g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))})
+/// checkExpr 3 |- g (h true) : Bool
+/// inferExpr' g (h true)
+/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}} {Bool.true {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Bool -> Set))}}) eliminated by h true
+/// leqVal' (subtyping)  < h a Bool.true : F Bool.true (\ x -> Unit.unit) Bool.true >  <=+  F Bool.false (\ x -> x) Bool.true
+/// leqVal' (subtyping)  F Bool.true (\ x -> Unit.unit) Bool.true  <=+  F Bool.false (\ x -> x) Bool.true
+/// leqVal'  Unit.unit : Unit -> Unit  <=*  x : Bool -> Bool
+/// new x : Unit||Bool
+/// leqVal'  Unit.unit : Unit  <=*  x : Bool
+/// type Unit has different shape than Bool
+error during typechecking:
+etaUnit
+/// checkExpr 0 |- \ F -> \ g -> \ a -> g a : .[F : .[b : Bool] -> (U b -> U b) -> Set] -> (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// checkForced fromList [] |- \ F -> \ g -> \ a -> g a : .[F : .[b : Bool] -> (U b -> U b) -> Set] -> (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// new F : (.[b : Bool::Tm] -> (U b -> U b) -> Set)
+/// checkExpr 1 |- \ g -> \ a -> g a : (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// checkForced fromList [(F,0)] |- \ g -> \ a -> g a : (g : F Bool.false (\ x -> x) -> Bool) -> (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// new g : ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})
+/// checkExpr 2 |- \ a -> g a : (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// checkForced fromList [(g,1),(F,0)] |- \ a -> g a : (a : F Bool.true (\ x -> Unit.unit)) -> Bool
+/// new a : (v0 {Bool.true {g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> Unit.unit {g = (v1 Up ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})), F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})
+/// checkExpr 3 |- g a : Bool
+/// inferExpr' g a
+/// checkApp ((v0 {Bool.false {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}} {\ x -> x {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}})::Tm -> {Bool {F = (v0 Up (.[b : Bool::Tm] -> (U b -> U b) -> Set))}}) eliminated by a
+/// leqVal' (subtyping)  < a : F Bool.true (\ x -> Unit.unit) >  <=+  F Bool.false (\ x -> x)
+/// leqVal' (subtyping)  F Bool.true (\ x -> Unit.unit)  <=+  F Bool.false (\ x -> x)
+/// leqVal'  Unit.unit : Unit -> Unit  <=*  x : Bool -> Bool
+/// new x : Unit||Bool
+/// leqVal'  Unit.unit : Unit  <=*  x : Bool
+/// type Unit has different shape than Bool

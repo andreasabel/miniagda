@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Rose.ma" ---
+--- scope checking ---
+--- type checking ---
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(y0 : A) -> ^(y1 : List A) -> < List.cons y0 y1 : List A >
+term  mapList : .[A : Set] -> .[B : Set] -> (A -> B) -> List A -> List B
+{ mapList [A] [B] f List.nil = List.nil
+; mapList [A] [B] f (List.cons a as) = List.cons (f a) (mapList [A] [B] f as)
+}
+type  Rose : ++(A : Set) -> + Size -> Set
+term  Rose.rose : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List (Rose A i) -> Rose A s!ze
+term  Rose.rose : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List (Rose A i)) -> < Rose.rose i y1 y2 : Rose A $i >
+term  mapRose : .[A : Set] -> .[B : Set] -> (A -> B) -> .[i : Size] -> Rose A i -> Rose B i
+{ mapRose [A] [B] f [.$i] (Rose.rose [i] a rs) = Rose.rose [i] (f a) (mapList [Rose A i] [Rose B i] (mapRose [A] [B] f [i]) rs)
+}
+--- evaluating ---
+--- closing "Rose.ma" ---

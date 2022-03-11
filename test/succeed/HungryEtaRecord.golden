@@ -1,0 +1,11 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "HungryEtaRecord.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Hungry : -(i : Size) -> Set
+{ Hungry i = .[j < i] -> Hungry j
+}
+type  D : .[i : Size] -> Hungry i -> Set
+{}
+--- evaluating ---
+--- closing "HungryEtaRecord.ma" ---

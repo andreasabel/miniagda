@@ -1,0 +1,10 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "GoodConstraint.ma" ---
+--- scope checking ---
+--- type checking ---
+term  f : .[A : Set] -> (.[i : Size] -> |i| < |i| -> A) -> A
+{}
+term  f : .[A : Set] -> (.[i : Size] -> |i| < |i| -> |i| < |i| -> A) -> A
+{}
+--- evaluating ---
+--- closing "GoodConstraint.ma" ---

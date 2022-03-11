@@ -1,0 +1,11 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "tailBad.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  sid : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+error during typechecking:
+sid
+/// clause 1
+/// size constraints [v1<=?0+1,?0<=?1,?1+1<=v1,SizeMeta(?1),SizeMeta(?0)] unsolvable

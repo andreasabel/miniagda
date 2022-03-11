@@ -1,0 +1,31 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "bfSizePatternIncomplete.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> ^(y1 : B) -> < Prod.pair y0 y1 : Prod A B >
+term  split : .[A : Set] -> .[B : Set] -> Prod A B -> .[C : Set] -> (A -> B -> C) -> C
+{ split [A] [B] (Prod.pair a b) [C] f = f a b
+}
+type  List : ++(A : Set) -> + Size -> Set
+term  List.nil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> List A s!ze
+term  List.nil : .[A : Set] -> .[i : Size] -> < List.nil i : List A $i >
+term  List.cons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List A i -> List A s!ze
+term  List.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List A i) -> < List.cons i y1 y2 : List A $i >
+term  append : .[A : Set] -> List A # -> List A # -> List A #
+{ append [A] (List.nil [.#]) l = l
+; append [A] (List.cons [.#] a as) l = List.cons [#] a (append [A] as l)
+}
+type  Rose : ++(A : Set) -> + Size -> Set
+term  Rose.rose : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ List (Rose A i) # -> Rose A s!ze
+term  Rose.rose : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : List (Rose A i) #) -> < Rose.rose i y1 y2 : Rose A $i >
+term  step : .[j : Size] -> .[A : Set] -> .[i : Size] -> List (Rose A $i) j -> Prod (List A j) (List (Rose A i) #)
+{ step [.$j] [A] [i] (List.nil [j]) = Prod.pair (List.nil [j]) (List.nil [#])
+; step [.$j] [A] [.i] (List.cons [j] (Rose.rose [i] a rs') rs) = split [List A j] [List (Rose A i) #] (step [j] [A] [i] rs) [Prod (List A $j) (List (Rose A i) #)] (\ as -> \ rs'' -> Prod.pair (List.cons [j] a as) (append [Rose A i] rs' rs''))
+}
+term  bf' : .[A : Set] -> .[i : Size] -> List A # -> List (Rose A i) # -> List A #
+error during typechecking:
+bf'
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

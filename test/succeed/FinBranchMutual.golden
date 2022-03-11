@@ -1,0 +1,24 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "FinBranchMutual.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+type  Tree : Set
+term  Tree.node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < Tree.node numBranches y1 : Tree >
+{ VecTree Nat.zero = Unit
+; VecTree (Nat.suc n) = Prod Tree (VecTree n)
+}
+--- evaluating ---
+--- closing "FinBranchMutual.ma" ---

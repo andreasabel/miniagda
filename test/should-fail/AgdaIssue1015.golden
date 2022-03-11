@@ -1,0 +1,25 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AgdaIssue1015.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : -(i : Size) -> Set
+term  D.inn : .[i : Size] -> ^(out : R i) -> < D.inn out : D i >
+term  out : .[i : Size] -> (inn : D i) -> R i
+{ out [i] (D.inn #out) = #out
+}
+type  R : -(i : Size) -> Set
+term  R.delay : .[i : Size] -> ^(force : .[j < i] -> D j) -> < R.delay force : R i >
+term  force : .[i : Size] -> (delay : R i) -> .[j < i] -> D j
+{ force [i] (R.delay #force) = #force
+}
+term  inh : .[i : Size] -> R i
+{ inh [i] .force [j < i] = D.inn (inh [j])
+}
+type  Empty : Set
+term  elim : D # -> Empty
+{ elim (D.inn r) = elim (r .force [#])
+}
+term  absurd : Empty
+term  absurd = elim (D.inn (inh [#]))
+--- evaluating ---
+--- closing "AgdaIssue1015.ma" ---

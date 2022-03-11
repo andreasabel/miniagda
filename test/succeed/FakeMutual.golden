@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "FakeMutual.ma" ---
+--- scope checking ---
+--- type checking ---
+type  E : Set
+term  E.e0 : < E.e0 : E >
+term  E.eS : ^(y0 : O) -> < E.eS y0 : E >
+type  O : Set
+term  O.oS : ^(y0 : E) -> < O.oS y0 : O >
+type  D1 : Set
+term  D1.d1 : ^(y0 : D2) -> < D1.d1 y0 : D1 >
+type  D2 : Set
+term  D2.d2 : ^(y0 : D3) -> < D2.d2 y0 : D2 >
+type  D3 : Set
+term  D3.d3 : ^(y0 : D1) -> < D3.d3 y0 : D3 >
+type  A : Set
+term  A.a1 : < A.a1 : A >
+term  A.a2 : ^(y0 : A) -> < A.a2 y0 : A >
+type  B : Set
+term  B.b1 : < B.b1 : B >
+term  B.b2 : ^(y0 : A -> B) -> < B.b2 y0 : B >
+type  D : Set
+term  D.c : < D.c : D >
+term  D.d : ^(y0 : D) -> < D.d y0 : D >
+{ T X = D -> X
+}
+--- evaluating ---
+--- closing "FakeMutual.ma" ---

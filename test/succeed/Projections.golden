@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Projections.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Sigma : ++(A : Set) -> ++(B : A -> Set) -> Set
+term  Sigma.pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < Sigma.pair fst snd : Sigma A B >
+term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
+{ fst [A] [B] (Sigma.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
+{ snd [A] [B] (Sigma.pair #fst #snd) = #snd
+}
+term  eta : .[A : Set] -> .[B : Set] -> Sigma A (\ x -> B) -> Sigma A (\ x -> B)
+{ eta [A] [B] p = Sigma.pair (fst p) (snd p)
+}
+term  builtinEta : .[A : Set] -> .[B : Set] -> (p : Sigma A (\ x -> B)) -> < Sigma.pair (fst p) (snd p) : Sigma A (\ x -> B) >
+term  builtinEta = [\ A ->] [\ B ->] \ p -> p
+--- evaluating ---
+--- closing "Projections.ma" ---

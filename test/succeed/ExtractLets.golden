@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ExtractLets.ma" ---
+--- scope checking ---
+--- type checking ---
+term  id : .[A : Set] -> A -> A
+term  id = [\ A ->] \ x -> x
+term  s : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> (A -> B) -> A -> C
+term  s = [\ A ->] [\ B ->] [\ C ->] \ x -> \ y -> \ z -> x z (y z)
+term  k : .[A : Set] -> .[B : Set] -> A -> B -> A
+term  k = [\ A ->] [\ B ->] \ x -> \ y -> x
+term  skk : .[A : Set] -> A -> A
+term  skk = [\ A ->] s [A] [A -> A] [A] (k [A] [A -> A]) (k [A] [A])
+--- evaluating ---
+--- closing "ExtractLets.ma" ---

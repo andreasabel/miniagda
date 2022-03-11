@@ -1,0 +1,27 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DottedConstructorsWrong.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+term  top : Unit -> Unit
+{ top un!t = Unit.unit
+}
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  not : Bool -> Bool
+block fails as expected, error message:
+not
+/// clause 1
+/// confirming dotted constructor .true
+/// more than one constructor matches type Bool
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
+term  pred : Nat -> Nat
+error during typechecking:
+pred
+/// clause 2
+/// confirming dotted constructor .suc x
+/// more than one constructor matches type Nat

@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Stack.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Maybe : ^(A : Set) -> Set
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(y0 : A) -> < Maybe.just y0 : Maybe A >
+type  Stack : ^(A : Set) -> - Size -> Set
+term  Stack.stack : .[A : Set] -> .[i : Size] -> ^(top : Maybe A) -> ^(pop : Stack A i) -> ^(push : A -> Stack A i) -> < Stack.stack i top pop push : Stack A $i >
+term  top : .[A : Set] -> .[i : Size] -> (stack : Stack A $i) -> Maybe A
+{ top [A] [i] (Stack.stack [.i] #top #pop #push) = #top
+}
+term  pop : .[A : Set] -> .[i : Size] -> (stack : Stack A $i) -> Stack A i
+{ pop [A] [i] (Stack.stack [.i] #top #pop #push) = #pop
+}
+term  push : .[A : Set] -> .[i : Size] -> (stack : Stack A $i) -> A -> Stack A i
+{ push [A] [i] (Stack.stack [.i] #top #pop #push) = #push
+}
+term  pushFunc : .[A : Set] -> .[i : Size] -> (.[j : Size] -> |j| < |i| -> Stack A j -> A -> Stack A j) -> Stack A i -> A -> Stack A i
+{ pushFunc [A] $[i < #] f s a = Stack.stack [i] (Maybe.just a) s (f [i] (pushFunc [A] [i] f s a))
+}
+term  pushFix : .[A : Set] -> .[i : Size] -> Stack A i -> A -> Stack A i
+{ pushFix [A] $[i < #] = pushFunc [A] [$i] (pushFix [A])
+}
+term  empty : .[A : Set] -> .[i : Size] -> Stack A i
+{ empty [A] $[i < #] = Stack.stack [i] Maybe.nothing (empty [A] [i]) (pushFix [A] [i] (empty [A] [i]))
+}
+--- evaluating ---
+--- closing "Stack.ma" ---

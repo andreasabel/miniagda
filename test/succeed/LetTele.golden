@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "LetTele.ma" ---
+--- scope checking ---
+--- type checking ---
+mixk  id0 : .[i : Size] -> .[A : Set i] -> (a : A) -> A
+mixk  id0 = [\ i ->] [\ A ->] \ a -> a
+mixk  id : .[i : Size] -> .[A : Set i] -> (a : A) -> A
+mixk  id = [\ i ->] [\ A ->] \ a -> a
+mixk  id' : .[i : Size] -> .[A : Set i] -> (a : A) -> A
+mixk  id' = [\ i ->] [\ A ->] \ a -> a
+term  two : .[A : Set] -> (f : A -> A) -> (x : A) -> A
+term  two = [\ A ->] \ f -> \ x -> let y : A
+                             = f x
+                       in f y
+term  two' : .[A : Set] -> (f : A -> A) -> (x : A) -> A
+term  two' = [\ A ->] \ f -> \ x -> let y : A
+                             = f x
+                       in f y
+--- evaluating ---
+--- closing "LetTele.ma" ---

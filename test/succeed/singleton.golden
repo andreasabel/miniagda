@@ -1,0 +1,43 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "singleton.ma" ---
+--- scope checking ---
+--- type checking ---
+term  id : .[A : Set] -> (x : A) -> < x : A >
+term  id = [\ A ->] \ x -> x
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  zero' : < Nat.zero : Nat >
+term  zero' = Nat.zero
+term  succ' : (x : Nat) -> < Nat.succ x : Nat >
+term  succ' = \ x -> Nat.succ x
+term  pred : .[x : Nat] -> < Nat.succ x : Nat > -> < x : Nat >
+{ pred [.x] (Nat.succ x) = x
+}
+term  kzero : (x : Nat) -> < Nat.zero : Nat >
+{ kzero Nat.zero = Nat.zero
+; kzero (Nat.succ x) = kzero x
+}
+type  IsZero : ^ Nat -> Set
+term  IsZero.isZero : < IsZero.isZero : IsZero Nat.zero >
+term  p : (x : Nat) -> IsZero (kzero x)
+term  p = \ x -> IsZero.isZero
+term  pzero : (< Nat.zero : Nat > -> Nat) -> Nat -> < Nat.zero : Nat >
+{ pzero f Nat.zero = Nat.zero
+; pzero f (Nat.succ x) = kzero (f (pzero f x))
+}
+term  qzero : ((n : Nat) -> IsZero n -> Nat) -> Nat -> < Nat.zero : Nat >
+{ qzero f Nat.zero = Nat.zero
+; qzero f (Nat.succ x) = kzero (f (qzero f x) IsZero.isZero)
+}
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Empty : Set
+type  Zero : (n : Nat) -> Set
+{ Zero Nat.zero = Unit
+; Zero (Nat.succ x) = Empty
+}
+term  bla : ((n : Nat) -> Zero n -> Nat) -> (Nat -> < Nat.zero : Nat >) -> Nat -> Nat
+term  bla = \ f -> \ g -> \ x -> f (g x) Unit.unit
+--- evaluating ---
+--- closing "singleton.ma" ---

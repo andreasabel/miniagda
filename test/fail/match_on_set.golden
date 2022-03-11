@@ -1,0 +1,5 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "match_on_set.ma" ---
+--- scope checking ---
+scope check error: bla
+/// pattern A is not a constructor

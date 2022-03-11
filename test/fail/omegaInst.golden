@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "omegaInst.ma" ---
+--- scope checking ---
+--- type checking ---
+term  ok : .[F : Size -> Set] -> .[i < #] -> (f : .[j < $i] -> F j) -> F i
+term  ok = [\ F ->] [\ i ->] \ f -> f [i]
+term  bad : .[F : Size -> Set] -> .[i <= #] -> (f : .[j < $i] -> F j) -> F i
+term  bad = [\ F ->] [\ i ->] \ f -> f [i]
+term  inst : .[F : Size -> Set] -> (f : .[j < #] -> F j) -> F #
+term  inst = [\ F ->] \ f -> bad [F] [#] f
+error during typechecking:
+bot
+/// new F : (Size -> Set)
+/// new f : (.[j < #] -> F j{F = (v0 Up (Size -> Set))})
+/// checkExpr 2 |- f # : F #
+/// inferExpr' f #
+/// checkApp (.[j < #] -> F j{F = (v0 Up (Size -> Set))}) eliminated by #
+/// leqVal' (subtyping)  < # : Size >  <=+  < #
+/// leSize # <+ #
+/// leSize: # < # failed

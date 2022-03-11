@@ -1,0 +1,95 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "PatternParameters.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Bool : Set
+term  Bool.false : < Bool.false : Bool >
+term  Bool.true : < Bool.true : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
+term  plus : Nat -> Nat -> Nat
+{ plus Nat.zero m = m
+; plus (Nat.suc n) m = Nat.suc (plus n m)
+}
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(x : A) -> ^(xs : List A) -> < List.cons x xs : List A >
+type  OldVec : ++(A : Set) -> ^(n : Nat) -> Set
+term  OldVec.oldvnil : .[A : Set] -> < OldVec.oldvnil : OldVec A Nat.zero >
+term  OldVec.oldvcons : .[A : Set] -> .[n : Nat] -> ^(oldvhead : A) -> ^(oldvtail : OldVec A n) -> < OldVec.oldvcons n oldvhead oldvtail : OldVec A (Nat.suc n) >
+term  oldvhead : .[A : Set] -> ^(n : Nat) -> (oldvcons : OldVec A (Nat.suc n)) -> A
+{ oldvhead [A] n (OldVec.oldvcons [.n] #oldvhead #oldvtail) = #oldvhead
+}
+term  oldvtail : .[A : Set] -> ^(n : Nat) -> (oldvcons : OldVec A (Nat.suc n)) -> OldVec A n
+{ oldvtail [A] n (OldVec.oldvcons [.n] #oldvhead #oldvtail) = #oldvtail
+}
+type  Vec : ++(A : Set) -> ^(n : Nat) -> Set
+term  Vec.vnil : .[A : Set] -> < Vec.vnil : Vec A Nat.zero >
+term  Vec.vcons : .[A : Set] -> .[n : Nat] -> ^(vhead : A) -> ^(vtail : Vec A n) -> < Vec.vcons vhead vtail : Vec A (Nat.suc n) >
+term  vhead : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (Nat.suc n)) -> A
+{ vhead [A] [n] (Vec.vcons #vhead #vtail) = #vhead
+}
+term  vtail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (Nat.suc n)) -> Vec A n
+{ vtail [A] [n] (Vec.vcons #vhead #vtail) = #vtail
+}
+term  append : .[A : Set] -> (n : Nat) -> .[m : Nat] -> Vec A n -> Vec A m -> Vec A (plus n m)
+{ append [A] Nat.zero [m] Vec.vnil ys = ys
+; append [A] (Nat.suc n) [m] (Vec.vcons x xs) ys = Vec.vcons x (append [A] n [m] xs ys)
+}
+type  Fin : ^(n : Nat) -> Set
+term  Fin.fzero : .[n : Nat] -> < Fin.fzero : Fin (Nat.suc n) >
+term  Fin.fsuc : .[n : Nat] -> ^(i : Fin n) -> < Fin.fsuc i : Fin (Nat.suc n) >
+term  lookup : .[A : Set] -> (n : Nat) -> (i : Fin n) -> (xs : Vec A n) -> A
+{ lookup [A] Nat.zero () Vec.vnil
+; lookup [A] (Nat.suc n) Fin.fzero (Vec.vcons x xs) = x
+; lookup [A] (Nat.suc n) (Fin.fsuc i) (Vec.vcons x xs) = lookup [A] n i xs
+}
+type  Ty : Set
+term  Ty.nat : < Ty.nat : Ty >
+term  Ty.arr : ^(a : Ty) -> ^(b : Ty) -> < Ty.arr a b : Ty >
+type  Cxt : Set
+type  Cxt = List Ty
+type  Var : ^(cxt : Cxt) -> ^(a : Ty) -> Set
+term  Var.vzero : .[a : Ty] -> .[cxt : List Ty] -> .[a : Ty] -> < Var.vzero : Var (List.cons a cxt) a >
+term  Var.vsuc : .[a : Ty] -> .[cxt : List Ty] -> .[b : Ty] -> ^(x : Var cxt b) -> < Var.vsuc x : Var (List.cons a cxt) b >
+type  Tm : ^(cxt : Cxt) -> ^(a : Ty) -> Set
+term  Tm.var : .[cxt : Cxt] -> .[a : Ty] -> ^(x : Var cxt a) -> < Tm.var x : Tm cxt a >
+term  Tm.app : .[cxt : List Ty] -> .[b : Ty] -> ^(a : Ty) -> ^(r : Tm cxt (Ty.arr a b)) -> ^(s : Tm cxt a) -> < Tm.app a r s : Tm cxt b >
+term  Tm.abs : .[cxt : List Ty] -> .[a : Ty] -> .[b : Ty] -> ^(t : Tm (List.cons a cxt) b) -> < Tm.abs t : Tm cxt (Ty.arr a b) >
+type  Sem : Ty -> Set
+{ Sem Ty.nat = Nat
+; Sem (Ty.arr a b) = Sem a -> Sem b
+}
+type  Env : Cxt -> Set
+{ Env List.nil = Unit
+; Env (List.cons a as) = Sem a & Env as
+}
+term  val : (cxt : Cxt) -> .[a : Ty] -> Var cxt a -> Env cxt -> Sem a
+{ val (List.cons a cxt) [.a] Var.vzero (v, vs) = v
+; val (List.cons a cxt) [b] (Var.vsuc x) (v, vs) = val cxt [b] x vs
+}
+term  sem : (cxt : Cxt) -> (a : Ty) -> Tm cxt a -> Env cxt -> Sem a
+{ sem cxt a (Tm.var x) rho = val cxt [a] x rho
+; sem cxt b (Tm.app a r s) rho = sem cxt (Ty.arr a b) r rho (sem cxt a s rho)
+; sem cxt (Ty.arr a b) (Tm.abs t) rho v = sem (List.cons a cxt) b t (v , rho)
+}
+type  Id : ^(A : Set) -> ^(x : A) -> ^(y : A) -> Set
+term  Id.refl : .[A : Set] -> .[x : A] -> .[x : A] -> < Id.refl : Id A x x >
+term  subst : .[A : Set] -> .[P : A -> Set] -> .[x : A] -> .[y : A] -> Id A x y -> P x -> P y
+{ subst [A] [P] [x] [.x] Id.refl h = h
+}
+block fails as expected, error message:
+trueIsFalse
+/// checkExpr 0 |- refl : Id Bool Bool.true Bool.false
+/// checkForced fromList [] |- refl : Id Bool Bool.true Bool.false
+/// instConLType'
+/// instConType:
+cannot match parameters [Bool, Bool.true, Bool.false]
+against patterns [A, x, x]
+when instantiating type .[A : Set] -> .[x : A] -> .[x : A] -> < Id.refl : Id A x x >
+of constructor Id.refl
+--- evaluating ---
+--- closing "PatternParameters.ma" ---

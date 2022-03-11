@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "countConstructors.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  plus : Nat -> Nat -> Nat
+{}
+term  f1 : Nat -> Nat
+term  g1 : Nat -> Nat
+{ f1 Nat.zero = Nat.zero
+; f1 (Nat.succ Nat.zero) = Nat.zero
+; f1 (Nat.succ (Nat.succ n)) = g1 n
+}
+{ g1 Nat.zero = Nat.zero
+; g1 (Nat.succ n) = f1 (Nat.succ (Nat.succ n))
+}
+term  f : Nat -> Nat
+term  g : Nat -> Nat
+{ f Nat.zero = Nat.zero
+; f (Nat.succ Nat.zero) = Nat.zero
+; f (Nat.succ (Nat.succ n)) = g n
+}
+{ g Nat.zero = Nat.zero
+; g (Nat.succ n) = plus (f n) (plus (f (Nat.succ n)) (f (Nat.succ (Nat.succ n))))
+}
+--- evaluating ---
+--- closing "countConstructors.ma" ---

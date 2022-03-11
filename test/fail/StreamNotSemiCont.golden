@@ -1,0 +1,25 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "StreamNotSemiCont.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Stream : +(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
+}
+term  bad : .[i : Size] -> .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i
+error during typechecking:
+bad
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i ends in correct coinductive sized type
+/// new i <= #
+/// endsInSizedCo: .[A : Set] -> (Stream A i -> Stream A i) -> Stream A i
+/// new A : Set
+/// endsInSizedCo: (Stream A i -> Stream A i) -> Stream A i
+/// type  Stream A i -> Stream A i  not lower semi continuous in  i

@@ -1,0 +1,10 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "PTSRule.ma" ---
+--- scope checking ---
+--- type checking ---
+mixk  T : (i : Size) -> Set $$i
+mixk  T = \ i -> Set $i -> Set i
+mixk  U : (i : Size) -> Set ?0
+mixk  U = \ i -> Set $?1 -> Set ?2
+--- evaluating ---
+--- closing "PTSRule.ma" ---

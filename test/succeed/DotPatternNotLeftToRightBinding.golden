@@ -1,0 +1,25 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DotPatternNotLeftToRightBinding.ma" ---
+--- scope checking ---
+--- type checking ---
+type  A : Set
+{}
+type  B : Set
+{}
+none  f : A -> A
+{}
+type  Fix : (a : A) -> ^ A -> Set
+term  Fix.fix : .[a : A] -> < Fix.fix : Fix a (f a) >
+term  eta : (a : A) -> (b : A) -> Fix a b -> Fix a b
+{ eta a .(f a) Fix.fix = Fix.fix
+}
+none  bla : (b : A) -> (a : A) -> Fix a b -> A
+{ bla .(f a) a Fix.fix = a
+}
+type  Inv : ^(g : A -> B) -> ^ B -> Set
+term  Inv.mkInv : .[g : A -> B] -> ^(getInv : A) -> < Inv.mkInv getInv : Inv g (g getInv) >
+none  getInv : (g : A -> B) -> (b : B) -> Inv g b -> A
+{ getInv g .(g a) (Inv.mkInv a) = a
+}
+--- evaluating ---
+--- closing "DotPatternNotLeftToRightBinding.ma" ---

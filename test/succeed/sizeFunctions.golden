@@ -1,0 +1,33 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizeFunctions.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  N : Set
+term  N.zz : < N.zz : N >
+term  N.ss : ^(y0 : N) -> < N.ss y0 : N >
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+size  infty : Size
+size  infty = #
+size  ssuc : Size -> Size
+size  ssuc = \ i -> $i
+size  maybeSuc : (b : Bool) -> Size -> Size
+{ maybeSuc Bool.true i = $i
+; maybeSuc Bool.false i = i
+}
+size  addSize : N -> Size -> Size
+{ addSize N.zz i = i
+; addSize (N.ss n) i = $(addSize n i)
+}
+term  addSNat : (n : N) -> .[i : Size] -> Nat i -> Nat (addSize n i)
+{ addSNat N.zz [i] m = m
+; addSNat (N.ss n) [i] m = Nat.succ [addSize n i] (addSNat n [i] m)
+}
+--- evaluating ---
+--- closing "sizeFunctions.ma" ---

@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ForceInConType.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ++(A : Set) -> ^(x : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[x : A] -> < Id.refl : Id A x x >
+type  Either : ++(A : Set) -> ++(B : Set) -> Set
+term  Either.left : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> < Either.left y0 : Either A B >
+term  Either.right : .[A : Set] -> .[B : Set] -> ^(y0 : B) -> < Either.right y0 : Either A B >
+type  P : ++(A : Set) -> Set
+{ P A = Either A A
+}
+type  Foo : ++(A : Set) -> P A -> Set
+{ Foo A x = (z : A) & Id (P A) x (Either.left z)
+}
+term  foo : .[A : Set] -> (x : P A) -> Foo A x
+{ foo [A] (Either.left x) = (x , Id.refl)
+}
+--- evaluating ---
+--- closing "ForceInConType.ma" ---

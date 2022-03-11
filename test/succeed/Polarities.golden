@@ -1,0 +1,43 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Polarities.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Const : ++ Set -> .[Set] -> Set
+type  Const = \ A -> [\ X ->] A
+type  DNeg : ^ Set -> + Set -> Set
+type  DNeg = \ B -> \ A -> (A -> B) -> B
+type  Empty : Set
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+type  Cont' : + Set -> Set
+type  Cont' = DNeg Empty
+term  cast' : .[i : Size] -> ^ Cont' (Nat i) -> Cont' (Nat #)
+term  cast' = [\ i ->] \ x -> x
+type  Cont : +(A : Set) -> Set
+term  Cont.cont : .[A : Set] -> ^(uncont : DNeg Empty A) -> < Cont.cont uncont : Cont A >
+term  uncont : .[A : Set] -> (cont : Cont A) -> DNeg Empty A
+{ uncont [A] (Cont.cont #uncont) = #uncont
+}
+term  cast : .[i : Size] -> ^ Cont (Nat i) -> Cont (Nat #)
+term  cast = [\ i ->] \ x -> x
+type  Id : Nat # -> ++ Set -> Set
+{ Id (Nat.zero [.#]) A = A
+; Id (Nat.succ [.#] n) A = A
+}
+term  kast : .[i : Size] -> .[n : Nat i] -> Id n (Nat i) -> Id n (Nat #)
+term  kast = [\ i ->] [\ n ->] \ x -> x
+type  Tree : -(B : Set) -> ++(A : Set) -> Set
+term  Tree.leaf : .[B : Set] -> .[A : Set] -> < Tree.leaf : Tree B A >
+term  Tree.node : .[B : Set] -> .[A : Set] -> ^(y0 : A) -> ^(y1 : B -> Tree B A) -> < Tree.node y0 y1 : Tree B A >
+type  STree : -(B : Set) -> ++(A : Set) -> + Size -> Set
+term  STree.sleaf : .[B : Set] -> .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> STree B A s!ze
+term  STree.sleaf : .[B : Set] -> .[A : Set] -> .[i : Size] -> < STree.sleaf i : STree B A $i >
+term  STree.snode : .[B : Set] -> .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> ^ (B -> STree B A i) -> STree B A s!ze
+term  STree.snode : .[B : Set] -> .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : B -> STree B A i) -> < STree.snode i y1 y2 : STree B A $i >
+type  Mu : ++(F : ++ Set -> Set) -> Set
+term  Mu.inn : .[F : ++ Set -> Set] -> ^(y0 : F (Mu F)) -> < Mu.inn y0 : Mu F >
+--- evaluating ---
+--- closing "Polarities.ma" ---

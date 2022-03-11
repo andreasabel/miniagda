@@ -1,0 +1,25 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "record.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Pair : ^(A : Set) -> ^(B : Set) -> Set
+term  Pair.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Pair.pair fst snd : Pair A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Pair A B) -> A
+{ fst [A] [B] (Pair.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Pair A B) -> B
+{ snd [A] [B] (Pair.pair #fst #snd) = #snd
+}
+term  swap : .[A : Set] -> Pair A A -> Pair A A
+{ swap [A] p = Pair.pair (snd p) (fst p)
+}
+type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Sigma.pair' : .[A : Set] -> .[B : A -> Set] -> ^(fst' : A) -> ^(snd' : B fst') -> < Sigma.pair' fst' snd' : Sigma A B >
+term  fst' : .[A : Set] -> .[B : A -> Set] -> (pair' : Sigma A B) -> A
+{ fst' [A] [B] (Sigma.pair' #fst' #snd') = #fst'
+}
+term  snd' : .[A : Set] -> .[B : A -> Set] -> (pair' : Sigma A B) -> B (fst' [A] [B] pair')
+{ snd' [A] [B] (Sigma.pair' #fst' #snd') = #snd'
+}
+--- evaluating ---
+--- closing "record.ma" ---

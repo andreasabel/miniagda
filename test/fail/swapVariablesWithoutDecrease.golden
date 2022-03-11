@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "swapVariablesWithoutDecrease.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+term  bla : .[i : Size] -> .[j : Size] -> SNat i -> SNat j -> SNat #
+{ bla [.$i] [j] (SNat.succ [i] x) y = bla [$j] [i] (SNat.succ [j] y) x
+}
+error during typechecking:
+Termination check for function bla fails 

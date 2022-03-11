@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "pred.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+type  MaybeNat : ^(i : Size) -> Set
+term  MaybeNat.nothing : .[i : Size] -> < MaybeNat.nothing : MaybeNat i >
+term  MaybeNat.just : .[i : Size] -> ^(y0 : SNat i) -> < MaybeNat.just y0 : MaybeNat i >
+term  pred' : .[i : Size] -> SNat $i -> MaybeNat i
+{ pred' [i] (SNat.succ [.i] n) = MaybeNat.just n
+; pred' [i] (SNat.zero [.i]) = MaybeNat.nothing
+}
+term  pred : .[i : Size] -> SNat $$i -> SNat $i
+{ pred [i] (SNat.succ [.$i] n) = n
+; pred [i] (SNat.zero [.$i]) = SNat.zero [i]
+}
+--- evaluating ---
+--- closing "pred.ma" ---

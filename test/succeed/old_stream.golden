@@ -1,0 +1,114 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "old_stream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
+term  ifthenelse : Bool -> .[A : Set] -> A -> A -> A
+{ ifthenelse Bool.tt [A] a1 a2 = a1
+; ifthenelse Bool.ff [A] a1 a2 = a2
+}
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero = \ y -> y
+; add (Nat.succ x) = \ y -> Nat.succ (add x y)
+}
+term  leq : Nat -> Nat -> Bool
+{ leq Nat.zero y = Bool.tt
+; leq (Nat.succ x) Nat.zero = Bool.ff
+; leq (Nat.succ x) (Nat.succ y) = leq x y
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] x xs) = xs
+}
+term  head : .[A : Set] -> .[i : Size] -> Stream A $i -> A
+{ head [A] [i] (Stream.cons [.i] x xs) = x
+}
+term  nth : Nat -> Stream Nat # -> Nat
+{ nth Nat.zero xs = head [Nat] [#] xs
+; nth (Nat.succ x) xs = nth x (tail [Nat] [#] xs)
+}
+term  map : .[A : Set] -> .[B : Set] -> .[i : Size] -> (A -> B) -> Stream A i -> Stream B i
+{ map [A] [B] $[i < #] f (Stream.cons [.i] x xl) = Stream.cons [i] (f x) (map [A] [B] [i] f xl)
+}
+term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
+{ zipWith [A] [B] [C] f $[i < #] (Stream.cons [.i] a as) (Stream.cons [.i] b bs) = Stream.cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+}
+term  merge : .[i : Size] -> (Nat -> Nat -> Bool) -> Stream Nat i -> Stream Nat i -> Stream Nat i
+{ merge $[i < #] le (Stream.cons [.i] x xs) (Stream.cons [.i] y ys) = ifthenelse (le x y) [Stream Nat $i] (Stream.cons [i] x (merge [i] le xs (Stream.cons [i] y ys))) (Stream.cons [i] y (merge [i] le (Stream.cons [i] x xs) ys))
+}
+term  one : Nat
+term  one = Nat.succ Nat.zero
+term  two : Nat
+term  two = Nat.succ one
+term  three : Nat
+term  three = Nat.succ two
+term  four : Nat
+term  four = Nat.succ three
+term  five : Nat
+term  five = Nat.succ four
+term  double : Nat -> Nat
+term  double = \ n -> add n n
+term  triple : Nat -> Nat
+term  triple = \ n -> add n (double n)
+term  ham : .[i : Size] -> Stream Nat i
+{ ham $[i < #] = Stream.cons [i] one (merge [i] leq (map [Nat] [Nat] [i] double (ham [i])) (map [Nat] [Nat] [i] triple (ham [i])))
+}
+term  fib : .[i : Size] -> Stream Nat i
+{ fib $[i < #] = Stream.cons [i] Nat.zero (zipWith [Nat] [Nat] [Nat] add [i] (Stream.cons [i] one (fib [i])) (fib [i]))
+}
+term  fibIter' : (x : Nat) -> (y : Nat) -> .[i : Size] -> Stream Nat i
+{ fibIter' x y $[i < #] = Stream.cons [i] x (fibIter' y (add x y) [i])
+}
+term  fibIter : Stream Nat #
+term  fibIter = fibIter' one one [?14]
+term  fibIter4 : Nat
+term  fibIter4 = nth four fibIter
+term  fib1 : Nat
+term  fib1 = nth one (fib [#])
+term  fib2 : Nat
+term  fib2 = nth two (fib [#])
+term  fib3 : Nat
+term  fib3 = nth three (fib [#])
+term  fib4 : Nat
+term  fib4 = nth four (fib [#])
+term  fib5 : Nat
+term  fib5 = nth five (fib [#])
+type  Leq : ^ Nat -> ^ Nat -> Set
+term  Leq.lqz : .[x : Nat] -> < Leq.lqz x : Leq Nat.zero x >
+term  Leq.lqs : .[x : Nat] -> .[y : Nat] -> ^(y2 : Leq x y) -> < Leq.lqs x y y2 : Leq (Nat.succ x) (Nat.succ y) >
+type  Increasing : - Size -> ^ Stream Nat # -> Set
+term  Increasing.inc : .[i : Size] -> .[x : Nat] -> .[y : Nat] -> ^(y3 : Leq x y) -> .[tl : Stream Nat #] -> ^(y5 : Increasing i (Stream.cons [#] y tl)) -> < Increasing.inc i x y y3 tl y5 : Increasing $i (Stream.cons [#] x (Stream.cons [#] y tl)) >
+type  Eq : ++(A : Set) -> ^ A -> ^ A -> Set
+term  Eq.refl : .[A : Set] -> .[a : A] -> < Eq.refl a : Eq A a a >
+term  proof : Eq (Stream Nat #) (tail [Nat] [#] fibIter) (tail [Nat] [#] fibIter)
+term  proof = Eq.refl [tail [Nat] [#] fibIter]
+term  succ_ : Nat -> Nat
+term  succ_ = \ x -> Nat.succ x
+term  evil : .[i : Size] -> Stream Nat i
+{ evil $[i < #] = map [Nat] [Nat] [$i] succ_ (Stream.cons [i] Nat.zero (evil [i]))
+}
+term  cons_ : .[A : Set] -> .[i : Size] -> A -> Stream A i -> Stream A $i
+term  cons_ = [\ A ->] [\ i ->] \ a -> \ as -> Stream.cons [i] a as
+term  dmerge : .[A : Set] -> .[i : Size] -> Stream (Stream A i) i -> Stream A i
+{ dmerge [A] $[i < #] (Stream.cons [.i] ys yss) = Stream.cons [i] (head [A] [i] ys) (dmerge [A] [i] (zipWith [A] [Stream A i] [Stream A i] (cons_ [A] [i]) [i] (tail [A] [i] ys) yss))
+}
+--- evaluating ---
+fibIter4 has whnf (head {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14))), x = Nat.succ{y0 = Nat.zero{}}}} # (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)))), x = Nat.zero{}}} # (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14))), x = Nat.succ{y0 = Nat.zero{}}}} # (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)))))}} # (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14))), x = Nat.succ{y0 = Nat.zero{}}}} # (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)))), x = Nat.zero{}}} # (tail {Nat {xs = (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14))), x = Nat.succ{y0 = Nat.zero{}}}} # (tail {Nat {xs = (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14)), x = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}} # (tail {Nat {xs = (fibIter' one one ?14), x = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}} # (fibIter' one one ?14))))))
+fibIter4 evaluates to head Nat # (tail Nat # (tail Nat # (tail Nat # (tail Nat # (fibIter' (Nat.succ Nat.zero) (Nat.succ Nat.zero) ?14)))))
+fib1 has whnf Nat.succ{y0 = Nat.zero{}}
+fib1 evaluates to Nat.succ Nat.zero
+fib2 has whnf Nat.succ{y0 = Nat.zero{}}
+fib2 evaluates to Nat.succ Nat.zero
+fib3 has whnf Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}
+fib3 evaluates to Nat.succ (Nat.succ Nat.zero)
+fib4 has whnf Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}
+fib4 evaluates to Nat.succ (Nat.succ (Nat.succ Nat.zero))
+fib5 has whnf Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}}}
+fib5 evaluates to Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero))))
+--- closing "old_stream.ma" ---

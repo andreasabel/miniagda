@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "InjDataLoop.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+type  Eq : .[i : Size] -> ^(A : Set i) -> ^(a : A) -> ^ A -> Set
+term  Eq.refl : .[i : Size] -> .[A : Set i] -> .[a : A] -> < Eq.refl : Eq [i] A a a >
+type  I : ^(F : Set -> Set) -> Set
+ty-u  InvI : ^(A : Set) -> Set 1
+term  InvI.inv : .[A : Set] -> ^(Inverse : Set -> Set) -> ^(y1 : Eq [1] Set (I Inverse) A) -> < InvI.inv Inverse y1 : InvI A >
+tmty  invertible : (A : Set) -> InvI A
+{}
+type  cantor : Set -> Set
+type  cantor = \ A -> case invertible A : InvI A
+       { InvI.inv X p -> X A -> Empty
+       }
+type  cIc : Set
+type  cIc = cantor (I cantor)
+error during typechecking:
+delta
+/// checkExpr 0 |- case invertible (I cantor)
+               { inv .cantor refl -> \ f -> f f
+               } : case invertible (I cantor) : InvI (I cantor)
+                   { InvI.inv X p -> X (I cantor) -> Empty
+                   }
+/// case 1
+/// dot pattern Just cantor
+/// not instantiated

@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "IrrHeterogeneousSingleton.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  T : Bool -> Set
+{ T Bool.true = Nat
+; T Bool.false = < Nat.zero : Nat >
+}
+term  good : .[F : Nat -> Set] -> .[f : .[x : Bool] -> T x -> Nat] -> (z : T Bool.false) -> (g : (n : Nat) -> F (f [Bool.true] n)) -> (h : F (f [Bool.false] z) -> Bool) -> Bool
+{ good [F] [f] z g h = h (g Nat.zero)
+}
+--- evaluating ---
+--- closing "IrrHeterogeneousSingleton.ma" ---

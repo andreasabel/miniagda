@@ -1,0 +1,41 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "fibDeep.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero = \ y -> y
+; add (Nat.succ x) = \ y -> Nat.succ (add x y)
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> Stream A $i -> A
+{ head [A] [i] (Stream.cons [.i] a as) = a
+}
+term  tail : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] a as) = as
+}
+term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> B -> C) -> .[i : Size] -> Stream A i -> Stream B i -> Stream C i
+{ zipWith [A] [B] [C] f $[i < #] (Stream.cons [.i] a as) (Stream.cons [.i] b bs) = Stream.cons [i] (f a b) (zipWith [A] [B] [C] f [i] as bs)
+}
+term  adds : .[i : Size] -> Stream Nat i -> Stream Nat i -> Stream Nat i
+{ adds $[i < #] (Stream.cons [.i] a as) (Stream.cons [.i] b bs) = Stream.cons [i] (add a b) (adds [i] as bs)
+}
+term  one : Nat
+term  one = Nat.succ Nat.zero
+term  fib' : .[i : Size] -> Stream Nat i
+{ fib' [i] = case i : Size
+             { $j -> Stream.cons [j] Nat.zero (case j : Size
+                                               { $k -> Stream.cons [k] one (zipWith [Nat] [Nat] [Nat] add [k] (fib' [k]) (tail [Nat] [k] (fib' [$k])))
+                                               })
+             }
+}
+term  fib : .[i : Size] -> Stream Nat i
+{ fib $[i < #] = Stream.cons [i] Nat.zero (case i : Size
+                                           { $j -> Stream.cons [j] one (adds [j] (fib [j]) (tail [Nat] [j] (fib [i])))
+                                           })
+}
+--- evaluating ---
+--- closing "fibDeep.ma" ---

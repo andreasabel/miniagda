@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "shadowDataParam.ma" ---
+--- scope checking ---
+--- type checking ---
+type  D : ^(name : Set) -> Set
+term  D.name : .[name : Set] -> < D.name : D name >
+term  id : .[A : Set] -> D A -> D A
+{ id [A] D.name = D.name
+}
+type  E : ^(name : Set) -> Set
+term  E.e : .[name : Set] -> < E.e : E name >
+--- evaluating ---
+--- closing "shadowDataParam.ma" ---

@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NatToSize.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+size  toSize : Nat -> Size
+{ toSize Nat.zero = 0
+; toSize (Nat.suc n) = $(toSize n)
+}
+size  toSizeNT : Nat -> Size
+{ toSizeNT Nat.zero = 0
+; toSizeNT (Nat.suc n) = $(toSizeNT (Nat.suc n))
+}
+error during typechecking:
+Termination check for function toSizeNT fails 

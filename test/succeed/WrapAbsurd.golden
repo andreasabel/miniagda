@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "WrapAbsurd.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Wrap : ++(A : Set) -> Set
+term  Wrap.wrap : .[A : Set] -> ^(unwrap : A) -> < Wrap.wrap unwrap : Wrap A >
+term  unwrap : .[A : Set] -> (wrap : Wrap A) -> A
+{ unwrap [A] (Wrap.wrap #unwrap) = #unwrap
+}
+type  Empty : Set
+term  wrap0Elim : Wrap Empty -> Empty
+{ wrap0Elim (Wrap.wrap ())
+}
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+term  wrap1Elim : Wrap Unit -> Empty
+block fails as expected, error message:
+wrap1Elim
+/// clause 1
+/// absurd pattern does not match since type Unit is not empty
+--- evaluating ---
+--- closing "WrapAbsurd.ma" ---

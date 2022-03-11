@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Prod.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Prod : ^(A : Set) -> ^(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+--- evaluating ---
+--- closing "Prod.ma" ---

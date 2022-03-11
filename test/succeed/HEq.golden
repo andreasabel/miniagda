@@ -1,0 +1,10 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "HEq.ma" ---
+--- scope checking ---
+--- type checking ---
+type  HEq : .[A : Set] -> ^(a : A) -> .[B : Set] -> ^ B -> Set
+term  HEq.refl : .[A : Set] -> .[a : A] -> < HEq.refl : HEq [A] a [A] a >
+type  HEq' : .[i : Size] -> .[A : Set i] -> ^(a : A) -> .[B : Set i] -> ^ B -> Set
+term  HEq'.refl' : .[i : Size] -> .[A : Set i] -> .[a : A] -> < HEq'.refl' : HEq' [i] [A] a [A] a >
+--- evaluating ---
+--- closing "HEq.ma" ---

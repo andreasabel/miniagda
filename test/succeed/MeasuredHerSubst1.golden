@@ -1,0 +1,77 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MeasuredHerSubst1.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Maybe : ^(A : Set) -> Set
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(y0 : A) -> < Maybe.just y0 : Maybe A >
+term  just_ : .[A : Set] -> A -> Maybe A
+term  just_ = [\ A ->] \ a -> Maybe.just a
+term  mapMaybe : .[A : Set] -> .[B : Set] -> (A -> B) -> Maybe A -> Maybe B
+{ mapMaybe [A] [B] f Maybe.nothing = Maybe.nothing
+; mapMaybe [A] [B] f (Maybe.just a) = Maybe.just (f a)
+}
+type  Ty : + Size -> Set
+term  Ty.base : .[s!ze : Size] -> .[i < s!ze] -> Ty s!ze
+term  Ty.base : .[i : Size] -> < Ty.base i : Ty $i >
+term  Ty.arr : .[s!ze : Size] -> .[i < s!ze] -> ^ Ty i -> ^ Ty i -> Ty s!ze
+term  Ty.arr : .[i : Size] -> ^(y1 : Ty i) -> ^(y2 : Ty i) -> < Ty.arr i y1 y2 : Ty $i >
+type  Tm : ^(A : Set) -> + Size -> Set
+term  Tm.var : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> Tm A s!ze
+term  Tm.var : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> < Tm.var i y1 : Tm A $i >
+term  Tm.app : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ Tm A i -> ^ Tm A i -> Tm A s!ze
+term  Tm.app : .[A : Set] -> .[i : Size] -> ^(y1 : Tm A i) -> ^(y2 : Tm A i) -> < Tm.app i y1 y2 : Tm A $i >
+term  Tm.abs : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ Ty # -> ^ Tm (Maybe A) i -> Tm A s!ze
+term  Tm.abs : .[A : Set] -> .[i : Size] -> ^(y1 : Ty #) -> ^(y2 : Tm (Maybe A) i) -> < Tm.abs i y1 y2 : Tm A $i >
+term  mapTm : .[A : Set] -> .[B : Set] -> .[i : Size] -> (A -> B) -> Tm A i -> Tm B i
+{ mapTm [A] [B] [i] f (Tm.var [j < i] x) = Tm.var [j] (f x)
+; mapTm [A] [B] [i] f (Tm.app [j < i] r s) = Tm.app [j] (mapTm [A] [B] [j] f r) (mapTm [A] [B] [j] f s)
+; mapTm [A] [B] [i] f (Tm.abs [j < i] a r) = Tm.abs [j] a (mapTm [Maybe A] [Maybe B] [j] (mapMaybe [A] [B] f) r)
+}
+term  shiftTm : .[A : Set] -> .[i : Size] -> Tm A i -> Tm (Maybe A) i
+term  shiftTm = [\ A ->] [\ i ->] \ t -> mapTm [A] [Maybe A] [i] (just_ [A]) t
+type  Res : ^(A : Set) -> +(i : Size) -> Set
+term  Res.ne : .[A : Set] -> .[i : Size] -> ^(y0 : Tm A #) -> < Res.ne y0 : Res A i >
+term  Res.nf : .[A : Set] -> .[i : Size] -> ^(y0 : Tm A #) -> ^(y1 : Ty i) -> < Res.nf y0 y1 : Res A i >
+term  tm : .[A : Set] -> .[i : Size] -> Res A i -> Tm A #
+{ tm [A] [i] (Res.ne t) = t
+; tm [A] [i] (Res.nf t a) = t
+}
+term  shiftRes : .[A : Set] -> .[i : Size] -> Res A i -> Res (Maybe A) i
+{ shiftRes [A] [i] (Res.ne t) = Res.ne (shiftTm [A] [#] t)
+; shiftRes [A] [i] (Res.nf t a) = Res.nf (shiftTm [A] [#] t) a
+}
+term  varRes : .[A : Set] -> .[i : Size] -> A -> Res A i
+term  varRes = [\ A ->] [\ i ->] \ x -> Res.ne (Tm.var [#] x)
+term  absRes : .[A : Set] -> .[i : Size] -> Ty # -> Res (Maybe A) # -> Res A i
+term  absRes = [\ A ->] [\ i ->] \ a -> \ r -> Res.ne (Tm.abs [#] a (tm [Maybe A] [#] r))
+term  appRes : .[A : Set] -> .[i : Size] -> Res A # -> Res A # -> Res A i
+term  appRes = [\ A ->] [\ i ->] \ t -> \ u -> Res.ne (Tm.app [#] (tm [A] [#] t) (tm [A] [#] u))
+type  Env : Set -> Set -> Size -> Set
+type  Env = \ A -> \ B -> \ i -> A -> Res B i
+term  sg : .[A : Set] -> .[i : Size] -> Tm A # -> Ty i -> Env (Maybe A) A i
+{ sg [A] [i] s a Maybe.nothing = Res.nf s a
+; sg [A] [i] s a (Maybe.just y) = varRes [A] [i] y
+}
+term  lift : .[A : Set] -> .[B : Set] -> .[i : Size] -> Env A B i -> Env (Maybe A) (Maybe B) i
+{ lift [A] [B] [i] rho Maybe.nothing = varRes [Maybe B] [i] Maybe.nothing
+; lift [A] [B] [i] rho (Maybe.just x) = shiftRes [B] [i] (rho x)
+}
+term  subst : .[i : Size] -> Ty i -> .[A : Set] -> Tm A # -> Tm (Maybe A) # -> Tm A #
+term  simsubst : .[i : Size] -> .[j : Size] -> .[A : Set] -> .[B : Set] -> Tm A j -> Env A B i -> Res B i
+term  normApp : .[i : Size] -> .[B : Set] -> Res B i -> Res B i -> Res B i
+{ subst [i] a [A] s t = tm [A] [i] (simsubst [i] [#] [Maybe A] [A] t (sg [A] [i] s a))
+}
+{ simsubst [i] [j] [A] [B] (Tm.var [j' < j] x) rho = rho x
+; simsubst [i] [j] [A] [B] (Tm.abs [j' < j] b t) rho = absRes [B] [i] b (simsubst [i] [j'] [Maybe A] [Maybe B] t (lift [A] [B] [i] rho))
+; simsubst [i] [j] [A] [B] (Tm.app [j' < j] t u) rho = let t' : Res B i
+                                                              = simsubst [i] [j'] [A] [B] t rho
+                                                       in let u' : Res B i
+                                                                 = simsubst [i] [j'] [A] [B] u rho
+                                                          in normApp [i] [B] t' u'
+}
+{ normApp [i] [B] (Res.nf (Tm.abs [.#] b' r') (Ty.arr [i' < i] b c)) u' = Res.nf (subst [i'] b [B] (tm [B] [i] u') r') c
+; normApp [i] [B] t' u' = appRes [B] [i] t' u'
+}
+--- evaluating ---
+--- closing "MeasuredHerSubst1.ma" ---

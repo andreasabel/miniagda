@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AgdaIssue1052.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Eq : .[A : Set] -> ^(a : A) -> ^(b : A) -> Set
+term  Eq.refl : .[A : Set] -> .[a : A] -> .[a : A] -> < Eq.refl : Eq [A] a a >
+type  X : Set
+{}
+none  f : X -> X
+{}
+type  StepsTo : ^(x : X) -> ^(z : X) -> Set
+term  StepsTo.done : .[x : X] -> .[x : X] -> < StepsTo.done : StepsTo x x >
+term  StepsTo.next : .[x : X] -> .[z : X] -> ^(y : X) -> ^(y1 : Eq [X] (f y) z) -> ^(y2 : StepsTo x y) -> < StepsTo.next y y1 y2 : StepsTo x z >
+term  trans : (x : X) -> (y : X) -> (z : X) -> StepsTo x y -> StepsTo y z -> StepsTo x z
+{ trans x y .y p StepsTo.done = p
+; trans x y z p (StepsTo.next z' r q) = StepsTo.next z' r (trans x y z' p q)
+}
+term  const : (x : X) -> (y : X) -> StepsTo x y -> Eq [X] (f x) x -> Eq [X] x y
+{ const x .x StepsTo.done q = Eq.refl
+}
+--- evaluating ---
+--- closing "AgdaIssue1052.ma" ---

@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AgdaIssue1055.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
+term  p : (m : Nat) -> (n : Nat) -> (r : Nat) -> Nat
+{ p m n (Nat.suc r) = p m r n
+; p m (Nat.suc n) Nat.zero = p Nat.zero n m
+; p m Nat.zero Nat.zero = m
+}
+--- evaluating ---
+--- closing "AgdaIssue1055.ma" ---

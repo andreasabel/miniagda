@@ -1,0 +1,37 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "cofunIntoBoolTimesStream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+type  BStr : - Size -> Set
+term  BStr.cons : .[i : Size] -> ^(head : Bool) -> ^(tail : BStr i) -> < BStr.cons i head tail : BStr $i >
+term  head : .[i : Size] -> (cons : BStr $i) -> Bool
+{ head [i] (BStr.cons [.i] #head #tail) = #head
+}
+term  tail : .[i : Size] -> (cons : BStr $i) -> BStr i
+{ tail [i] (BStr.cons [.i] #head #tail) = #tail
+}
+term  idAndLast : .[i : Size] -> BStr i -> Prod Bool (BStr i)
+error during typechecking:
+idAndLast
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> BStr i -> Prod Bool (BStr i) ends in correct coinductive sized type
+/// new i <= #
+/// endsInSizedCo: BStr i -> Prod Bool (BStr i)
+/// new  : (BStr v0)
+/// endsInSizedCo: Prod Bool (BStr i)
+/// allTypesOfTuple: detected tuple target, checking components
+/// allComponentTypes: checking fields of tuple type [field fst : A,field snd : B] in environment Environ {envMap = [(B,(BStr v0)),(A,Bool)], envBound = Nothing}
+/// endsInSizedCo: Bool
+/// endsInSizedCo: target Bool of corecursive function is neither a CoSet or codata of size i nor a tuple type

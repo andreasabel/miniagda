@@ -1,0 +1,30 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BadSizeLambdaInductive.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Nat : +(i : Size) -> Set
+term  Nat.zero : .[i : Size] -> .[j < i] -> < Nat.zero j : Nat i >
+term  Nat.suc : .[i : Size] -> .[j < i] -> ^(n : Nat j) -> < Nat.suc j n : Nat i >
+term  apply : .[i : Size] -> (.[j < i] -> Nat $j -> Unit) -> Nat i -> Unit
+{ apply [i] f (Nat.zero [j < i]) = f [j] (Nat.zero [j])
+; apply [i] f (Nat.suc [j < i] x) = f [j] (Nat.suc [j] x)
+}
+term  caseN : .[i : Size] -> Unit -> (Nat i -> Unit) -> Nat $i -> Unit
+{ caseN [i] z s (Nat.zero [j < $i]) = z
+; caseN [i] z s (Nat.suc [j < $i] x) = s x
+}
+term  run : .[i : Size] -> Nat i -> Unit
+error during typechecking:
+run
+/// clause 1
+/// right hand side
+/// checkExpr 1 |- apply i (\ j -> caseN j unit (run j)) : Nat i -> Unit
+/// inferExpr' apply i (\ j -> caseN j unit (run j))
+/// checkApp ((.[j < v0] -> Nat $j -> Unit{i = v0})::Tm -> {Nat i -> Unit {i = v0}}) eliminated by \ j -> caseN j unit (run j)
+/// checkExpr 1 |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
+/// checkForced fromList [(i,0)] |- \ j -> caseN j unit (run j) : .[j < i] -> Nat $j -> Unit
+/// new j < v0
+/// adding size rel. v1 + 1 <= v0
+/// cannot add hypothesis v1 + 1 <= v0 because it is not satisfyable under all possible valuations of the current hypotheses

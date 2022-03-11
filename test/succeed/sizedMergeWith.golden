@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizedMergeWith.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  List : + Size -> Set
+term  List.nil : .[s!ze : Size] -> .[i < s!ze] -> List s!ze
+term  List.nil : .[i : Size] -> < List.nil i : List $i >
+term  List.cons : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat -> ^ List i -> List s!ze
+term  List.cons : .[i : Size] -> ^(y1 : Nat) -> ^(y2 : List i) -> < List.cons i y1 y2 : List $i >
+term  leq : Nat -> Nat -> Bool
+{}
+term  merge : .[i : Size] -> List i -> .[j : Size] -> List j -> List #
+term  merge_aux : .[i : Size] -> Nat -> List i -> .[j : Size] -> Nat -> List j -> Bool -> List #
+{ merge [.$i] (List.nil [i]) [j] l = l
+; merge [i] l [.$j] (List.nil [j]) = l
+; merge [.$i] (List.cons [i] x xs) [.$j] (List.cons [j] y ys) = merge_aux [i] x xs [j] y ys (leq x y)
+}
+{ merge_aux [i] x xs [j] y ys Bool.true = List.cons [#] x (merge [i] xs [$j] (List.cons [j] y ys))
+; merge_aux [i] x xs [j] y ys Bool.false = List.cons [#] y (merge [$i] (List.cons [i] x xs) [j] ys)
+}
+--- evaluating ---
+--- closing "sizedMergeWith.ma" ---

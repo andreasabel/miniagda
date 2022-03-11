@@ -1,0 +1,11 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "lossyIdentityOnStreams.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  sid : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ sid [A] $[i < #] (Stream.cons [.$i] x xs) = Stream.cons [i] x (sid [A] [i] xs)
+}
+--- evaluating ---
+--- closing "lossyIdentityOnStreams.ma" ---

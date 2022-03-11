@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "singleton.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+K
+/// checkExpr 0 |- \ A -> \ x -> \ y -> y : .[A : Set] -> (x : A) -> (y : A) -> < x : A >
+/// checkForced fromList [] |- \ A -> \ x -> \ y -> y : .[A : Set] -> (x : A) -> (y : A) -> < x : A >
+/// new A : Set
+/// checkExpr 1 |- \ x -> \ y -> y : (x : A) -> (y : A) -> < x : A >
+/// checkForced fromList [(A,0)] |- \ x -> \ y -> y : (x : A) -> (y : A) -> < x : A >
+/// new x : v0
+/// checkExpr 2 |- \ y -> y : (y : A) -> < x : A >
+/// checkForced fromList [(x,1),(A,0)] |- \ y -> y : (y : A) -> < x : A >
+/// new y : v0
+/// checkExpr 3 |- y : < x : A >
+/// leqVal' (subtyping)  < y : A >  <=+  < x : A >
+/// leqVal'  y : A  <=*  x : A
+/// leqApp: head mismatch y != x

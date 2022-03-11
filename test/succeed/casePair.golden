@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "casePair.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  xor' : (a : Bool) -> (b : Bool) -> Bool
+term  xor' = \ a -> \ b -> case (a , b) : Bool & Bool
+              { (Bool.true, Bool.true) -> Bool.false
+              ; (Bool.false, Bool.true) -> Bool.true
+              ; (Bool.true, Bool.false) -> Bool.true
+              ; (Bool.false, Bool.false) -> Bool.false
+              }
+--- evaluating ---
+--- closing "casePair.ma" ---

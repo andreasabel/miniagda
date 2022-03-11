@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AgdaIssue1015NonMutual.ma" ---
+--- scope checking ---
+--- type checking ---
+type  R : -(i : Size) -> Set
+term  R.delay : .[i : Size] -> ^(force : .[j < i] -> R j) -> < R.delay force : R i >
+term  force : .[i : Size] -> (delay : R i) -> .[j < i] -> R j
+{ force [i] (R.delay #force) = #force
+}
+term  inh : .[i : Size] -> R i
+{ inh [i] .force [j < i] = inh [j]
+}
+type  Empty : Set
+term  elim : R # -> Empty
+{ elim (R.delay r) = elim (r [#])
+}
+term  absurd : Empty
+term  absurd = elim (inh [#])
+--- evaluating ---
+--- closing "AgdaIssue1015NonMutual.ma" ---

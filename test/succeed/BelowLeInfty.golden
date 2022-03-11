@@ -1,0 +1,52 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BelowLeInfty.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : +(i <= #) -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i <= #] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^(n : Nat i) -> Nat s!ze
+term  Nat.succ : .[i <= #] -> ^(n : Nat i) -> < Nat.succ i n : Nat $i >
+term  sib00 : (.[i : Size] -> Nat i) -> .[i : Size] -> Nat i
+term  sib00 = \ x -> x
+term  sib01 : (.[i : Size] -> Nat i) -> .[i < #] -> Nat i
+term  sib01 = \ x -> x
+term  sib11 : (.[i < #] -> Nat i) -> .[i < #] -> Nat i
+term  sib11 = \ x -> x
+block fails as expected, error message:
+sib10
+/// checkExpr 0 |- \ x -> x : (.[i < #] -> Nat i) -> .[i : Size] -> Nat i
+/// checkForced fromList [] |- \ x -> x : (.[i < #] -> Nat i) -> .[i : Size] -> Nat i
+/// new x : (.[i < #] -> Nat i)
+/// checkExpr 1 |- x : .[i : Size] -> Nat i
+/// leqVal' (subtyping)  .[i < #] -> < x i : Nat i >  <=+  .[i : Size] -> Nat i
+/// leqVal' (subtyping)  < #  <=-  Size
+/// leSize # <- #
+/// leSize: # < # failed
+term  sub00 : (.[i <= #] -> Nat i) -> .[i <= #] -> Nat i
+term  sub00 = \ x -> x
+term  sub01 : (.[i <= #] -> Nat i) -> .[i < #] -> Nat i
+term  sub01 = \ x -> x
+term  sub11 : (.[i < #] -> Nat i) -> .[i < #] -> Nat i
+term  sub11 = \ x -> x
+block fails as expected, error message:
+sub10
+/// checkExpr 0 |- \ x -> x : (.[i < #] -> Nat i) -> .[i : Size] -> Nat i
+/// checkForced fromList [] |- \ x -> x : (.[i < #] -> Nat i) -> .[i : Size] -> Nat i
+/// new x : (.[i < #] -> Nat i)
+/// checkExpr 1 |- x : .[i : Size] -> Nat i
+/// leqVal' (subtyping)  .[i < #] -> < x i : Nat i >  <=+  .[i : Size] -> Nat i
+/// leqVal' (subtyping)  < #  <=-  Size
+/// leSize # <- #
+/// leSize: # < # failed
+term  sub1 : (.[i : Size] -> Nat i) -> .[i <= #] -> Nat i
+term  sub1 = \ x -> x
+term  sub2 : (.[i <= #] -> Nat i) -> .[i : Size] -> Nat i
+term  sub2 = \ x -> x
+type  MNat : +(i <= #) -> Set
+term  MNat.mzero : .[s!ze : Size] -> .[i < s!ze] -> MNat s!ze
+term  MNat.mzero : .[i : Size] -> < MNat.mzero i : MNat $i >
+term  MNat.msucc : .[s!ze : Size] -> .[i < s!ze] -> ^(n : MNat i) -> MNat s!ze
+term  MNat.msucc : .[i <= #] -> ^(n : MNat i) -> < MNat.msucc i n : MNat $i >
+--- evaluating ---
+--- closing "BelowLeInfty.ma" ---

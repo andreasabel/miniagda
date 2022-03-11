@@ -1,0 +1,9 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "UPolyList.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  List : .[i : Size] -> ^(A : Set i) -> Set i
+term  List.nil : .[i : Size] -> .[A : Set i] -> < List.nil : List [i] A >
+term  List.cons : .[i : Size] -> .[A : Set i] -> ^(y0 : A) -> ^(y1 : List [i] A) -> < List.cons y0 y1 : List [i] A >
+--- evaluating ---
+--- closing "UPolyList.ma" ---

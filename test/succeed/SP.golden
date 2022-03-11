@@ -1,0 +1,26 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "SP.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Str : ++(A : Set) -> - Size -> Set
+term  Str.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Str A i) -> < Str.cons i y1 y2 : Str A $i >
+type  A : Set
+{}
+type  B : Set
+{}
+type  SP' : ++(X : Set) -> + Size -> Set
+term  SP'.get : .[X : Set] -> .[s!ze : Size] -> .[j < s!ze] -> ^ (A -> SP' X j) -> SP' X s!ze
+term  SP'.get : .[X : Set] -> .[j : Size] -> ^(y1 : A -> SP' X j) -> < SP'.get j y1 : SP' X $j >
+term  SP'.out : .[X : Set] -> .[s!ze : Size] -> .[j < s!ze] -> ^ X -> SP' X s!ze
+term  SP'.out : .[X : Set] -> .[j : Size] -> ^(y1 : X) -> < SP'.out j y1 : SP' X $j >
+type  SP : - Size -> Set
+term  SP.put : .[i : Size] -> ^(y1 : B) -> ^(y2 : SP' (SP i) #) -> < SP.put i y1 y2 : SP $i >
+term  run' : .[i : Size] -> (SP i -> Str A # -> Str B i) -> .[j : Size] -> SP' (SP i) j -> Str A # -> Str B i
+{ run' [i] r [j] (SP'.get [k < j] f) (Str.cons [.#] a as) = run' [i] r [k] (f a) as
+; run' [i] r [j] (SP'.out [k < j] sp) as = r sp as
+}
+term  run : .[i : Size] -> SP i -> Str A # -> Str B i
+{ run $[i < #] (SP.put [.i] b sp) as = Str.cons [i] b (run' [i] (run [i]) [#] sp as)
+}
+--- evaluating ---
+--- closing "SP.ma" ---

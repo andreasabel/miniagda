@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "gcd-either.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.suc : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.suc : .[i : Size] -> ^(y1 : Nat i) -> < Nat.suc i y1 : Nat $i >
+type  Either : + Size -> + Size -> Set
+term  Either.left : .[i : Size] -> .[j : Size] -> ^(y2 : Nat i) -> < Either.left i j y2 : Either i j >
+term  Either.right : .[i : Size] -> .[j : Size] -> ^(y2 : Nat j) -> < Either.right i j y2 : Either i j >
+term  minus : .[i : Size] -> .[j : Size] -> Nat i -> Nat j -> Either i j
+{ minus [i] [j] (Nat.zero [i' < i]) m = Either.right [i] [j] m
+; minus [i] [j] (Nat.suc [i' < i] n) (Nat.zero [j' < j]) = Either.left [i] [j] (Nat.suc [i'] n)
+; minus [i] [j] (Nat.suc [i' < i] n) (Nat.suc [j' < j] m) = minus [i'] [j'] n m
+}
+term  gcd : .[i : Size] -> .[j : Size] -> Nat i -> Nat j -> Nat #
+term  gcd_aux : .[i : Size] -> .[j : Size] -> .[i' < i] -> .[j' < j] -> Nat i' -> Nat j' -> Either i' j' -> Nat #
+{ gcd [i] [j] (Nat.zero [i' < i]) m = m
+; gcd [i] [j] (Nat.suc [i' < i] n) (Nat.zero [j' < j]) = Nat.suc [i'] n
+; gcd [i] [j] (Nat.suc [i' < i] n) (Nat.suc [j' < j] m) = gcd_aux [i] [j] [i'] [j'] n m (minus [i'] [j'] n m)
+}
+{ gcd_aux [i] [j] [i' < i] [j' < j] n m (Either.left [.i'] [.j'] n') = gcd [i'] [j] n' (Nat.suc [j'] m)
+; gcd_aux [i] [j] [i' < i] [j' < j] n m (Either.right [.i'] [.j'] m') = gcd [i] [j'] (Nat.suc [i'] n) m'
+}
+--- evaluating ---
+--- closing "gcd-either.ma" ---

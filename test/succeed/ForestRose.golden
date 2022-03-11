@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ForestRose.ma" ---
+--- scope checking ---
+--- type checking ---
+type  List : ++(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(y0 : A) -> ^(y1 : List A) -> < List.cons y0 y1 : List A >
+type  Rose : ++(A : Set) -> Set
+term  Rose.rose : .[A : Set] -> ^(label : A) -> ^(subtrees : Forest A) -> < Rose.rose label subtrees : Rose A >
+term  label : .[A : Set] -> (rose : Rose A) -> A
+{ label [A] (Rose.rose #label #subtrees) = #label
+}
+term  subtrees : .[A : Set] -> (rose : Rose A) -> Forest A
+{ subtrees [A] (Rose.rose #label #subtrees) = #subtrees
+}
+{ Forest A = List (Rose A)
+}
+--- evaluating ---
+--- closing "ForestRose.ma" ---

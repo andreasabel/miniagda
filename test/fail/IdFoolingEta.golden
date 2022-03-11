@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "IdFoolingEta.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
+{ subst [A] a .a Id.refl [P] x = x
+}
+error during typechecking:
+offDia
+/// checkExpr 0 |- \ f -> \ A -> \ a -> \ b -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] Id.refl)
+/// checkForced fromList [] |- \ f -> \ A -> \ a -> \ b -> refl : (f : .[A : Set] -> (a : A) -> (b : A) -> Id A a b) -> .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f [A] a b) (subst [A] a b (f [A] a b) [Id A a] Id.refl)
+/// new f : (.[A : Set] -> (a : A) -> (b : A) -> Id A a b)
+/// checkExpr 1 |- \ A -> \ a -> \ b -> refl : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// checkForced fromList [(f,0)] |- \ A -> \ a -> \ b -> refl : .[A : Set] -> (a : A) -> (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// new A : Set
+/// checkExpr 2 |- \ a -> \ b -> refl : (a : A) -> (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// checkForced fromList [(A,1),(f,0)] |- \ a -> \ b -> refl : (a : A) -> (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// new a : v1
+/// checkExpr 3 |- \ b -> refl : (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// checkForced fromList [(A,1),(f,0),(a,2)] |- \ b -> refl : (b : A) -> Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// new b : v1
+/// checkExpr 4 |- refl : Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// checkForced fromList [(A,1),(f,0),(a,2),(b,3)] |- refl : Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// leqVal' (subtyping)  < Id.refl : Id (Id A a b) (f A a b [A] a b) (f A a b [A] a b) >  <=+  Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// leqVal' (subtyping)  Id (Id A a b) (f A a b [A] a b) (f A a b [A] a b)  <=+  Id (Id A a b) (f A a b [A] a b) (subst [A] a b (f A a b [A] a b) [Id A a] Id.refl)
+/// leqVal'  f A a b  <=^  subst A a b (f A a b [A] a b) (Id A a) Id.refl : Id A a b
+/// leqApp: head mismatch f != subst

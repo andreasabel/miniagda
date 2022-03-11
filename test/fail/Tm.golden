@@ -1,0 +1,47 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Tm.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
+}
+term  iterate : .[A : Set] -> (step : A -> A) -> (start : A) -> .[i : Size] -> Stream A i
+{ iterate [A] step start $[i < #] = Stream.cons [i] start (iterate [A] step (step start) [i])
+}
+type  Tm : Set
+term  Tm.abs : ^(y0 : ^ Tm -> Tm) -> < Tm.abs y0 : Tm >
+term  Tm.app : ^(y0 : Tm) -> ^(y1 : Tm) -> < Tm.app y0 y1 : Tm >
+warning: ignoring error: polarity check ++ <= - failed
+warning: ignoring error: polarity check ++ <= + failed
+term  sapp : ^ Tm -> Tm
+{ sapp x = Tm.app x x
+}
+term  delta : Tm
+term  delta = Tm.abs (\ x -> sapp x)
+term  omega : Tm
+term  omega = Tm.app delta delta
+term  step : Tm -> Tm
+error during typechecking:
+step
+/// clause 3
+/// right hand side
+/// checkExpr 1 |- abs (\ x -> step (f x)) : Tm
+/// checkForced fromList [(f,0)] |- abs (\ x -> step (f x)) : Tm
+/// checkApp (^(y0 : (^Tm::() -> Tm)::()) -> < Tm.abs y0 : Tm >) eliminated by \ x -> step (f x)
+/// checkExpr 1 |- \ x -> step (f x) : ^ Tm -> Tm
+/// checkForced fromList [(f,0)] |- \ x -> step (f x) : ^ Tm -> Tm
+/// new x : Tm
+/// checkExpr 2 |- step (f x) : Tm
+/// inferExpr' step (f x)
+/// checkApp (Tm -> Tm) eliminated by f x
+/// inferExpr' f x
+/// checkApp (^Tm::() -> Tm) eliminated by x
+/// inferExpr' x
+/// inferExpr: variable x : Tm may not occur
+/// , because of polarity
+/// polarity check ^ <= * failed

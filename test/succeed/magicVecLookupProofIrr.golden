@@ -1,0 +1,38 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "magicVecLookupProofIrr.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Sigma.pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < Sigma.pair fst snd : Sigma A B >
+term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
+{ fst [A] [B] (Sigma.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
+{ snd [A] [B] (Sigma.pair #fst #snd) = #snd
+}
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  Empty : Set
+term  magic : .[A : Set] -> .[p : Empty] -> A
+{}
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Vec : (A : Set) -> (n : Nat) -> Set
+{ Vec A Nat.zero = Empty
+; Vec A (Nat.succ n) = Sigma A (\ z -> Vec A n)
+}
+type  Leq : (n : Nat) -> (m : Nat) -> Set
+{ Leq Nat.zero m = Unit
+; Leq (Nat.succ n) Nat.zero = Empty
+; Leq (Nat.succ n) (Nat.succ m) = Leq n m
+}
+type  Lt : (n : Nat) -> (m : Nat) -> Set
+type  Lt = \ n -> \ m -> Leq (Nat.succ n) m
+term  lookup : .[A : Set] -> (n : Nat) -> (m : Nat) -> .[Lt m n] -> Vec A n -> A
+{ lookup [A] Nat.zero m [p] v = magic [A] [p]
+; lookup [A] (Nat.succ n) Nat.zero [p] v = fst v
+; lookup [A] (Nat.succ n) (Nat.succ m) [p] v = lookup [A] n m [p] (snd v)
+}
+--- evaluating ---
+--- closing "magicVecLookupProofIrr.ma" ---

@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MustBeCofun.ma" ---
+--- scope checking ---
+--- type checking ---
+type  CoList : ^(A : Set) -> - Size -> Set
+term  CoList.conil : .[A : Set] -> .[i : Size] -> < CoList.conil i : CoList A $i >
+term  CoList.cocons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : CoList A i) -> < CoList.cocons i y1 y2 : CoList A $i >
+term  repeat : .[A : Set] -> (a : A) -> .[i : Size] -> CoList A i
+error during typechecking:
+repeat
+/// clause 1
+/// pattern $i
+/// successor pattern only allowed in cofun

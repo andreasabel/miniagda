@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "codataNotMonotone.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+type  NatEq : -(i : Size) -> ^ SNat i -> ^ SNat i -> Set
+term  NatEq.eqz : .[i : Size] -> < NatEq.eqz i : NatEq $i (SNat.zero [i]) (SNat.zero [i]) >
+error during typechecking:
+NatEq
+/// constructor NatEq.eqs
+/// szConstructor NatEq : .[i : Size] -> .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < NatEq.eqs i n m y3 : NatEq $i (SNat.succ [i] n) (SNat.succ [i] m) >
+/// new i <= #
+/// szSizeVarUsage of i in .[n : SNat i] -> .[m : SNat i] -> ^(y3 : NatEq i n m) -> < NatEq.eqs i n m y3 : NatEq $i (SNat.succ [i] n) (SNat.succ [i] m) >
+/// checking SNat i  to be antitone in variable i
+/// leqVal'  SNat i  <=-  SNat $i : Set #
+/// leqVal'  i  <=-  $i : Size
+/// leSize i <=- $i
+/// leSize' $i <= i
+/// leSize: 0 + 1 <= 0 failed

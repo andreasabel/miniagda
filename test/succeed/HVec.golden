@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "HVec.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+ty-u  Prod : .[i : Size] -> ^(A : Set i) -> ^(B : Set i) -> Set i
+term  Prod.pair : .[i : Size] -> .[A : Set i] -> .[B : Set i] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod [i] A B >
+mixk  fst : .[i : Size] -> .[A : Set i] -> .[B : Set i] -> (pair : Prod [i] A B) -> A
+{ fst [i] [A] [B] (Prod.pair #fst #snd) = #fst
+}
+mixk  snd : .[i : Size] -> .[A : Set i] -> .[B : Set i] -> (pair : Prod [i] A B) -> B
+{ snd [i] [A] [B] (Prod.pair #fst #snd) = #snd
+}
+mixk  fst' : .[i : Size] -> .[A : Set i] -> .[B : Set i] -> Prod [i] A B -> A
+{ fst' [i] [A] [B] (Prod.pair a b) = a
+}
+ty-u  List : .[i : Size] -> ^(A : Set i) -> Set i
+term  List.nil : .[i : Size] -> .[A : Set i] -> < List.nil : List [i] A >
+term  List.cons : .[i : Size] -> .[A : Set i] -> ^(y0 : A) -> ^(y1 : List [i] A) -> < List.cons y0 y1 : List [i] A >
+type  HVecR : List [1] Set -> Set
+{ HVecR List.nil = Unit
+; HVecR (List.cons A As) = Prod [0] A (HVecR As)
+}
+ty-u  HVec : ^ List [1] Set -> Set 1
+term  HVec.vnil : < HVec.vnil : HVec List.nil >
+term  HVec.vcons : .[A : Set] -> .[As : List [1] Set] -> ^(y2 : A) -> ^(y3 : HVec As) -> < HVec.vcons A As y2 y3 : HVec (List.cons A As) >
+--- evaluating ---
+--- closing "HVec.ma" ---

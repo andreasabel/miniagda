@@ -1,0 +1,37 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sigma.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Sigma : ++(A : Set) -> ++(B : A -> Set) -> Set
+term  Sigma.pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < Sigma.pair fst snd : Sigma A B >
+term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
+{ fst [A] [B] (Sigma.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
+{ snd [A] [B] (Sigma.pair #fst #snd) = #snd
+}
+type  IT : Set
+term  IT.it : ^(y0 : Sigma IT (\ x -> IT)) -> < IT.it y0 : IT >
+type  Id : ++(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  etaSigma : .[A : Set] -> .[B : A -> Set] -> (p : Sigma A B) -> Id (Sigma A B) p (Sigma.pair (fst p) (snd p))
+term  etaSigma = [\ A ->] [\ B ->] \ p -> Id.refl
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Bool2 : Set
+type  Bool2 = Sigma Bool (\ b -> Bool)
+term  pair2 : Bool -> Bool -> Bool2
+term  pair2 = \ b1 -> \ b2 -> Sigma.pair b1 b2
+term  fst2 : Bool2 -> Bool
+term  fst2 = \ y -> fst y
+term  snd2 : Bool2 -> Bool
+term  snd2 = \ y -> snd y
+term  bla : Bool -> Bool2
+{ bla Bool.true = pair2 Bool.true Bool.false
+; bla Bool.false = pair2 Bool.false Bool.false
+}
+term  etaBool2 : (b : Bool) -> Id Bool2 (bla b) (pair2 (fst2 (bla b)) (snd2 (bla b)))
+term  etaBool2 = \ b -> Id.refl
+--- evaluating ---
+--- closing "sigma.ma" ---

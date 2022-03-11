@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "NegPol.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+U
+/// checkExpr 0 |- \ X -> X -> X : + Set -> Set
+/// checkForced fromList [] |- \ X -> X -> X : + Set -> Set
+/// new X : Set
+/// checkExpr 1 |- X -> X : Set
+/// checkForced fromList [(X,0)] |- X -> X : Set
+/// inferExpr' X -> X
+/// inferExpr' X
+/// inferExpr: variable X : Set may not occur
+/// , because of polarity
+/// polarity check + <= - failed

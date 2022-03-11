@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BadSizeLambda.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+term  sabotage : .[i : Size] -> (.[j < i] -> Unit) -> Unit
+{ sabotage [i] f = Unit.unit
+}
+term  wtf : .[i : Size] -> Unit
+error during typechecking:
+wtf
+/// clause 1
+/// right hand side
+/// checkExpr 1 |- sabotage i (\ j -> wtf j) : Unit
+/// inferExpr' sabotage i (\ j -> wtf j)
+/// checkApp ((.[j < v0] -> Unit{i = v0})::Tm -> {Unit {i = v0}}) eliminated by \ j -> wtf j
+/// checkExpr 1 |- \ j -> wtf j : .[j < i] -> Unit
+/// checkForced fromList [(i,0)] |- \ j -> wtf j : .[j < i] -> Unit
+/// new j < v0
+/// adding size rel. v1 + 1 <= v0
+/// cannot add hypothesis v1 + 1 <= v0 because it is not satisfyable under all possible valuations of the current hypotheses

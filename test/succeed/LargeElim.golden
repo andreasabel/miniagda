@@ -1,0 +1,33 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "LargeElim.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero n = n
+; add (Nat.succ m) n = Nat.succ (add m n)
+}
+type  Sum : Nat -> Set
+{ Sum Nat.zero = Nat
+; Sum (Nat.succ n) = Nat -> Sum n
+}
+term  sum : (n : Nat) -> Nat -> Sum n
+{ sum Nat.zero x = x
+; sum (Nat.succ n) x = \ y -> sum n (add x y)
+}
+term  one : Nat
+term  one = Nat.succ Nat.zero
+term  two : Nat
+term  two = Nat.succ one
+term  three : Nat
+term  three = Nat.succ two
+term  four : Nat
+term  four = Nat.succ three
+term  six : Nat
+term  six = sum four three two one Nat.zero Nat.zero
+--- evaluating ---
+six has whnf Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = (add zero zero)}}}}}}
+six evaluates to Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ (add zero zero))))))
+--- closing "LargeElim.ma" ---

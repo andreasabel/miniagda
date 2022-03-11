@@ -1,0 +1,73 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "fib.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(n : Nat) -> < Nat.succ n : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero = \ y -> y
+; add (Nat.succ x) = \ y -> Nat.succ (add x y)
+}
+type  Stream : - Size -> Set
+term  Stream.cons : .[i : Size] -> ^(y1 : Nat) -> ^(y2 : Stream i) -> < Stream.cons i y1 y2 : Stream $i >
+term  tail : Stream # -> Stream #
+{ tail (Stream.cons [.#] x xs) = xs
+}
+term  head : Stream # -> Nat
+{ head (Stream.cons [.#] x xs) = x
+}
+term  nth : Nat -> Stream # -> Nat
+{ nth Nat.zero xs = head xs
+; nth (Nat.succ x) xs = nth x (tail xs)
+}
+term  one : Nat
+term  one = Nat.succ Nat.zero
+term  fib' : (x : Nat) -> (y : Nat) -> .[i : Size] -> Stream i
+{ fib' x y $[i < #] = Stream.cons [i] x (fib' y (add x y) [i])
+}
+term  fib : Stream #
+term  fib = fib' one one [?2]
+term  four : Nat
+term  four = Nat.succ (Nat.succ (Nat.succ one))
+term  fibfour : Nat
+term  fibfour = nth four fib
+type  Leq : ^ Nat -> ^ Nat -> Set
+term  Leq.lqz : .[x : Nat] -> < Leq.lqz x : Leq Nat.zero x >
+term  Leq.lqs : .[x : Nat] -> .[y : Nat] -> ^(y2 : Leq x y) -> < Leq.lqs x y y2 : Leq (Nat.succ x) (Nat.succ y) >
+type  Increasing : - Size -> ^ Stream # -> Set
+term  Increasing.inc : .[i : Size] -> .[x : Nat] -> .[y : Nat] -> ^(y3 : Leq x y) -> .[tl : Stream #] -> ^(y5 : Increasing i (Stream.cons [#] y tl)) -> < Increasing.inc i x y y3 tl y5 : Increasing $i (Stream.cons [#] x (Stream.cons [#] y tl)) >
+type  Eq : ++(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Eq.refl : .[A : Set] -> .[a : A] -> < Eq.refl : Eq A a a >
+term  proof : Eq (Stream #) (tail fib) (tail fib)
+term  proof = Eq.refl
+term  double : Stream # -> Stream #
+term  double = \ s -> Stream.cons [?3] (head s) s
+type  Bool : Set
+term  Bool.tt : < Bool.tt : Bool >
+term  Bool.ff : < Bool.ff : Bool >
+term  leq : Nat -> Nat -> Bool
+{ leq Nat.zero y = Bool.tt
+; leq (Nat.succ x) Nat.zero = Bool.ff
+; leq (Nat.succ x) (Nat.succ y) = leq x y
+}
+term  ite : Bool -> .[A : Set] -> A -> A -> A
+{ ite Bool.tt [A] a1 a2 = a1
+; ite Bool.ff [A] a1 a2 = a2
+}
+term  merge : .[i : Size] -> (Nat -> Nat -> Bool) -> Stream # -> Stream # -> Stream i
+{ merge $[i < #] le (Stream.cons [.#] x xs) (Stream.cons [.#] y ys) = ite (le x y) [Stream $i] (Stream.cons [i] x (merge [i] le xs (Stream.cons [#] y ys))) (Stream.cons [i] y (merge [i] le (Stream.cons [#] x xs) ys))
+}
+term  first : .[A : Set] -> .[B : Set] -> A -> B -> A
+{ first [A] [B] a b = a
+}
+term  map : .[i : Size] -> (Nat -> Nat) -> Stream i -> Stream i
+{ map $[i < #] f (Stream.cons [.i] x xl) = Stream.cons [i] (f x) (map [i] f xl)
+}
+term  evil : .[i : Size] -> Stream i
+{ evil $[i < #] = map [$i] (\ y -> Nat.succ y) (Stream.cons [i] Nat.zero (evil [i]))
+}
+--- evaluating ---
+fibfour has whnf (head (tail (tail (tail (tail (fib' one one ?2))))))
+fibfour evaluates to head (tail (tail (tail (tail (fib' (Nat.succ Nat.zero) (Nat.succ Nat.zero) ?2)))))
+--- closing "fib.ma" ---

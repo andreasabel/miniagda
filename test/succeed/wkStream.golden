@@ -1,0 +1,106 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "wkStream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(x : Nat) -> < Nat.succ x : Nat >
+term  add : Nat -> Nat -> Nat
+{ add x Nat.zero = x
+; add x (Nat.succ y) = Nat.succ (add x y)
+}
+term  one : Nat
+term  one = Nat.succ Nat.zero
+type  Stream : ^(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+term  zeroes : .[i : Size] -> Stream Nat i
+{ zeroes $[i < #] = Stream.cons [i] Nat.zero (zeroes [i])
+}
+term  ones : .[i : Size] -> Stream Nat i
+{ ones $[i < #] = Stream.cons [i] one (ones [i])
+}
+term  ones' : Stream Nat #
+term  ones' = ones [#]
+term  map : .[A : Set] -> .[B : Set] -> .[i : Size] -> (A -> B) -> Stream A # -> Stream B i
+{ map [A] [B] $[i < #] f (Stream.cons [.#] a as) = Stream.cons [i] (f a) (map [A] [B] [i] f as)
+}
+term  twos : Stream Nat #
+term  twos = map [Nat] [Nat] [#] (\ x -> Nat.succ x) ones'
+term  tail : .[A : Set] -> Stream A # -> Stream A #
+{ tail [A] (Stream.cons [.#] a as) = as
+}
+term  twos' : Stream Nat #
+term  twos' = tail [Nat] twos
+term  head : .[A : Set] -> Stream A # -> A
+{ head [A] (Stream.cons [.#] a as) = a
+}
+term  two : Nat
+term  two = head [Nat] twos
+term  two' : Nat
+term  two' = head [Nat] twos'
+term  twos2 : Stream Nat #
+term  twos2 = map [Nat] [Nat] [#] (\ y -> Nat.succ y) ones'
+term  twos2' : Stream Nat #
+term  twos2' = tail [Nat] twos2
+term  zipWith : .[A : Set] -> .[B : Set] -> .[C : Set] -> .[i : Size] -> (A -> B -> C) -> Stream A # -> Stream B # -> Stream C i
+{ zipWith [A] [B] [C] $[i < #] f (Stream.cons [.#] a as) (Stream.cons [.#] b bs) = Stream.cons [i] (f a b) (zipWith [A] [B] [C] [i] f as bs)
+}
+term  nth : Nat -> Stream Nat # -> Nat
+{ nth Nat.zero ns = head [Nat] ns
+; nth (Nat.succ x) ns = nth x (tail [Nat] ns)
+}
+term  fours : Stream Nat #
+term  fours = zipWith [Nat] [Nat] [Nat] [#] add twos twos
+term  four : Nat
+term  four = head [Nat] fours
+term  fib : (x : Nat) -> (y : Nat) -> .[i : Size] -> Stream Nat i
+{ fib x y $[i < #] = Stream.cons [$i] x (Stream.cons [i] y (fib y (add x y) [i]))
+}
+term  fib' : Stream Nat #
+term  fib' = tail [Nat] (fib Nat.zero Nat.zero [#])
+term  fib8 : Nat
+term  fib8 = nth (add four four) (fib Nat.zero Nat.zero [#])
+term  fib2 : Nat
+term  fib2 = head [Nat] (tail [Nat] (fib Nat.zero Nat.zero [#]))
+term  nats : .[i : Size] -> Nat -> Stream Nat i
+{ nats $[i < #] x = Stream.cons [i] x (nats [i] (Nat.succ x))
+}
+term  nats' : Stream Nat #
+term  nats' = tail [Nat] (nats [#] Nat.zero)
+term  wkStream : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+term  wkStream = [\ A ->] [\ i ->] \ s -> s
+term  wkStream_ok : .[A : Set] -> .[i : Size] -> Stream A $i -> Stream A i
+{ wkStream_ok [A] $[i < #] (Stream.cons [.$i] x xs) = Stream.cons [i] x (wkStream [A] [i] xs)
+}
+--- evaluating ---
+one has whnf (succ zero)
+one evaluates to succ zero
+ones' has whnf (ones #)
+ones' evaluates to Stream.cons # (Nat.succ Nat.zero) (Stream.cons # (Nat.succ Nat.zero) (Stream.cons # (Nat.succ Nat.zero) (Stream.cons # (Nat.succ Nat.zero) (Stream.cons # (Nat.succ Nat.zero) (ones #)))))
+twos has whnf (map Nat Nat # (\ x -> succ x) ones')
+twos evaluates to Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (map Nat Nat # (\ x~0 -> succ ~0) (ones #))))))
+twos' has whnf (map Nat Nat # (\x -> Nat.succ x) (ones #))
+twos' evaluates to Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (map Nat Nat # (\ x~0 -> Nat.succ ~0) (ones #))))))
+two has whnf Nat.succ{x = Nat.succ{x = Nat.zero{}}}
+two evaluates to Nat.succ (Nat.succ Nat.zero)
+two' has whnf Nat.succ{x = Nat.succ{x = Nat.zero{}}}
+two' evaluates to Nat.succ (Nat.succ Nat.zero)
+twos2 has whnf (map Nat Nat # succ ones')
+twos2 evaluates to Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (Stream.cons # (succ (Nat.succ Nat.zero)) (map Nat Nat # succ (ones #))))))
+twos2' has whnf (map Nat Nat # (\y -> Nat.succ y) (ones #))
+twos2' evaluates to Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (Stream.cons # (Nat.succ (Nat.succ Nat.zero)) (map Nat Nat # (\ y~0 -> Nat.succ ~0) (ones #))))))
+fours has whnf (zipWith Nat Nat Nat # add twos twos)
+fours evaluates to Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) (zipWith Nat Nat Nat # (\ ~0 -> \ ~1 -> add ~0 ~1) (map Nat Nat # (\ x~0 -> Nat.succ ~0) (ones #)) (map Nat Nat # (\ x~0 -> Nat.succ ~0) (ones #)))))))
+four has whnf Nat.succ{x = Nat.succ{x = Nat.succ{x = Nat.succ{x = Nat.zero{}}}}}
+four evaluates to Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))
+fib' has whnf Stream.cons{i = #; y1 = zero; y2 = {fib y (add x y) [i] {i = #, y = zero, x = zero}}}
+fib' evaluates to Stream.cons # zero (Stream.cons # zero (Stream.cons # (add zero zero) (Stream.cons # (add zero zero) (Stream.cons # (add zero (add zero zero)) (Stream.cons # (add zero (add zero zero)) (Stream.cons # (add (add zero zero) (add zero (add zero zero))) (Stream.cons # (add (add zero zero) (add zero (add zero zero))) (Stream.cons # (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero)))) (Stream.cons # (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero)))) (Stream.cons # (add (add (add zero zero) (add zero (add zero zero))) (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero))))) (fib (add (add (add zero zero) (add zero (add zero zero))) (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero))))) (add (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero)))) (add (add (add zero zero) (add zero (add zero zero))) (add (add zero (add zero zero)) (add (add zero zero) (add zero (add zero zero)))))) #)))))))))))
+fib8 has whnf (add (add zero zero) (add zero (add zero zero)))
+fib8 evaluates to add (add zero zero) (add zero (add zero zero))
+fib2 has whnf zero
+fib2 evaluates to zero
+nats' has whnf (nats # {Nat.succ x {x = zero, i = #}})
+nats' evaluates to Stream.cons # (Nat.succ zero) (Stream.cons # (Nat.succ (Nat.succ zero)) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ zero))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ zero)))) (Stream.cons # (Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ zero))))) (nats # (Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ (Nat.succ zero)))))))))))
+wkStream has whnf (\A -> \ i -> \ s -> s)
+wkStream evaluates to \ A~0 -> \ i~1 -> \ s~2 -> ~2
+--- closing "wkStream.ma" ---

@@ -1,0 +1,8 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "non-record.ma" ---
+--- scope checking ---
+--- type checking ---
+type  NotARecord : ^(A : Set) -> ^(B : Set) -> Set
+term  NotARecord.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(y1 : B) -> < NotARecord.pair fst y1 : NotARecord A B >
+--- evaluating ---
+--- closing "non-record.ma" ---

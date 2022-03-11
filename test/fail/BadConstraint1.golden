@@ -1,0 +1,5 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BadConstraint1.ma" ---
+--- scope checking ---
+scope check error: f
+/// |i| < |i|: constraints must follow a quantifier

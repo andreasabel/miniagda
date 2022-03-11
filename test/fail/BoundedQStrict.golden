@@ -1,0 +1,29 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BoundedQStrict.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+term  mySucc : .[i : Size] -> .[j : Size] -> |j| < |i| -> Nat j -> Nat i
+{ mySucc [i] [j] n = Nat.succ [j] n
+}
+error during typechecking:
+bla
+/// checkExpr 0 |- \ i -> \ j -> \ n -> mySucc i j n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// checkForced fromList [] |- \ i -> \ j -> \ n -> mySucc i j n : .[i : Size] -> .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// new i <= #
+/// checkExpr 1 |- \ j -> \ n -> mySucc i j n : .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// checkForced fromList [(i,0)] |- \ j -> \ n -> mySucc i j n : .[j : Size] -> |j| <= |i| -> Nat j -> Nat i
+/// new j <= #
+/// checkExpr 2 |- \ n -> mySucc i j n : |j| <= |i| -> Nat j -> Nat i
+/// adding size rel. v1 + 0 <= v0
+/// checkExpr 2 |- \ n -> mySucc i j n : Nat j -> Nat i
+/// checkForced fromList [(j,1),(i,0)] |- \ n -> mySucc i j n : Nat j -> Nat i
+/// new n : (Nat v1)
+/// checkExpr 3 |- mySucc i j n : Nat i
+/// inferExpr' mySucc i j n
+/// checkGuard |j| < |i|
+/// lexSizes: no descent detected

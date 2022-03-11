@@ -1,0 +1,11 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "eta.ma" ---
+--- scope checking ---
+--- type checking ---
+type  P : ^(A : Set) -> ^ (A -> A) -> Set
+term  P.inn : .[A : Set] -> .[out : A -> A] -> < P.inn out : P A out >
+term  bla : .[A : Set] -> (f : (A -> A) -> A -> A) -> P (A -> A) f -> P (A -> A) (\ x -> f x)
+{ bla [A] f p = p
+}
+--- evaluating ---
+--- closing "eta.ma" ---

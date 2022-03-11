@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "lengthCoList.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : + Size -> Set
+term  Nat.zero : .[s!ze : Size] -> .[i < s!ze] -> Nat s!ze
+term  Nat.zero : .[i : Size] -> < Nat.zero i : Nat $i >
+term  Nat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat i -> Nat s!ze
+term  Nat.succ : .[i : Size] -> ^(y1 : Nat i) -> < Nat.succ i y1 : Nat $i >
+type  Colist : ^(A : Set) -> - Size -> Set
+term  Colist.nil : .[A : Set] -> .[i : Size] -> < Colist.nil i : Colist A $i >
+term  Colist.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Colist A i) -> < Colist.cons i y1 y2 : Colist A $i >
+term  olist' : .[i : Size] -> Colist (Nat #) i
+{ olist' $[i < #] = Colist.cons [i] (Nat.zero [#]) (olist' [i])
+}
+term  length : .[i : Size] -> .[A : Set] -> Colist A i -> Nat i
+error during typechecking:
+length
+/// clause 1
+/// pattern nil i
+/// in pattern nil i, coinductive size sub pattern i must be dotted

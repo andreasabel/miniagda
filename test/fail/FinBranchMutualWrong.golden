@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "FinBranchMutualWrong.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Prod : -(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(y0 : A -> B) -> < Prod.pair y0 : Prod A B >
+type  Tree : Set
+term  Tree.node : ^(numBranches : Nat) -> ^(y1 : VecTree numBranches) -> < Tree.node numBranches y1 : Tree >
+{ VecTree Nat.zero = Unit
+; VecTree (Nat.suc n) = Prod Tree (VecTree n)
+}
+error during typechecking:
+checking positivity
+/// polarity check ++ <= - failed

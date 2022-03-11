@@ -1,0 +1,64 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "quicksort.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  if : .[A : Set] -> Bool -> A -> A -> A
+{ if [A] Bool.true t e = t
+; if [A] Bool.false t e = e
+}
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  leq : Nat -> Nat -> Bool
+{ leq Nat.zero n = Bool.true
+; leq (Nat.succ m) Nat.zero = Bool.false
+; leq (Nat.succ m) (Nat.succ n) = leq m n
+}
+type  List : + Size -> Set
+term  List.nil : .[s!ze : Size] -> .[i < s!ze] -> List s!ze
+term  List.nil : .[i : Size] -> < List.nil i : List $i >
+term  List.cons : .[s!ze : Size] -> .[i < s!ze] -> ^ Nat -> ^ List i -> List s!ze
+term  List.cons : .[i : Size] -> ^(y1 : Nat) -> ^(y2 : List i) -> < List.cons i y1 y2 : List $i >
+term  append : List # -> List # -> List #
+{ append (List.nil [.#]) l = l
+; append (List.cons [.#] x xs) l = List.cons [#] x (append xs l)
+}
+term  partition : (Nat -> Bool) -> .[i : Size] -> List i -> .[A : Set] -> (List i -> List i -> A) -> A
+{ partition p [i] (List.nil [j < i]) [A] k = k (List.nil [j]) (List.nil [j])
+; partition p [i] (List.cons [j < i] n l) [A] k = if [A] (p n) (partition p [j] l [A] (\ l1 -> \ l2 -> k (List.cons [j] n l1) l2)) (partition p [j] l [A] (\ l1 -> \ l2 -> k l1 (List.cons [j] n l2)))
+}
+term  quicksort : .[i : Size] -> List i -> List #
+{ quicksort [i] (List.nil [j < i]) = List.nil [j]
+; quicksort [i] (List.cons [j < i] n l) = partition (\ m -> leq m n) [j] l [List #] (\ l1 -> \ l2 -> append (quicksort [j] l1) (List.cons [#] n (quicksort [j] l2)))
+}
+term  n0 : Nat
+term  n0 = Nat.zero
+term  n1 : Nat
+term  n1 = Nat.succ n0
+term  n2 : Nat
+term  n2 = Nat.succ n1
+term  n3 : Nat
+term  n3 = Nat.succ n2
+term  n4 : Nat
+term  n4 = Nat.succ n3
+term  n5 : Nat
+term  n5 = Nat.succ n4
+term  n6 : Nat
+term  n6 = Nat.succ n5
+term  n7 : Nat
+term  n7 = Nat.succ n6
+term  n8 : Nat
+term  n8 = Nat.succ n7
+term  n9 : Nat
+term  n9 = Nat.succ n8
+term  l : List #
+term  l = List.cons [#] n1 (List.cons [#] n3 (List.cons [#] n0 (List.cons [#] n2 (List.nil [#]))))
+term  l' : List #
+term  l' = quicksort [#] l
+--- evaluating ---
+l' has whnf List.cons{i = #; y1 = Nat.zero{}; y2 = List.cons{i = #; y1 = Nat.succ{y0 = Nat.zero{}}; y2 = List.cons{i = #; y1 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}; y2 = List.cons{i = #; y1 = Nat.succ{y0 = Nat.succ{y0 = Nat.succ{y0 = Nat.zero{}}}}; y2 = List.nil{i = #}}}}}
+l' evaluates to List.cons # Nat.zero (List.cons # (Nat.succ Nat.zero) (List.cons # (Nat.succ (Nat.succ Nat.zero)) (List.cons # (Nat.succ (Nat.succ (Nat.succ Nat.zero))) (List.nil #))))
+--- closing "quicksort.ma" ---

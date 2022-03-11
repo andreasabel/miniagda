@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ForcedMatchIdType.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  subst : .[A : Set] -> .[a : A] -> .[b : A] -> .[Id A a b] -> .[P : A -> Set] -> P a -> P b
+{ subst [A] [a] [.a] [Id.refl] [P] h = h
+}
+term  p1 : .[A : Set] -> .[a : A] -> .[p : Id A a a] -> .[P : A -> Set] -> (h : P a) -> Id (P a) (subst [A] [a] [a] [p] [P] h) (subst [A] [a] [a] [Id.refl] [P] h)
+term  p1 = [\ A ->] [\ a ->] [\ p ->] [\ P ->] \ h -> Id.refl
+term  p2 : .[A : Set] -> .[a : A] -> .[p : Id A a a] -> .[P : A -> Set] -> (h : P a) -> Id (P a) (subst [A] [a] [a] [p] [P] h) h
+term  p2 = [\ A ->] [\ a ->] [\ p ->] [\ P ->] \ h -> Id.refl
+term  p3 : .[A : Set] -> .[a : A] -> .[b : A] -> .[p : Id A a b] -> .[q : Id A a b] -> .[P : A -> Set] -> (h : P a) -> Id (P b) (subst [A] [a] [b] [p] [P] h) (subst [A] [a] [b] [q] [P] h)
+term  p3 = [\ A ->] [\ a ->] [\ b ->] [\ p ->] [\ q ->] [\ P ->] \ h -> Id.refl
+--- evaluating ---
+--- closing "ForcedMatchIdType.ma" ---

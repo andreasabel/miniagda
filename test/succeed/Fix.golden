@@ -1,0 +1,9 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Fix.ma" ---
+--- scope checking ---
+--- type checking ---
+term  fix : .[A : Size -> Set] -> (f : .[i : Size] -> (.[j < i] -> A j) -> A i) -> .[i : Size] -> A i
+{ fix [A] f [i] = f [i] (fix [A] f)
+}
+--- evaluating ---
+--- closing "Fix.ma" ---

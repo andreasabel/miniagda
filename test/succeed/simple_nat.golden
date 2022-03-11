@@ -1,0 +1,13 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "simple_nat.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero x = x
+; add (Nat.suc y) x = Nat.suc (add y x)
+}
+--- evaluating ---
+--- closing "simple_nat.ma" ---

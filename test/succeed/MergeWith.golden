@@ -1,0 +1,26 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MergeWith.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  List : Set
+term  List.nil : < List.nil : List >
+term  List.cons : ^(y0 : Nat) -> ^(y1 : List) -> < List.cons y0 y1 : List >
+term  leq : Nat -> Nat -> Bool
+{}
+term  merge : List -> List -> List
+term  merge_aux : Nat -> List -> List -> Nat -> List -> List -> Bool -> List
+{ merge List.nil l = l
+; merge l List.nil = l
+; merge (List.cons x xs) (List.cons y ys) = merge_aux x xs (List.cons x xs) y ys (List.cons y ys) (leq x y)
+}
+{ merge_aux x xs xxs y ys yys Bool.true = List.cons x (merge xs yys)
+; merge_aux x xs xxs y ys yys Bool.false = List.cons y (merge xxs ys)
+}
+--- evaluating ---
+--- closing "MergeWith.ma" ---

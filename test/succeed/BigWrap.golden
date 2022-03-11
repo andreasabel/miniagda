@@ -1,0 +1,33 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BigWrap.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  BigWrap : Set 1
+term  BigWrap.inn : ^(out : Set) -> < BigWrap.inn out : BigWrap >
+type  out : (inn : BigWrap) -> Set
+{ out (BigWrap.inn #out) = #out
+}
+type  NotBig : ^ Set -> Set
+term  NotBig.notBig : .[A : Set] -> < NotBig.notBig A : NotBig A >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+ty-u  NAT : Set 1
+term  NAT.ZERO : < NAT.ZERO : NAT >
+term  NAT.SUCC : ^(y0 : NAT) -> < NAT.SUCC y0 : NAT >
+term  NATnat : NAT -> Nat
+{ NATnat NAT.ZERO = Nat.zero
+; NATnat (NAT.SUCC n) = Nat.succ (NATnat n)
+}
+type  Exists : Set
+term  Exists.inEx : .[A : Set] -> ^(outEx : A) -> < Exists.inEx A outEx : Exists >
+ty-u  EXISTS : Set 1
+term  EXISTS.inEX : ^(OutType : Set) -> ^(outValue : OutType) -> < EXISTS.inEX OutType outValue : EXISTS >
+type  OutType : (inEX : EXISTS) -> Set
+{ OutType (EXISTS.inEX #OutType #outValue) = #OutType
+}
+term  outValue : (inEX : EXISTS) -> OutType inEX
+{ outValue (EXISTS.inEX #OutType #outValue) = #outValue
+}
+--- evaluating ---
+--- closing "BigWrap.ma" ---

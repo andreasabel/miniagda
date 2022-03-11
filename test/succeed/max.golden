@@ -1,0 +1,35 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "max.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+term  leq : Nat -> Nat -> Bool
+{ leq Nat.zero n = Bool.true
+; leq (Nat.suc m) Nat.zero = Bool.false
+; leq (Nat.suc m) (Nat.suc n) = leq m n
+}
+term  maxN : Nat -> Nat -> Nat
+{ maxN n m = case leq n m : Bool
+             { Bool.true -> m
+             ; Bool.false -> n
+             }
+}
+term  one : Nat
+term  one = Nat.suc Nat.zero
+term  two : Nat
+term  two = Nat.suc one
+term  cmp : Bool
+term  cmp = leq one two
+term  bla : Nat
+term  bla = maxN one two
+--- evaluating ---
+cmp has whnf Bool.true{}
+cmp evaluates to Bool.true
+bla has whnf Nat.suc{y0 = Nat.suc{y0 = Nat.zero{}}}
+bla evaluates to Nat.suc (Nat.suc Nat.zero)
+--- closing "max.ma" ---

@@ -1,0 +1,69 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "AccDestructorErasedIndex.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  R : ^ Nat -> ^ Nat -> Set
+term  R.r1 : .[x : Nat] -> < R.r1 x : R (Nat.succ (Nat.succ x)) (Nat.succ Nat.zero) >
+term  R.r2 : < R.r2 : R (Nat.succ Nat.zero) Nat.zero >
+type  Acc : ^(A : Set) -> ^(Lt : A -> A -> Set) -> (b : A) -> Set
+term  Acc.acc : .[A : Set] -> .[Lt : A -> A -> Set] -> .[b : A] -> ^(accParOut : (a : A) -> Lt a b -> Acc A Lt a) -> < Acc.acc accParOut : Acc A Lt b >
+term  accParOut : .[A : Set] -> .[Lt : A -> A -> Set] -> (b : A) -> (acc : Acc A Lt b) -> (a : A) -> Lt a b -> Acc A Lt a
+{ accParOut [A] [Lt] b (Acc.acc #accParOut) = #accParOut
+}
+term  acc_dest : (n : Nat) -> (p : Acc Nat R n) -> (m : Nat) -> R m n -> Acc Nat R m
+{ acc_dest n (Acc.acc p) = p
+}
+term  acc2 : (n : Nat) -> Acc Nat R (Nat.succ (Nat.succ n))
+term  acc2 = \ n -> Acc.acc (\ a -> \ p -> case p : R a (Nat.succ (Nat.succ n))
+                              {})
+term  aux1 : (a : Nat) -> (p : R a (Nat.succ Nat.zero)) -> Acc Nat R a
+{ aux1 (Nat.succ (Nat.succ x)) (R.r1 [.x]) = acc2 x
+}
+term  acc1 : Acc Nat R (Nat.succ Nat.zero)
+term  acc1 = Acc.acc aux1
+term  aux0 : (a : Nat) -> (p : R a Nat.zero) -> Acc Nat R a
+{ aux0 .(succ zero) R.r2 = acc1
+}
+term  acc0 : Acc Nat R Nat.zero
+term  acc0 = Acc.acc aux0
+term  accR : (n : Nat) -> Acc Nat R n
+{ accR Nat.zero = acc0
+; accR (Nat.succ Nat.zero) = acc1
+; accR (Nat.succ (Nat.succ n)) = acc2 n
+}
+term  f : (x : Nat) -> Acc Nat R x -> Nat
+{ f x (Acc.acc p) = case x : Nat
+                    { Nat.zero -> f (Nat.succ x) (p (Nat.succ x) R.r2)
+                    ; Nat.succ Nat.zero -> f (Nat.succ x) (p (Nat.succ x) (R.r1 [Nat.zero]))
+                    ; Nat.succ (Nat.succ y) -> Nat.zero
+                    }
+}
+term  h : (x : Nat) -> .[Acc Nat R x] -> Nat
+{ h Nat.zero [Acc.acc [p]] = h (Nat.succ Nat.zero) [p (Nat.succ Nat.zero) R.r2]
+; h (Nat.succ Nat.zero) [Acc.acc [p]] = h (Nat.succ (Nat.succ Nat.zero)) [p (Nat.succ (Nat.succ Nat.zero)) (R.r1 [Nat.zero])]
+; h (Nat.succ (Nat.succ y)) [p] = Nat.zero
+}
+term  bla : Nat
+term  bla = h Nat.zero [acc0]
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+block fails as expected, error message:
+p1
+/// checkExpr 0 |- \ p -> refl : (p : Acc Nat R Nat.zero) -> Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// checkForced fromList [] |- \ p -> refl : (p : Acc Nat R Nat.zero) -> Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// new p : (Acc Nat R Nat.zero)
+/// checkExpr 1 |- refl : Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// checkForced fromList [(p,0)] |- refl : Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// leqVal' (subtyping)  < Id.refl : Id Nat (h Nat.zero [p]) (h Nat.zero [p]) >  <=+  Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// leqVal' (subtyping)  Id Nat (h Nat.zero [p]) (h Nat.zero [p])  <=+  Id Nat (h Nat.zero [p]) (h Nat.zero [acc0])
+/// leqVal'  h Nat.zero p  <=^  Nat.zero : Nat
+/// leqApp: head mismatch h != Nat.zero
+--- evaluating ---
+acc0 has whnf (acc (aux0 Up ((a : Nat::Tm) -> (p : R a Nat.zero) -> Acc Nat R a)))
+acc0 evaluates to acc (\ a~0 -> \ p~1 -> aux0 ~0 ~1)
+bla has whnf (h zero acc0)
+bla evaluates to h zero (Acc.acc (\ a~0 -> \ p~1 -> aux0 ~0 ~1))
+--- closing "AccDestructorErasedIndex.ma" ---

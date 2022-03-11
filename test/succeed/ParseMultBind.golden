@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ParseMultBind.ma" ---
+--- scope checking ---
+--- type checking ---
+type  K : (A : Set) -> (B : Set) -> Set
+type  K = \ A -> \ B -> A
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> ^(y1 : B) -> < Prod.pair y0 y1 : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> Prod A B -> A
+{ fst [A] [B] (Prod.pair a b) = a
+}
+term  snd : .[A : Set] -> .[B : Set] -> (p : Prod A B) -> B
+{ snd [A] [B] (Prod.pair a b) = b
+}
+--- evaluating ---
+--- closing "ParseMultBind.ma" ---

@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "conat.ma" ---
+--- scope checking ---
+--- type checking ---
+type  CoNat : - Size -> Set
+term  CoNat.zero : .[i : Size] -> < CoNat.zero i : CoNat $i >
+term  CoNat.succ : .[i : Size] -> ^(y1 : CoNat i) -> < CoNat.succ i y1 : CoNat $i >
+type  CoNatEq : -(i : Size) -> ^ CoNat i -> ^ CoNat i -> Set
+term  CoNatEq.eqz : .[i : Size] -> < CoNatEq.eqz i : CoNatEq $i (CoNat.zero [i]) (CoNat.zero [i]) >
+term  CoNatEq.eqs : .[i : Size] -> .[n : CoNat i] -> .[m : CoNat i] -> ^(y3 : CoNatEq i n m) -> < CoNatEq.eqs i n m y3 : CoNatEq $i (CoNat.succ [i] n) (CoNat.succ [i] m) >
+term  add : .[i : Size] -> CoNat i -> CoNat i -> CoNat i
+{ add $[i < #] (CoNat.zero [.i]) n = n
+; add $[i < #] (CoNat.succ [.i] m) n = CoNat.succ [i] (add [i] m n)
+}
+term  mult : .[i : Size] -> CoNat i -> CoNat i -> CoNat i
+{ mult $[i < #] (CoNat.zero [.i]) n = CoNat.zero [i]
+; mult $[i < #] (CoNat.succ [.i] m) (CoNat.zero [.i]) = CoNat.zero [i]
+; mult $[i < #] (CoNat.succ [.i] m) (CoNat.succ [.i] n) = CoNat.succ [i] (add [i] n (mult [i] m (CoNat.succ [i] n)))
+}
+--- evaluating ---
+--- closing "conat.ma" ---

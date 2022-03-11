@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "BoundedFake.ma" ---
+--- scope checking ---
+--- type checking ---
+term  bad : .[i : Size] -> .[j : Size] -> .[A : Set] -> A
+error during typechecking:
+bad
+/// clause 1
+/// pattern j < i
+/// new j <= #
+/// adding size rel. v1 + 1 <= v0
+/// leqVal' (subtyping)  Size  <=+  < i
+/// leSize # <+ i
+/// leSize' # < i
+/// leSize: # + 0 < i failed

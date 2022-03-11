@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "erased1.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+id
+/// checkExpr 0 |- \ A -> \ x -> x : .[A : Set] -> .[A] -> A
+/// checkForced fromList [] |- \ A -> \ x -> x : .[A : Set] -> .[A] -> A
+/// new A : Set
+/// checkExpr 1 |- \ x -> x : .[A] -> A
+/// checkForced fromList [(A,0)] |- \ x -> x : .[A] -> A
+/// new x : v0
+/// checkExpr 2 |- x : A
+/// inferExpr' x
+/// inferExpr: variable x : A may not occur
+/// , because it is marked as erased

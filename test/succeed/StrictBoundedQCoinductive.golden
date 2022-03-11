@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "StrictBoundedQCoinductive.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  C : Size -> Set
+type  C = \ i -> .[j : Size] -> |j| < |i| -> Bool
+term  foo : .[i : Size] -> C i
+{ foo $[i < #] [j] = Bool.true
+}
+--- evaluating ---
+--- closing "StrictBoundedQCoinductive.ma" ---

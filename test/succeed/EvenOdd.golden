@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "EvenOdd.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Even : Set
+term  Even.ev0 : < Even.ev0 : Even >
+term  Even.evS : ^(y0 : Odd) -> < Even.evS y0 : Even >
+type  Odd : Set
+term  Odd.oddS : ^(y0 : Even) -> < Odd.oddS y0 : Odd >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+term  evenToNat : Even -> Nat
+term  oddToNat : Odd -> Nat
+{ evenToNat Even.ev0 = Nat.zero
+; evenToNat (Even.evS o) = Nat.suc (oddToNat o)
+}
+{ oddToNat (Odd.oddS e) = Nat.suc (evenToNat e)
+}
+--- evaluating ---
+--- closing "EvenOdd.ma" ---

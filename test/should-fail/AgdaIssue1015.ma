@@ -19,6 +19,8 @@ fun elim : D # -> Empty
 { elim (inn r) = elim (r .force #)
 }
 
+-- OLD comment:
 -- Stack overflow because MiniAgda thinks D and R are not recursive
 -- and does eta-expansion into all eternity
 
+let absurd : Empty = elim (inn (inh #))

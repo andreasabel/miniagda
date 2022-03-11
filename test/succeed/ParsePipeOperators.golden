@@ -1,0 +1,54 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ParsePipeOperators.ma" ---
+--- scope checking ---
+--- type checking ---
+term  three : .[A : Set] -> (f : A -> A) -> (x : A) -> A
+term  three = [\ A ->] \ f -> \ x -> f (f (f x))
+size  sbla : (f : Size -> Size) -> (x : Size) -> (y : Size) -> Size
+size  sbla = \ f -> \ x -> \ y -> f (x + y)
+term  threeId : (f : .[A : Set] -> A -> A) -> .[A : Set] -> (x : A) -> A
+term  threeId = \ f -> [\ A ->] \ x -> f [A] (f [A] (f [A] x))
+block fails as expected, error message:
+failure
+/// new F : (Size -> Set)
+/// new i <= #
+/// new B : Set
+/// not a type: F (i -> B)
+/// inferExpr' F (i -> B)
+/// checkApp (Size -> Set) eliminated by i -> B
+/// checkExpr 3 |- i -> B : Size
+/// checkForced fromList [(i,1),(F,0),(B,2)] |- i -> B : Size
+/// inferExpr' i -> B
+/// inferExpr: expected i to be a type!
+size  success : .[F : Size -> Set] -> .[i : Size] -> .[B : Set] -> (x : B -> F i) -> Size
+size  success = [\ F ->] [\ i ->] [\ B ->] \ x -> 0
+term  one : .[A : Set] -> (f : A -> A) -> A -> A
+term  one = [\ A ->] \ f -> \ x -> f x
+term  binApp : .[A : Set] -> .[B : Set] -> .[C : Set] -> (f : A -> B -> C) -> (x : A) -> (y : B) -> C
+term  binApp = [\ A ->] [\ B ->] [\ C ->] \ f -> \ x -> \ y -> f x y
+term  redex : .[A : Set] -> A -> A
+term  redex = [\ A ->] \ x -> let y : A
+                      = x
+                in y
+type  List : ^(A : Set) -> Set
+term  List.nil : .[A : Set] -> < List.nil : List A >
+term  List.cons : .[A : Set] -> ^(head : A) -> ^(tail : List A) -> < List.cons head tail : List A >
+term  evens : .[A : Set] -> List A -> List A
+{ evens [A] List.nil = List.nil
+; evens [A] (List.cons x List.nil) = List.nil
+; evens [A] (List.cons x (List.cons y xs)) = List.cons x (evens [A] xs)
+}
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+term  fork : .[A : Set] -> (a : A) -> Prod A A
+{ fork [A] a .fst = a
+; fork [A] a .snd = a
+}
+--- evaluating ---
+--- closing "ParsePipeOperators.ma" ---

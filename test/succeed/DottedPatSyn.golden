@@ -1,0 +1,22 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DottedPatSyn.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.false : < Bool.false : Bool >
+term  Bool.true : < Bool.true : Bool >
+type  Maybe : ^(A : Set) -> Set
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(fromJust : A) -> < Maybe.just fromJust : Maybe A >
+type  Three : Set
+type  Three = Maybe Bool
+pattern one = nothing
+pattern two = just false
+pattern three = just true
+type  D : ^(b : Three) -> Set
+term  D.c : < D.c : D (Maybe.just Bool.true) >
+ty-u  f : .[b : Three] -> D b -> Set 1
+{ f [.Maybe.just [.Bool.true]] D.c = Set
+}
+--- evaluating ---
+--- closing "DottedPatSyn.ma" ---

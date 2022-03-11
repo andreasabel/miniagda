@@ -1,0 +1,44 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Pattern.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+mixk  if : .[i : Size] -> (A : Set i) -> Bool -> ++(a : A) -> ++(b : A) -> A
+{ if [i] A Bool.true a b = a
+; if [i] A Bool.false a b = b
+}
+type  If : Bool -> ++(A : Set) -> ++(B : Set) -> Set
+{ If Bool.true A B = A
+; If Bool.false A B = B
+}
+type  Plus : ++(A : Set) -> ++(B : Set) -> Set
+type  Plus = \ A -> \ B -> (b : Bool) & If b A B
+pattern inl a = (true, a)
+pattern inr b = (false, b)
+term  casePlus : .[A : Set] -> .[B : Set] -> .[C : Set] -> (A -> C) -> (B -> C) -> Plus A B -> C
+{ casePlus [A] [B] [C] f g (Bool.true, a) = f a
+; casePlus [A] [B] [C] f g (Bool.false, b) = g b
+}
+type  Maybe : ++(A : Set) -> Set
+type  Maybe = Plus Unit
+pattern nothing = inl unit
+pattern just a = inr a
+term  maybe : .[A : Set] -> .[B : Set] -> B -> (A -> B) -> Maybe A -> B
+{ maybe [A] [B] b f (Bool.true, un!t) = b
+; maybe [A] [B] b f (Bool.false, a) = f a
+}
+term  mapMaybe : .[A : Set] -> .[B : Set] -> (A -> B) -> Maybe A -> Maybe B
+term  mapMaybe = [\ A ->] [\ B ->] \ f -> maybe [A] [Maybe B] (Bool.true , Unit.unit) (\ a -> (Bool.false , f a))
+type  ListF : ++(A : Set) -> ++(X : Set) -> Set
+type  ListF = \ A -> \ X -> Maybe (A & X)
+type  List : ++(A : Set) -> ++(i : Size) -> Set
+{ List A i = .[j < i] & ListF A (List A j)
+}
+pattern nil j = (j, nothing)
+pattern cons j a as = (j, just (a, as))
+--- evaluating ---
+--- closing "Pattern.ma" ---

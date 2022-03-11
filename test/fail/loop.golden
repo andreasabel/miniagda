@@ -1,0 +1,44 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "loop.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+type  Nat : Set
+type  Nat = SNat #
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Maybe : ++(A : Set) -> Set
+term  Maybe.nothing : .[A : Set] -> < Maybe.nothing : Maybe A >
+term  Maybe.just : .[A : Set] -> ^(y0 : A) -> < Maybe.just y0 : Maybe A >
+term  shift_case : .[i : Size] -> Maybe (SNat $i) -> Maybe (SNat i)
+{ shift_case [i] Maybe.nothing = Maybe.nothing
+; shift_case [.i] (Maybe.just (SNat.zero [i])) = Maybe.nothing
+; shift_case [.i] (Maybe.just (SNat.succ [i] x)) = Maybe.just x
+}
+term  shift : .[i : Size] -> (Nat -> Maybe (SNat $i)) -> Nat -> Maybe (SNat i)
+term  shift = [\ i ->] \ f -> \ n -> shift_case [i] (f (SNat.succ [#] n))
+term  loop : .[i : Size] -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
+term  loop_case : .[i : Size] -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> Unit
+error during typechecking:
+loop
+/// clause 2
+/// right hand side
+/// checkExpr 4 |- loop j n (shift j f) : Unit
+/// inferExpr' loop j n (shift j f)
+/// checkApp (((SNat #)::Tm -> {Maybe (SNat i) {i = v1}})::Tm -> {Unit {i = v1}}) eliminated by shift j f
+/// inferExpr' shift j f
+/// checkApp (((SNat #)::Tm -> {Maybe (SNat $i) {i = v1}})::Tm -> {Nat -> Maybe (SNat i) {i = v1}}) eliminated by f
+/// leqVal' (subtyping)  (xSing# : SNat #) -> < f xSing# : Maybe (SNat i) >  <=+  SNat # -> Maybe (SNat $j)
+/// new xSing# : (SNat #)
+/// comparing codomain < f xSing# : Maybe (SNat i) > with Maybe (SNat $j)
+/// leqVal' (subtyping)  < f xSing# : Maybe (SNat i) >  <=+  Maybe (SNat $j)
+/// leqVal' (subtyping)  Maybe (SNat i)  <=+  Maybe (SNat $j)
+/// leqVal'  SNat i  <=+  SNat $j : Set
+/// leqVal'  i  <=+  $j : Size
+/// leSize i <=+ $j
+/// leSize' i <= $j
+/// bound not entailed

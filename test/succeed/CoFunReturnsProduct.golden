@@ -1,0 +1,67 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "CoFunReturnsProduct.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
+}
+type  Tree : ++(A : Set) -> - Size -> Set
+term  Tree.leaf : .[A : Set] -> .[i : Size] -> < Tree.leaf i : Tree A $i >
+term  Tree.node : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Tree A i) -> ^(y3 : Tree A i) -> < Tree.node i y1 y2 y3 : Tree A $i >
+term  lab : .[i : Size] -> .[A : Set] -> .[B : Set] -> Tree A i -> Stream (Stream B #) i -> Prod (Tree B i) (Stream (Stream B #) i)
+{ lab $[i < #] [A] [B] (Tree.leaf [.i]) bss = Prod.pair (Tree.leaf [i]) bss
+; lab $[i < #] [A] [B] (Tree.node [.i] x l r) (Stream.cons [.i] (Stream.cons [.#] b bs) bss) = let pl : Prod (Tree B i) (Stream (Stream B #) i)
+                                                                                                      = lab [i] [A] [B] l bss
+                                                                                               in let pr : Prod (Tree B i) (Stream (Stream B #) i)
+                                                                                                         = lab [i] [A] [B] r (snd pl)
+                                                                                                  in Prod.pair (Tree.node [i] b (fst pl) (fst pr)) (Stream.cons [i] bs (snd pr))
+}
+term  label2 : .[i : Size] -> .[A : Set] -> .[B : Set] -> Tree A i -> Stream B # -> Stream (Stream B #) i
+{ label2 $[i < #] [A] [B] t bs = snd (lab [$i] [A] [B] t (Stream.cons [i] bs (label2 [i] [A] [B] t bs)))
+}
+term  label : .[i : Size] -> .[A : Set] -> .[B : Set] -> Tree A i -> Stream B # -> Tree B i
+{ label [i] [A] [B] t bs = fst (lab [i] [A] [B] t (Stream.cons [i] bs (label2 [i] [A] [B] t bs)))
+}
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Nat : Set
+term  Nat.Z : < Nat.Z : Nat >
+term  Nat.S : ^(y0 : Nat) -> < Nat.S y0 : Nat >
+term  nats : .[i : Size] -> Nat -> Stream Nat i
+{ nats $[i < #] n = Stream.cons [i] n (nats [i] (Nat.S n))
+}
+term  finTree : Nat -> Tree Unit #
+{ finTree Nat.Z = Tree.leaf [#]
+; finTree (Nat.S n) = Tree.node [#] Unit.unit (finTree n) (finTree n)
+}
+term  t0 : Tree Nat #
+term  t0 = label [#] [Unit] [Nat] (finTree Nat.Z) (nats [#] Nat.Z)
+term  t1 : Tree Nat #
+term  t1 = label [#] [Unit] [Nat] (finTree (Nat.S Nat.Z)) (nats [#] Nat.Z)
+term  t2 : Tree Nat #
+term  t2 = label [#] [Unit] [Nat] (finTree (Nat.S (Nat.S Nat.Z))) (nats [#] Nat.Z)
+term  t3 : Tree Nat #
+term  t3 = label [#] [Unit] [Nat] (finTree (Nat.S (Nat.S (Nat.S Nat.Z)))) (nats [#] Nat.Z)
+--- evaluating ---
+t0 has whnf (lab # Unit Nat (finTree Z) {Stream.cons [i] bs (label2 [i] [A] [B] t bs) {bs = ((nats # Z) Up (Stream {Nat {i = #}} #)), t = (finTree Z), B = Nat, A = Unit, i = #}} .fst)
+t0 evaluates to lab # Unit Nat (finTree Z) (Stream.cons # (nats # Z) (label2 # Unit Nat (finTree Z) (nats # Z))) .fst
+t1 has whnf (lab # Unit Nat (finTree (S Z)) {Stream.cons [i] bs (label2 [i] [A] [B] t bs) {bs = ((nats # Z) Up (Stream {Nat {i = #}} #)), t = (finTree (S Z)), B = Nat, A = Unit, i = #}} .fst)
+t1 evaluates to lab # Unit Nat (finTree (S Z)) (Stream.cons # (nats # Z) (label2 # Unit Nat (finTree (S Z)) (nats # Z))) .fst
+t2 has whnf (lab # Unit Nat (finTree (S (S Z))) {Stream.cons [i] bs (label2 [i] [A] [B] t bs) {bs = ((nats # Z) Up (Stream {Nat {i = #}} #)), t = (finTree (S (S Z))), B = Nat, A = Unit, i = #}} .fst)
+t2 evaluates to lab # Unit Nat (finTree (S (S Z))) (Stream.cons # (nats # Z) (label2 # Unit Nat (finTree (S (S Z))) (nats # Z))) .fst
+t3 has whnf (lab # Unit Nat (finTree (S (S (S Z)))) {Stream.cons [i] bs (label2 [i] [A] [B] t bs) {bs = ((nats # Z) Up (Stream {Nat {i = #}} #)), t = (finTree (S (S (S Z)))), B = Nat, A = Unit, i = #}} .fst)
+t3 evaluates to lab # Unit Nat (finTree (S (S (S Z)))) (Stream.cons # (nats # Z) (label2 # Unit Nat (finTree (S (S (S Z)))) (nats # Z))) .fst
+--- closing "CoFunReturnsProduct.ma" ---

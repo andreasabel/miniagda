@@ -1,0 +1,36 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "omegaInst1.ma" ---
+--- scope checking ---
+--- type checking ---
+term  fix : .[F : Size -> Set] -> (phi : .[i <= #] -> (f : .[j < i] -> F j) -> F i) -> .[i <= #] -> F i
+{ fix [F] phi [i] = phi [i] (fix [F] phi)
+}
+type  Bot : +(i : Size) -> Set
+{ Bot i = .[j < i] & Bot j
+}
+type  Top : -(i : Size) -> Set
+{ Top i = .[j < i] -> Top j
+}
+term  out : .[i : Size] -> (r : Top $i) -> Top i
+{ out [i] r [j < i] = r [$j] [j]
+}
+term  inn : .[i : Size] -> (t : Top i) -> Top $i
+term  inn = [\ i ->] \ t -> [\ j ->] t
+term  bad : .[F : Size -> Set] -> .[i <= #] -> (f : .[j < $i] -> F j) -> F i
+term  bad = [\ F ->] [\ i ->] \ f -> f [i]
+block fails as expected, error message:
+test
+/// new F : (Size -> Set)
+/// inferExpr' fix F (bad F)
+/// checkApp ((phi : (.[i : Size] -> (f : .[j < i] -> F j) -> F i{F = (v0 Up (Size -> Set))})::Tm) -> .[i <= #] -> F i{F = (v0 Up (Size -> Set))}) eliminated by bad F
+/// leqVal' (subtyping)  .[i : Size] -> (f : .[j < $i] -> F j) -> < bad [F ] i (f j) : F i >  <=+  .[i : Size] -> (f : .[j < i] -> F j) -> F i
+/// new i <= #
+/// comparing codomain (f : .[j < $i] -> F j) -> < bad [F ] i (f j) : F i > with (f : .[j < i] -> F j) -> F i
+/// leqVal' (subtyping)  (f : .[j < $i] -> F j) -> < bad [F ] i (f j) : F i >  <=+  (f : .[j < i] -> F j) -> F i
+/// leqVal' (subtyping)  .[j < $i] -> F j  <=-  .[j < i] -> F j
+/// leqVal' (subtyping)  < $i  <=+  < i
+/// leSize $i <=+ i
+/// leSize' $i <= i
+/// leSize: 0 + 1 <= 0 failed
+--- evaluating ---
+--- closing "omegaInst1.ma" ---

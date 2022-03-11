@@ -1,0 +1,19 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MuOnlyPosNotSPos.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Mu : ++(F : + Set -> Set) -> Set
+error during typechecking:
+Mu
+/// constructor Mu.inn
+/// new Mu : (++(F : (+Set -> Set)::Set) -> Set)
+/// new F : (+Set -> {Set {Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))}})
+/// inferExpr' ^ F (Mu F) -> Mu F
+/// inferExpr' F (Mu F)
+/// checkApp (+Set -> {Set {Mu = (v0 Up (++(F : (+Set -> Set)::Set) -> Set))}}) eliminated by Mu F
+/// inferExpr' Mu F
+/// checkApp (++(F : (+Set -> Set)::Set) -> Set) eliminated by F
+/// inferExpr' F
+/// inferExpr: variable F : + Set -> Set may not occur
+/// , because of polarity
+/// polarity check ++ <= + failed

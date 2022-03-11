@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizePatternSucc.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+type  Empty : Set
+term  bad : .[i : Size] -> SNat i -> Empty
+error during typechecking:
+bad
+/// clause 2
+/// pattern zero $i
+/// pattern $i
+/// successor pattern only allowed in cofun

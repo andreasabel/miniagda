@@ -1,0 +1,54 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "logic.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  subst : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[P : A -> Set] -> P a -> P b
+{ subst [A] a .a Id.refl [P] x = x
+}
+term  bla : .[A : Set] -> (a : A) -> (p : Id A a a) -> .[P : A -> Set] -> (x : P a) -> Id (P a) x (subst [A] a a p [P] x)
+term  bla = [\ A ->] \ a -> \ p -> [\ P ->] \ x -> Id.refl
+term  resp : .[A : Set] -> (a : A) -> (b : A) -> Id A a b -> .[C : Set] -> (f : A -> C) -> Id C (f a) (f b)
+{ resp [A] a .a Id.refl [C] f = Id.refl
+}
+type  True : Set
+term  True.trueI : < True.trueI : True >
+type  False : Set
+term  falseIrr : (p : False) -> (q : False) -> Id False p q
+term  falseIrr = \ p -> \ q -> Id.refl
+term  falseE : False -> .[A : Set] -> A
+{}
+type  And : ^(A : Set) -> ^(B : Set) -> Set
+term  And.andI : .[A : Set] -> .[B : Set] -> ^(andE1 : A) -> ^(andE2 : B) -> < And.andI andE1 andE2 : And A B >
+term  andE1 : .[A : Set] -> .[B : Set] -> (andI : And A B) -> A
+{ andE1 [A] [B] (And.andI #andE1 #andE2) = #andE1
+}
+term  andE2 : .[A : Set] -> .[B : Set] -> (andI : And A B) -> B
+{ andE2 [A] [B] (And.andI #andE1 #andE2) = #andE2
+}
+type  Forall : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Forall.forallI : .[A : Set] -> .[B : A -> Set] -> ^(forallE : (a : A) -> B a) -> < Forall.forallI forallE : Forall A B >
+term  forallE : .[A : Set] -> .[B : A -> Set] -> (forallI : Forall A B) -> (a : A) -> B a
+{ forallE [A] [B] (Forall.forallI #forallE) = #forallE
+}
+term  shapeForallTrue : .[A : Set] -> (p : Forall A (\ a -> True)) -> Id (Forall A (\ a -> True)) p (Forall.forallI (\ a -> True.trueI))
+{ shapeForallTrue [A] p = Id.refl
+}
+type  Prop : ^(A : Set) -> Set
+term  Prop.true : .[A : Set] -> < Prop.true : Prop A >
+term  Prop.false : .[A : Set] -> < Prop.false : Prop A >
+term  Prop.and : .[A : Set] -> ^(y0 : Prop A) -> ^(y1 : Prop A) -> < Prop.and y0 y1 : Prop A >
+term  Prop.forall : .[A : Set] -> ^(y0 : A -> Prop A) -> < Prop.forall y0 : Prop A >
+type  Proof : (A : Set) -> Prop A -> Set
+{ Proof A Prop.true = True
+; Proof A Prop.false = False
+; Proof A (Prop.and p q) = And (Proof A p) (Proof A q)
+; Proof A (Prop.forall h) = Forall A (\ a -> Proof A (h a))
+}
+term  proofIrr : .[A : Set] -> (P : Prop A) -> (p : Proof A P) -> (q : Proof A P) -> Id (Proof A P) p q
+{ proofIrr [A] Prop.true p q = Id.refl
+; proofIrr [A] Prop.false p q = Id.refl
+}
+--- evaluating ---
+--- closing "logic.ma" ---

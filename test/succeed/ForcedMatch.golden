@@ -1,0 +1,17 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ForcedMatch.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Bool : Set
+term  Bool.true : < Bool.true : Bool >
+term  Bool.false : < Bool.false : Bool >
+type  D : ^ Bool -> ^ Bool -> Set
+term  D.d00 : < D.d00 : D Bool.false Bool.false >
+term  D.d01 : < D.d01 : D Bool.false Bool.true >
+term  D.d11 : < D.d11 : D Bool.true Bool.true >
+term  f : (b : Bool) -> .[D b b] -> Bool
+{ f Bool.false [D.d00] = Bool.false
+; f Bool.true [D.d11] = Bool.true
+}
+--- evaluating ---
+--- closing "ForcedMatch.ma" ---

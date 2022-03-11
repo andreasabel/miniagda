@@ -1,0 +1,28 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "addWith.ma" ---
+--- scope checking ---
+--- type checking ---
+type  SNat : + Size -> Set
+term  SNat.zero : .[s!ze : Size] -> .[i < s!ze] -> SNat s!ze
+term  SNat.zero : .[i : Size] -> < SNat.zero i : SNat $i >
+term  SNat.succ : .[s!ze : Size] -> .[i < s!ze] -> ^ SNat i -> SNat s!ze
+term  SNat.succ : .[i : Size] -> ^(y1 : SNat i) -> < SNat.succ i y1 : SNat $i >
+term  ote : .[i : Size] -> SNat i -> SNat i
+{ ote [.$i] (SNat.zero [i]) = SNat.zero [i]
+; ote [.$$i] (SNat.succ [.$i] (SNat.zero [i])) = SNat.zero [i]
+; ote [.$$i] (SNat.succ [.$i] (SNat.succ [i] x)) = SNat.succ [$i] (SNat.succ [i] (ote [i] x))
+}
+term  addWith : (.[k : Size] -> SNat k -> SNat k) -> .[i : Size] -> .[j : Size] -> SNat i -> SNat j -> SNat #
+{ addWith f [.$i] [j] (SNat.zero [i]) y = y
+; addWith f [.$i] [j] (SNat.succ [i] x) y = SNat.succ [#] (addWith f [j] [i] (f [j] y) (f [i] x))
+}
+term  three : SNat #
+term  three = SNat.succ [#] (SNat.succ [#] (SNat.succ [#] (SNat.zero [#])))
+term  four : SNat #
+term  four = SNat.succ [#] three
+term  bla : SNat #
+term  bla = addWith ote [#] [#] four three
+--- evaluating ---
+bla has whnf SNat.succ{i = #; y1 = SNat.succ{i = #; y1 = SNat.succ{i = #; y1 = SNat.zero{i = #}}}}
+bla evaluates to SNat.succ # (SNat.succ # (SNat.succ # (SNat.zero #)))
+--- closing "addWith.ma" ---

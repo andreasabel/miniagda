@@ -1,0 +1,10 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "absurdPattern.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+term  magic : .[A : Set] -> .[x : Empty] -> A
+{ magic [A] [()]
+}
+--- evaluating ---
+--- closing "absurdPattern.ma" ---

@@ -1,0 +1,43 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "vec.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(pred : Nat) -> < Nat.suc pred : Nat >
+term  add : Nat -> Nat -> Nat
+{ add Nat.zero y = y
+; add (Nat.suc x) y = Nat.suc (add x y)
+}
+type  Vec' : ++(A : Set) -> ^ Nat -> Set
+term  Vec'.vnil' : .[A : Set] -> < Vec'.vnil' : Vec' A Nat.zero >
+term  Vec'.vcons' : .[A : Set] -> .[n : Nat] -> ^(head' : A) -> ^(tail' : Vec' A n) -> < Vec'.vcons' n head' tail' : Vec' A (Nat.suc n) >
+term  head' : .[A : Set] -> .[n : Nat] -> (vcons' : Vec' A (Nat.suc n)) -> A
+{ head' [A] [n] (Vec'.vcons' [.n] #head' #tail') = #head'
+}
+term  tail' : .[A : Set] -> .[n : Nat] -> (vcons' : Vec' A (Nat.suc n)) -> Vec' A n
+{ tail' [A] [n] (Vec'.vcons' [.n] #head' #tail') = #tail'
+}
+type  Vec : ++(A : Set) -> ^ Nat -> Set
+term  Vec.vnil : .[A : Set] -> < Vec.vnil : Vec A Nat.zero >
+term  Vec.vcons : .[A : Set] -> ^(head : A) -> .[n : Nat] -> ^(tail : Vec A n) -> < Vec.vcons head n tail : Vec A (Nat.suc n) >
+term  head : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (Nat.suc n)) -> A
+{ head [A] [n] (Vec.vcons #head [.n] #tail) = #head
+}
+term  tail : .[A : Set] -> .[n : Nat] -> (vcons : Vec A (Nat.suc n)) -> Vec A n
+{ tail [A] [n] (Vec.vcons #head [.n] #tail) = #tail
+}
+term  length : .[A : Set] -> .[n : Nat] -> Vec A n -> Nat
+{ length [A] [.Nat.zero] Vec.vnil = Nat.zero
+; length [A] [.(suc n)] (Vec.vcons x [n] xs) = Nat.suc (length [A] [n] xs)
+}
+term  append : .[A : Set] -> .[n : Nat] -> Vec A n -> .[m : Nat] -> Vec A m -> Vec A (add n m)
+{ append [A] [.Nat.zero] Vec.vnil [m] ys = ys
+; append [A] [.(suc n)] (Vec.vcons x [n] xs) [m] ys = Vec.vcons x [add n m] (append [A] [n] xs [m] ys)
+}
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  vec0vnil : .[A : Set] -> (v : Vec A Nat.zero) -> Id (Vec A Nat.zero) v Vec.vnil
+term  vec0vnil = [\ A ->] \ v -> Id.refl
+--- evaluating ---
+--- closing "vec.ma" ---

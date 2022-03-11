@@ -1,0 +1,26 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "exists.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Sigma : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Sigma.pair : .[A : Set] -> .[B : A -> Set] -> ^(fst : A) -> ^(snd : B fst) -> < Sigma.pair fst snd : Sigma A B >
+term  fst : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> A
+{ fst [A] [B] (Sigma.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : A -> Set] -> (pair : Sigma A B) -> B (fst [A] [B] pair)
+{ snd [A] [B] (Sigma.pair #fst #snd) = #snd
+}
+type  Subset : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Subset.put : .[A : Set] -> .[B : A -> Set] -> ^(get : A) -> .[prf : B get] -> < Subset.put get prf : Subset A B >
+type  Exists : ^(A : Set) -> ^(B : A -> Set) -> Set
+term  Exists.exI : .[A : Set] -> .[B : A -> Set] -> .[a : A] -> ^(prop : B a) -> < Exists.exI a prop : Exists A B >
+term  exE : .[A : Set] -> .[B : A -> Set] -> .[C : Set] -> Exists A B -> (.[a : A] -> B a -> C) -> C
+{ exE [A] [B] [C] (Exists.exI [a] b) k = k [a] b
+}
+type  Bracket : ^(A : Set) -> Set
+term  Bracket.bI : .[A : Set] -> .[a : A] -> < Bracket.bI a : Bracket A >
+term  bE : .[A : Set] -> .[C : Set] -> Bracket A -> (.[A] -> C) -> C
+{ bE [A] [C] (Bracket.bI [a]) k = k [a]
+}
+--- evaluating ---
+--- closing "exists.ma" ---

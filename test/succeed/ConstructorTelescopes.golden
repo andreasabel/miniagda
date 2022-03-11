@@ -1,0 +1,14 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "ConstructorTelescopes.ma" ---
+--- scope checking ---
+--- type checking ---
+type  List : ++(A : Set) -> ++(i : Size) -> Set
+term  List.nil : .[A : Set] -> .[i : Size] -> .[j < i] -> < List.nil j : List A i >
+term  List.cons : .[A : Set] -> .[i : Size] -> .[j < i] -> ^(x : A) -> ^(xs : List A j) -> < List.cons j x xs : List A i >
+type  SList : ++(A : Set) -> + Size -> Set
+term  SList.snil : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> SList A s!ze
+term  SList.snil : .[A : Set] -> .[i : Size] -> < SList.snil i : SList A $i >
+term  SList.scons : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^(x : A) -> ^(xs : SList A i) -> SList A s!ze
+term  SList.scons : .[A : Set] -> .[i : Size] -> ^(x : A) -> ^(xs : SList A i) -> < SList.scons i x xs : SList A $i >
+--- evaluating ---
+--- closing "ConstructorTelescopes.ma" ---

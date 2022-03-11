@@ -1,0 +1,16 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "StoreSize.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  WrapSize : Set 1
+term  WrapSize.inn : .[out : Size] -> < WrapSize.inn out : WrapSize >
+size  out : (inn : WrapSize) -> Size
+error during typechecking:
+WrapSize
+/// out
+/// clause 1
+/// right hand side
+/// checkExpr 1 |- #out : Size
+/// inferExpr' #out
+/// inferExpr: variable #out : Size may not occur
+/// , because it is marked as erased

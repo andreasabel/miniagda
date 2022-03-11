@@ -1,0 +1,23 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "loopAdmStream.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(head : A) -> ^(tail : Stream A i) -> < Stream.cons i head tail : Stream A $i >
+term  head : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> A
+{ head [A] [i] (Stream.cons [.i] #head #tail) = #head
+}
+term  tail : .[A : Set] -> .[i : Size] -> (cons : Stream A $i) -> Stream A i
+{ tail [A] [i] (Stream.cons [.i] #head #tail) = #tail
+}
+term  f : (Stream Unit # -> Stream Unit #) -> .[i : Size] -> (Stream Unit i -> Stream Unit #) -> Stream Unit i
+error during typechecking:
+f
+/// clause 1
+/// pattern $j
+/// checkPattern $j : matching on size, checking that target .[i : Size] -> (Stream Unit i -> Stream Unit #) -> Stream Unit i ends in correct coinductive sized type
+/// new i <= #
+/// endsInSizedCo: (Stream Unit i -> Stream Unit #) -> Stream Unit i
+/// type  Stream Unit i -> Stream Unit #  not lower semi continuous in  i

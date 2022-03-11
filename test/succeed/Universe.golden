@@ -1,0 +1,15 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Universe.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(y0 : Nat) -> < Nat.suc y0 : Nat >
+type  U : Set
+term  U.nat : < U.nat : U >
+term  U.pi : ^(a : U) -> ^(y1 : El a -> U) -> < U.pi a y1 : U >
+{ El U.nat = Nat
+; El (U.pi a f) = (x : El a) -> El (f x)
+}
+--- evaluating ---
+--- closing "Universe.ma" ---

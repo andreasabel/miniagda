@@ -1,0 +1,21 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "sizedFinitelyBranchingTrees.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+type  Fin : ^ Nat -> Set
+term  Fin.fzero : .[n : Nat] -> < Fin.fzero n : Fin (Nat.succ n) >
+term  Fin.fsucc : .[n : Nat] -> ^(y1 : Fin n) -> < Fin.fsucc n y1 : Fin (Nat.succ n) >
+type  Tree : ^(A : Set) -> + Size -> Set
+term  Tree.leaf : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^ A -> Tree A s!ze
+term  Tree.leaf : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> < Tree.leaf i y1 : Tree A $i >
+term  Tree.node : .[A : Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^(n : Nat) -> ^ (Fin n -> Tree A i) -> Tree A s!ze
+term  Tree.node : .[A : Set] -> .[i : Size] -> ^(n : Nat) -> ^(y2 : Fin n -> Tree A i) -> < Tree.node i n y2 : Tree A $i >
+term  map : .[A : Set] -> .[B : Set] -> (A -> B) -> .[i : Size] -> Tree A i -> Tree B i
+{ map [A] [B] f [i] (Tree.leaf [j < i] a) = Tree.leaf [j] (f a)
+; map [A] [B] f [i] (Tree.node [j < i] n s) = Tree.node [j] n (\ k -> map [A] [B] f [j] (s k))
+}
+--- evaluating ---
+--- closing "sizedFinitelyBranchingTrees.ma" ---

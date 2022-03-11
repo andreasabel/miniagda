@@ -1,0 +1,8 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "MultiSigma.ma" ---
+--- scope checking ---
+--- type checking ---
+univ  test : Set 1
+univ  test = (A : Set) & (B : Set) & Set
+--- evaluating ---
+--- closing "MultiSigma.ma" ---

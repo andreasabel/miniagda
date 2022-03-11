@@ -1,0 +1,7 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "DataAtSetInfty.ma" ---
+--- scope checking ---
+--- type checking ---
+error during typechecking:
+U
+/// # is not a valid universe level

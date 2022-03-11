@@ -1,0 +1,44 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "Mu.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Empty : Set
+type  Unit : Set
+term  Unit.unit : < Unit.unit : Unit >
+type  Sum : ++(A : Set) -> ++(B : Set) -> Set
+term  Sum.inl : .[A : Set] -> .[B : Set] -> ^(y0 : A) -> < Sum.inl y0 : Sum A B >
+term  Sum.inr : .[A : Set] -> .[B : Set] -> ^(y0 : B) -> < Sum.inr y0 : Sum A B >
+type  Prod : ++(A : Set) -> ++(B : Set) -> Set
+term  Prod.pair : .[A : Set] -> .[B : Set] -> ^(fst : A) -> ^(snd : B) -> < Prod.pair fst snd : Prod A B >
+term  fst : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> A
+{ fst [A] [B] (Prod.pair #fst #snd) = #fst
+}
+term  snd : .[A : Set] -> .[B : Set] -> (pair : Prod A B) -> B
+{ snd [A] [B] (Prod.pair #fst #snd) = #snd
+}
+type  Mu : ++(F : ++ Set -> Set) -> + Size -> Set
+term  Mu.inn : .[F : ++ Set -> Set] -> .[s!ze : Size] -> .[i < s!ze] -> ^(out : F (Mu F i)) -> Mu F s!ze
+term  Mu.inn : .[F : ++ Set -> Set] -> .[i : Size] -> ^(out : F (Mu F i)) -> < Mu.inn i out : Mu F $i >
+term  out : .[F : ++ Set -> Set] -> .[i : Size] -> (inn : Mu F $i) -> F (Mu F i)
+{ out [F] [i] (Mu.inn [.i] #out) = #out
+}
+term  myout : .[F : ++ Set -> Set] -> .[i : Size] -> Mu F $i -> F (Mu F i)
+{ myout [F] [i] (Mu.inn [.i] t) = t
+}
+term  iter : .[F : ++ Set -> Set] -> (mapF : .[A : Set] -> .[B : Set] -> (A -> B) -> F A -> F B) -> .[G : Set] -> (step : F G -> G) -> .[i : Size] -> Mu F i -> G
+{ iter [F] mapF [G] step [i] (Mu.inn [j < i] t) = step (mapF [Mu F j] [G] (iter [F] mapF [G] step [j]) t)
+}
+type  NatF : ++ Set -> Set
+type  NatF = \ X -> Sum Unit X
+type  Nat : + Size -> Set
+type  Nat = Mu NatF
+term  zero : .[i : Size] -> Nat $i
+term  zero = [\ i ->] Mu.inn [i] (Sum.inl Unit.unit)
+term  succ : .[i : Size] -> Nat i -> Nat $i
+term  succ = [\ i ->] \ n -> Mu.inn [i] (Sum.inr n)
+type  ListF : ++ Set -> ++ Set -> Set
+type  ListF = \ A -> \ X -> Sum Unit (Prod A X)
+type  List : ++ Set -> + Size -> Set
+type  List = \ A -> Mu (ListF A)
+--- evaluating ---
+--- closing "Mu.ma" ---

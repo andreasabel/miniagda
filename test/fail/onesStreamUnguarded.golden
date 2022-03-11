@@ -1,0 +1,20 @@
+MiniAgda by Andreas Abel and Karl Mehltretter
+--- opening "onesStreamUnguarded.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Stream : ++(A : Set) -> - Size -> Set
+term  Stream.cons : .[A : Set] -> .[i : Size] -> ^(y1 : A) -> ^(y2 : Stream A i) -> < Stream.cons i y1 y2 : Stream A $i >
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.succ : ^(y0 : Nat) -> < Nat.succ y0 : Nat >
+term  copyFirst : .[i : Size] -> Stream Nat i -> Stream Nat $i
+error during typechecking:
+copyFirst
+/// clause 1
+/// pattern $i
+/// checkPattern $i : matching on size, checking that target .[i : Size] -> Stream Nat i -> Stream Nat $i ends in correct coinductive sized type
+/// new i <= #
+/// endsInSizedCo: Stream Nat i -> Stream Nat $i
+/// new  : (Stream {Nat {i = v0}} v0)
+/// endsInSizedCo: Stream Nat $i
+/// endsInSizedCo: target Stream Nat $i of corecursive function is neither a CoSet or codata of size i nor a tuple type
