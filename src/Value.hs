@@ -197,8 +197,8 @@ quant piSig a b = VQuant piSig x (defaultDomain a) (VConst b)
 -- 1. m
 -- 2. VMax ms  where length ms >= 2 and each mi different
 {- OLD
--- * VSucc^* VGen
--- * VMax vs where each v_i = VSucc^* (VGen k_i) and all k_i different
+-- - VSucc^* VGen
+-- - VMax vs where each v_i = VSucc^* (VGen k_i) and all k_i different
 --           and vs has length >= 2
 -}
 --

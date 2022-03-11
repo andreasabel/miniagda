@@ -1006,10 +1006,10 @@ matchPatType (p,v) dom cont =
 type Signature = Map QName SigDef
 
 -- a signature entry is either
--- * a fun/cofun,
--- * a defined constant,
--- * a constructor, or
--- * a data type id with its kind
+-- - a fun/cofun,
+-- - a defined constant,
+-- - a constructor, or
+-- - a data type id with its kind
 -- they share "symbTyp", the type signature of the definition
 data SigDef
   = FunSig  { isCo          :: Co

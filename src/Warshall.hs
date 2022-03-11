@@ -83,9 +83,9 @@ instance SemiRing Weight where
 -- constraints ---------------------------------------------------
 
 -- nodes of the graph are either
--- * flexible variables (with identifiers drawn from Int),
--- * rigid variables (also identified by Ints), or
--- * constants (like 0, infinity, or anything between)
+-- - flexible variables (with identifiers drawn from Int),
+-- - rigid variables (also identified by Ints), or
+-- - constants (like 0, infinity, or anything between)
 
 data Node rigid
   = Rigid rigid

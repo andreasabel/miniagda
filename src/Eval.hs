@@ -542,8 +542,8 @@ whnf env e = enter ("whnf " ++ show e) $
       return $ VQuant pisig x dom' $ vLam x env b
 
     -- a measured type evaluates to
-    -- * a bounded type if measure present in environment (rhs of funs)
-    -- * otherwise to a measured type (lhs of funs)
+    -- - a bounded type if measure present in environment (rhs of funs)
+    -- - otherwise to a measured type (lhs of funs)
     Quant Pi (TMeasure mu) b -> do
       muv <- whnfMeasure env mu
       bv  <- whnf env b -- not adding measure constraint to context!

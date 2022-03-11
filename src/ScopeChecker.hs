@@ -34,13 +34,13 @@ import TraceError
 
 import Util
 
--- * scope checker
--- check that all identifiers are in scope and global identifiers are only used once
--- replaces Ident with Con, Def, Let or Var
--- replaces IdentP with ConP or VarP in patterns
--- replaces Unknown by a new Meta-Variable
--- check pattern length is equal in each clause
--- group mutual declarations
+-- * Scope checker.
+-- - check that all identifiers are in scope and global identifiers are only used once
+-- - replaces Ident with Con, Def, Let or Var
+-- - replaces IdentP with ConP or VarP in patterns
+-- - replaces Unknown by a new Meta-Variable
+-- - check pattern length is equal in each clause
+-- - group mutual declarations
 
 -- | Entry point for scope checker.
 scopeCheck :: [C.Declaration] -> Either TraceError ([A.Declaration],SCState)
@@ -145,6 +145,7 @@ data SCState = SCState
   , nextPolVar :: MVar
   }
 
+initSt :: SCState
 initSt = SCState emptySig 0 0
 
 -- * The scope checking monad.
