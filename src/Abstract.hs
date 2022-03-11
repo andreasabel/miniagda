@@ -221,6 +221,7 @@ irrelevantDec = Dec Pol.Const
 paramDec = Dec Param
 defaultDec = Dec defaultPol
 -- defaultDec = paramDec -- TODO: Dec { polarity = Rec }
+
 defaultUpperDec :: Decoration PProd
 defaultUpperDec = Dec $ pprod SPos
   -- a variable may not be erased and its polarity must be below SPos
@@ -339,17 +340,15 @@ leqSizeE _ Infty = True
 leqSizeE (Succ e) (Succ e') = leqSizeE e e'
 leqSizeE Infty _ = False
 
--- plus :: Expr -> Expr -> Expr
-
 -- sorts -------------------------------------------------------------
 
 data Class
   = Tm      -- sort of terms, only needed for erasure
---  | Ty    -- use Set 0!  -- sort of type(constructor)s, only needed for erasure
---  | Ki      -- sort of kinds  -- use Set 0 ... for mor precision
+  -- -- | Ty    -- use Set 0!  -- sort of type(constructor)s, only needed for erasure
+  -- -- | Ki      -- sort of kinds  -- use Set 0 ... for mor precision
   | Size    -- sort of sizes
   | TSize   -- sort of Size
-  -- | Type    -- no longer used
+  -- -- | Type    -- no longer used
     deriving (Eq, Ord, Show)
 
 predClass :: Class -> Class
@@ -372,11 +371,11 @@ instance Show a => Show (Sort a) where
 -}
 
 instance Show (Sort Expr) where
-  show (SortC c) = show c
-  show (Set Zero) = "Set"
+  show (SortC c)     = show c
+  show (Set Zero)    = "Set"
   show (CoSet Infty) = "Set"
-  show (Set e) = Util.parens $ ("Set " ++ show e)
-  show (CoSet e) = Util.parens $ ("CoSet " ++ show e)
+  show (Set e)       = Util.parens $ ("Set " ++ show e)
+  show (CoSet e)     = Util.parens $ ("CoSet " ++ show e)
 
 topSort :: Sort Expr
 topSort = Set Infty
@@ -422,8 +421,8 @@ minClass _ Tm = Tm
 minClass Size _ = Size
 minClass _ Size = Size
 minClass TSize TSize = TSize
-maxClass :: Class -> Class -> Class
 
+maxClass :: Class -> Class -> Class
 maxClass Tm c = c
 maxClass c Tm = c
 maxClass Size c = c
@@ -445,7 +444,7 @@ leSort Type _ = False
 leSort s s'   = s == s'
 -}
 
--- s `irrSortFor` s' if a variable of kind s cannot compuationally
+-- s `irrSortFor` s' if a variable of kind s cannot computationally
 -- contribute to produce a value of kind s'
 irrSortFor :: Sort Expr -> Sort Expr -> Bool
 irrSortFor (SortC Tm) _          = False -- terms matter for terms and everything
@@ -604,15 +603,6 @@ instance LensDec (Dom a) where
 instance LensPol (Dom a) where
   getPol = getPol . getDec
   mapPol = mapDec . mapPol
-
-{-
-instance Functor Dom where
-  fmap f dom = dom { typ = f (typ dom) }
-
--- traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
-instance Traversable Dom where
-  traverse f dom = (\ ty -> dom { typ = ty }) <$> f (typ dom)
--}
 
 -- identifiers -------------------------------------------------------
 
