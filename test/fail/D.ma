@@ -2,7 +2,7 @@
 
 -- this might be accepted without trustme in future versions?!
 trustme
-data D : Set 
+data D : Set
 { abs : ^(^D -> D) -> D
 }
 

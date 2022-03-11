@@ -1,4 +1,4 @@
--- 2010-09-20 
+-- 2010-09-20
 
 data WrapSize : Set 1
 { inn : (out : Size) -> WrapSize

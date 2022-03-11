@@ -13,8 +13,8 @@ data Exists (A : Set)(B : A -> Set) : Set
 { exI : [a : A] -> (prop : B a) -> Exists A B
 }
 
-fun exE : [A : Set] -> [B : A -> Set] -> [C : Set] -> 
-      Exists A B -> ([a : A] -> B a -> C) -> C 
+fun exE : [A : Set] -> [B : A -> Set] -> [C : Set] ->
+      Exists A B -> ([a : A] -> B a -> C) -> C
 { exE A B C (exI a b) k = k a b
 }
 

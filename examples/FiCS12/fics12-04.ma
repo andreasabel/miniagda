@@ -10,4 +10,4 @@ sized codata CoList ++(A : Set) : -(i : Size) -> Set
 
 cofun repeat : [A : Set] (a : A) [i : Size] -> CoList A i
 { repeat A a ($ i) = cons i a (repeat A a i)
-} 
+}

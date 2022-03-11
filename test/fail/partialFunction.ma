@@ -1,6 +1,6 @@
 data Subset (A : Set) (P : A -> Set) : Set
 {
-  put : (a : A) -> [P a] -> Subset A P 
+  put : (a : A) -> [P a] -> Subset A P
 }
 
 data PFun (A : Set)(B : Set) : Set

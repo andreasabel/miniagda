@@ -1,31 +1,31 @@
 -- 2012-01-22 parameters gone from constructors
 
-data Id (A : Set) (a : A) : A -> Set 
-{ refl : Id A a a 
+data Id (A : Set) (a : A) : A -> Set
+{ refl : Id A a a
 }
 
-fun subst : (A : Set) -> (a : A) -> (b : A) -> Id A a b -> 
+fun subst : (A : Set) -> (a : A) -> (b : A) -> Id A a b ->
   (P : A -> Set) -> P a -> P b
 { subst A a .a (refl {-.A .a-}) P x = x
 }
 
 -- this demonstrates eta expansion at the identity type
-let bla :  (A : Set) -> (a : A) -> (p : Id A a a) -> 
-           (P : A -> Set) -> (x : P a) -> 
+let bla :  (A : Set) -> (a : A) -> (p : Id A a a) ->
+           (P : A -> Set) -> (x : P a) ->
               Id (P a) x (subst A a a p P x)
         =  \ A -> \ a -> \ p -> \ P -> \ x -> refl -- (P a) x
 
-fun resp : (A : Set) -> (a : A) -> (b : A) -> Id A a b -> 
+fun resp : (A : Set) -> (a : A) -> (b : A) -> Id A a b ->
   (C : Set) -> (f : A -> C) -> Id C (f a) (f b)
 { resp A a .a (refl {-.A .a-}) C f = refl -- C (f a)
 }
- 
+
 -- Needs heterogeneous equality
 -- fun resp : (A : Set) -> (a : A) -> (b : A) -> Id A a b -> (P : A -> Set) -> (f : (x : A) -> P x) -> Id (P a) (f a) (f b)
 -- { resp A a .a (refl .A .a) P f = refl (P a) (f a)
 -- }
- 
-data True : Set 
+
+data True : Set
 { trueI : True
 }
 
@@ -38,7 +38,7 @@ let falseIrr : (p : False) -> (q : False) -> Id False p q
 fun falseE : False -> (A : Set) -> A
 { }
 
-data And (A : Set) (B : Set) : Set 
+data And (A : Set) (B : Set) : Set
 { andI : (andE1 : A) -> (andE2 : B) -> And A B
 }
 
@@ -57,7 +57,7 @@ data Prop (A : Set) : Set
 ; and    : Prop A -> Prop A -> Prop A
 ; forall : (A -> Prop A) -> Prop A
 }
- 
+
 fun Proof : (A : Set) -> Prop A -> Set
 { Proof A (true) = True
 ; Proof A (false) = False
@@ -66,7 +66,7 @@ fun Proof : (A : Set) -> Prop A -> Set
 }
 
 fun proofIrr : (A : Set) -> (P : Prop A) -> (p : Proof A P) -> (q : Proof A P) -> Id (Proof A P) p q
-{ proofIrr A (true) p q = refl -- True p 
-; proofIrr A (false) p q = refl -- False p 
+{ proofIrr A (true) p q = refl -- True p
+; proofIrr A (false) p q = refl -- False p
 -- ; proofIrr A (and .A P Q) (andI .(Proof A P) .(Proof A Q) p1 p2) (andI .(Proof A P) .(Proof A Q) q1 q2) = (proofIrr A P p1 p2) (proofIrr A Q q1 q2) -- etc pp
 }

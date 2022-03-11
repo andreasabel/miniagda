@@ -13,9 +13,9 @@ fun everyOther : [A : Set] -> [i : Size] -> List A i -> List A i
 ; everyOther A .$$i (cons .$i a (cons i a' as)) = cons i a (everyOther A i as)
 }
 
-fun zeroOneMany : [A : Set] -> [i : Size] -> List A $i -> [C : Set] -> 
+fun zeroOneMany : [A : Set] -> [i : Size] -> List A $i -> [C : Set] ->
   C ->                       -- zero
-  (A -> C) ->                -- one 
+  (A -> C) ->                -- one
   (A -> A -> List A i -> C) -> -- many
   C
 { zeroOneMany A .$i  (nil i)                     C zero one many = zero
@@ -25,7 +25,7 @@ fun zeroOneMany : [A : Set] -> [i : Size] -> List A $i -> [C : Set] ->
 
 fail -- successor pattern not allowed
 fun everyOther1 : [A : Set] -> [i : Size] -> List A $i -> List A $i
-{ everyOther1 A $i l = zeroOneMany A i l (List A $i) 
+{ everyOther1 A $i l = zeroOneMany A i l (List A $i)
     (nil i)
     (\ a       -> nil i)
     (\ a a' as -> cons i a (everyOther1 A i as))

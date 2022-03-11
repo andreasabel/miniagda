@@ -1,7 +1,7 @@
-data Nat : Set  
+data Nat : Set
 {
-	zero : Nat ;
-	succ : Nat -> Nat
+        zero : Nat ;
+        succ : Nat -> Nat
 }
 
 fun add : Nat -> Nat -> Nat
@@ -12,7 +12,7 @@ add x (succ y) = succ (add x y);
 
 eval let one : Nat = succ zero
 
-sized codata Stream (A : Set) : Size -> Set 
+sized codata Stream (A : Set) : Size -> Set
 {
   cons : (i : Size) -> A -> Stream A i -> Stream A ($ i)
 }
@@ -21,7 +21,7 @@ cofun zeroes : (i : Size ) -> Stream Nat i
 {
 zeroes ($ i) = cons Nat i zero (zeroes i)
 }
- 
+
 cofun ones : (i : Size) -> Stream Nat i
 {
 ones ($ i) = cons Nat i one (ones i)
@@ -33,7 +33,7 @@ cofun map : (A : Set) -> (B : Set) -> (i : Size) ->
           (A -> B) -> Stream A # -> Stream B i
 {
 map A B ($ i) f (cons .A .# a as) = cons B i (f a) (map A B i f as)
-} 
+}
 
 eval let twos : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 
@@ -53,16 +53,16 @@ fun head : (A : Set) -> Stream A # -> A
 head A (cons .A .# a as) = a
 }
 
-eval let two : Nat = head Nat twos 
+eval let two : Nat = head Nat twos
 eval let two' : Nat = head Nat twos'
 
 eval let twos2 : Stream Nat # = map Nat Nat # ( \ x -> succ x) ones'
 eval let twos2' : Stream Nat # = tail Nat twos2
 
 cofun zipWith : ( A : Set ) -> ( B : Set ) -> (C : Set) -> ( i : Size ) ->
-	(A -> B -> C) -> Stream A # -> Stream B # -> Stream C i
+        (A -> B -> C) -> Stream A # -> Stream B # -> Stream C i
 {
-zipWith A B C ($ i) f (cons .A .# a as) (cons .B .# b bs) = 
+zipWith A B C ($ i) f (cons .A .# a as) (cons .B .# b bs) =
   cons C i (f a b) (zipWith A B C i f as bs)
 }
 
@@ -71,7 +71,7 @@ zipWith A B C ($ i) f (cons .A .# a as) (cons .B .# b bs) =
 fun nth : Nat -> Stream Nat # -> Nat
 {
 nth zero ns = head Nat ns;
-nth (succ x) ns = nth x (tail Nat ns) 
+nth (succ x) ns = nth x (tail Nat ns)
 }
 
 eval let fours : Stream Nat # = zipWith Nat Nat Nat # add twos twos
@@ -82,9 +82,9 @@ eval let four : Nat = head Nat fours
 cofun fib : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream Nat i
 {
 fib x y ($ i) = (cons Nat ($ i) x (cons Nat i y (fib y (add x y) i)))
-} 
+}
 
-eval let fib' : Stream Nat # = tail Nat (fib zero zero #) 
+eval let fib' : Stream Nat # = tail Nat (fib zero zero #)
 
 
 eval let fib8 : Nat = nth (add four four) (fib zero zero #)
@@ -105,12 +105,12 @@ eval let wkStream : ( A : Set ) -> ( i : Size ) -> Stream A ($ i) -> Stream A i 
 -- should be ok but does not pass admissibility check
 cofun wkStream_ok : ( A : Set ) -> (i : Size ) -> Stream A ($ i) -> Stream A i
 {
-wkStream_ok A ($ i) (cons .A .($ i) x xs) = cons A i x (wkStream A i xs) 
+wkStream_ok A ($ i) (cons .A .($ i) x xs) = cons A i x (wkStream A i xs)
 }
 
 
-     
---bad 
+
+--bad
 --not admissble
 cofun wkStream2 : ( A : Set ) -> ( i : Size ) -> Stream A i -> Stream A ($ i)
 {
@@ -119,7 +119,7 @@ wkStream2 A ($ i) (cons A .i x xs) = cons A ($ i) x (wkStream2 A i xs)
 
 
 -- an unproductive stream
-cofun unp : (i : Size ) -> Stream Nat i 
+cofun unp : (i : Size ) -> Stream Nat i
 {
 unp i = unp i
 }
@@ -130,7 +130,7 @@ cofun unp2 : (i : Size ) -> Stream Nat i
 {
 unp2 ($ i) = cons Nat i zero (tail Nat (unp2 ($ i)))
 }
--} 
+-}
 
 
 --eval let bla2 : Nat = nth four (unp #)
@@ -164,15 +164,15 @@ twozeroes (cons .Nat .# zero (cons .Nat .# (succ x) str)) = ff;
 twozeroes (cons .Nat .# (succ x) str) = ff
 }
 
-eval let twozeroes'zeroes : Bool = twozeroes (zeroes #) 
+eval let twozeroes'zeroes : Bool = twozeroes (zeroes #)
 
 data Eq ( A : Set ) : A -> A -> Set
 {
-refl : (a : A) -> Eq A a a 
+refl : (a : A) -> Eq A a a
 }
 
 -- hangs on unproductive stream
---  let zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #) 
+--  let zz : Eq (Stream Nat #) (unp #) (cons Nat # zero (unp #)) = refl (Stream Nat #) (unp #)
 
 sized data Unit : Size -> Set
 {
@@ -182,7 +182,6 @@ unit : (i : Size ) -> Unit ($ i)
 -- bad.  2010-03-10 WHY?  I think it is ok!
 fun head2 : (i : Size ) -> Unit i -> Stream Nat i -> Nat
 {
-head2 .($ i) (unit i) (cons .Nat .i x xl) = x 
+head2 .($ i) (unit i) (cons .Nat .i x xl) = x
 }
-
 

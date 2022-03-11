@@ -1,6 +1,6 @@
 {- 2010-05-28  In MiniAgda with Ripley equality, this succeeds:
 
-   Thorsten, http://sneezy.cs.nott.ac.uk/fplunch/weblog/?p=104 
+   Thorsten, http://sneezy.cs.nott.ac.uk/fplunch/weblog/?p=104
 
 We define recursively a type of Streams:
 
@@ -13,7 +13,7 @@ ticks : Stream.
 ticks = 'Cons, [ticks].
 -}
 
-sized codata Stream : Size -> Set 
+sized codata Stream : Size -> Set
 { cons : [i : Size] -> Stream i -> Stream ($ i)
 }
 
@@ -44,7 +44,7 @@ l1 = refl Stream ticks.
 -- In MiniAgda, ticks unfolds only if forced, e.g. when compared to cons...
 -}
 
-let l1 : Eq (Stream #) (ticks #) (cons # (ticks #)) 
+let l1 : Eq (Stream #) (ticks #) (cons # (ticks #))
        = refl -- (Stream #) (ticks #)
 
 {- We can also show that the recursive functional is a congruence:

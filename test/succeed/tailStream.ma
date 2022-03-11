@@ -4,7 +4,7 @@ sized codata Stream (+ A : Set) : Size -> Set {
 }
 
 -- tail is fine since it is non-recursive, so the type need not be
--- admissible 
+-- admissible
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
   tail A i (cons .i x xs) = xs

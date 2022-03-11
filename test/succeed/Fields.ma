@@ -10,7 +10,7 @@ fun f : Nat -> Nat
 -- but it is not computable from D A (f index)
 data D ++(A : Nat -> Set) : Nat -> Set
 { mkD : (index : Nat) -> (content : A index) -> D A (f index)
-} 
+}
 
 {- generates
 fun content : [A : Nat -> Set] -> (index : Nat) -> (d : D A (_f index)) -> A index

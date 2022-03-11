@@ -5,7 +5,7 @@
 \usepackage{graphicx}
 \usepackage{latexsym}
 \usepackage{pxfonts}
-\usepackage[german,english]{babel} 
+\usepackage[german,english]{babel}
 
 \pagestyle{headings}
 
@@ -25,21 +25,21 @@
 \theoremstyle{remark}
 \newtheorem{rem}[thm]{Remark}
 
-\newcommand{\vex}[1]{\overrightarrow{#1}} 
-\newcommand{\ves}[1]{{#1}^{\ast}} 
+\newcommand{\vex}[1]{\overrightarrow{#1}}
+\newcommand{\ves}[1]{{#1}^{\ast}}
 
 \newcommand{\vsp}{\:\vert\:}
 \newcommand{\Set}{\mathsf{Set}}
 \newcommand{\s}{\mathsf{s}\,}
 \newcommand{\Size}{\mathsf{Size}}
-\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
+\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow}
 \newcommand{\data}{\mathsf{data}\:}
 \newcommand{\sized}{\mathsf{sized}\:}
 \newcommand{\fun}{\mathsf{fun}\:}
 \newcommand{\codata}{\mathsf{codata}\:}
 \newcommand{\cofun}{\mathsf{cofun}\:}
 \newcommand{\clet}{\mathsf{let}\:}
-\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:} 
+\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:}
 \newcommand{\mutual}{\mathsf{mutual}\:}
 \newcommand{\lam}[1]{\lambda\: #1 .\:}
 
@@ -203,7 +203,7 @@
 
 \begin{center}
 
-{\Huge INSTITUT F\"UR INFORMATIK\\[1mm]} % 
+{\Huge INSTITUT F\"UR INFORMATIK\\[1mm]} %
 DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \vspace*{1cm}
@@ -235,7 +235,7 @@ DER LUDWIG--MAXIMILIANS--UNIVERSIT\"AT M\"UNCHEN\\
 
 \end{center}
 
-\end{titlepage} 
+\end{titlepage}
 
 \input{legal}
 
@@ -262,9 +262,9 @@ G\"ultige Definitionen f\"ur unendliche Objekte m\"ussen \emph{produktiv} sein.
 
 Da das Halteproblem unentscheidbar ist, kann das Ziel nur sein, m\"og\-lichst viele Definition als terminierend zu erkennen. Es gibt verschiedene Ans\"atze zum \"Uberpr\"ufen der Terminierung.
 Oft k\"onnen Funktionen, deren rekursive Aufrufe einem gewissen Schema folgen,
- vom System zugelassen werden. Das \emph{size-change principle} umfasst einige dieser Schemata. 
+ vom System zugelassen werden. Das \emph{size-change principle} umfasst einige dieser Schemata.
 
-Ein weiterer Vorschlag ist der Einsatz von \emph{sized types}. Information \"uber die Gr\"o\ss e von Argumenten wird im Typsystem verfolgt, um diese f\"ur das Erkennen der Terminierung zu nutzen.   
+Ein weiterer Vorschlag ist der Einsatz von \emph{sized types}. Information \"uber die Gr\"o\ss e von Argumenten wird im Typsystem verfolgt, um diese f\"ur das Erkennen der Terminierung zu nutzen.
 
 Im Rahmen dieser Diplomarbeit wurde das System \mugda ent\-wickelt und wird nachfolgend vorgestellt.
 Es basiert auf Typentheorie nach Martin-L\"of und unterst\"utzt induktive und coinduktive Typen. Rekursive Funktionen werden  durch pattern matching definiert.
@@ -273,25 +273,25 @@ Au\ss erdem stellt die Sprache Elemente bereit, um dem Benutzer die Verwendung v
 \end{abstract}
 \newpage
 
-\selectlanguage{english} 
+\selectlanguage{english}
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
-Dependent types have been used at the core of many proof assistants, and more recently there have been efforts to extend their use to functional programming languages. 
+Dependent types have been used at the core of many proof assistants, and more recently there have been efforts to extend their use to functional programming languages.
 Dependent type theories allow programming and reasoning in a common framework.
 
 The \emph{pattern matching} notation, known from traditional programming, has been proposed for defining recursive functions in such systems.
-While pattern matching is intuitive and powerful, it has to be ensured that the defined functions are total. 
+While pattern matching is intuitive and powerful, it has to be ensured that the defined functions are total.
 
 One aspect of totality is termination: the evaluation of a function at any argument must be computable in finite time.
 Infinite objects can be added to the language by computing only finite parts of them as necessary.
-Valid definitions of infinite objects need to be \emph{productive}. 
+Valid definitions of infinite objects need to be \emph{productive}.
 
 As the halteproblem is undecidable, the goal can only be to accept as many valid definitions as possible.
 There are many approaches to ensure termination.
 One is to allow the definition of functions where the recursive calls follow a certain scheme.
 The \emph{size-change principle} subsumes some of these schemes.
 
-Another approach is the use of \emph{sized types}, where information about the height of arguments is tracked in the type system and is used to recognize definitions as terminating.  
+Another approach is the use of \emph{sized types}, where information about the height of arguments is tracked in the type system and is used to recognize definitions as terminating.
 
 For this thesis, the system \mugda was developed and will subsequently be described. It is based on \emph{Martin-L\"of type theory} and supports inductive and coinductive types. Recursive functions are defined by pattern matching. Its termination criterion is based on the size-change principle. In  addition, the language provides elements to enable the use of sized types.
 

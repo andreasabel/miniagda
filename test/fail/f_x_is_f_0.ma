@@ -7,5 +7,5 @@ succ : (i : Size) -> SNat i -> SNat ($ i)
 
 fun f : (i : Size) -> SNat i -> SNat #
 {
-f ($ ($ i)) x = f ($ i) (zero i) 
+f ($ ($ i)) x = f ($ i) (zero i)
 }

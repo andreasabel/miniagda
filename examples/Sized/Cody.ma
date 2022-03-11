@@ -39,7 +39,7 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
     ; (S .($ i) x) -> x
     ; (L .($ i) g) -> g n
     ; (M .($ i) a b) -> a
-    } 
+    }
 
 {- the following pattern match is the problem: (L .($ ($ i)) f)
 
@@ -53,15 +53,15 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
 -}
 trustme -- termination check fails (rightly so)
 fun deep : [i : Size] -> O i -> Nat -> Nat
-{ deep .($ ($ ($ ($ i)))) (M .($ ($ ($ i))) 
-                             (L .($ ($ i)) f) 
-                             (S .($ ($ i)) (S .($ i) (S i x)))) 
+{ deep .($ ($ ($ ($ i)))) (M .($ ($ ($ i)))
+                             (L .($ ($ i)) f)
+                             (S .($ ($ i)) (S .($ i) (S i x))))
                           n
   = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
-; deep i x n = n   
+; deep i x n = n
 }
 
-let four : Nat 
+let four : Nat
   = succ (succ (succ (succ zero)))
 
 --eval
@@ -72,7 +72,7 @@ let loop : Nat = deep # (M # (L # emb) (emb four)) four
 fun deep : [i : Size] -> O i -> Nat -> Nat
 { deep i4 (M i3 (L j2 f) (S i2 (S i1 (S i x)))) n
   = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
-; deep i x n = n   
+; deep i x n = n
 }
 
 generates constraints
@@ -86,24 +86,24 @@ id i (cons j x xs) = cons j x (id j xs)
 
 msort : [i : Size] -> List i -> List #
 msort i2 (cons i1 x1 (cons i0 x0 xs)) =
-  let (l,r) = split i0 xs in 
-  merge (msort i1 (cons i0 x1 l)) 
-        (msort i1 (cons i0 x0 r)) 
+  let (l,r) = split i0 xs in
+  merge (msort i1 (cons i0 x1 l))
+        (msort i1 (cons i0 x0 r))
 
 Explicit syntax:
 
 msort : [i : Size] -> List i -> List #
 msort i2 (cons (i2 > i1) x1 (cons (i1 > i0) x0 xs)) =
-  let (l,r) = split i0 xs in 
-  merge (msort i1 (cons i0 x1 l)) 
+  let (l,r) = split i0 xs in
+  merge (msort i1 (cons i0 x1 l))
         (msort i1 (cons i0 x0 r))
 
 
 
 merge : [i : Size] -> List i -> [j : Size] -> List j -> List #
 merge i1 (cons i0 x xs))
-      j1 (cons j0 y ys)) = 
+      j1 (cons j0 y ys)) =
    merge i1 (cons i0 x xs) j0 ys
-OR merge i0 xs j1 (cons j0 y ys) 
+OR merge i0 xs j1 (cons j0 y ys)
 
 -}

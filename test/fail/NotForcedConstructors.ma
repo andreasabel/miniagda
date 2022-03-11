@@ -16,4 +16,4 @@ data Nat : Bool -> Set
 fun f : (b : Bool) -> [Nat b] -> Bool
 { f true zero = true
 ; f false (succ n) = false
-} 
+}

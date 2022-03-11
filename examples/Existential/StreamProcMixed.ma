@@ -2,7 +2,7 @@
 
 -- * Booleans
 
-data Bool { true ; false } 
+data Bool { true ; false }
 
 fun If : Bool -> ++(A, B : Set) -> Set
 { If true  A B = A
@@ -31,7 +31,7 @@ let head [A : Set] (s : Stream A #) : A
 
 fun tail : [A : Set] -> Stream A # -> Stream A #
 { tail A s (j < #) = case (s $j) { (cons x xs) -> xs j }
-} 
+}
 
 -- * Stream processors
 
@@ -39,12 +39,12 @@ cofun SP : -(A : Set) -> ++(B : Set) -> -(i : Size) -> +(j : Size) -> |i,j| -> S
 { SP A B i j = Either ([j' < j] & (A -> SP A B i j'))
                       (B & ([i' < i] -> SP A B i' #))
 }
-pattern get j f  = left  (j , f) 
+pattern get j f  = left  (j , f)
 pattern put b sp = right (b , sp)
 
 cofun run : [A, B : Set] -> [i, j : Size] -> |i,j| -> SP A B i j -> Stream A # -> Stream B i
 { run A B i j (get j' f) as          = run A B i j' (f (head A as)) (tail A as)
-; run A B i j (put b sp) as (i' < i) = cons b (run A B i' # (sp i') as) 
+; run A B i j (put b sp) as (i' < i) = cons b (run A B i' # (sp i') as)
 }
 
 {- Representing the Agda definition
@@ -55,12 +55,10 @@ cofun run : [A, B : Set] -> [i, j : Size] -> |i,j| -> SP A B i j -> Stream A # -
 
 -}
 
-cofun SP' : -(A : Set)  -> +(B : Set)  -> 
+cofun SP' : -(A : Set)  -> +(B : Set)  ->
            +(i : Size) -> -(j : Size) -> |j,i| -> Set
 { SP' A B i j = Either (A -> [i' < i] & SP' A B i' j)
                        (B & ([j' < j] -> SP' A B # j'))
 --                     (B &  [j' < j] -> SP' A B # j') -- Parse error
-} 
-
-
+}
 

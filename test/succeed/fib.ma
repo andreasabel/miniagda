@@ -2,7 +2,7 @@
 
 data Nat : Set {
   zero : Nat;
-  succ : (n : Nat) -> Nat 
+  succ : (n : Nat) -> Nat
 }
 
 fun add : Nat -> Nat -> Nat {
@@ -13,7 +13,7 @@ fun add : Nat -> Nat -> Nat {
 sized codata Stream : Size -> Set {
   cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
 }
- 
+
 fun tail : Stream # -> Stream # {
   tail (cons .# x xs) = xs
 }
@@ -27,31 +27,31 @@ norec head : (i : Size) -> Stream ($ i) -> Nat {
   head .($ i) (cons i n ns) = n
 }
 
-cofun zipWith :  (Nat -> Nat -> Nat ) -> ( i : Size ) 
-		-> Stream i -> Stream i -> Stream i {
-  zipWith f ($ i) as bs = 
-	cons i (f (head i as) (head i bs))  (zipWith f i (tail i as) (tail i bs)) 
+cofun zipWith :  (Nat -> Nat -> Nat ) -> ( i : Size )
+                -> Stream i -> Stream i -> Stream i {
+  zipWith f ($ i) as bs =
+        cons i (f (head i as) (head i bs))  (zipWith f i (tail i as) (tail i bs))
 }
 -}
 
 fun nth : Nat -> Stream # -> Nat {
   nth zero xs = head xs;
-  nth (succ x) xs = nth x (tail xs) 
+  nth (succ x) xs = nth x (tail xs)
 }
 
 let one : Nat = (succ zero)
 
-cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i 
+cofun fib' : (x : Nat ) -> (y : Nat ) -> (i : Size ) -> Stream i
 {
   fib' x y ($ i) = cons _ x (fib' y (add x y) _)
-} 
+}
 let fib : Stream # = (fib' one one _)
 
 
 let four : Nat = (succ (succ (succ one)))
 
--- fib(four) = 5 
-eval let fibfour : Nat = nth four fib 
+-- fib(four) = 5
+eval let fibfour : Nat = nth four fib
 
 
 --------------------------------------------
@@ -65,9 +65,9 @@ lqs : (x : Nat ) -> (y : Nat ) -> Leq x y -> Leq (succ x) (succ y)
 
 sized codata Increasing : Size -> Stream # -> Set
 {
-inc : (i : Size ) -> (x : Nat ) -> (y : Nat ) -> Leq x y -> (tl : Stream # ) -> 
+inc : (i : Size ) -> (x : Nat ) -> (y : Nat ) -> Leq x y -> (tl : Stream # ) ->
       Increasing i (cons # y tl) ->
-      Increasing ($ i) (cons # x (cons # y tl)) 
+      Increasing ($ i) (cons # x (cons # y tl))
 }
 
 
@@ -81,7 +81,7 @@ let proof : Eq (Stream #) (tail fib) (tail fib) = refl
 
 let double : Stream # -> Stream # = \s -> cons _ (head s) s
 
-data Bool : Set 
+data Bool : Set
 {
 tt : Bool;
 ff : Bool
@@ -91,7 +91,7 @@ fun leq : Nat -> Nat -> Bool
 {
 leq zero y = tt;
 leq (succ x) zero = ff ;
-leq (succ x) (succ y) = leq x y 
+leq (succ x) (succ y) = leq x y
 }
 
 fun ite : Bool -> (A : Set ) -> A -> A -> A
@@ -102,10 +102,10 @@ ite ff A a1 a2 = a2
 
 cofun merge : (i : Size ) -> (Nat -> Nat -> Bool) -> Stream # -> Stream # -> Stream i
 {
-merge ($ i) le (cons .# x xs) (cons .# y ys) = 
+merge ($ i) le (cons .# x xs) (cons .# y ys) =
       ite (le x y) (Stream _)
          (cons _ x (merge _ le xs (cons _ y ys)))
-	 (cons _ y (merge _ le (cons _ x xs) ys))     
+         (cons _ y (merge _ le (cons _ x xs) ys))
 }
 
 fun first : (A : Set ) -> (B : Set ) -> A -> B -> A
@@ -115,7 +115,7 @@ first A B a b = a
 
 --------------------
 
-cofun map : (i : Size) -> (Nat -> Nat) -> Stream i -> Stream i 
+cofun map : (i : Size) -> (Nat -> Nat) -> Stream i -> Stream i
 {
 map ($ i) f (cons .i x xl) = cons _ (f x) (map _ f xl)
 }
@@ -131,7 +131,5 @@ cofun evil : (i : Size) -> Stream i
 evil ($ i) = map _ succ (cons _ zero (evil _))
 }
 
--- eval const zzz : Nat = head # (z #) 
-
-
+-- eval const zzz : Nat = head # (z #)
 

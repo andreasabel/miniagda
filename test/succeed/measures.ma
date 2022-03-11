@@ -19,15 +19,15 @@ When checking the patterns ps qs of f
 
   f : As -> mu -> Bs -> C
   f ps qs = ... g as ...
-  
-as we reach measure mu in the type, insert it into the context 
-(reader monad) as the current measure. 
+
+as we reach measure mu in the type, insert it into the context
+(reader monad) as the current measure.
 
 When we reach a mutually defined identifier g of type
-  
+
   g : Delta -> mu' -> D
 
-we use it at type  
+we use it at type
 
  g : Delta -> mu' < mu -> D
 
@@ -44,7 +44,7 @@ check)), we keep the signature of the mutual block around
   gn : TVn
 
 The types are evaluated.  We want a function
-  
+
   bound :: MeasVal -> TVal -> TVal
   bound mu tv = tv'
 
@@ -72,9 +72,9 @@ When checking the patterns ps qs of f
 
   f : As -> mu -> Bs -> C
   f ps qs = ... g as ...
-  
-as we reach measure mu in the type, insert it into the context 
-(reader monad) as the current measure. 
+
+as we reach measure mu in the type, insert it into the context
+(reader monad) as the current measure.
 
 When checking the application g as on the rhs, if g is in the set of
 mutual functions with f, then during infering the type of g as we will
@@ -93,16 +93,16 @@ Typing rules for measures
   |-{mu}  t : A             |-{mu}  t : mu' -> A    mu' < mu
   -------------- mu-Intro   -------------------------------- mu-Elim
   |- t : mu -> A            |-{mu}  t : A
-  
+
 After finishing checking the mutual block, purge the measures from the
 types of the mutual functions!
 
 For nested functions, generalize the rule to:
 
-  |-{mu}  t : A           
-  ------------------- mu-Intro 
-  |-{mu'} t : mu -> A          
-  
+  |-{mu}  t : A
+  ------------------- mu-Intro
+  |-{mu'} t : mu -> A
+
 With this system, one cannot do lexicographic induction by nested induction.
 
 
@@ -111,7 +111,7 @@ Explicit rules for measures ?
   x : mu |- t : A             x : mu |- t : mu' -> A    mu' < mu
   -------------- mu-Intro     ---------------------------------- mu-Elim
   |- \xt : mu -> A            x : mu |- t x : A
-  
+
  -}
 
 mutual {
@@ -123,12 +123,12 @@ mutual {
   fun even' : [i : Size] -> |i,0|  -> Nat i -> Bool
   { even' i (zero (i > j))   = true
   ; even' i (succ (i > j) n) = odd' j n
-  } 
+  }
 
   fun odd'  : [i : Size] -> |i,0|  -> Nat i -> Bool
   { odd' i (zero (i > j))   = false
   ; odd' i (succ (i > j) n) = even j n
-  } 
+  }
 }
 
 {-
@@ -141,12 +141,12 @@ mutual {
   fun even' : [i : Size] -> |i,0|  -> Nat i -> Bool
   { even' .($ i) (zero i)   = true
   ; even' .($ i) (succ i n) = odd' i n
-  } 
+  }
 
   fun odd'  : [i : Size] -> |i,0|  -> Nat i -> Bool
   { odd' .($ i) (zero i)   = false
   ; odd' .($ i) (succ i n) = even i n
-  } 
+  }
 }
 -}
 
@@ -167,6 +167,6 @@ fun addSize : N -> Size -> Size
 
 fun addSNat : (n : N) -> (i : Size) -> Nat i -> Nat (addSize n i)
 { addSNat zz     i m = m
-; addSNat (ss n) i m = succ (addSize n i) (addSNat n i m) 
+; addSNat (ss n) i m = succ (addSize n i) (addSNat n i m)
 }
 -}

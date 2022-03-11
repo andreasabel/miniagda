@@ -11,12 +11,12 @@ data Or (A : Set) (B : Set) : Set
 
 data Eq (A : Set 1)(x : A) : A -> Set
 { refl : Eq A x x
-} 
+}
 
 fun cong : (F : Set -> Set) -> (G : Set -> Set) -> (A : Set) ->
   Eq (Set -> Set) F G -> Eq Set (F A) (G A)
 { cong F .F A refl = refl
-} 
+}
 
 fun castLR : (A : Set) -> (B : Set) -> Eq Set A B -> A -> B
 { castLR A .A refl a = a
@@ -31,52 +31,52 @@ data I (F : Set -> Set) : Set {}
 fun injI : (F : Set -> Set) -> (G : Set -> Set) -> Eq Set (I F) (I G) -> Eq (Set -> Set) F G
 { injI F .F refl = refl
 }
- 
+
 data InvI (A : Set) : Set 1
 { inv : (X : Set -> Set) -> Eq Set (I X) A -> InvI A
-} 
+}
 
 let EM : Set 1
        = (A : Set) -> Or A (A -> Empty)
 
 {-
 fun cantor : EM -> Set -> Set
-{ cantor em A = case (em (InvI A)) 
-  { (inl .(InvI (I X)) .(InvI (I X) -> Empty) (inv .(I X) X (refl .Set .(I X)))) -> 
+{ cantor em A = case (em (InvI A))
+  { (inl .(InvI (I X)) .(InvI (I X) -> Empty) (inv .(I X) X (refl .Set .(I X)))) ->
       X (I X) -> Empty
   ; (inr .(InvI A) .(InvI A -> Empty) bla) -> Unit
   }
-} 
+}
 -}
 
 fun cantor : EM -> Set -> Set
-{ cantor em A = case (em (InvI A)) 
+{ cantor em A = case (em (InvI A))
   { (inl (inv X p)) -> X A -> Empty
   ; (inr bla) -> Unit
   }
-} 
+}
 
 
 fun no : (em : EM) -> cantor em (I (cantor em)) -> Empty
 { no em f  = case (em (InvI (I (cantor em))))
-  { (inl -- .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty) 
-      (inv {-.(I (cantor em))-} X p)) -> 
-        f (castRL (X (I (cantor em))) 
-                  (cantor em (I (cantor em))) 
+  { (inl -- .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)
+      (inv {-.(I (cantor em))-} X p)) ->
+        f (castRL (X (I (cantor em)))
+                  (cantor em (I (cantor em)))
             (cong X (cantor em) (I (cantor em))
-              (injI X (cantor em) 
+              (injI X (cantor em)
                  p)) f)
---  ; (inr .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)   
+--  ; (inr .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)
   }
 }
 
 {-
 fun no : (em : EM) -> cantor em (I (cantor em)) -> Empty
 { no em f  = case (em (InvI (I (cantor em))))
-  { (inl .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty) 
+  { (inl .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)
       (inv .(I (cantor em)) .(cantor em) (refl .Set .(I (cantor em))))) ->
         f em f
---  ; (inr .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)   
+--  ; (inr .(InvI (I (cantor em))) .(InvI (I (cantor em)) -> Empty)
   }
 }
 -}

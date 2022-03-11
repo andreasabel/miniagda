@@ -19,9 +19,9 @@ fun T : Bool -> Set
 
 -- fails with "Bool -> Bool has different shape than Bool"
 fail
-let etaFun' : 
+let etaFun' :
     [F : [b : Bool] -> (T b -> T b) -> Bool -> Set] ->
-    (g : F false (\ x -> x) true -> Bool) -> 
+    (g : F false (\ x -> x) true -> Bool) ->
     (h : (a : Bool) -> F true (\ x y -> x y) a) ->
     Bool
   = \ F g h -> g (h true)
@@ -35,9 +35,9 @@ let etaFun' :
 -}
 
 fail
-let etaFun : 
+let etaFun :
     [F : [b : Bool] -> (T b -> T b) -> Set] ->
-    (g : F false (\ x -> x) -> Bool) -> 
+    (g : F false (\ x -> x) -> Bool) ->
     (a : F true (\ x y -> x y)) ->
     Bool
   = \ F g a -> g a
@@ -56,26 +56,26 @@ fun U : Bool -> Set
 }
 
 fail
-let etaUnit' : 
+let etaUnit' :
     [F : [b : Bool] -> (U b -> U b) -> Bool -> Set] ->
-    (g : F false (\ x -> x) true -> Bool) -> 
+    (g : F false (\ x -> x) true -> Bool) ->
     (h : (a : Bool) -> F true (\ x -> unit) a) ->
     Bool
   = \ F g h -> g (h true)
 
-{- 
+{-
     F false (\ x -> x) true ?= F true (\ x -> unit) true
     x : Bool |- x : Bool    ?= x : Unit |- unit : Unit
 -}
 
-let etaUnit : 
+let etaUnit :
     [F : [b : Bool] -> (U b -> U b) -> Set] ->
-    (g : F false (\ x -> x) -> Bool) -> 
+    (g : F false (\ x -> x) -> Bool) ->
     (a : F true (\ x -> unit)) ->
     Bool
   = \ F g a -> g a
 
-{- 
+{-
     F false (\ x -> x) true ?= F true (\ x -> unit) true
     x : Bool |- x : Bool    ?= x : Unit |- unit : Unit
 -}

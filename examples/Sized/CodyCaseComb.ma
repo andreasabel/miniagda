@@ -34,10 +34,10 @@ let caseO : [i : Size] -> O ($ i) -> [C : Size -> Set] ->
     ; (S .i x) -> s x
     ; (L .i f) -> l f
     ; (M .i a b) -> m a b
-    } 
+    }
 
 let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
-  = \ i -> \ f -> \ n -> caseO ($ i) (f (succ n)) O 
+  = \ i -> \ f -> \ n -> caseO ($ i) (f (succ n)) O
       (Z i)
       (\ x -> x)
       (\ g -> g n)
@@ -50,7 +50,7 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
     ; (S .($ i) x) -> x
     ; (L .($ i) g) -> g n
     ; (M .($ i) a b) -> a
-    } 
+    }
 -}
 
 {- the following pattern match is the problem: (L .($ ($ i)) f)
@@ -65,16 +65,16 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
 -}
 trustme -- termination check fails (rightly so)
 fun deep : [i : Size] -> O i -> Nat -> Nat
-{ deep .($ ($ ($ ($ i)))) (M .($ ($ ($ i))) 
-                             (L .($ ($ i)) f) 
-                             (S .($ ($ i)) (S .($ i) (S i x)))) 
+{ deep .($ ($ ($ ($ i)))) (M .($ ($ ($ i)))
+                             (L .($ ($ i)) f)
+                             (S .($ ($ i)) (S .($ i) (S i x))))
                           n
   = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
-; deep i x n = n   
+; deep i x n = n
 }
 
-let four : Nat 
+let four : Nat
   = succ (succ (succ (succ zero)))
 
--- eval 
+-- eval
 let loop : Nat = deep # (M # (L # emb) (emb four)) four

@@ -2,10 +2,10 @@
 sized codata Stream (+ A : Set) : Size -> Set {
   cons : [i : Size] -> A -> Stream A i -> Stream A ($ i)
 }
- 
+
 data Nat : Set {
   zero : Nat;
-  succ : Nat -> Nat 
+  succ : Nat -> Nat
 }
 
 -- the following needs to be rejected

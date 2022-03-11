@@ -19,7 +19,7 @@ data Unit : Set { unit : Unit }
 mutual {
 
   codata T : Set 1
-  { intro : (t : T) -> bracket t -> T 
+  { intro : (t : T) -> bracket t -> T
   }
 
   fun bracket : T -> Set
@@ -28,4 +28,3 @@ mutual {
 
 }
 
-   

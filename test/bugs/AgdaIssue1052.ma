@@ -1,5 +1,5 @@
 
-data Eq [A : Set] (a : A) (b : A) : Set 
+data Eq [A : Set] (a : A) (b : A) : Set
 { refl : Eq A a a }
 
 fun X : Set {}
@@ -21,7 +21,7 @@ fun const : (x, y : X) -> StepsTo x y -> Eq X (f x) x -> Eq X x y
 }
 
 fun bad : (x, y, z : X) -> StepsTo x z -> Eq X (f z) x -> StepsTo x y -> StepsTo y x
-{ bad x y z (next z' p q) r s = 
+{ bad x y z (next z' p q) r s =
   next z r (bad z y _ (trans _ _ _ (next _ r done) q) p (trans _ _ _ (next _ r done) s))
 }  -- Giving up, need unification!!
 
@@ -39,9 +39,9 @@ const* done q = refl
 const* (next r p) q with const* p q
 const* (next r p) q | refl = trans (sym q) r
 
-bad : ∀{X}{x y z}{f : X → X} → x =⟨ f ⟩⇒* z → f z ≡ x → x =⟨ f ⟩⇒* y → 
+bad : ∀{X}{x y z}{f : X → X} → x =⟨ f ⟩⇒* z → f z ≡ x → x =⟨ f ⟩⇒* y →
       y =⟨ f ⟩⇒* x
 bad done p q rewrite const* q p = done
-bad (next p q) r s = 
+bad (next p q) r s =
   next r (bad (trans* (next r done) q) p (trans* (next r done) s))
 -}

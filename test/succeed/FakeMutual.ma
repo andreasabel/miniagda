@@ -2,7 +2,7 @@
 
 -- real mutuals
 
-mutual { 
+mutual {
   data E : Set { e0 : E
                ; eS : O -> E }
   data O : Set { oS : E -> O }
@@ -17,16 +17,16 @@ mutual {
 
 -- fake mutuals
 
-mutual {  
+mutual {
 
   -- A is spos in its def.
-  data A : Set 
+  data A : Set
   { a1 : A
   ; a2 : A -> A
   }
 
   -- but not in B
-  data B : Set 
+  data B : Set
   { b1  : B
   ; b2  : (A -> B) -> B
   }
@@ -35,7 +35,7 @@ mutual {
 mutual {
 
   -- D is spos in its definition
-  data D : Set 
+  data D : Set
   { c : D
   ; d : D -> D
   }

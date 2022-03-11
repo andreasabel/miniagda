@@ -10,7 +10,7 @@ But since k < i and l < j we have k + l + 0 = k + l <= i + j, so it seems to me 
 succeed. Is this a bug? Am I missing something?
 -}
 
-sized data Nat : Size -> Set 
+sized data Nat : Size -> Set
 { zero : [i : Size] -> Nat ($ i)
 ; succ : [i : Size] -> Nat i -> Nat ($ i)
 }

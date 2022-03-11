@@ -1,6 +1,6 @@
 -- 2009-06-25 eta expansion for the unit type
 
-data Unit : Set 
+data Unit : Set
 {
   unit : Unit
 }
@@ -29,13 +29,13 @@ data Bool : Set
 { true  : Bool
 ; false : Bool
 }
-   
+
 let r' : Bool -> Unit
        = \ b -> unit
 
 let pr' : (b : Bool) -> P (r' b)
-       = \ b -> unit 
-   
+       = \ b -> unit
+
 fun r : Bool -> Unit
 { r true = unit
 ; r false = unit
@@ -44,4 +44,4 @@ fun r : Bool -> Unit
 -- definitions need also to be eta-expanded
 -- otherwise the following does not typecheck
 let pr : (b : Bool) -> P (r b)
-       = \ b -> unit 
+       = \ b -> unit

@@ -1,6 +1,6 @@
 -- 2011-12-16 Andreas, gcd example
 
-sized data Nat : Size -> Set 
+sized data Nat : Size -> Set
 { zero : [i : Size] -> Nat ($ i)
 ; suc  : [i : Size] -> Nat i -> Nat ($ i)
 }
@@ -22,7 +22,7 @@ fun either : [C : +Size -> Set] -> [i,j : Size] -> Either i j ->
 -- plus a bit indicating the bigger number of the two
 
 fun minus : [i,j : Size] -> Nat i -> Nat j -> Either i j
-{ minus i j (zero (i > i'))   m                 = right i j m 
+{ minus i j (zero (i > i'))   m                 = right i j m
 ; minus i j (suc  (i > i') n) (zero (j > j'))   = left i j (suc i' n)
 ; minus i j (suc  (i > i') n) (suc  (j > j') m) = minus i' j' n m
 }
@@ -43,10 +43,10 @@ mutual {
   fun gcd : [i,j : Size] -> Nat i -> Nat j -> Nat (max i j)
   { gcd i j (zero (i > i')) m = m
   ; gcd i j (suc (i > i') n) (zero (j > j')) = suc i' n
-  ; gcd i j (suc (i > i') n) (suc (j > j') m) = 
+  ; gcd i j (suc (i > i') n) (suc (j > j') m) =
       either (\ z -> Nat (max i j)) i' j' (minus i' j' n m)
         (\ n' -> gcd i' j n' (suc j' m))
         (\ m' -> gcd i j' (suc i' n) m')
   }
 
-} 
+}

@@ -1,6 +1,6 @@
 data Nat { zero; suc (n : Nat) }
 
-data Vec (A : Set) (n : Nat) 
+data Vec (A : Set) (n : Nat)
 { nil                         : Vec A zero
 ; cons (a : A) (as : Vec A n) : Vec A (suc n)
 }

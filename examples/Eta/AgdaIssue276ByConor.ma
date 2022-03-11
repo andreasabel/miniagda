@@ -8,7 +8,7 @@ boo : {S T : Set}(f : S -> T)(x y : S) ->
 boo = \ f x y q P -> q (\ s -> P (f s))
 -}
 
-let 
+let
   boo : [S, T : Set] -> (f : S -> T) -> (x,  y : S) ->
         ((P : S -> Set) -> P x -> P y) ->
         (P : T -> Set) -> P (f x) -> P (f y)
@@ -43,14 +43,14 @@ goo : {S : Set}(x : Pack S)(P : S -> Set) -> P (unpack x) -> P (unpack' x)
 goo = \ x -> boo unpack' (pack (unpack x)) x (foo x)
 -}
 
-let foo : [S : Set] -> (x : Pack S) -> (P : Pack S -> Set) -> 
+let foo : [S : Set] -> (x : Pack S) -> (P : Pack S -> Set) ->
           P (pack (unpack x)) -> P x
         = \ S x P p -> p
 
 let goo : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> P (unpack x) -> P (unpack' S x)
         = \ S x -> boo (Pack S) S (unpack' S) (pack (unpack x)) x (foo S x)
 
-{- normal form of goo is \ x P p -> p 
+{- normal form of goo is \ x P p -> p
 
 goo' : {S : Set}(x : Pack S)(P : S -> Set) -> P (unpack x) -> P (unpack' x)
 goo' = \ x P p -> p
@@ -61,6 +61,6 @@ when checking that the expression p has type P (unpack' x)
 -}
 
 
-let goo' : [S : Set] -> (x : Pack S) -> (P : S -> Set) -> 
+let goo' : [S : Set] -> (x : Pack S) -> (P : S -> Set) ->
            P (unpack x) -> P (unpack' S x)
          = \ S x P p -> p

@@ -9,7 +9,7 @@ data Sum ++(A : Set) ++(B : Set) : Set
 ; inr : B -> Sum A B
 }
 data Prod ++(A : Set) ++(B : Set) : Set
-{ pair : (fst : A) -> (snd : B) -> Prod A B 
+{ pair : (fst : A) -> (snd : B) -> Prod A B
 }
 
 sized data Mu ++(F : ++Set -> Set) : +Size -> Set
@@ -21,7 +21,7 @@ fun myout : [F : ++Set -> Set] -> [i : Size] -> Mu F ($ i) -> F (Mu F i)
 }
 
 -- iteration (universal property of Mu)
-fun iter : [F : ++Set -> Set] -> 
+fun iter : [F : ++Set -> Set] ->
            (mapF : [A : Set] -> [B : Set] -> (A -> B) -> F A -> F B) ->
            [G : Set] -> (step : F G -> G) ->
            [i : Size] -> Mu F i -> G
@@ -36,11 +36,11 @@ let NatF : ++Set -> Set         = \ X -> Sum Unit X
 let Nat  : +Size -> Set         = Mu NatF
 
 let zero : [i : Size] -> Nat ($ i)
-         = \ i -> inn i (inl unit) 
+         = \ i -> inn i (inl unit)
 
 let succ : [i : Size] -> Nat i -> Nat ($ i)
-         = \ i -> \ n -> inn i (inr n) 
+         = \ i -> \ n -> inn i (inr n)
 
 
 let ListF : ++Set -> ++Set -> Set = \ A -> \ X -> Sum Unit (Prod A X)
-let List  : ++Set -> +Size -> Set = \ A -> Mu (ListF A)         
+let List  : ++Set -> +Size -> Set = \ A -> Mu (ListF A)

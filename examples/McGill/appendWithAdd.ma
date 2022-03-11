@@ -5,7 +5,7 @@ data Nat : Set
 ; suc  : Nat -> Nat
 }
 
-data List (A : Set) : Nat -> Set 
+data List (A : Set) : Nat -> Set
 { nil  : List A zero
 ; cons : [n : Nat] -> (head : A) -> (tail : List A n) -> List A (suc n)
 } fields head, tail
@@ -20,7 +20,7 @@ fun append : [A : Set] -> [n,m,l : Nat] -> List A n -> List A m ->
 { append A .zero    m .m       (nil)         ys (addZ .m) = ys
 ; append A .(suc n) m .(suc l) (cons n x xs) ys (addS .n .m l p) =
    cons l x (append A n m l xs ys p)
-}  
+}
 
 fun bla : [Nat] -> ([Nat] -> Nat) -> Nat
 { bla x k = k x

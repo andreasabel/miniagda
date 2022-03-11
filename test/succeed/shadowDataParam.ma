@@ -1,9 +1,9 @@
 -- 2010-08-31 shadowing test
 
 -- no complaint here, because constructor name introduced after checking its sig
-data D (name : Set) : Set 
+data D (name : Set) : Set
 { name : D name
-} 
+}
 
 -- usage fine
 fun id : [A : Set] -> D A -> D A

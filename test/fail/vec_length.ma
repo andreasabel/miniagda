@@ -13,7 +13,7 @@ fun add : Nat -> Nat -> Nat
 data Vec (+A : Set) : Nat -> Set
 {
   vnil  : Vec A zero;
-  vcons : A -> [n : Nat] -> Vec A n -> Vec A (succ n)  
+  vcons : A -> [n : Nat] -> Vec A n -> Vec A (succ n)
 }
 
 fun length : [A : Set] -> [n : Nat] -> Vec A n -> Nat

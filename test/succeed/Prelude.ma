@@ -26,11 +26,11 @@ pattern succ j n = (j, just n)
       let zer [i : Size]          : Nat $i = zero 0
 check let suc [i < #] (n : Nat i) : Nat $i = succ i n
 
-fun suc : [i : Size] (n : Nat i) -> Nat $i 
+fun suc : [i : Size] (n : Nat i) -> Nat $i
 { suc i (i', m) = succ $i' (i', m)
 }
 
-fun plus : [i : Size] -> (n : Nat i) -> 
+fun plus : [i : Size] -> (n : Nat i) ->
            [j : Size] -> (m : Nat j) -> Nat (i+j)
 { plus i (zero i')   j m = m
 ; plus i (succ i' n) j m = suc (i'+j) <| plus i' n j m

@@ -1,7 +1,7 @@
 sized data SNat : Size -> Set
 {
-	zero : (i : Size) -> SNat ($ i);
-	succ : (i : Size) -> SNat i -> SNat ($ i)
+        zero : (i : Size) -> SNat ($ i);
+        succ : (i : Size) -> SNat i -> SNat ($ i)
 }
 
 data Eq (A : Set) (a : A) : A -> Set
@@ -22,17 +22,17 @@ fun h : (ass : (i : Size) -> Eq Size ($ i) i) -> (i : Size) -> SNat i -> SNat #
 }
 
 
-let loop : (ass : (i : Size) -> Eq Size ($ i) i) -> SNat # 
-         = \ ass -> h ass # (zero #) 
+let loop : (ass : (i : Size) -> Eq Size ($ i) i) -> SNat #
+         = \ ass -> h ass # (zero #)
 
 
--- the following program has to be rejected 
+-- the following program has to be rejected
 -- because of incomplete pattern matching
 fun g : (ass : (i : Size) -> Eq Size ($ i) i) -> (i : Size) -> SNat i -> SNat #
 {
   g ass ($ i) x = g ass i (subst Size SNat ($ i) i (ass i) x)
 }
 
--- let  yy : (ass : (i : Size) -> Eq Size ($ i) i) -> 
---	     Eq (SNat #) (zero #) (g ass # (zero #)) 
+-- let  yy : (ass : (i : Size) -> Eq Size ($ i) i) ->
+--           Eq (SNat #) (zero #) (g ass # (zero #))
 --         = \ ass -> refl (SNat #) (zero #)

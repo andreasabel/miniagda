@@ -9,7 +9,7 @@ succ : (i : Size) -> SNat i -> SNat ($ i)
 fun ote : (i : Size) -> SNat i -> SNat i
 {
 ote .($ i) (zero i) = zero i;
-ote .($ $ i) (succ .($ i) (zero i)) = zero i; 
+ote .($ $ i) (succ .($ i) (zero i)) = zero i;
 ote .($ $ i) (succ .($ i) (succ i x)) = succ ($ i) (succ i (ote i x ))
 }
 
@@ -18,11 +18,11 @@ ote .($ $ i) (succ .($ i) (succ i x)) = succ ($ i) (succ i (ote i x ))
 fun addWith : ((k : Size ) -> SNat k -> SNat k ) -> (i : Size ) -> (j : Size ) -> SNat i -> SNat j -> SNat #
 {
 addWith f .($ i) j (zero i) y = y;
-addWith f .($ i) j (succ i x) y = succ # (addWith f j i (f j y) (f i x)) 
+addWith f .($ i) j (succ i x) y = succ # (addWith f j i (f j y) (f i x))
 }
 
-let three : SNat # = succ # (succ # (succ # (zero #))) 
+let three : SNat # = succ # (succ # (succ # (zero #)))
 let four  : SNat # = succ # three
 
-eval let bla : SNat # = addWith ote # # four three 
+eval let bla : SNat # = addWith ote # # four three
 

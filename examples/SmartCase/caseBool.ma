@@ -1,4 +1,4 @@
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -35,7 +35,7 @@ fun lemma : (x : Bool) -> Id Bool (not (id x)) (id (not x))
 
 -- Lemma: f (f (f x)) = f x  for all f : Bool -> Bool
 -- Proof by cases on x, f true, and f false
-trustme -- 2010-11-01 this no longer works, since strong rule for if has been 
+trustme -- 2010-11-01 this no longer works, since strong rule for if has been
         -- disabled after discussions following AIM 12
 fun tripleF : (f : Bool -> Bool) -> (x : Bool) -> Id Bool (f (f (f x))) (f x)
 { tripleF f true = case f true
@@ -46,7 +46,7 @@ fun tripleF : (f : Bool -> Bool) -> (x : Bool) -> Id Bool (f (f (f x))) (f x)
     }
   }
 ; tripleF f false = case f false
-  { true -> case f true 
+  { true -> case f true
     { true -> refl
     ; false -> refl
     }

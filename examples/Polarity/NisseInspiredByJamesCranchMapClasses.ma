@@ -1,6 +1,6 @@
 data List ++(A : Set) : Set
-{ nil 
-; cons (head : A) (tail : List A) 
+{ nil
+; cons (head : A) (tail : List A)
 }
 
 {- 2012-01-26
@@ -12,7 +12,7 @@ data List ++(A : Set) : Set
 
 data D (A : Set) (P : ++(A -> Set 1) -> Set 1) (Q : List A -> Set) : Set 1
 { d : P (\ x -> D A P (\ xs -> Q (cons x xs))) -> D A P Q
-} 
+}
 
 {-
 If this type were accepted by Agda, then we could easily prove that the
@@ -22,7 +22,7 @@ empty type is inhabited (you can try by using --no-positivity-check):
   bad = to-⊥ (d to-⊥)
     where
     to-⊥ : D (λ F → F tt → ⊥) (λ _ → ⊤) → ⊥
-    to-⊥ (d f) = f (d f) 
+    to-⊥ (d f) = f (d f)
 -}
 
 data Empty : Set {}
@@ -34,4 +34,4 @@ fun toBot : D Unit (\ F -> F tt -> Empty) (\ xs -> Unit) -> Empty
 }
 -- error: F may not occur
 
-let bad : Empty = toBot (d toBot) 
+let bad : Empty = toBot (d toBot)

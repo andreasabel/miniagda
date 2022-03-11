@@ -1,7 +1,7 @@
 sized data SNat : Size -> Set
 {
-	zero : (i : Size) -> SNat ($ i);
-	succ : (i : Size) -> SNat i -> SNat ($ i)
+        zero : (i : Size) -> SNat ($ i);
+        succ : (i : Size) -> SNat i -> SNat ($ i)
 }
 
 data Maybe (+ A : Set) : Set
@@ -21,17 +21,17 @@ shift_case .i (just (succ i x)) = just x
 
 }
 
-let shift : (i : Size) -> (Nat -> Maybe (SNat ($ i))) -> Nat -> Maybe (SNat i) = 
+let shift : (i : Size) -> (Nat -> Maybe (SNat ($ i))) -> Nat -> Maybe (SNat i) =
 \i -> \f -> \n -> shift_case i (f (succ # n))
 
 let inc : Nat -> Maybe Nat = \n -> just (succ # n)
 
 data Unit : Set
 {
-	unit : Unit
+        unit : Unit
 }
 
-fun loopType : Unit -> Set 
+fun loopType : Unit -> Set
 {
 loopType unit = (i : Size) -> SNat i -> (Nat -> Maybe (SNat i)) -> Unit
 }
@@ -43,20 +43,20 @@ loopCaseType unit = (i : Size) -> (Nat -> Maybe (SNat i)) -> Maybe (SNat i) -> U
 
 
 -- hide bad types ....
-mutual 
+mutual
 {
 
-fun loop : (u : Unit) -> loopType u  
+fun loop : (u : Unit) -> loopType u
 {
-loop unit .($ i) (zero i) f = loop_case unit ($ i) f (f (zero i)); 
+loop unit .($ i) (zero i) f = loop_case unit ($ i) f (f (zero i));
 loop unit .($ i) (succ i n) f = loop unit i n (shift i f)
 }
 
-fun loop_case : (u : Unit) -> loopCaseType u 
+fun loop_case : (u : Unit) -> loopCaseType u
 {
 loop_case unit i       f (nothing) = unit;
 loop_case unit .($ i)  f (just  (zero i)) = unit;
-loop_case unit .($ i)  f (just (succ i y)) = loop unit i y (shift i f) 
+loop_case unit .($ i)  f (just (succ i y)) = loop unit i y (shift i f)
 }
 }
 

@@ -2,14 +2,14 @@
 
 -- this might be accepted without trustme in future versions?!
 trustme
-data D : Set 
+data D : Set
 { abs : (^D -> D) -> D
 }
 
-fun app : D -> ^D -> D 
+fun app : D -> ^D -> D
 { app (abs f) d = f d
 }
-{- 
+{-
 fun app : ^D -> ^D -> D  -- problem: this checks
 { app (abs f) d = f d
 }

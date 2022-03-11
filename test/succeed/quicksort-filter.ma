@@ -1,4 +1,4 @@
--- 2010-06-21 Andreas Abel  
+-- 2010-06-21 Andreas Abel
 -- Quicksort (naive implementation using filter) in MiniAgda
 
 -- Booleans
@@ -20,7 +20,7 @@ data Nat : Set
 ; succ : Nat -> Nat
 }
 
-fun leq : Nat -> Nat -> Bool 
+fun leq : Nat -> Nat -> Bool
 { leq  zero     n       = true
 ; leq (succ m)  zero    = false
 ; leq (succ m) (succ n) = leq m n
@@ -29,7 +29,7 @@ fun leq : Nat -> Nat -> Bool
 -- Lists over natural numbers as a sized inductive type
 
 sized data List : Size -> Set
-{ nil  : [i : Size] -> List ($ i) 
+{ nil  : [i : Size] -> List ($ i)
 ; cons : [i : Size] -> Nat -> List i -> List ($ i)
 }
 
@@ -49,13 +49,13 @@ fun filter : (Nat -> Bool) -> [i : Size] -> List i -> List i
    (filter p j l)            -- else
 }
 
--- Quicksort 
+-- Quicksort
 
 fun quicksort : [i : Size] -> List i -> List #
 { quicksort i (nil (i > j))      = nil j
-; quicksort i (cons (i > j) n l) = 
-      append (quicksort j (filter (\ m -> leq m n) j l)) 
-    (cons # n (quicksort j (filter (leq (succ n)) j l))) 
+; quicksort i (cons (i > j) n l) =
+      append (quicksort j (filter (\ m -> leq m n) j l))
+    (cons # n (quicksort j (filter (leq (succ n)) j l)))
 }
 
 -- Testing
@@ -72,11 +72,11 @@ let n8 : Nat = succ n7
 let n9 : Nat = succ n8
 
 {- MiniAgda CBN is too inefficient to do this in reasonable time
-let l : List # = 
-  (cons # 4 (cons # 9 (cons # 1 (cons # 7 (cons # 6 
-  (cons # 4 (cons # 0 (cons # 0 
+let l : List # =
+  (cons # 4 (cons # 9 (cons # 1 (cons # 7 (cons # 6
+  (cons # 4 (cons # 0 (cons # 0
   (cons # 3 (cons # 3 (cons # 3 (cons # 2 (cons # 3 (nil #))))))))))))))
 -}
 let l : List # = cons # n1 (cons # n3 (cons # n0 (cons # n2 (nil #))))
 eval let l' : List # = quicksort # l
- 
+

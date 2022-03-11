@@ -21,20 +21,20 @@ fun pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
   ; (S .($ i) x) -> x
   ; (L .($ i) g) -> g n
   ; (M .($ i) a b) -> a
-  } 
+  }
 }
 
 fun mean : [i : Size] -> O i -> Nat -> Nat
-{ mean .($ ($ ($ i))) (M .($ ($ i)) 
-                             (L .($ i) f) 
-                             (S .($ i) (S i x))) 
+{ mean .($ ($ ($ i))) (M .($ ($ i))
+                             (L .($ i) f)
+                             (S .($ i) (S i x)))
                           n
   = mean _ (M _ (L _ (pre _ f)) (f n)) (succ (succ (succ n)))
-; mean i x n = n   
+; mean i x n = n
 }
 
-let four : Nat 
+let four : Nat
   = succ (succ (succ (succ zero)))
 
---eval 
+--eval
 let bla : Nat = mean # (M # (L # emb) (emb four)) four

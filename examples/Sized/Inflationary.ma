@@ -3,7 +3,7 @@
 
 -- inflationary (^+) data declaration
 
-data Nat ^+(i : Size) : Set 
+data Nat ^+(i : Size) : Set
 { zero : [j : Size] -> |j| < |i| -> Nat i
 ; succ : [j : Size] -> |j| < |i| -> Nat j -> Nat i
 }
@@ -31,7 +31,7 @@ fun plus' : [i : Size] -> Nat i -> NAT -> NAT
 }
 
 fun plus : NAT -> NAT -> NAT
-{ plus (ex i n) m = plus' i n m 
+{ plus (ex i n) m = plus' i n m
 }
 
 fun pred : [i : Size] -> Nat i -> Nat i
@@ -41,7 +41,7 @@ fun pred : [i : Size] -> Nat i -> Nat i
 
 fun PRED : NAT -> NAT
 { PRED (ex i n) = ex i (pred i n)
-}  
+}
 
 fun minus' : [i : Size] -> Nat i -> [j : Size] -> Nat j -> Nat i
 { minus i n j (zero j')   = n
@@ -67,8 +67,8 @@ fun max : [i : Size] -> Nat i -> Nat i -> Nat i
 
 -- deflationary (^-) codata declaration
 
-codata Stream (A : Set) ^-(i : Size) : Set 
-{ cons : (head : [j : Size] -> |j| < |i| -> A) -> 
+codata Stream (A : Set) ^-(i : Size) : Set
+{ cons : (head : [j : Size] -> |j| < |i| -> A) ->
          (tail : [j : Size] -> |j| < |i| -> Stream A j) -> Stream A i
 } fields head, tail
 
@@ -126,18 +126,18 @@ fun drop : [A : Set] -> [i : Size] -> Nat i -> STREAM A -> STREAM A
 
 -- negative types
 
-data Tm (i : Size) : Set 
+data Tm (i : Size) : Set
 { abs : [j : Size] -> |j| < |i| -> (Tm j -> Tm j) -> Tm i
 }
 
 let TM : Set = Ex Tm
 
 fun app : TM -> TM -> TM
-{ app (ex i (abs j t)) (ex k u) = ex ? (t u)  -- t : Tm j -> Tm j 
+{ app (ex i (abs j t)) (ex k u) = ex ? (t u)  -- t : Tm j -> Tm j
                                               -- u : Tm k
-} 
+}
 
-fun appSQ : [i : Size] -> Tm i -> [C : Set] -> 
+fun appSQ : [i : Size] -> Tm i -> [C : Set] ->
             ([j : Size] -> |j| < |i| -> (Tm j -> Tm j) -> C) -> C
 { app i (abs j t) C k = k j t
 }
@@ -152,17 +152,17 @@ data Tm ^+(i : Size) : Set
 
 fun cp : [i : Size] -> Tm i -> Tm i
 { cp i (app j t u) = app j (cp j t) (cp j u)
-; cp i (abs j f)   = abs j (\ k x -> cp (k + j) (f k x)) -- not ok! 
+; cp i (abs j f)   = abs j (\ k x -> cp (k + j) (f k x)) -- not ok!
 }
 
 let TM : Set = Ex Tm
 
-data Red : [i : Size] -> Tm i -> [j : Size] -> Tm j -> Set  
-{ beta : [i, j : Size] -> 
+data Red : [i : Size] -> Tm i -> [j : Size] -> Tm j -> Set
+{ beta : [i, j : Size] ->
          (t : [k : Size] -> Tm k -> Tm (k + j)) ->
          (u : Tm i) ->
          Red ($i)
              (app i (abs j t) u : Tm $i)
-             (i + j) 
+             (i + j)
              (t i u : Tm (i + j))
-} 
+}

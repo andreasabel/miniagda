@@ -1,4 +1,4 @@
--- 2010-06-21 Andreas Abel  
+-- 2010-06-21 Andreas Abel
 -- Quicksort (implementation using partition) in MiniAgda
 -- more efficient implementation see qsapp.ma
 
@@ -21,7 +21,7 @@ data Nat : Set
 ; succ : Nat -> Nat
 }
 
-fun leq : Nat -> Nat -> Bool 
+fun leq : Nat -> Nat -> Bool
 { leq  zero     n       = true
 ; leq (succ m)  zero    = false
 ; leq (succ m) (succ n) = leq m n
@@ -30,7 +30,7 @@ fun leq : Nat -> Nat -> Bool
 -- Lists over natural numbers as a sized inductive type
 
 sized data List : Size -> Set
-{ nil  : [i : Size] -> List ($ i) 
+{ nil  : [i : Size] -> List ($ i)
 ; cons : [i : Size] -> Nat -> List i -> List ($ i)
 }
 
@@ -43,15 +43,15 @@ fun append : List # -> List # -> List #
 
 -- Partition a list, continuation-style
 
-fun partition : (Nat -> Bool) -> [i : Size] -> List i -> 
+fun partition : (Nat -> Bool) -> [i : Size] -> List i ->
   [A : Set] -> (List i -> List i -> A) -> A
 { partition p i (nil  (i > j))     A k = k (nil j) (nil j)
 ; partition p i (cons (i > j) n l) A k = if A (p n)
-   (partition p j l A (\ l1 -> \ l2 -> k (cons j n l1) l2)) -- then 
+   (partition p j l A (\ l1 -> \ l2 -> k (cons j n l1) l2)) -- then
    (partition p j l A (\ l1 -> \ l2 -> k l1 (cons j n l2))) -- else
 }
 
--- Quicksort 
+-- Quicksort
 
 fun quicksort : [i : Size] -> List i -> List #
 { quicksort i (nil  (i > j))     = nil j
@@ -73,9 +73,9 @@ let n8 : Nat = succ n7
 let n9 : Nat = succ n8
 
 {- MiniAgda CBN is too inefficient to do this in reasonable time
-let l : List # = 
-  (cons # 4 (cons # 9 (cons # 1 (cons # 7 (cons # 6 
-  (cons # 4 (cons # 0 (cons # 0 
+let l : List # =
+  (cons # 4 (cons # 9 (cons # 1 (cons # 7 (cons # 6
+  (cons # 4 (cons # 0 (cons # 0
   (cons # 3 (cons # 3 (cons # 3 (cons # 2 (cons # 3 (nil #))))))))))))))
 -}
 let l : List # = cons # n1 (cons # n3 (cons # n0 (cons # n2 (nil #))))

@@ -9,8 +9,8 @@ succ : [i : Size] -> SNat i -> SNat ($ i)
 
 fun add : SNat # -> SNat # -> SNat #
 {
-add (zero .#)   y = y; 
-add (succ .# x) y = succ # (add x y) 
+add (zero .#)   y = y;
+add (succ .# x) y = succ # (add x y)
 }
 
 fun inc : (i : Size) -> (j : Size) -> SNat i -> SNat ($ i)
@@ -24,12 +24,12 @@ fun minus : [i : Size] -> SNat i -> SNat # -> SNat i
 ; minus i (succ (i > j) x) (succ .# y) = minus j x y    -- subtyping j < i
 }
 
-eval let test : SNat # = 
+eval let test : SNat # =
   minus # (succ # (succ # (zero #))) (succ # (zero #))
 
--- div n m = floor(n/(m+1)) 
+-- div n m = floor(n/(m+1))
 fun div : [i : Size] -> SNat i -> SNat # -> SNat i
-{ div i (zero (i > j))   y = zero j 
+{ div i (zero (i > j))   y = zero j
 ; div i (succ (i > j) x) y = succ j (div j (minus j x y) y)
 }
 

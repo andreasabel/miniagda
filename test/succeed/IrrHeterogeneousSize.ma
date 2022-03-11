@@ -7,11 +7,11 @@ sized data Nat : Size -> Set
 ; succ : [i : Size] -> Nat i -> Nat $i
 }
 
-fun good : 
-  [Size] -> 
+fun good :
+  [Size] ->
   [f : [i : Size] -> Nat i -> Set] ->
   (g : [i : Size] -> (n : Nat i) -> f i n) ->
-  (h : f # (zero #) -> Set) -> 
+  (h : f # (zero #) -> Set) ->
   Set
 { good i f g h = h (g $i (zero i))
 }

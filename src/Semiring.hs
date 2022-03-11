@@ -12,7 +12,7 @@ module Semiring
 
 #if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid)
-#endif    
+#endif
 
 {- | SemiRing type class.  Additive monoid with multiplication operation.
 Inherit addition and zero from Monoid. -}

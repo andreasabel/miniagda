@@ -1,11 +1,11 @@
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc  : Nat -> Nat
 }
 
 data Bool : Set
 { true  : Bool
-; false : Bool 
+; false : Bool
 }
 
 fun leq : Nat -> Nat -> Bool
@@ -15,7 +15,7 @@ fun leq : Nat -> Nat -> Bool
 }
 
 fun maxN : Nat -> Nat -> Nat
-{ maxN n m = case leq n m 
+{ maxN n m = case leq n m
   { true -> m
   ; false -> n
   }

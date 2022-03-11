@@ -23,4 +23,3 @@ fun elim : R # -> Empty
 
 let absurd : Empty = elim (inh #)
 
-

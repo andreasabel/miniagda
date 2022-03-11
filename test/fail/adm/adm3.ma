@@ -1,4 +1,4 @@
-data Maybe (A : Set) : Set 
+data Maybe (A : Set) : Set
 { nothing : Maybe A
 ; just : A -> Maybe A
 }
@@ -13,7 +13,7 @@ succ : (i : Size ) -> SNat i -> SNat ($ i)
 fun bla : (i : Size ) -> SNat ($ i) -> SNat i
 {
 bla .($ i) (zero ($ i)) = zero i; -- no complete pattern matching
-bla .i (succ i x) = x 
+bla .i (succ i x) = x
 }
 -- 2010-08-18 new error: successor pattern only allowed in cofun
 

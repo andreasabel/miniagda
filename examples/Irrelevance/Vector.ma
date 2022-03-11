@@ -1,4 +1,4 @@
-data Id (A : Set) (a : A) : A -> Set 
+data Id (A : Set) (a : A) : A -> Set
 { refl : Id A a a
 }
 
@@ -9,7 +9,7 @@ data Nat : Set
 
 fun add : Nat -> Nat -> Nat
 { add zero     y = y
-; add (succ x) y = succ (add x y) 
+; add (succ x) y = succ (add x y)
 }
 
 data Vec (A : Set) : Nat -> Set
@@ -24,7 +24,7 @@ fun length : [A : Set] -> [n : Nat] -> Vec A n -> < n : Nat >
 }
 -}
 
-fun head : [A : Set] -> [n : Nat] -> Vec A (succ n) -> A 
+fun head : [A : Set] -> [n : Nat] -> Vec A (succ n) -> A
 { head A .n (cons n a v) = a
 }
 fun tail : [A : Set] -> [n : Nat] -> Vec A (succ n) -> Vec A n
@@ -32,7 +32,7 @@ fun tail : [A : Set] -> [n : Nat] -> Vec A (succ n) -> Vec A n
 }
 
 fun repeat : [A : Set] -> (a : A) -> (n : Nat) -> Vec A n
-{ repeat A a zero     = nil 
+{ repeat A a zero     = nil
 ; repeat A a (succ n) = cons n a (repeat A a n)
 }
 
@@ -49,7 +49,7 @@ fun lookup : [A : Set] -> [n : Nat] -> Vec A n -> Fin n -> A
 }
 
 fun lookupRepeat : [A : Set] -> [a : A] -> (n : Nat) -> (i : Fin n) ->
-                   Id A a (lookup A n (repeat A a n) i) 
+                   Id A a (lookup A n (repeat A a n) i)
 { lookupRepeat A a (succ n) (fzero .n) = refl
 ; lookupRepeat A a (succ n) (fsucc .n i) = lookupRepeat A a n i
 ; lookupRepeat A a zero () -- IMPOSSIBLE

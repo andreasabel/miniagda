@@ -4,7 +4,7 @@ data Bool : Set { true ; false }
 
 data List ++(A : Set) : Set
 { nil ; cons (head : A) (tail : List A)
-} 
+}
 
 record Prod ++(A, B : Set) : Set
 { pair (fst : A) (snd : B)

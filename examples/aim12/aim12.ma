@@ -1,4 +1,4 @@
-{- Andreas Abel, LMU Munich             AIM-12, 2 Sep 2010, Nottingham, UK  
+{- Andreas Abel, LMU Munich             AIM-12, 2 Sep 2010, Nottingham, UK
 
            MiniAgda - Towards a Core Language for Agda
            ===========================================
@@ -44,7 +44,7 @@ MiniAgda today:
 Future plans:
 
 - develop a simple core language TypeCore
-- beautify surface language: hidden arguments... 
+- beautify surface language: hidden arguments...
 - turn positivity and termination check into elaborators
 - purpose of MiniAgda: proof of concept for sized types
 - purpose of TypeCore: possible core language for Agda
@@ -64,7 +64,7 @@ TypeCore:
      ===================
 -}
 
-let Const : ++Set -> .Set -> Set 
+let Const : ++Set -> .Set -> Set
           = \ A -> \ X -> A
 
 let DNeg : Set -> +Set -> Set
@@ -80,13 +80,13 @@ data Mu ++(F : ++Set -> Set) : Set
 }
 
 {-   Computing Polarities
-     ====================        Composition (AC) 
+     ====================        Composition (AC)
 
             .        = zero       . p = .
          ++          = one       ++ p = p
           +   -                   + p = p  (p not ++)
             o                     o p = o  (p not .)
-                                  - - = +             
+                                  - - = +
 
   Semiring (plus = infimum, times = composition)
 -}
@@ -94,7 +94,7 @@ data Mu ++(F : ++Set -> Set) : Set
 
 
 
-{- 
+{-
     Corecursion into tupels
     =======================
 
@@ -102,13 +102,13 @@ Corecursion using size:
 
   f : [i : Size] -> .... -> C i
 
-ok if 
+ok if
 
   C 0 = Top
- 
+
 -}
 
-data Prod ++(A, B : Set) : Set 
+data Prod ++(A, B : Set) : Set
 { pair : (fst : A) -> (snd : B) -> Prod A B
 }
 fields fst, snd
@@ -118,7 +118,7 @@ sized codata Stream ++(A : Set) : Size -> Set
 }
 fields head, tail
 
-sized codata Tree ++(A : Set) : Size -> Set 
+sized codata Tree ++(A : Set) : Size -> Set
 { leaf : [i : Size] -> Tree A ($ i)
 ; node : [i : Size] -> A -> Tree A i -> Tree A i -> Tree A ($ i)
 }
@@ -126,7 +126,7 @@ sized codata Tree ++(A : Set) : Size -> Set
 -- this definition is fine since the result type is a product
 -- where each of its components is coinductive in i (TLCA, 2003)
 cofun lab : [i : Size] -> [A : Set] -> [B : Set] ->
-   Tree A i -> Stream (Stream B #) i -> 
+   Tree A i -> Stream (Stream B #) i ->
    Prod (Tree B i) (Stream (Stream B #) i)
 {}
 -- ...
@@ -134,22 +134,22 @@ cofun lab : [i : Size] -> [A : Set] -> [B : Set] ->
 
 
 
-{- 
+{-
     Measure Termination
     ===================
-   
+
   fun ack : [i, j : Size] -> |i,j| -> Nat i -> Nat j -> Nat #
-  { ack .$i j   (zero i)    m         = 
+  { ack .$i j   (zero i)    m         =
      succ # m
 
-  ; ack .$i .$j (succ i n) (zero j)   = 
+  ; ack .$i .$j (succ i n) (zero j)   =
      ack i # n (succ # (zero #))
 
-  ; ack .$i .$j (succ i n) (succ j m) = 
-     ack i # n (ack $i j (succ i n) m) 
+  ; ack .$i .$j (succ i n) (succ j m) =
+     ack i # n (ack $i j (succ i n) m)
   }
 
-  RHS: ack : [i', j' : Size] -> |i',j'| < |$i,$j| -> 
+  RHS: ack : [i', j' : Size] -> |i',j'| < |$i,$j| ->
              Nat i' -> Nat j' -> Nat #
 
   Goals : |i ,#| < |$i,$j|
@@ -162,7 +162,7 @@ Mutual recursion:
 
   even' : Nat -> Bool
   even' zero    = true
-  even' (suc n) = odd n  
+  even' (suc n) = odd n
 
   odd : Nat -> Bool
   odd zero    = false
@@ -188,12 +188,12 @@ mutual {
   fun even' : [i : Size] -> |i,0|  -> Nat i -> Bool
   { even' i (zero (i > j))   = true
   ; even' i (succ (i > j) n) = odd' j n
-  } 
+  }
 
   fun odd'  : [i : Size] -> |i,0|  -> Nat i -> Bool
   { odd' i (zero (i > j))   = false
   ; odd' i (succ (i > j) n) = even j n
-  } 
+  }
 }
 
 {-
@@ -202,18 +202,18 @@ mutual {
 
 Stack objects as record:
 
-  data Stack a = Stack 
+  data Stack a = Stack
     { top  :: Maybe a
     , pop  :: Stack a
     , push :: a -> Stack a
-    } 
+    }
 
 Constructing the empty stack needs a circular program.
-  
+
   push' :: Stack a -> a -> Stack a
   push' s a = s'
     where s' = Stack (Just a) s (push' s')
-  
+
   empty :: Stack a
   empty = Stack Nothing empty (push' empty)
 
@@ -230,18 +230,18 @@ sized codata Stack (A : Set) : Size -> Set
   (top  : Maybe A) ->
   (pop  : Stack A i) ->
   (push : A -> Stack A i) -> Stack A $i
-} 
+}
 fields top, pop, push
 
 -- functional to construct push action
 cofun pushFunc : [A : Set] -> [i : Size] -> |i| ->
                  ([j : Size] -> |j| < |i| -> Stack A j -> A -> Stack A j) ->
                  Stack A i -> A -> Stack A i
-{ pushFunc A ($ i) f s a = stack i 
-   (just a) 
-   s 
+{ pushFunc A ($ i) f s a = stack i
+   (just a)
+   s
    (f i (pushFunc A i f s a))
-} 
+}
 -- f : [j : Size] -> |j| < |$i| -> Stack A j -> A -> Stack A j
 -- s : Stack A $i
 -- by subtyping

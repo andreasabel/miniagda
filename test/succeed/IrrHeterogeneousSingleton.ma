@@ -17,12 +17,12 @@ fun T : Bool -> Set
 ; T false = <zero : Nat>
 }
 
-fun good : 
+fun good :
   [F : Nat -> Set] ->
   [f : [x : Bool] -> T x -> Nat] ->
   (z : T false) ->
   (g : (n : Nat) -> F (f true n)) ->
-  (h : F (f false z) -> Bool) -> 
+  (h : F (f false z) -> Bool) ->
   Bool
 { good F f z g h = h (g zero)
 }

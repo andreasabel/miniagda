@@ -13,5 +13,5 @@ let inst [F : Size -> Set] (f : [j < #] -> F j) : F #
 let bot [F : Size -> Set] (f : [j < #] -> F j) : F #
   = f #
 -- DOUBTS: is this so bad after all?
--- each descending chain f has a limit.  
--- If # is that closure ordinal, this should be ok. 
+-- each descending chain f has a limit.
+-- If # is that closure ordinal, this should be ok.

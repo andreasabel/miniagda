@@ -2,9 +2,9 @@
 -- breadth-first relabeling of finite trees
 -- (Jones and Gibbons, 1993)
 
-data Prod (+ A : Set)(+ B : Set) : Set 
+data Prod (+ A : Set)(+ B : Set) : Set
 { pair : (fst : A) -> (snd : B) -> Prod A B
-} 
+}
 fields fst, snd
 
 sized codata Stream (+ A : Set) : Size -> Set
@@ -12,7 +12,7 @@ sized codata Stream (+ A : Set) : Size -> Set
 }
 fields head, tail
 
-sized data Tree (+ A : Set) : Size -> Set 
+sized data Tree (+ A : Set) : Size -> Set
 { leaf : [i : Size] -> Tree A ($ i)
 ; node : [i : Size] -> A -> Tree A i -> Tree A i -> Tree A ($ i)
 }
@@ -20,31 +20,31 @@ sized data Tree (+ A : Set) : Size -> Set
 -- this definition is fine since the result type is a product
 -- where each of its components is coinductive in i (TLCA, 2003)
 fun lab : [i : Size] -> [A : Set] -> [B : Set] ->
-   Tree A i -> Stream (Stream B #) i -> 
+   Tree A i -> Stream (Stream B #) i ->
    Prod (Tree B i) (Stream (Stream B #) i)
-{ lab j A B (leaf (j > i)) bss = 
+{ lab j A B (leaf (j > i)) bss =
     pair {- (Tree B ($ i)) (Stream (Stream B #) ($ i)) -} (leaf i) bss
-; lab j A B (node (j > i) x l r) 
+; lab j A B (node (j > i) x l r)
     (cons  .i (cons .# b bs) bss) =
     pair {- (Tree B ($ i)) (Stream (Stream B #) ($ i)) -}
-     (node i b (fst (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))  
-               (fst (Tree B i) (Stream (Stream B #) i) (lab i A B r 
+     (node i b (fst (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))
+               (fst (Tree B i) (Stream (Stream B #) i) (lab i A B r
                (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss)))))
-     (cons i bs 
-               (snd (Tree B i) (Stream (Stream B #) i) (lab i A B r 
-               (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss))))) 
+     (cons i bs
+               (snd (Tree B i) (Stream (Stream B #) i) (lab i A B r
+               (snd (Tree B i) (Stream (Stream B #) i) (lab i A B l bss)))))
 }
 
 
 -- this auxiliary function replaces the original circular program
-cofun label2 : [i : Size] -> [A : Set] -> [B : Set] -> 
-  Tree A i -> Stream B # -> Stream (Stream B #) i 
+cofun label2 : [i : Size] -> [A : Set] -> [B : Set] ->
+  Tree A i -> Stream B # -> Stream (Stream B #) i
 { label2 ($ i) A B t bs = snd (Tree B ($ i)) (Stream (Stream B #) ($ i))
     (lab ($ i) A B t (cons i bs (label2 i A B t bs)))
 }
 
 -- main program
-fun label : [i : Size] -> [A : Set] -> [B : Set] -> 
+fun label : [i : Size] -> [A : Set] -> [B : Set] ->
   Tree A i -> Stream B # -> Tree B i
 { label i A B t bs = fst (Tree B i) (Stream (Stream B #) i)
    (lab i A B t (cons i bs (label2 i A B t bs)))
@@ -56,7 +56,7 @@ data Unit : Set
 { unit : Unit
 }
 
-data Nat : Set 
+data Nat : Set
 { Z : Nat
 ; S : Nat -> Nat
 }
@@ -101,14 +101,10 @@ t2 = label (fintree 2) (nats 0)
    = fst (lab (fintree 2) (cons (nats 0) (label2 (fintree 2) (nats 0))))
    = fst (lab (node u (ft 1) (ft 1)) (cons (cons 0 (nats 1)) (label2 ... )
    = fst (pair (node 0 (fst (lab (ft 1) (label2 ...)))
-                       (fst (lab (ft 1) (snd (lab (ft 1) (label2 ...)))))) 
+                       (fst (lab (ft 1) (snd (lab (ft 1) (label2 ...))))))
                (cons (nats 1) (snd (lab (ft 1) (snd (lab (ft 1) (label2 ...)))))))
    = node 0 (fst (lab (ft 1) (label2 ...)))
-            (fst (lab (ft 1) (snd (lab (ft 1) (label2 ...)))))) 
+            (fst (lab (ft 1) (snd (lab (ft 1) (label2 ...))))))
 
 -}
-
-
-
-
 

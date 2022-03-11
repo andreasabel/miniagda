@@ -12,12 +12,12 @@ data Fix *(a : A) : A -> Set
 -- eta not definable unconditionally (like for Id)
 fun eta : (a, b : A) -> Fix a b -> Fix a b
 { eta a .(f a) (fix) = fix
-} 
+}
 
 -- variable a used in dot pattern left of its binding
 fun bla : (b, a : A) -> Fix a b -> A
 { bla .(f a) a (fix) = a
-} 
+}
 
 -- Function inverse
 
@@ -27,7 +27,7 @@ data Inv (g : A -> B) : B -> Set
 -- MiniAgda does not generate destructor getInv
 
 fun getInv : (g : A -> B) -> (b : B) -> Inv g b -> A
-  { getInv g .(g a) (mkInv a) = a 
+  { getInv g .(g a) (mkInv a) = a
   }
 
 {- Analysis:

@@ -8,7 +8,7 @@ data Empty : Set {}
 
 -- should succeed
 fun wrap0Elim : Wrap Empty -> Empty
-{ wrap0Elim (wrap ()) 
+{ wrap0Elim (wrap ())
 }
 
 data Unit : Set { unit : Unit }
@@ -25,7 +25,7 @@ checkPattern
   environ : [(".Unit",v0)]
   context : [[(Set 0)]]
   pattern : ()
-  at type : ((unwrap : v0) -> Wrap A{A = v0})	<>
+  at type : ((unwrap : v0) -> Wrap A{A = v0})   <>
 
 the test whether there are matchingConstructors is too optimistic
 since v0 is not solved yet to be Unit, it finds no matching constructors

@@ -1,6 +1,6 @@
 -- 2010-06-19, 2010-11-09
 
-let Const : ++ Set -> . Set -> Set 
+let Const : ++ Set -> . Set -> Set
           = \ A -> \ X -> A
 
 let DNeg : ^ Set -> + Set -> Set
@@ -20,7 +20,7 @@ let Cont' : + Set -> Set
 let cast' : [i : Size] -> ^ Cont' (Nat i) -> Cont' (Nat #)
          = \ i -> \ x -> x
 
-data Cont +(A : Set) : Set 
+data Cont +(A : Set) : Set
 { cont : (uncont : DNeg Empty A) -> Cont A
 }
 
@@ -59,7 +59,7 @@ data Mu ++(F : ++Set -> Set) : Set
   -(++) = -
   -(+)  = -
   -(-)  = +
-  -(p)  = p 
+  -(p)  = p
   o(o)  = o
   o(++) = .
   o(+)  = .
@@ -76,7 +76,7 @@ data Mu ++(F : ++Set -> Set) : Set
 
   --------------------------------  p in {++,+,o}
   Gamma, p(x : A), Gamma' |- x : A
-  
+
   Gamma, p(x : A) |- t : B
   ----------------------------
   Gamma |- \xt : p(x : A) -> B
@@ -84,6 +84,6 @@ data Mu ++(F : ++Set -> Set) : Set
   Gamma |- r : p(x : A) -> B   p(Gamma) |- s : A
   ----------------------------------------------
   Gamma |- r s: B[s/x]
-    
+
 
 -}

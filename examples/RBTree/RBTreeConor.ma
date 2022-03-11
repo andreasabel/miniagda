@@ -12,7 +12,7 @@ fun plus : Nat -> Nat -> Nat
 ; plus (suc n) m = plus n m
 }
 
-data Color : Set 
+data Color : Set
 { red   : Color
 ; black : Color
 }
@@ -32,11 +32,10 @@ cofun RBT : ++(i : Size) -> (c : Color) -> (n : Nat) -> Set
 }
 
 fun size : [i : Size] -> (c : Color) -> (n : Nat) -> RBT i c n -> Nat
-{ size i red n (j < i , l , k , r) = 
+{ size i red n (j < i , l , k , r) =
    suc (plus (size j black n l) (size j black n r))
 ; size i black zero t = zero
 ; size i black (suc n) (j < i , c , l , k , r) =
    suc (plus (size j c n l) (size j c n r))
 }
-
 

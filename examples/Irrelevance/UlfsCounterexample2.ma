@@ -9,20 +9,20 @@ data Nat : Set
 }
 
 data T : Bool -> Set
-{ nat  : Nat  -> T true 
+{ nat  : Nat  -> T true
 ; bool : Bool -> T false
 }
 
 -- type checking fails with message "nat != bool"
 -- can be harmful if constructors can be reused in different types
 fail
-fun bad : 
+fun bad :
   [F : Nat -> Set] ->
   [f : [x : Bool] -> T x -> Nat] ->
   (g : (n : Nat) -> F (f true (nat n))) ->
-  (h : F (f false (bool false)) -> Bool) -> 
+  (h : F (f false (bool false)) -> Bool) ->
   Bool
 { bad F f g h = h (g zero)
 }
--- 2010-10-01 now it is checked before that 
+-- 2010-10-01 now it is checked before that
 -- nat and bool are in the same family T

@@ -2,7 +2,7 @@
 
 mutual {
 
-  data L +(A : Set) : Set 
+  data L +(A : Set) : Set
   { l1 : A -> L A -> L A
   ; l2 : T A -> L A
   }

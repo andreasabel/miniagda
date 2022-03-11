@@ -6,4 +6,4 @@ data Id ++(A : Set)(a : A) : A -> Set
 
 data Exists (A : Set) ++(P : A -> Set) : Set
 { exI : (witness : A) -> (proof : P witness) -> Exists A P
-} 
+}

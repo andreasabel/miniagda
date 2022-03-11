@@ -42,5 +42,5 @@ let inj3 : (I # -> Prop) -> I #
 -- let app (x, y : I #) : Prop
 --   = Id 1 (I #) x y
 
--- let sapp (x : I # -> Prop) 
+-- let sapp (x : I # -> Prop)
 --   = app x (inj3 x)

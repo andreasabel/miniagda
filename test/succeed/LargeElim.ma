@@ -15,7 +15,7 @@ fun Sum : Nat -> Set
 ; Sum (succ n) = Nat -> Sum n
 }
 
-fun sum : (n : Nat) -> Nat -> Sum n 
+fun sum : (n : Nat) -> Nat -> Sum n
 { sum zero     x = x
 ; sum (succ n) x = \ y -> sum n (add x y)
 }

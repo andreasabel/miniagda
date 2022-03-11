@@ -1,8 +1,8 @@
 -- 2010-07-01  Following a question of Nisse, this example explains
 --   the need for continuity check.
 
-data Unit : Set 
-{ unit : Unit 
+data Unit : Set
+{ unit : Unit
 }
 
 sized codata Stream +(A : Set) : Size -> Set
@@ -16,5 +16,5 @@ cofun bad : [i : Size] -> [A : Set] -> (Stream A i -> Stream A i) -> Stream A i
 
 let undef : Stream Unit # = bad # Unit (tail #)
 
-eval let diverge : Unit = head # undef 
+eval let diverge : Unit = head # undef
 

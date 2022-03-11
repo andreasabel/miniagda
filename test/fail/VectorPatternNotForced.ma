@@ -5,7 +5,7 @@ data Nat : Set
 
 fun add : Nat -> Nat -> Nat
 { add zero     y = y
-; add (succ x) y = succ (add x y) 
+; add (succ x) y = succ (add x y)
 }
 
 data Vec (A : Set) : Nat -> Set
@@ -18,7 +18,7 @@ fun length : [A : Set] -> [n : Nat] -> Vec A n -> < n : Nat >
 ; length A .(succ n) (cons n a v) = succ (length A n v)
 }
 
-fun head : [A : Set] -> [n : Nat] -> Vec A (succ n) -> A 
+fun head : [A : Set] -> [n : Nat] -> Vec A (succ n) -> A
 { head A .n (cons n a v) = a
 }
 fun tail : [A : Set] -> [n : Nat] -> Vec A (succ n) -> Vec A n
@@ -26,7 +26,7 @@ fun tail : [A : Set] -> [n : Nat] -> Vec A (succ n) -> Vec A n
 }
 
 fun zeroes : (n : Nat) -> Vec Nat n
-{ zeroes zero     = nil 
+{ zeroes zero     = nil
 ; zeroes (succ x) = cons x zero (zeroes x)
 }
 

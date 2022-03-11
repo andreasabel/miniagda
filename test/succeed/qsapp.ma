@@ -1,4 +1,4 @@
--- 2010-06-21 Andreas Abel  
+-- 2010-06-21 Andreas Abel
 -- Quicksort (implementation using partition) in MiniAgda
 
 -- Booleans
@@ -20,7 +20,7 @@ data Nat : Set
 ; succ : Nat -> Nat
 }
 
-fun leq : Nat -> Nat -> Bool 
+fun leq : Nat -> Nat -> Bool
 { leq  zero     n       = true
 ; leq (succ m)  zero    = false
 ; leq (succ m) (succ n) = leq m n
@@ -29,18 +29,18 @@ fun leq : Nat -> Nat -> Bool
 -- Lists over natural numbers as a sized inductive type
 
 sized data List : Size -> Set
-{ nil  : [i : Size] -> List ($ i) 
+{ nil  : [i : Size] -> List ($ i)
 ; cons : [i : Size] -> Nat -> List i -> List ($ i)
 }
 
 -- Partition a list, continuation-style
 -- the lists passed to the continuation k are at most as big as the input list
 
-fun partition : (Nat -> Bool) -> [i : Size] -> List i -> 
+fun partition : (Nat -> Bool) -> [i : Size] -> List i ->
   [A : Set] -> (List i -> List i -> A) -> A
 { partition p i (nil  (i > j))     A k = k (nil j) (nil j)
 ; partition p i (cons (i > j) n l) A k = if A (p n)
-   (partition p j l A (\ l1 -> \ l2 -> k (cons j n l1) l2)) -- then 
+   (partition p j l A (\ l1 -> \ l2 -> k (cons j n l1) l2)) -- then
    (partition p j l A (\ l1 -> \ l2 -> k l1 (cons j n l2))) -- else
 }
 
@@ -53,7 +53,7 @@ fun qsapp : [i : Size] -> List i -> List # -> List #
     (\ l1 -> \ l2 -> qsapp j l1 (cons # n (qsapp j l2 acc)))
 }
 
--- Quicksort 
+-- Quicksort
 
 let quicksort : List # -> List # = \ l -> qsapp # l (nil #)
 
@@ -71,10 +71,10 @@ let n8 : Nat = succ n7
 let n9 : Nat = succ n8
 
 -- qsapp is fast enough even with MiniAgda CBN
-let l : List # = 
-  (cons # n4 (cons # n9 (cons # n1 (cons # n7 (cons # n6 
-  (cons # n4 (cons # n0 (cons # n0 
+let l : List # =
+  (cons # n4 (cons # n9 (cons # n1 (cons # n7 (cons # n6
+  (cons # n4 (cons # n0 (cons # n0
   (cons # n3 (cons # n3 (cons # n3 (cons # n2 (cons # n3 (nil #))))))))))))))
--- eval  -- 2012-02-25 NO LONGER 
+-- eval  -- 2012-02-25 NO LONGER
 let l' : List # = quicksort l
- 
+

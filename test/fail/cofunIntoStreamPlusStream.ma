@@ -4,7 +4,7 @@ data Unit : Set
 { unit : Unit
 }
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -20,12 +20,12 @@ fun fmap : [A : Set] -> [B : Set] -> (A -> B) -> Twice A -> Twice B
 }
 
 sized codata BStr : Size -> Set
-{ cons : [i : Size] -> (head : Bool) -> (tail : BStr i) -> BStr ($ i) 
+{ cons : [i : Size] -> (head : Bool) -> (tail : BStr i) -> BStr ($ i)
 }
 
 -- this code needs to be rejected by the type checker! :
 -- a "function" returning the input stream plus its "last" bit
-cofun idAndLast : [i : Size] -> BStr i -> Twice (BStr i) 
+cofun idAndLast : [i : Size] -> BStr i -> Twice (BStr i)
 { idAndLast ($ i) (cons .i b bs) = fmap (BStr i) (BStr ($ i))
    (cons i b) (idAndLast i bs)
 }
@@ -35,6 +35,6 @@ cofun trues : [i : Size] -> BStr i
 }
 
 -- this will loop:
-eval let last : Twice Unit = 
+eval let last : Twice Unit =
   fmap (BStr #) Unit (\ x -> unit) (idAndLast # (trues #))
 

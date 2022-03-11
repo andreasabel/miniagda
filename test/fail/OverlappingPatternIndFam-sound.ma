@@ -3,17 +3,17 @@ data Bool : Set
 ; false : Bool
 }
 
-data Id (A : Set) (a : A) : A -> Set 
-{ refl : Id A a a 
+data Id (A : Set) (a : A) : A -> Set
+{ refl : Id A a a
 }
 
-fun subst : (A : Set) -> (a : A) -> (b : A) -> Id A a b -> 
+fun subst : (A : Set) -> (a : A) -> (b : A) -> Id A a b ->
   (P : A -> Set) -> P a -> P b
 { subst A a .a refl P x = x
 }
 
 -- an overlapping ind. fam.
-data DecEq (A : Set)(a : A) : A -> Set 
+data DecEq (A : Set)(a : A) : A -> Set
 { eq    : DecEq A a a
 ; notEq : (b : A) -> DecEq A a b
 }

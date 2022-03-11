@@ -1,6 +1,6 @@
 -- 2012-01-24 telescopes for let
 
-let id0 : [i : Size] -> [A : Set i] -> (a : A) -> A 
+let id0 : [i : Size] -> [A : Set i] -> (a : A) -> A
   = \ i A a -> a
 
 let id [i : Size][A : Set i](a : A) : A = a
@@ -11,9 +11,9 @@ let id' [i : Size][A : Set i](a : A) = a
 
 let two [A : Set] (f : A -> A) (x : A) : A =
   let y = f x
-  in  f y 
+  in  f y
 
 let two' : [A : Set] -> (f : A -> A) -> (x : A) -> A =
   \ A f x ->
   let y = f x
-  in  f y 
+  in  f y

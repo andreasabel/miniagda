@@ -17,19 +17,19 @@ data Ex (A : Set)(P : A -> Set) : Set
 { exIntro : [a : A] -> P a -> Ex A P
 }
 
--- Large existentials 
+-- Large existentials
 impredicative data Exists [i : Size](A : Set i)(P : A -> Set) : Set
 { ExIntro : [a : A] -> P a -> Exists i A P
 }
 
 -- projections not definable (weak Sigma)
-fail fun proj1 : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
+fail fun proj1 : [i : Size] -> [A : Set i] -> [P : A -> Set] ->
                  Exists i A P -> A
 { proj1 i A P (ExIntro a p) = a -- a cannot appear here!
 }
 
 -- Exists elimination
-fun ExElim : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
+fun ExElim : [i : Size] -> [A : Set i] -> [P : A -> Set] ->
              Exists i A P -> [C : Set] -> ([a : A] -> P a -> C) -> C
 { ExElim i A P (ExIntro a p) C k = k a p
 }
@@ -93,7 +93,7 @@ properties. -}
 fun elimPrf : [A : Set] -> [P : Prf A -> Set] ->
               (f : [a : A] -> P (prf a)) ->
               [x : Prf A] -> P x
-{ elimPrf A P f (prf a) = f a 
+{ elimPrf A P f (prf a) = f a
 }
 
 -- More laws for bracket types
@@ -120,8 +120,7 @@ fun isoAnd1 : [A, B : Set] -> Prod (Prf A) (Prf B) -> Prf (Prod A B)
 }
 
 fun isoAnd2 : [A, B : Set] -> Prf (Prod A B) -> Prod (Prf A) (Prf B)
-{ isoAnd2 A B (prf (pair a b)) = 
+{ isoAnd2 A B (prf (pair a b)) =
     pair (prf a) (prf b)
 }
-
 

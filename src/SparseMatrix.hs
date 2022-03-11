@@ -9,7 +9,7 @@ sorted association lists.
 #if __GLASGOW_HASKELL_ >= 800
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 #else
-{-# OPTIONS_GHC -fno-warn-unused-binds #-}  
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 #endif
 
 module SparseMatrix
@@ -428,7 +428,7 @@ prop_diagonal =
 -- set to @x@.
 
 addColumn :: (Num i, HasZero b) => b -> Matrix i b -> Matrix i b
-addColumn x m 
+addColumn x m
   | x == zeroElement = m { size = (size m) { cols = cols (size m) + 1 }}
   | otherwise = undefined
 

@@ -1,6 +1,6 @@
 data Unit : Set
 { unit : Unit
-} 
+}
 
 data Nat : Set
 { zero : Nat
@@ -26,13 +26,13 @@ data Codes : Set
 {- BUG internal error: no name for variable 2
 fun UEl : Nat -> (i : Size) -> Sigma 1 Set (\ U -> U -> Set)
 { UEl n i = pair -- 2 (Set 1) (\ U -> Set 1)
-  (Sigma 0 Codes (\ c -> case c 
+  (Sigma 0 Codes (\ c -> case c
     { nat -> Unit
-    ; pi  -> Unit 
-    } )) 
-  (\ t -> case t 
-    { (pair -- .0 .Codes .(\ c -> case c { nat -> Unit ; pi  -> Unit}) 
-         nat u) -> Nat  
+    ; pi  -> Unit
+    } ))
+  (\ t -> case t
+    { (pair -- .0 .Codes .(\ c -> case c { nat -> Unit ; pi  -> Unit})
+         nat u) -> Nat
     })
 }
 -}

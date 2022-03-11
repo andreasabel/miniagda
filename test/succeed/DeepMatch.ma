@@ -1,5 +1,5 @@
 
-data Nat : Set 
+data Nat : Set
 { Z : Nat
 ; S : Nat -> Nat
 }

@@ -12,12 +12,12 @@ fun head : Stream # -> Nat {
 }
 
 
- 
+
 cofun lookbad : (i : Size ) -> Stream i
 {
-lookbad ($ i) = 
-	first (Stream _) (Stream _) 
-	  (cons _ zero (lookbad _))
+lookbad ($ i) =
+        first (Stream _) (Stream _)
+          (cons _ zero (lookbad _))
           (lookbad _)
 }
 

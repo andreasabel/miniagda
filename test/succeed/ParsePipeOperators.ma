@@ -27,7 +27,7 @@ let success [F : Size -> Set] [i : Size] [B : Set] (x : B -> F <| i) : Size
   = 0
   -- parsed as B -> F i
 
-let one [A : Set] (f : A -> A) : A -> A 
+let one [A : Set] (f : A -> A) : A -> A
   = \ x -> f <| x
   -- parsed as \ x -> f x
 
@@ -41,7 +41,7 @@ let redex [A : Set] : A -> A
   = \ x -> x |> \ y -> y
   -- parsed as \ x -> (\ y -> y) x
 
-data List (A : Set) : Set 
+data List (A : Set) : Set
 { nil                             : List A
 ; cons (head : A) (tail : List A) : List A
 }
@@ -51,7 +51,7 @@ fun evens : [A : Set] -> List A -> List A
 { evens A nil = nil
 ; evens A <| cons x <| nil = nil
 ; evens A <| cons x <| cons y <| xs = cons x <| evens A xs
-} 
+}
 
 -- ever tried parens?
 {- fails
@@ -60,7 +60,7 @@ fun K : [A, B : Set] -> A -> B -> A
 }
 -}
 
-record Prod ++(A, B : Set) : Set 
+record Prod ++(A, B : Set) : Set
 { pair (fst : A) (snd : B) : Prod A B
 } fields fst, snd
 
@@ -76,5 +76,4 @@ fun fork' : [A : Set] -> (a : A) -> Prod A A
 ; fork' A <| a .snd = a
 }
 -}
-
 

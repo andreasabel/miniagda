@@ -5,26 +5,26 @@ To our knowledge, $\mugda$ is the first system to combine the sized type approac
 
 Important for $\mugda$ as a prof system would be to add coverage checking of patterns, and to proof all those propositions that this thesis only tried to make look somewhat plausible. As inductive families seem to add quite a bit complexity, this is likely not easy.
 
-Anyway, we hope this work also provides an easy access to both dependent types and the sized type approach. 
+Anyway, we hope this work also provides an easy access to both dependent types and the sized type approach.
 The pattern matching notation used by \mugda should be a little bit more accessible than the fixed point operators used in a lot of previous presentations of sized types.
 
 Finally, here are some further ideas that came up during development of this thesis:
 \paragraph*{Inference of sizes}
 The possibility to infer all size annotations automatically should be explored.
-The system described in \cite{bgp:lpar06} is able to infer size annotations with only minimal assistance required by the user. It remains to be seen if and how this inference could be applied to $\mugda$. 
+The system described in \cite{bgp:lpar06} is able to infer size annotations with only minimal assistance required by the user. It remains to be seen if and how this inference could be applied to $\mugda$.
 \paragraph*{Implicit arguments}
 At runtime, the size arguments all end up being $\infty$.
-So it would be wasteful if it was kept around during execution of a program. 
+So it would be wasteful if it was kept around during execution of a program.
 The removal of type information that is not needed at runtime is ongoing research \cite{miquel01implicit,DBLP:conf/types/BradyMM03}. As lists, vectors and sized list behave the same, conversion functions can be written by the user to change from one representation to the other. At runtime, these could be safely removed as they would amount to identity functions.
 \paragraph*{More mutual definitions}
 We could allow more combinations for mutual declarations.
 Defining an inductive data type together with a recursive function amounts to the so-called inductive-recursive definitions of \cite{dybjer01indexed}. But also mixed inductive/coinductive definitions should be interesting. This direction was investigated and some adjustment of the admissibility of $\mugda$ seems to be necessary to handle such definitions.
 \paragraph*{Better admissibility}
-The current admissibility criterion can probably be relaxed somewhat to allow more definitions. 
+The current admissibility criterion can probably be relaxed somewhat to allow more definitions.
 More audacious would be to adapt the more advanced concepts from \cite{abel:PhD}.
 \paragraph*{Higher-order subtyping}
 Along with better admissibility, higher-order subtyping would enable the definition of functions that are parameterized over any sized type. Polarized subtyping \cite{steffen:phd} could be explored, which is already used in the sized polymorphic lambda calculus of \cite{abel:PhD}.
 \paragraph*{Future of sized types}
-We think it could be worthwhile to integrate a sized type approach into a full system like Agda2 \cite{norell:thesis}, especially with an extension to coinductive types in mind. Productivity is handled quite naturally with a sized type approach. 
+We think it could be worthwhile to integrate a sized type approach into a full system like Agda2 \cite{norell:thesis}, especially with an extension to coinductive types in mind. Productivity is handled quite naturally with a sized type approach.
 Furthermore, there are plans to give a translation of the full Agda2 language to a simpler core language \cite{mini-tt}, which can be more easily justified. Once again, a sized type approach could be considered for this core language.
 

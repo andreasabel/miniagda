@@ -12,11 +12,11 @@ sized codata CoNat : Size -> Set
 
 let z : CoNat # = cozero #
 
--- ok 
+-- ok
 fun convert2 : [i : Size] -> Nat i -> CoNat i
 {
 convert2 ($ i) (zero .i) = cozero i;
-convert2 ($ i) (succ .i x) = cosucc i (convert2 i x) 
+convert2 ($ i) (succ .i x) = cosucc i (convert2 i x)
 }
 
 -- NOT ok
@@ -37,6 +37,6 @@ convert3 i (succ (i > j) x) = omega' #
 cofun convert4 : [i : Size] -> Nat i -> CoNat i
 {
 convert4 ($ i) (zero .i) = cozero ($ i) ;
-convert4 ($ i) (succ .i x) = cosucc i (convert4 i x) 
+convert4 ($ i) (succ .i x) = cosucc i (convert4 i x)
 }
 

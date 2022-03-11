@@ -11,14 +11,14 @@ sized codata Stack (A : Set) : Size -> Set
   (top  : Maybe A) ->
   (pop  : Stack A i) ->
   (push : A -> Stack A i) -> Stack A $i
-} 
+}
 
 -- functional to construct push action
 cofun pushFunc : [A : Set] -> [i : Size] -> |i| ->
                  ([j : Size] -> |j| < |i| -> Stack A j -> A -> Stack A j) ->
                  Stack A i -> A -> Stack A i
 { pushFunc A ($ i) f s a = stack i (just a) s (f i (pushFunc A i f s a))
-} 
+}
 -- f : [j : Size] -> |j| < |$i| -> Stack A j -> A -> Stack A j
 -- s : Stack A $i
 -- by subtyping
@@ -39,16 +39,16 @@ cofun pushFix  : [A : Set] -> [i : Size] -> |i| -> Stack A i -> A -> Stack A i
 cofun empty : [A : Set] -> [i : Size] -> |i| -> Stack A i
 { empty A ($ i) = stack i nothing (empty A i) (pushFix A i (empty A i))
 }
- 
+
 {- original circular program
 
-data Stack a = Stack 
+data Stack a = Stack
   { top  :: Maybe a
   , pop  :: Stack a
   , push :: a -> Stack a
-  } 
+  }
 
--- circular auxiliary program to construct stacks 
+-- circular auxiliary program to construct stacks
 push' :: Stack a -> a -> Stack a
 push' s a = s'
   where s' = Stack (Just a) s (push' s')

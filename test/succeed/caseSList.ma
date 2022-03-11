@@ -1,13 +1,13 @@
 -- 2012-01-22 parameters gone from constructors
 
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc  : Nat -> Nat
 }
 
 data Bool : Set
 { true  : Bool
-; false : Bool 
+; false : Bool
 }
 
 fun leq : Nat -> Nat -> Bool
@@ -43,13 +43,13 @@ data SList : Nat -> Set
 ; scons : (shead : Nat) ->      -- I can erase this at compile-time, but
                                 -- it should be present at run-time ??
           (stailindex : Nat) -> -- this should be erased at run-time ??
-          [True (leq stailindex shead)] -> 
-          (stail : SList stailindex) -> 
+          [True (leq stailindex shead)] ->
+          (stail : SList stailindex) ->
           SList shead
-} 
+}
 
 fun maxN : Nat -> Nat -> Nat
-{ maxN n m = case leq n m 
+{ maxN n m = case leq n m
   { true -> m
   ; false -> n
   }
@@ -57,17 +57,17 @@ fun maxN : Nat -> Nat -> Nat
 
 fun maxLemma : (n : Nat) -> (m : Nat) -> (k : Nat) ->
               True (leq n k) -> True (leq m k) -> True (leq (maxN n m) k)
-{ maxLemma n m k p q = case leq n m 
+{ maxLemma n m k p q = case leq n m
   { true  -> q
   ; false -> p
-  } 
+  }
 }
 
 fun insert : (m : Nat) -> (n : Nat) -> SList n -> SList (maxN n m)
 { insert m .zero snil = scons m zero triv snil
-; insert m n (scons .n k p l) = case leq n m 
+; insert m n (scons .n k p l) = case leq n m
   { true  -> scons m n triv (scons n k p l)
-  ; false -> scons n (maxN k m) (maxLemma k m n p (leFalse n m triv')) 
+  ; false -> scons n (maxN k m) (maxLemma k m n p (leFalse n m triv'))
                    (insert m k l)
   }
 }

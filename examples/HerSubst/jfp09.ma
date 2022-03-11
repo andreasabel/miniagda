@@ -11,7 +11,7 @@ fun mapMaybe : [A, B : Set] -> (A -> B) -> Maybe A -> Maybe B
 ; mapMaybe A B f (just a)  = just (f a)
 }
 
-sized data Ty : Size -> Set 
+sized data Ty : Size -> Set
 { base : [i : Size] -> Ty $i
 ; arr  : [i : Size] -> Ty i -> Ty i -> Ty $i
 }
@@ -25,7 +25,7 @@ sized data Tm (A : Set) : Size -> Set
 fun mapTm : [A, B : Set] -> [i : Size] -> |i| -> (A -> B) -> Tm A i -> Tm B i
 { mapTm A B i f (var (j < i) x)   = var j (f x)
 ; mapTm A B i f (app (j < i) r s) = app j (mapTm A B j f r) (mapTm A B j f s)
-; mapTm A B i f (abs (j < i) a r) = 
+; mapTm A B i f (abs (j < i) a r) =
     abs j a (mapTm (Maybe A) (Maybe B) j (mapMaybe A B f) r)
 }
 
@@ -74,22 +74,22 @@ fun sg : [A : Set] -> [i : Size] -> Tm A # -> Ty i -> Env (Maybe A) A i
 fun lift : [A, B : Set] -> [i : Size] -> Env A B i -> Env (Maybe A) (Maybe B) i
 { lift A B i rho (nothing) = varRes (Maybe B) i (nothing)
 ; lift A B i rho (just x)  = shiftRes B i (rho x)
-} 
+}
 
 -- hereditary substitution
 
 mutual {
 
-  fun subst : [i : Size] -> |i,$$0,#| -> Ty i -> 
+  fun subst : [i : Size] -> |i,$$0,#| -> Ty i ->
               [A : Set] -> Tm A # -> Tm (Maybe A) # -> Tm A #
   { subst i a A s t = tm A i (simsubst i # (Maybe A) A t (sg A i s a))
-  }  
-  
-  fun simsubst : [i, j : Size] -> |i,$0,j| -> 
+  }
+
+  fun simsubst : [i, j : Size] -> |i,$0,j| ->
                  [A, B : Set] -> Tm A j -> Env A B i -> Res B i
   { simsubst i j A B (var (j' < j) x) rho = rho x
-  ; simsubst i j A B (abs (j' < j) b t) rho = 
-      absRes B i b (simsubst i j' (Maybe A) (Maybe B) t (lift A B i rho)) 
+  ; simsubst i j A B (abs (j' < j) b t) rho =
+      absRes B i b (simsubst i j' (Maybe A) (Maybe B) t (lift A B i rho))
   ; simsubst i j A B (app (j' < j) t u) rho =
       let t' : Res B i = simsubst i j' A B t rho in
       let u' : Res B i = simsubst i j' A B u rho in
@@ -98,12 +98,12 @@ mutual {
         case t'
         { (nf .B .i (abs .B .# b' r') (arr (i > i') b c)) ->
             nf B i' (subst i' b (Maybe B) (tm u') r') c
-        ; bla -> appRes B i t' u' 
+        ; bla -> appRes B i t' u'
         }
   -}
   }
-  
-  fun normApp : [i : Size] -> |i,0,#| -> 
+
+  fun normApp : [i : Size] -> |i,0,#| ->
                 [B : Set] -> Res B i -> Res B i -> Res B i
   { normApp i B (nf (abs .# b' r') (arr (i' < i) b c)) u' =
       nf (subst i' b B (tm B i u') r') c
@@ -117,10 +117,10 @@ mutual {
 fun norm : [i : Size] -> |i| -> [A : Set] -> Tm A i -> Tm A #
 { norm i A (var (i' < i) x)   = var # x
 ; norm i A (abs (i' < i) a t) = abs # a (norm i' (Maybe A) t)
-; norm i A (app (i' < i) t u) = 
+; norm i A (app (i' < i) t u) =
    let t' : Tm A # = norm i' A t in
    let u' : Tm A # = norm i' A u in
-     case t' 
+     case t'
      { (abs .# a r) -> subst # a A u' r
      ; bla -> app # t' u'
      }
@@ -135,7 +135,7 @@ let k0 : Ty # = base #
 let k1 : Ty # = arr # k0 k0
 
 let tII : Tm Empty #
-  = app # (tI k1) (tI k0) 
+  = app # (tI k1) (tI k0)
 
 eval let nII : Tm Empty #
   = norm # Empty tII  -- identity
@@ -145,5 +145,4 @@ eval let nII' : Tm Empty #
 
 eval let nIII' : Tm Empty #
   = norm # Empty (app # (app # (tI k0) (tI k0)) (tI k0)) -- also identity
-
 

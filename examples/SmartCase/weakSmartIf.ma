@@ -10,7 +10,7 @@ This rule seems to preserve transitivity, but it does not include
 permutations anymore.
 -}
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -20,7 +20,7 @@ data Id (A : Set)(a : A) : A -> Set
 }
 
 let if : (A : Set) -> Bool -> A -> A -> A
-  = \ A c d e -> case c 
+  = \ A c d e -> case c
     { true -> d
     ; false -> e
     }
@@ -29,7 +29,7 @@ let eta : (x : Bool) -> Bool
   = \ x -> if Bool x true false
 
 let not : Bool -> Bool
-  = \ x -> case x 
+  = \ x -> case x
   { true -> false
   ; false -> true
   }
@@ -56,7 +56,7 @@ fail let notnot' : (x : Bool) -> Id Bool (not (not x)) x
 
 {- Strong rule: CANNOT INFER
 
-  not x --> true |- x = false 
+  not x --> true |- x = false
 
 This means that the system sees
 

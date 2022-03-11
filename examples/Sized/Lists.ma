@@ -5,14 +5,14 @@ data Nat : Set
 ; succ : Nat -> Nat
 }
 
-let one : Nat = succ zero 
+let one : Nat = succ zero
 let two : Nat = succ one
 
 sized data List (A : Set) : Size -> Set
 { nil  : (i : Size) -> List A ($ i)
 ; cons : (i : Size) -> A -> List A i -> List A ($ i)
 }
- 
+
 let alist : List Nat # = (cons # one (cons # zero (nil #)))
 
 fun map : (A : Set) -> (B : Set) -> (i : Size) -> (A -> B) -> List A i -> List B i

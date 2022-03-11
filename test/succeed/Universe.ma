@@ -7,7 +7,7 @@ data Nat : Set
 
 mutual {
 
-  data U : Set 
+  data U : Set
   { nat : U
   ; pi  : (a : U) -> (El a -> U) -> U
   }

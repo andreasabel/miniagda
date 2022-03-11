@@ -11,12 +11,12 @@ sized codata Str (+ A : Set) : Size -> Set
 fun A : Set {}
 fun B : Set {}
 
-sized data SP' (+ X : Set) : Size -> Set 
+sized data SP' (+ X : Set) : Size -> Set
 { get : [j : Size] -> (A -> SP' X j) -> SP' X ($ j)
 ; out : [j : Size] -> X -> SP' X ($ j)
 }
 
-sized codata SP : Size -> Set 
+sized codata SP : Size -> Set
 { put : [i : Size] -> B -> SP' (SP i) # -> SP ($ i)
 }
 
@@ -29,5 +29,4 @@ fun run' : [i : Size] -> (SP i -> Str A # -> Str B i) ->
 cofun run : [i : Size] -> SP i -> Str A # -> Str B i
 { run ($ i) (put .i b sp) as  = cons i b (run' i (run i) # sp as)
 }
-
 

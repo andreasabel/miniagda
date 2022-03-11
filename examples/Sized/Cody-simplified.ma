@@ -28,7 +28,7 @@ let pre : [i : Size] -> (Nat -> O ($$ i)) -> Nat -> O ($ i)
     ; (S .($ i) x) -> x
     ; (L .($ i) g) -> g n
     ; (M .($ i) a b) -> a
-    } 
+    }
 
 {- the following pattern match is the problem: (L .($$ i) f)
 
@@ -40,18 +40,18 @@ let pre : [i : Size] -> (Nat -> O ($$ i)) -> Nat -> O ($ i)
    for subtyping.
 
 -}
- 
-let three : Nat 
+
+let three : Nat
   = succ (succ (succ zero))
 
 fun deep : [i : Size] -> O i -> Nat
-{ deep .($$$$ i) (M .($$$ i) 
-                    (L .($$ i) f) 
+{ deep .($$$$ i) (M .($$$ i)
+                    (L .($$ i) f)
                     (S .($$ i) (S .($ i) (S i x))))
   = deep ($$$ i) (M ($$ i)
-                    (L ($ i) (pre i f)) 
+                    (L ($ i) (pre i f))
                     (f three))
-; deep i x = zero   
+; deep i x = zero
 }
 
 --eval
@@ -59,19 +59,19 @@ let loop : Nat = deep # (M # (L # emb) (emb three))
 
 {-
 fun deep : [i : Size] -> O i -> Nat -> Nat
-{ deep .($$$$ i) (M .($$$ i) 
-                    (L .($$ i) f) 
+{ deep .($$$$ i) (M .($$$ i)
+                    (L .($$ i) f)
                     (S .($$ i) (S .($ i) (S i x)))) n
-  = deep ($$$ i) (M ($$ i) (L ($ i) (pre i f)) (f n)) 
+  = deep ($$$ i) (M ($$ i) (L ($ i) (pre i f)) (f n))
       (succ (succ (succ n)))
---   = deep ($$$ i) (M ($$ i) (L ($ i) (pre i f)) (S ($ i) (pre i f n))) 
+--   = deep ($$$ i) (M ($$ i) (L ($ i) (pre i f)) (S ($ i) (pre i f n)))
 --       (succ (succ (succ n)))
 -- -- WHY DOES THIS TYPECHECK
 --  = deep _ (M _ (L _ (pre _ f)) (S _ (f n))) (succ (succ (succ n)))
-; deep i x n = n   
+; deep i x n = n
 }
 
-let four : Nat 
+let four : Nat
   = succ (succ (succ (succ zero)))
 
 eval let loop : Nat = deep # (M # (L # emb) (emb four)) four

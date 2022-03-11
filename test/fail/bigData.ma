@@ -1,6 +1,6 @@
 -- 2010-06-25 removed Set:Set, so this should not pass
 
-data Any : Set 
+data Any : Set
 { inn : (Out : Set) -> Any }
 
 data Big : Set -> Set

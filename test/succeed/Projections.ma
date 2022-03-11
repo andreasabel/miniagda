@@ -9,6 +9,6 @@ fun eta : [A, B : Set] -> Sigma A (\ x -> B) -> Sigma A (\ x -> B)
 { eta A B p = pair (fst p) (snd p)
 }
 
-let builtinEta [A, B : Set] (p : Sigma A (\ x -> B)) 
+let builtinEta [A, B : Set] (p : Sigma A (\ x -> B))
   : < pair (fst p) (snd p) : Sigma A (\ x -> B) >
   = p

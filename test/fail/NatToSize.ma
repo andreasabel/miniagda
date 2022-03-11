@@ -1,6 +1,6 @@
 -- 2010-11-01
 
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc : Nat -> Nat
 }

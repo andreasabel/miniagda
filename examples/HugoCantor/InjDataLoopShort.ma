@@ -8,19 +8,19 @@ Since MiniAgda does not have Set1, we use Set : Set.
 
 data Eq (A : Set 1)(a : A) : A -> Set
 { refl : Eq A a a
-} 
+}
 
 data I (F : Set -> Set) : Set {}
- 
+
 data InvI (A : Set) : Set 1
 { inv : (X : Set -> Set) -> Eq Set (I X) A -> InvI A
-} 
+}
 
-fun invertible : (A : Set) -> InvI A {}  -- postulate 
+fun invertible : (A : Set) -> InvI A {}  -- postulate
 
 let cantor : Set -> Set
-= \ A -> case (invertible A) 
-  { (inv X p) -> X A 
+= \ A -> case (invertible A)
+  { (inv X p) -> X A
   }
 
 -- self-application on the type level
@@ -31,7 +31,7 @@ let cIc : Set
 fail
 let loopTC : cIc
 = case (invertible (I cantor))
-  { (inv .cantor refl)  -> 
+  { (inv .cantor refl)  ->
    -- in the branch, cIc --> cIc --> cIc
    -- put anything here:
         Set

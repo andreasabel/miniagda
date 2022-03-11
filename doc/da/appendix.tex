@@ -48,9 +48,9 @@ $\ELet{x}{A}{e}{f}$ is written \texttt{let x : A = e in f}
 \item
 $ \lam{x}e$ is written \verb+\x -> e +
 \item
-$ \inacc{e}$ is written \texttt{.e} 
+$ \inacc{e}$ is written \texttt{.e}
 \item
-$ \infty$ is written \texttt{\#} 
+$ \infty$ is written \texttt{\#}
 \item
 $\s$ is written \texttt{\$}
 \item
@@ -63,7 +63,7 @@ As an example showing most of the syntactical features, here is the Fibonacci st
 \begin{verbatim}
 data Nat : Set {
   zero : Nat;
-  succ : Nat -> Nat 
+  succ : Nat -> Nat
 }
 
 fun add : Nat -> Nat -> Nat {
@@ -74,7 +74,7 @@ fun add : Nat -> Nat -> Nat {
 sized codata Stream : Size -> Set {
   cons : (i : Size) -> Nat -> Stream i -> Stream ($ i)
 }
- 
+
 fun tail : Stream # -> Stream # {
   tail (cons .# x xs) = xs
 }
@@ -85,23 +85,23 @@ fun head : Stream # -> Nat {
 
 fun nth : Nat -> Stream # -> Nat {
   nth zero xs = head xs;
-  nth (succ x) xs = nth x (tail xs) 
+  nth (succ x) xs = nth x (tail xs)
 }
 
 let 1 : Nat = (succ zero)
 
-cofun fib' : (x : Nat ) -> (y : Nat ) 
+cofun fib' : (x : Nat ) -> (y : Nat )
                -> (i : Size ) -> Stream i {
   fib' x y ($ i) = cons i x (fib' y (add x y) i)
-} 
+}
 
 -- fib = 1, 1, 2, 3, 5 , 8 ...
 let fib : Stream # = (fib' 1 1 #)
 
 let 4 : Nat = (succ (succ (succ 1)))
 
--- fib(4) = 5 
-eval let fib4 : Nat = nth 4 fib 
+-- fib(4) = 5
+eval let fib4 : Nat = nth 4 fib
 \end{verbatim}
 Running \texttt{Main examples/fib.ma} yields the console output:
 \begin{verbatim}
@@ -123,6 +123,6 @@ During parsing, it is not known whether an identifier is a variable or a constru
 If the $\mugda$ program is well-scoped, scope-checking produces \emph{abstract syntax} where all identifiers are categorized. In addition, some syntactic tests like checking linearity of patterns are done during this stage.
 \paragraph*{Type-Checking}
 Every declaration is type-checked.
-For mutual declarations, the type-checker also checks admissibility and finally invokes the termination-checker. 
+For mutual declarations, the type-checker also checks admissibility and finally invokes the termination-checker.
 \paragraph*{Evaluation}
 For all declarations of the form \verb+eval let l : A = e+, \verb+e+ is evaluated and this value is displayed.

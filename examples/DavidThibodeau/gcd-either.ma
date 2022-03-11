@@ -1,4 +1,4 @@
-sized data Nat : Size -> Set 
+sized data Nat : Size -> Set
 { zero : [i : Size] -> Nat ($ i)
 ; suc  : [i : Size] -> Nat i -> Nat ($ i)
 }

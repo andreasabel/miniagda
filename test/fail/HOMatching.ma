@@ -11,5 +11,5 @@ data Lim (A : Set) : Set
 { lim : (A -> Lim A) -> Lim A
 }
 
-fun bla : (A : Set) -> Lim A -> 
+fun bla : (A : Set) -> Lim A ->
 -}

@@ -1,6 +1,6 @@
 -- 2011-04-20
 
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc  : Nat -> Nat
 }
@@ -28,7 +28,7 @@ fun f' : ^(*Nat -> Nat) -> Nat
 -}
 
 {-
-fun f1 : ^(*Nat -> Nat) -> ^(*Nat -> Nat) -> Nat 
+fun f1 : ^(*Nat -> Nat) -> ^(*Nat -> Nat) -> Nat
 { f1 g k = k (g zero)
 }
 -}
@@ -49,7 +49,7 @@ fun f3 : [X : Nat -> Set] -> X zero -> Nat
 
 -- the following fails because we end up comparing a Nat to a Bool
 fail
-fun bad : 
+fun bad :
  [F : [X : Nat -> Set] -> X zero -> Set] ->
  (g : F T zero)                          ->
  (h : F (\ n -> T (suc n)) true -> Bool) -> Bool

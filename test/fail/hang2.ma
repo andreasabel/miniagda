@@ -2,7 +2,7 @@ data Empty : Set
 {
 }
 
-mutual 
+mutual
 {
 
 fun F : Empty -> Empty
@@ -10,7 +10,7 @@ fun F : Empty -> Empty
 F x = F x
 }
 
--- should this scope check ? 
+-- should this scope check ?
 fun f  : Empty -> Empty
 {
 f x = f (F x)

@@ -2,7 +2,7 @@
 
 mutual {
 
-  data Even : Set 
+  data Even : Set
   { ev0 : Even
   ; evS : Odd -> Even
   }
@@ -28,4 +28,4 @@ mutual {
   fun oddToNat : Odd -> Nat
   { oddToNat (oddS e) = suc (evenToNat e)
   }
-} 
+}

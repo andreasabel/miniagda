@@ -18,20 +18,19 @@ fun T : Bool -> Set
 ; T false = Bool
 }
 
-fun good : 
+fun good :
   [F : Nat -> Set] ->
   [f : [b : Bool] -> ([T b] -> Nat) -> Nat] ->
   (g : (n : Nat) -> F (f true (\ x -> n))) ->
-  (h : F (f false (\ x -> zero)) -> Bool) -> 
+  (h : F (f false (\ x -> zero)) -> Bool) ->
   Bool
 { good F f g h = h (g zero)
 }
 
-let good' : 
+let good' :
     [F : [b : Bool] -> ([T b] -> Nat) -> Set] ->
-    (g : F false (\ x -> zero) -> Bool) -> 
+    (g : F false (\ x -> zero) -> Bool) ->
     (h : (n : Nat) -> F true (\ x -> n)) ->
     Bool
   = \ F g h -> g (h zero)
-
 

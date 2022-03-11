@@ -15,11 +15,11 @@ fun T : Bool -> Set
 
 -- type checking fails with message "zero != false"
 -- can be harmful if constructors can be reused in different types
-fun bad : 
+fun bad :
   [F : Nat -> Set] ->
   [f : [x : Bool] -> T x -> Nat] ->
   (g : (n : Nat) -> F (f true n)) ->
-  (h : F (f false false) -> Bool) -> 
+  (h : F (f false false) -> Bool) ->
   Bool
 { bad F f g h = h (g zero)
 }

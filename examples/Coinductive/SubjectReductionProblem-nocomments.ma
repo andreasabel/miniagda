@@ -1,9 +1,9 @@
 {- 2010-05-28
 
-   Thorsten, http://sneezy.cs.nott.ac.uk/fplunch/weblog/?p=104 
+   Thorsten, http://sneezy.cs.nott.ac.uk/fplunch/weblog/?p=104
 -}
 
-sized codata Stream : Size -> Set 
+sized codata Stream : Size -> Set
 { cons : [i : Size] -> Stream i -> Stream ($ i)
 }
 
@@ -15,7 +15,7 @@ data Eq (A : Set)(a : A) : A -> Set
 { refl : Eq A a a
 }
 
-let l1 : Eq (Stream #) (ticks #) (cons # (ticks #)) 
+let l1 : Eq (Stream #) (ticks #) (cons # (ticks #))
        = refl -- (Stream #) (ticks #)
 
 fun l2 :  (s : Stream #) -> (t : Stream #) -> (Eq (Stream #) s t)

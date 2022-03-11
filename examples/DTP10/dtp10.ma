@@ -20,7 +20,7 @@ fun length0 : [A : Set] -> (n : Nat) -> Vec A n -> <n : Nat>
 
 -- cannot use irrelevant function argument [n : Nat]
 fail fun length1 : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
-{ length1 A n v = n 
+{ length1 A n v = n
 }
 
 -- cannot use irrelevant constructor argument
@@ -47,14 +47,14 @@ fun length : [A : Set] -> [n : Nat] -> Vec A n -> <n : Nat>
 
 -- Proof irrelevance in data types -----------------------------------
 
-data Leq (n : Nat) : Nat -> Set 
+data Leq (n : Nat) : Nat -> Set
 { leqEq : Leq n n
 ; leqS  : [m : Nat] -> Leq n m -> Leq n (succ m)
 }
 
 data SList (n : Nat) : Set
 { snil  : SList n
-; scons : (m : Nat) -> [Leq m n] -> SList m -> SList n 
+; scons : (m : Nat) -> [Leq m n] -> SList m -> SList n
 }
 
 data Id [A : Set](a : A) : A -> Set
@@ -62,7 +62,7 @@ data Id [A : Set](a : A) : A -> Set
 }
 
 fun prfIrrCons : [n, m : Nat] -> [p1, p2 : Leq m n] -> [l : SList m] ->
-                 Id (SList n) (scons m p1 l) (scons m p2 l) 
+                 Id (SList n) (scons m p1 l) (scons m p2 l)
 { prfIrrCons n m p1 p2 l = refl -- (SList n) (scons n m p1 l)
 }
 
@@ -72,19 +72,19 @@ data Exists (A : Set)(P : A -> Set) : Set
 { exIntro : [a : A] -> P a -> Exists A P
 }
 
--- Large existentials 
+-- Large existentials
 impredicative data EXISTS [i : Size](A : Set i)(P : A -> Set) : Set
 { eXIntro : [a : A] -> P a -> EXISTS i A P
 }
 
 -- projections not definable (weak Sigma)
-fail fun proj1 : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
+fail fun proj1 : [i : Size] -> [A : Set i] -> [P : A -> Set] ->
                  EXISTS i A P -> A
 { proj1 i A P (eXIntro a p) = a -- a cannot appear here!
 }
 
 -- Exists elimination
-fun eXElim : [i : Size] -> [A : Set i] -> [P : A -> Set] -> 
+fun eXElim : [i : Size] -> [A : Set i] -> [P : A -> Set] ->
              EXISTS i A P -> [C : Set] -> ([a : A] -> P a -> C) -> C
 { eXElim i A P (eXIntro a p) C k = k a p
 }

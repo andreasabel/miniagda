@@ -1,7 +1,7 @@
 sized data SNat : Size -> Set
 {
-	zero : (i : Size) -> SNat ($ i);
-	succ : (i : Size) -> SNat i -> SNat ($ i)
+        zero : (i : Size) -> SNat ($ i);
+        succ : (i : Size) -> SNat i -> SNat ($ i)
 }
 
 let z : SNat # = zero #
@@ -15,8 +15,8 @@ let three : SNat # = succ # two
 fun add : (i : Size) -> (j : Size) -> SNat i -> SNat j -> SNat #
 {
 
-add ($ i) j (zero .i) y = y; 
-add ($ i) j (succ .i x) y = succ # (add i j x y) 
+add ($ i) j (zero .i) y = y;
+add ($ i) j (succ .i x) y = succ # (add i j x y)
 
 }
 
@@ -34,7 +34,7 @@ minus ($ i) ($ j)  (succ .i x)  (succ .j y) = minus i j x y
 
 let min4_2 : SNat # = minus # #  four two
 
--- not structurally recursive without sizes ... 
+-- not structurally recursive without sizes ...
 fun div : (i : Size) -> (j : Size) ->  SNat i -> SNat j -> SNat i
 {
 
@@ -59,7 +59,7 @@ fun gcd : (i : Size) -> (j : Size) -> (SNat i) -> (SNat j) -> (SNat #)
 {
 gcd ($ i)  j    (zero .i)    y         = y ;
 gcd  i    ($ j)  x         (zero .j)   = x ;
-gcd ($ i) ($ j) (succ .i x) (succ .j y) = 
+gcd ($ i) ($ j) (succ .i x) (succ .j y) =
     compare i j x y (SNat #)
                (gcd i ($ j) (minus i j x y) (succ j y))
                (gcd ($ i) j (succ i x) (minus j i y x))

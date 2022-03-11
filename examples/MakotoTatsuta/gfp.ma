@@ -1,11 +1,11 @@
 -- 2010-08-18
 
-sized data List (A : Set) : Size -> Set 
+sized data List (A : Set) : Size -> Set
 { nil  : [i : Size] -> List A $i
 ; cons : [i : Size] -> A -> List A i -> List A $i
 }
 
-sized codata CoList (A : Set) : Size -> Set 
+sized codata CoList (A : Set) : Size -> Set
 { conil  : [i : Size] -> CoList A $i
 ; cocons : [i : Size] -> A -> CoList A i -> CoList A $i
 }
@@ -68,7 +68,7 @@ sized data HasLength (A : Set) : (i : Size) -> CoList A # -> Nat -> Set
    HasLength A i l n -> HasLength A $i (cocons # a l) (succ n)
 }
 
-fun conv : [A : Set] -> [i : Size] -> (l : CoList A #) -> (n : Nat) -> 
+fun conv : [A : Set] -> [i : Size] -> (l : CoList A #) -> (n : Nat) ->
   HasLength A i l n -> List A #
 { conv A i (conil .#) zero (hasZero (i > j)) = nil #
 ; conv A i (cocons .# a as) (succ n) (hasSucc (i > j) .a .as .n d) =
@@ -76,10 +76,10 @@ fun conv : [A : Set] -> [i : Size] -> (l : CoList A #) -> (n : Nat) ->
 }
 
 {-
-fun conv : [A : Set] -> [i : Size] -> (l : CoList A i) -> (n : Nat) -> 
+fun conv : [A : Set] -> [i : Size] -> (l : CoList A i) -> (n : Nat) ->
   HasLength A i l n -> List A i
 { conv A i (conil .A .j) zero (hasZero .A (i > j)) = nil A j
 ; conv A i (cocons .A .j a as) (succ n) (hasSucc .A (i > j) .a .as .n d) =
   cons A j a (conv A j as n d)
 }
--} 
+-}

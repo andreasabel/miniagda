@@ -4,7 +4,7 @@ data Unit : Set { unit  : Unit }
 
 -- * Booleans
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }

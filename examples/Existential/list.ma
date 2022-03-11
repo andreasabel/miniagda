@@ -10,13 +10,13 @@ fun abort : [i : Size] -> (A : Set i) -> .Empty -> A
 
 -- * unit type
 
-record Unit : Set 
+record Unit : Set
 { unit : Unit
 }
 
 -- * Booleans
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -40,9 +40,9 @@ pattern left  a = (true  , a)
 pattern right b = (false , b)
 
 {-
-constructors [A, B : Set] 
+constructors [A, B : Set]
 { left  (a : A) : Either A B = true  , a
-; right (b : B) : Either A B = false , b 
+; right (b : B) : Either A B = false , b
 }
 -}
 
@@ -83,17 +83,17 @@ pattern cons x xs = just (x , xs)
 
 -- * fold right and instances
 
-fun foldr : [A : Set] -> [B : +Size -> Set] -> 
+fun foldr : [A : Set] -> [B : +Size -> Set] ->
   ([j : Size] -> A -> B j -> B $j) ->
-  ([j : Size] -> B $j) -> 
+  ([j : Size] -> B $j) ->
   [i : Size] -> List A i -> B i
 { foldr A B f b i (j < i , nothing)   = b j
 ; foldr A B f b i (j < i , cons a as) = f j a (foldr A B f b j as)
 }
 
 let mapList : [A, B : Set] -> (A -> B) -> [i : Size] -> List A i -> List B i
-  = \ A B f -> foldr A (List B) 
-       (\ j a b -> j , cons (f a) b)   
+  = \ A B f -> foldr A (List B)
+       (\ j a b -> j , cons (f a) b)
        (\ j     -> j , nothing)
 {-
 fun mapList : [A, B : Set] -> (A -> B) -> [i : Size] -> List A i -> List B i
@@ -103,11 +103,11 @@ fun mapList : [A, B : Set] -> (A -> B) -> [i : Size] -> List A i -> List B i
 -}
 
 let append : [A : Set] -> [i, j : Size] -> List A i -> List A $j -> List A (i+j)
-  = \ A i j as bs -> 
-      foldr A (\ i -> List A (i+j)) 
-        (\ i b bs -> (i+j , cons b bs)) 
-        (\ i -> bs) 
-        i 
+  = \ A i j as bs ->
+      foldr A (\ i -> List A (i+j))
+        (\ i b bs -> (i+j , cons b bs))
+        (\ i -> bs)
+        i
         as
 
 -- * fold left: looses size information
@@ -115,26 +115,26 @@ let append : [A : Set] -> [i, j : Size] -> List A i -> List A $j -> List A (i+j)
 
 {-
 fun foldl : [A : Set] -> [B : +Size -> Set] -> [i : Size] ->
-  ([j : Size] -> B i -> A -> B j) -> 
-  List A i ->  B i -> B i 
+  ([j : Size] -> B i -> A -> B j) ->
+  List A i ->  B i -> B i
 { foldl A B i f (j < i , true  , u)      = \ acc -> acc
 ; foldl A B i f (j < i , false , a , as) = \ acc -> foldl A B j f (f j acc a) as
 }
 -}
 
-let foldl' : [A : Set] -> [B : Set] -> (B -> A -> B) -> 
+let foldl' : [A : Set] -> [B : Set] -> (B -> A -> B) ->
   [i : Size] -> List A i -> B -> B
-  = \ A B f -> foldr A (\ j -> B -> B) 
+  = \ A B f -> foldr A (\ j -> B -> B)
       (\ j a r acc -> r (f acc a))
       (\ j acc -> acc)
 
 let foldl : [A : Set] -> [B : Set] -> (B -> A -> B) -> B ->
   [i : Size] -> List A i -> B
-  = \ A B f b i l -> foldl' A B f i l b      
-      
+  = \ A B f b i l -> foldl' A B f i l b
+
 {-
 fun foldl' : [A : Set] -> [B : Set] -> [i : Size] ->
-  (B -> A -> B) -> 
+  (B -> A -> B) ->
   List A i -> B -> B
 { foldl' A B i f (j < i , true  , u)      = \ acc -> acc
 ; foldl' A B i f (j < i , false , a , as) = \ acc -> foldl' A B j f as (f acc a)
@@ -151,14 +151,14 @@ fun CONS : [A : Set] -> A -> LIST A -> LIST A
 { CONS A a (j , as) = $j , j , cons a as
 }
 
-fun revApp : [A : Set] -> LIST A -> LIST A -> LIST A 
+fun revApp : [A : Set] -> LIST A -> LIST A -> LIST A
 { revApp A (i , as) bs = foldl A (LIST A) (\ as a -> CONS A a as) bs i as
-} 
-let reverse : [A : Set] -> LIST A -> LIST A 
+}
+let reverse : [A : Set] -> LIST A -> LIST A
   = \ A as -> revApp A as (NIL A)
 
 {-
-fun reverse : [A : Set] -> LIST A -> LIST A 
+fun reverse : [A : Set] -> LIST A -> LIST A
 { reverse A (i , as) = foldl A (LIST A) (\ as a -> CONS A a as) (NIL A) i as
-} 
+}
 -}

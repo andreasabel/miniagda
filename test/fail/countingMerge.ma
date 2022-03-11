@@ -9,7 +9,7 @@ data Nat : Set
 }
 
 data List : Set
-{ nil  : List  
+{ nil  : List
 ; cons : Nat -> List -> List
 }
 
@@ -24,13 +24,13 @@ mutual {
   }
   fun merge_aux : Nat -> List -> Nat -> List -> Bool -> List
   { merge_aux x xs y ys true  = cons x (merge xs (cons y ys))
-  ; merge_aux x xs y ys false = cons y (merge (cons x xs) ys) 
+  ; merge_aux x xs y ys false = cons y (merge (cons x xs) ys)
   }
 }
 
-{- this is not recognized terminating since 
+{- this is not recognized terminating since
 
   cons y ys  is in no relation with y or ys
 
-its size is max(y,ys) + 1, but we do not honor max in termination checking 
+its size is max(y,ys) + 1, but we do not honor max in termination checking
 -}

@@ -6,7 +6,7 @@ see also BoolNotFin2.txt
 
 data Empty : Set {}
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -18,7 +18,7 @@ data Bool2 : Set
 }
 
 data HetEq (A : Set 1)(a : A) : (B : Set 1) -> (b : B) -> Set
-{ hrefl : HetEq A a A a 
+{ hrefl : HetEq A a A a
 }
 
 {- this won't get me far...
@@ -47,7 +47,7 @@ let pBool : P Bool
   = pair true (hrefl)
 
 -- here, we check whether  HetEq Bool2 true2 Bool true  is empty
-fun notPBool2 : P Bool2 -> Empty 
+fun notPBool2 : P Bool2 -> Empty
 { notPBool2 (pair true2  ())
 ; notPBool2 (pair false2 ())
 }

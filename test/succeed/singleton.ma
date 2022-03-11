@@ -3,12 +3,12 @@
 let id : (A : Set) -> (x : A) -> <x : A>
        = \ A -> \ x -> x
 
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; succ : Nat -> Nat
 }
 
-let zero' 
+let zero'
     : <zero : Nat>
     = zero
 
@@ -18,19 +18,19 @@ let succ'
 
 fun pred : [x : Nat] -> <succ x : Nat> -> <x : Nat>
 { pred .x (succ x) = x
-} 
+}
 
 -- the recursive constant zero function
 fun kzero : (x : Nat) -> <zero : Nat>
 { kzero zero     = zero
-; kzero (succ x) = kzero x 
+; kzero (succ x) = kzero x
 }
 -- eta-expansion turns this into the non-recursive
---   kzero x = zero 
+--   kzero x = zero
 
 data IsZero : Nat -> Set
 { isZero : IsZero zero
-} 
+}
 
 let p : (x : Nat) -> IsZero (kzero x)
       = \ x -> isZero
@@ -44,7 +44,7 @@ let p : (x : Nat) -> IsZero (kzero x)
 
 fun pzero : (<zero : Nat> -> Nat) -> Nat -> <zero : Nat>
 { pzero f zero     = zero
-; pzero f (succ x) = kzero (f (pzero f x)) 
+; pzero f (succ x) = kzero (f (pzero f x))
 }
 {- type checking the second clause succees with bidirectional t.c.
    Gamma = f : <zero> -> Nat
@@ -57,7 +57,7 @@ fun pzero : (<zero : Nat> -> Nat) -> Nat -> <zero : Nat>
 
 fun qzero : ((n : Nat) -> IsZero n -> Nat) -> Nat -> <zero : Nat>
 { qzero f zero     = zero
-; qzero f (succ x) = kzero (f (qzero f x) isZero) 
+; qzero f (succ x) = kzero (f (qzero f x) isZero)
 }
 {- type checking the second clause FAILS with bidirectional t.c.
    Gamma = f       : (n : Nat) -> IsZero n -> Nat
@@ -66,7 +66,7 @@ fun qzero : ((n : Nat) -> IsZero n -> Nat) -> Nat -> <zero : Nat>
 
    ? Gamma |- f (qzero f x) isZero : Nat
      ?1 Gamma |- qzero f x : Nat
-     ?2 Gamma |- isZero : IsZero (qzero f x) 
+     ?2 Gamma |- isZero : IsZero (qzero f x)
 
   Here we fail, since we just substituted the value (qzero f x) for n.
   The information qzero f x = 0 is lost.

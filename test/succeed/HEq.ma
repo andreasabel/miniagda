@@ -5,4 +5,4 @@ data HEq [A : Set](a : A) : [B : Set] -> B -> Set
 data HEq' [i : Size][A : Set i](a : A) : [B : Set i] -> B -> Set
 { refl' : HEq' i A a A a
 }
- 
+

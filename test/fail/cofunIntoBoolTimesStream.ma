@@ -1,6 +1,6 @@
 -- 2010-05-19
 
-data Bool : Set 
+data Bool : Set
 { true  : Bool
 ; false : Bool
 }
@@ -11,7 +11,7 @@ data Prod (+ A : Set) (+ B : Set) : Set
 fields fst, snd
 
 sized codata BStr : Size -> Set
-{ cons : [i : Size] -> (head : Bool) -> (tail : BStr i) -> BStr ($ i) 
+{ cons : [i : Size] -> (head : Bool) -> (tail : BStr i) -> BStr ($ i)
 }
 fields head, tail
 

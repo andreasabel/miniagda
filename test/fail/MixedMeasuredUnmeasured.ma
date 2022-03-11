@@ -1,6 +1,6 @@
--- 2010-07-17 
+-- 2010-07-17
 
--- mixing measured functions with unmeasured is illegal, 
+-- mixing measured functions with unmeasured is illegal,
 -- caught by the scope-checker
 
 mutual {

@@ -7,4 +7,4 @@ sized codata Stream (A : Set) : Size -> Set
 
 sized data NotMon (A : Set) : Size -> Set
 { consBla : (i : Size) -> Stream A i -> NotMon A i -> NotMon A ($ i)
-} 
+}

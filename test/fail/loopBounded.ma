@@ -5,7 +5,7 @@ data Unit { unit }
 data Maybe ++(A : Set) { nothing ; just (a : A) }
 
 cofun Nat : +Size -> Set
-{ Nat i = Maybe ([j < i] & Nat j) 
+{ Nat i = Maybe ([j < i] & Nat j)
 }
 pattern zero    = nothing
 pattern suc i n = just (i, n)
@@ -22,7 +22,7 @@ fun loop : [i : Size] -> Nat i -> Unit
 }
 -}
 
-fun wfix : [A : Size -> Set] (f : [i : Size] -> ([j < i] -> A j) -> A i)  
+fun wfix : [A : Size -> Set] (f : [i : Size] -> ([j < i] -> A j) -> A i)
   [i : Size]  -> |i| -> A i
 { wfix A f i = f i (wfix A f)
 }

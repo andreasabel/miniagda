@@ -31,24 +31,24 @@
     \setlength{\itemindent}{\parindent}%
     \setlength{\parsep}{\parskip}%
   }%
-  \item[]}{\end{list}} 
+  \item[]}{\end{list}}
 
 
-\newcommand{\vex}[1]{\overrightarrow{#1}} 
-\newcommand{\ves}[1]{{#1}^{\ast}} 
+\newcommand{\vex}[1]{\overrightarrow{#1}}
+\newcommand{\ves}[1]{{#1}^{\ast}}
 
 \newcommand{\vsp}{\:\vert\:}
 \newcommand{\Set}{\mathsf{Set}}
 \newcommand{\s}{\mathsf{s}\,}
 \newcommand{\Size}{\mathsf{Size}}
-\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow} 
+\newcommand{\EPi}[2]{( #1 : #2 ) \rightarrow}
 \newcommand{\data}{\mathsf{data}\:}
 \newcommand{\sized}{\mathsf{sized}\:}
 \newcommand{\fun}{\mathsf{fun}\:}
 \newcommand{\codata}{\mathsf{codata}\:}
 \newcommand{\cofun}{\mathsf{cofun}\:}
 \newcommand{\clet}{\mathsf{let}\:}
-\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:} 
+\newcommand{\ELet}[3]{\mathsf{let}\: #1 : #2 = #3 \: \mathsf{in}\:}
 \newcommand{\mutual}{\mathsf{mutual}\:}
 \newcommand{\lam}[1]{\lambda\: #1 .\:}
 
@@ -380,12 +380,12 @@ Programmiersprachen: Agda, Epigram.
 \begin{verbatim}
 length :: Lst -> Int
 length [] = 0
-length (x:xs) = 1 + length xs 
+length (x:xs) = 1 + length xs
 \end{verbatim}
 
 \begin{itemize}
 \item
-syntaktisches Kriterium 
+syntaktisches Kriterium
 \item
 Verbesserung: z.B. \emph{size-change principle} (Jones et al.) verwenden
 \end{itemize}
@@ -395,7 +395,7 @@ Verbesserung: z.B. \emph{size-change principle} (Jones et al.) verwenden
 \item
 \verb+xs+ hat Typ \verb+[a] i+
 \item
-\verb+x:xs+ hat Typ \verb-[a] (i ++)-  
+\verb+x:xs+ hat Typ \verb-[a] (i ++)-
 \end{itemize}
 
 \end{frame}
@@ -527,7 +527,7 @@ f\"ur Typen und Terme:
 \Expr \ni & e,A,B & ::= & \lam{x}{e} \\
 & & \mid & \EPi{x}{A}{B} \\
 & & \mid & e \; e_1 \ldots e_n \\
-& & \mid & \ELet{x}{e_1}{A_1}{e_2} \\ 
+& & \mid & \ELet{x}{e_1}{A_1}{e_2} \\
 & &  \mid & \Set \\
 & & \mid & x \mid \cc \mid  \DD \mid \ff \mid \dd \\
 \end{array}
@@ -536,7 +536,7 @@ Patterns:
 \[
 \begin{array}{rlrl}
 \Pat \ni & p & ::= & x \\
-& & \mid & \cc \: \vec{p} \\ 
+& & \mid & \cc \: \vec{p} \\
 & & \mid & \inacc{e} \\
 \end{array}
 \]
@@ -564,7 +564,7 @@ $\clet v : \vVec \Nat (\foo \zero) = \nil \Nat \zero$
 \begin{itemize}
 \item Strukturelle Ordnung:
 \item
-$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor 
+$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor
 \item
 D. Wahlstedt 2007: size-change principle + dependent types
 \end{itemize}
@@ -594,7 +594,7 @@ $\spc \spc \reva \inacc{A} \: a \: (\cons A \: x \: xs) = \reva A \: x \: xs$\\
 \vspace*{0.2cm}
 $\spc \fun \revb : \EPi{A}{\Set}{ A \ra \List A \ra \List A} $\\
 $\spc \spc \revb \inacc{A} \: a \: (\nil A ) = \nil A $\\
-$\spc \spc \revb \inacc{A} \: a \: (\cons A\:  x \: xs) = 
+$\spc \spc \revb \inacc{A} \: a \: (\cons A\:  x \: xs) =
 {\color{blue}\rev} A \: (\cons A \: a \: (
 {\color{blue}\rev} A \: (\revb A \: x \: xs)))$
 \end{bsp}
@@ -638,18 +638,18 @@ $ \spcx {\color{blue}\rev (\suc n)} \: A \: (\cons A \: n \: a \:
 Genauere Typen wie $\vVec$ statt $\List$ helfen bei Terminierung
 \item Filtern von Vektoren : Existentielle Typen
 \[
-\begin{array}{l} 
+\begin{array}{l}
 \fun \filter : (A : \Set ) \ra (p : A \ra \Bool ) \ra (n : \Nat ) \\
 \spcx \ra \vVec A \: n \ra (m : \Nat . (\: \tLeq m \: n \:, \: \vVec A \: m))
 \end{array}
-\] 
+\]
 \item
 oft reicht upper bound. Automatisches Subtyping f\"ur $\Size$:
 \[
-\begin{array}{l} 
+\begin{array}{l}
 \fun \filter : (A : \Set ) \ra (p : A \ra \Bool ) \ra (i : \Size ) \\
-\spcx \ra \List A \: i \ra \List A \: i 
-\end{array}   
+\spcx \ra \List A \: i \ra \List A \: i
+\end{array}
 \]
 \item
 $\Nat$ reicht nicht aus f\"ur ein Objekt vom Typ $\Stream$
@@ -670,7 +670,7 @@ F\"uge den speziellen Typ $\Size$ zu $\mugda$ hinzu!
 \begin{array}{lrll}
 \Expr \ni e,A,B & ::= & \ldots & \\
 & \mid & \Size & \mbox{Size Typ} \\
-& \mid & \s e  & \mbox{Nachfolger}\\ 
+& \mid & \s e  & \mbox{Nachfolger}\\
 & \mid & \infty & \mbox{Limit}\\
 \Pat \ni p & ::= & \ldots & \\
 & \mid & \s p & \\
@@ -679,10 +679,10 @@ F\"uge den speziellen Typ $\Size$ zu $\mugda$ hinzu!
 \dots
 \vspace*{0.2cm}
 \item
-$\s \infty = \infty$ 
+$\s \infty = \infty$
 \vspace*{0.2cm}
 \item
-f\"ur Terminierung: $i < (\s i)$ (Admissibility !) 
+f\"ur Terminierung: $i < (\s i)$ (Admissibility !)
 \end{itemize}
 }
 
@@ -811,7 +811,7 @@ bei rekursiven Funktionen:
 \vspace*{0.3cm}
 \begin{bsp}
 $\fun \bad : \EPi{i}{\Size}{\Bool}$\\
-$\spc \bad (\s i) = \bad i $ 
+$\spc \bad (\s i) = \bad i $
 \end{bsp}
 \vspace*{0.3cm}
 \begin{bsp}
@@ -873,8 +873,8 @@ $\spc \refl : \EPi{a}{A}{\Eq A \: a \: a}$\\
 
 \vspace*{0.3cm}
 \begin{bsp}
-$ \clet \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\ 
-$ \spcx = \lam{y}\refl \Nat y$ 
+$ \clet \prof : \EPi{x}{\Nat}{\Eq \Nat (\add x \: \zero)\: x} $ \\
+$ \spcx = \lam{y}\refl \Nat y$
 \end{bsp}
 
 }
@@ -920,10 +920,10 @@ $ \spc \node : A \ra \List (\Tree A ) \ra \Tree A  $
 
 \[
 \begin{array}{rlrl}
-\Clause \ni & \kappa & ::= & \ff \: \vec{p} = e \\ 
+\Clause \ni & \kappa & ::= & \ff \: \vec{p} = e \\
 & \gamma &  ::= & \cc \: : \: A \\
 & \mu & ::= & \fun \ff : A \: \vec{\kappa} \\
-& \nu & ::= & \cofun \ff : A \: \vec{\kappa} \\ 
+& \nu & ::= & \cofun \ff : A \: \vec{\kappa} \\
 \end{array}
 \]
 
@@ -946,7 +946,7 @@ $ \spc \node : A \ra \List (\Tree A ) \ra \Tree A  $
 & \mid & \cc \mid \ff \mid \DD \\
  \\
 \Env \ni \rho & ::= & \diamond \\
-& \mid & \rho,x = v 
+& \mid & \rho,x = v
 \end{array}
 \]
 }
@@ -962,7 +962,7 @@ $ \spc \node : A \ra \List (\Tree A ) \ra \Tree A  $
 \wh \clp{\EPi{x}{A}{B}}{\rho} &= \vpi \: x \: v_A \: \cl{B}{\rho} \mbox{ mit } v_A = \wh \cl{A}{\rho} \\
 \wh \clp{\ELet{x}{A}{e_1}{e_2}}{\rho} &= \wh \cl{e_2}{\ins{\rho}{x}{v_1}} \mbox { mit } v_1 = \wh \cl{e_1}{\rho} \\
 \wh \clp{e \: e_1 \ldots e_n}{\rho} &= \ap \: v \: v_1 \ldots v_n \mbox{ mit } v = \wh \cl{e}{\rho} , v_i = \wh \cl{e_i}{\rho}\\
-\wh \cl{\Set}{\rho} & = \Set \\ 
+\wh \cl{\Set}{\rho} & = \Set \\
 \wh \cl{\cc}{\rho} & = \cc  \\
 \wh \cl{\ff}{\rho} & = \ff \\
 \wh \cl{\dd}{\rho} & = \wh \cl{e}{\diamond} \mbox{ mit } \: \Sig \: \dd = (e,v_t)\\
@@ -991,7 +991,7 @@ $ \spc \node : A \ra \List (\Tree A ) \ra \Tree A  $
 {
   \frametitle{Bidirektionales Type-Checking}
 
-Ist e vom Typ A ? 
+Ist e vom Typ A ?
 \vspace*{0.2cm}
 \begin{itemize}
 \item
@@ -1016,7 +1016,7 @@ inferiere Typ: \[\Infer{k}{\rho_1}{\rho_2}{e}{v} : \cN \times \Env \times \Env \
 \nru{\chkinf}
 {\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
 \qquad
-{\EqVal{\nF}{k}{v_2}{v_1}}} 
+{\EqVal{\nF}{k}{v_2}{v_1}}}
 {\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
 \]
 \item Gleichheit (mit begrenztem Ausrollen von corekursiven Definitionen)
@@ -1028,7 +1028,7 @@ inferiere Typ: \[\Infer{k}{\rho_1}{\rho_2}{e}{v} : \cN \times \Env \times \Env \
 \item
 Bisimilarit\"at als $\codata$ Pr\"adikat definierbar.
 \item
-\emph{observational equality} (McBride) 
+\emph{observational equality} (McBride)
 \end{itemize}
 }
 
@@ -1055,7 +1055,7 @@ Funktions-Deklaration : jede Klausel einzeln checken etc.
 \item
 $\order = \{ \: ? \: , \: \leq \: , \: < \: \}$
 \item
-$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor 
+$ x < \cc \ldots \: x \: \ldots $ wenn $\cc$ induktiver Konstruktor
 \vspace*{0.2cm}
 \item
 \begin{bsp}
@@ -1101,7 +1101,7 @@ D. Wahlstedt 2007: size-change principle + dependent types
 \begin{array}{lrll}
 \Expr \ni e,A,B & ::= & \ldots & \\
 & \mid & \Size & \mbox{Size Typ} \\
-& \mid & \s e  & \mbox{Nachfolger}\\ 
+& \mid & \s e  & \mbox{Nachfolger}\\
 & \mid & \infty & \mbox{Limit}\\
 \Pat \ni p & ::= & \ldots & \\
 & \mid & \s p & \\
@@ -1112,9 +1112,9 @@ D. Wahlstedt 2007: size-change principle + dependent types
 \end{array}
 \]
 \item
-$\s \infty = \infty$ 
+$\s \infty = \infty$
 \item
-Terminierung: $i < (\s i)$ (Admissibility !) 
+Terminierung: $i < (\s i)$ (Admissibility !)
 \end{itemize}
 }
 
@@ -1136,7 +1136,7 @@ ersetze Regel:
 \nru{\chkinf}
 {\Infer{k}{\rho_1}{\rho_2}{e}{v_2}
 \qquad
-{\LeqVal{\nF}{k}{v_2}{v_1}}} 
+{\LeqVal{\nF}{k}{v_2}{v_1}}}
 {\Check{k}{\rho_1}{\rho_2}{e}{v_1}}
 \]
 \end{itemize}
@@ -1195,12 +1195,12 @@ $\spcx \ra (\SNat \infty \ra\Maybe (\SNat i)) \ra\Bool$\\
 
 $\fun \ff $ mit Typ $t = (a_1 : A_1) \ra \ldots \ra (a_n : A_n) \ra R $.\\
 \vspace*{0.2cm}
-F\"ur jedes $(a_j : A_j)$ der Form $(i : \Size)$: 
+F\"ur jedes $(a_j : A_j)$ der Form $(i : \Size)$:
 \begin{itemize}
 \item
 F\"ur $k>j$, entweder $i$ kommt nicht in  $A_k$ vor oder $A_k$ ist ein \emph{sized inductive type} der Gr\"o\ss e $i$.
 \item
-Der Ergebniss-Typ $R$ ist \emph{monoton} in $i$. 
+Der Ergebniss-Typ $R$ ist \emph{monoton} in $i$.
 \end{itemize}
 \vspace*{0.2cm}
 Ausserdem: Ein Pattern der Form $\s p$ kommt nicht in den Klauseln vor.
@@ -1228,7 +1228,7 @@ F\"ur jedes $(a_j : A_j)$ der Form $(i : \Size)$:
 \item
 Fuer $k>j$, $i$ kommt nicht in  $A_k$ vor.
 \item
-Der Ergebniss-Typ $R$ ist ein ist ein \emph{sized coinductive type} der Gr\"o\ss e $i$. 
+Der Ergebniss-Typ $R$ ist ein ist ein \emph{sized coinductive type} der Gr\"o\ss e $i$.
 \end{itemize}
 \vspace*{0.3cm}
 \dots dann ist $\ff$ \emph{admissible}.
@@ -1279,13 +1279,13 @@ sized data Nat : Size -> Set
   succ : (i : Size ) -> Nat i -> Nat ($ i)
 }
 
-fun addWith : ((k : Size ) -> Nat k -> Nat k ) 
-  -> (i : Size ) -> (j : Size ) 
+fun addWith : ((k : Size ) -> Nat k -> Nat k )
+  -> (i : Size ) -> (j : Size )
   -> Nat i -> Nat j -> Nat #
 {
-  addWith f .($ i) j (zero i) y = y; 
-  addWith f .($ i) j (succ i x) y = 
-     succ # (addWith f j i (f j y) (f i x)) 
+  addWith f .($ i) j (zero i) y = y;
+  addWith f .($ i) j (succ i x) y =
+     succ # (addWith f j i (f j y) (f i x))
 }
 \end{verbatim}
 

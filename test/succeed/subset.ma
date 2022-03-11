@@ -2,11 +2,11 @@
 
 data Subset (A : Set) (P : A -> Set) : Set
 {
-  put : (get : A) -> [P get] -> Subset A P 
+  put : (get : A) -> [P get] -> Subset A P
 }
 
 data Nat : Set
-{ 
+{
   zero : Nat;
   succ : Nat -> Nat
 }
@@ -24,14 +24,14 @@ data Eq (A : Set)(a : A) : A -> Set
   refl : Eq A a a
 }
 
-let OddN : Set 
+let OddN : Set
          = Subset Nat Odd
 
 let one  : Nat
          = succ zero
 
 let three : Nat
-          = succ (succ one) 
+          = succ (succ one)
 
 let o3   : OddN
          = put three odd3
@@ -40,4 +40,4 @@ let o3'  : OddN
          = put three (oddSS one odd1)
 
 let p    : Eq OddN o3 o3'
-         = refl 
+         = refl

@@ -1,11 +1,11 @@
 sized codata CoNat : Size -> Set
-{ zero : [i : Size] -> CoNat ($ i) 
-; succ : [i : Size] -> CoNat i -> CoNat ($ i)  
+{ zero : [i : Size] -> CoNat ($ i)
+; succ : [i : Size] -> CoNat i -> CoNat ($ i)
 }
 
 sized codata CoNatEq : (i : Size) -> CoNat i -> CoNat i -> Set
 { eqz : [i : Size] -> CoNatEq ($ i) (zero i) (zero i)
-; eqs : [i : Size] -> (n : CoNat i) -> (m : CoNat i) -> 
+; eqs : [i : Size] -> (n : CoNat i) -> (m : CoNat i) ->
    CoNatEq i n m -> CoNatEq ($ i) (succ i n) (succ i m)
 }
 
@@ -37,19 +37,19 @@ cofun addmult : [i : Size] -> CoNat # -> CoNat i -> CoNat i
 
 -- pexp m n = (n+1)^m - 1
 -- pexp 0     n     = 0
--- pexp (m+1) 0     = 0 
--- pexp (m+1) 1     = 2^(m+1) - 1 -- ??? 
+-- pexp (m+1) 0     = 0
+-- pexp (m+1) 1     = 2^(m+1) - 1 -- ???
 -- pexp (m+1) (n+2) = 1 + n + (n+2) * pexp m (n+2)
 -- (n + 2)^(m + 1) = (n+2) * (n+2) ^ m = (n+2) ^ m + n * (n+1) ^ m
 {-
 cofun exp : [i : Size] -> CoNat i -> CoNat i -> CoNat i
 { exp ($ i) (zero .i  ) n           = succ i (zero i)
 ; exp ($ i) (succ .i m) (zero .i)   = zero i
-; exp ($ i) (succ .i m) (succ .i n) = succ i (case i 
+; exp ($ i) (succ .i m) (succ .i n) = succ i (case i
   { ($ j) -> case n of
     { (zero .j) ->
     ; (succ .j n) ->
-    } 
+    }
    })
 }
 

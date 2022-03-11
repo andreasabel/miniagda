@@ -1,4 +1,4 @@
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc  : Nat -> Nat
 }

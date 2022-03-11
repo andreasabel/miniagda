@@ -15,7 +15,7 @@ data Empty : Set
 
 -- magic = abort  does not need the inhabitant p : Empty
 fun magic : [A : Set] -> [p : Empty] -> A
-{ 
+{
 }
 
 data Unit : Set

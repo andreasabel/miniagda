@@ -9,7 +9,7 @@ data Nat : Set
 }
 
 sized data List : Size -> Set
-{ nil  : (i : Size) -> List ($ i)  
+{ nil  : (i : Size) -> List ($ i)
 ; cons : (i : Size) -> Nat -> List i -> List ($ i)
 }
 
@@ -24,6 +24,6 @@ mutual {
   }
   fun merge_aux : (i : Size) -> Nat -> List i -> (j : Size) -> Nat -> List j -> Bool -> List #
   { merge_aux i x xs j y ys true  = cons # x (merge i xs ($ j) (cons j y ys))
-  ; merge_aux i x xs j y ys false = cons # y (merge ($ i) (cons i x xs) j ys) 
+  ; merge_aux i x xs j y ys false = cons # y (merge ($ i) (cons i x xs) j ys)
   }
 }

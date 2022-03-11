@@ -7,7 +7,7 @@ data Unit : Set
 
 data Bool : Set
 { true  : Bool
-; false : Bool 
+; false : Bool
 }
 
 fun T : Bool -> Set
@@ -22,11 +22,11 @@ let app : (A : Set) -> (B : Set) -> (A -> B) -> A -> B
         = \ A -> \ B -> \ f -> \ x -> f x
 
 let bla : Bool -> Unit
-  = \ b -> case b 
-           { true -> case b 
+  = \ b -> case b
+           { true -> case b
              { true -> unit
-             ; false -> id (T true) unit 
+             ; false -> id (T true) unit
              }
            ; false -> unit
-           }  
+           }
 

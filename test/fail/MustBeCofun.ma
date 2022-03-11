@@ -1,6 +1,6 @@
 -- 2010-08-18
 
-sized codata CoList (A : Set) : Size -> Set 
+sized codata CoList (A : Set) : Size -> Set
 { conil  : [i : Size] -> CoList A $i
 ; cocons : [i : Size] -> A -> CoList A i -> CoList A $i
 }

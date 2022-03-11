@@ -16,6 +16,6 @@ fun pred : [i : Size] -> (x : Nat ($ i)) -> Pred i x
 {- DOES NOT WORK
 fun minus : [i : Size] -> Nat i -> Nat # -> Nat i
 { minus i n (zero .#) = n
-; minus i n (succ .# m) = minus i (pred i n) m 
+; minus i n (succ .# m) = minus i (pred i n) m
 }
 -}

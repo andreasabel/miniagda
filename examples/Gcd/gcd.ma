@@ -6,7 +6,7 @@ sized data Nat : Size -> Set
 }
 
 data MinDiff : +Size -> +Size -> Set
-{ pair : [i : Size] -> (min : Nat i) -> 
+{ pair : [i : Size] -> (min : Nat i) ->
          [j : Size] -> (diff : Nat j) -> MinDiff i j
 } fields min, diff
 
@@ -18,9 +18,9 @@ fun minDiff : [i : Size] -> Nat i -> [j < i] -> Nat j -> MinDiff j i
 { minDiff i (zero (k < i))  j (zero (l < j))   = pair j (zero l) i (zero l)
 ; minDiff i (zero (k < i))  j (suc  (l < j) m) = pair j (zero l) i (suc l m)
 ; minDiff i n               j (zero (l < j))   = pair j (zero l) i n
-; minDiff i (suc (k < i) n) j (suc  (l < j) m) = 
+; minDiff i (suc (k < i) n) j (suc  (l < j) m) =
     sucMD l (max k j) (minDiff (max k j) n l m)
-} 
+}
 
 {-
 fun gcd : [i : Size] -> Nat i -> Nat i -> Nat i

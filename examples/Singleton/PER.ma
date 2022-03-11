@@ -3,7 +3,7 @@
 
 let prop : Set 1 = Set 0
 
-data PER : Set 1 
+data PER : Set 1
 { per : (S : Set 0) ->
         (R : S -> S -> prop) ->
         (sym : (x, y : S) -> R x y -> R y x) ->

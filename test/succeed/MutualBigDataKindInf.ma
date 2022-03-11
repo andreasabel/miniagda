@@ -2,7 +2,7 @@
 
 data Unit : Set { unit : Unit }
 mutual {
-  
+
   data MaybeBig : Set 1
   { Nothing : MaybeBig
   ; Just    : Unit -> Big -> MaybeBig
@@ -17,4 +17,4 @@ mutual {
 fun Maybe : MaybeBig -> Set -> (Set -> Set) -> Set
 { Maybe Nothing A F = A
 ; Maybe (Just u B) A F = F (BigOut B)
-} 
+}

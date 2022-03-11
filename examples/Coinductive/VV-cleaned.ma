@@ -21,7 +21,7 @@ CoInductive trace: Type :=
 -}
 
 -- "trace" is the type of colists over A
-sized codata CoList : Size -> Set 
+sized codata CoList : Size -> Set
 { tnil  : [i : Size] -> CoList $i
 ; tcons : [i : Size] -> A -> CoList i -> CoList $i
 }
@@ -31,7 +31,7 @@ CoInductive repet (s : A) : Prop :=
  | repet_S : S s -> repet s
  | repet_R : forall s', R s s' -> repet s' -> repet s.
 -}
- 
+
 -- "repet" is what I call "Reach"
 sized codata Reach *(a : A) : Size -> Set
 { start : [i : Size] -> S a -> Reach a $i
@@ -50,20 +50,20 @@ CoInductive repet1 (s : A) : trace -> Prop :=
 -- "repet1"
 sized codata Traced *(a : A) : (i : Size) -> CoList i -> Set
 { tstart : [i : Size] -> S a -> Traced a $i (tnil i)
-; tstep  : [i : Size] -> (a' : A) -> (t : CoList i) ->  R a a' -> 
+; tstep  : [i : Size] -> (a' : A) -> (t : CoList i) ->  R a a' ->
     Traced a' i t -> Traced a $i (tcons i a' t)
 }
 
 -- tuple type with bimap
-data Exists (X : Set) (Y : X -> Set) : Set 
+data Exists (X : Set) (Y : X -> Set) : Set
 { pair : (fst : X) -> (snd : Y fst) -> Exists X Y
 } fields fst, snd
 
 fun map2 : (X, X' : Set) -> (Y : X -> Set) -> (Y' : X' -> Set) ->
-  (f : X -> X') -> (g : (x : X) -> Y x -> Y' (f x)) -> 
+  (f : X -> X') -> (g : (x : X) -> Y x -> Y' (f x)) ->
   Exists X Y -> Exists X' Y'
 { map2 X X' Y Y' f g (pair x y) = pair (f x) (g x y)
-} 
+}
 
 {-
 Goal  forall s, repet s -> exists t, repet1 s t.
@@ -72,22 +72,22 @@ Goal  forall s, repet s -> exists t, repet1 s t.
 let tcons_ : [i : Size] -> A -> CoList i -> CoList $i
   = \ i a as -> tcons i a as
 
-let tstep_ : (a : A) -> [i : Size] -> (a' : A) -> (t : CoList i) -> 
+let tstep_ : (a : A) -> [i : Size] -> (a' : A) -> (t : CoList i) ->
     R a a' -> Traced a' i t -> Traced a $i (tcons i a' t)
   = \ a i a' t r tr -> tstep i a' t r tr
 
 cofun trace : [i : Size] -> (a : A) -> Reach a i -> Exists (CoList i) (Traced a i)
-{ trace ($i) a (start .i s) = 
-    pair -- (CoList $i) (Traced a $i) 
-      (tnil i) 
+{ trace ($i) a (start .i s) =
+    pair -- (CoList $i) (Traced a $i)
+      (tnil i)
       (tstart i s)
 ; trace ($i) a (step .i a' r x) =
     map2 (CoList i) (CoList $i)
-         (Traced a' i) (Traced a $i)    
+         (Traced a' i) (Traced a $i)
          (tcons_ i a')
          (\ t -> tstep_ a i a' t r)
          (trace i a' x)
-}      
+}
 
 {-
 I expect that it requires classical reasoning & the axiom of choice,

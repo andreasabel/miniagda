@@ -30,6 +30,6 @@ fun addSize : N -> Size -> Size
 
 fun addSNat : (n : N) -> (i : Size) -> Nat i -> Nat (addSize n i)
 { addSNat zz     i m = m
-; addSNat (ss n) i m = succ (addSize n i) (addSNat n i m) 
+; addSNat (ss n) i m = succ (addSize n i) (addSNat n i m)
 }
 

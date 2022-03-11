@@ -1,7 +1,7 @@
 
 data Nat : Set {
   zero : Nat;
-  succ : Nat -> Nat 
+  succ : Nat -> Nat
 }
 
 let n0 : Nat = zero
@@ -14,7 +14,7 @@ let n4 : Nat = succ n3
 sized codata Stream (+ A : Set) : Size -> Set {
   cons : (i : Size) -> A -> Stream A i -> Stream A ($ i)
 }
- 
+
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
   tail A i (cons .i x xs) = xs

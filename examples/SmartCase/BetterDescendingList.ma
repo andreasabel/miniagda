@@ -2,10 +2,10 @@
 
 data Bool : Set
 { true  : Bool
-; false : Bool 
+; false : Bool
 }
 
-data Nat : Set 
+data Nat : Set
 { zero : Nat
 ; suc  : Nat -> Nat
 }
@@ -56,7 +56,7 @@ fun reflexive : (n : Nat) -> Leq n n    -- < triv : Leq n n > -- does not type c
 ; reflexive (suc n) = reflexive n
 } -- n is in fact irrelevant, but this is another analysis...
 
-fun transitive : (k, l, m : Nat) -> [Leq k l] -> [Leq l m] -> Leq k m 
+fun transitive : (k, l, m : Nat) -> [Leq k l] -> [Leq l m] -> Leq k m
 { transitive (suc k)  zero    m      () q
 ; transitive  k      (suc l)  zero   p ()
 ; transitive  zero    zero    m      p q = triv
@@ -66,18 +66,18 @@ fun transitive : (k, l, m : Nat) -> [Leq k l] -> [Leq l m] -> Leq k m
 
 -- sorted list (descendingly)
 
-data SList *(bound : Nat) : Set  -- bound is the thing we will add next 
+data SList *(bound : Nat) : Set  -- bound is the thing we will add next
 { snil  : SList bound
-; scons : (shead : Nat) ->   
-          [True (leq shead bound)] -> 
-          (stail : SList shead) -> 
+; scons : (shead : Nat) ->
+          [True (leq shead bound)] ->
+          (stail : SList shead) ->
           SList bound
-} 
+}
 
 -- maximum and its properties
 
 fun maxN : Nat -> Nat -> Nat
-{ maxN n m = case leq n m 
+{ maxN n m = case leq n m
   { true -> m
   ; false -> n
   }
@@ -85,14 +85,14 @@ fun maxN : Nat -> Nat -> Nat
 
 fun maxBelow : (n : Nat) -> (m : Nat) -> (k : Nat) ->
               Leq n k -> Leq m k -> Leq (maxN n m) k
-{ maxBelow n m k p q = case leq n m 
+{ maxBelow n m k p q = case leq n m
   { true  -> q
   ; false -> p
-  } 
+  }
 }
 
 fun rLeqMax : (n, m : Nat) -> Leq m (maxN n m)
-{ rLeqMax n m = case leq n m 
+{ rLeqMax n m = case leq n m
   { true  -> reflexive m
   ; false -> leFalse n m triv'
   }
@@ -100,7 +100,7 @@ fun rLeqMax : (n, m : Nat) -> Leq m (maxN n m)
 
 {-
 fun maxAbove : (k, m, n : Nat) -> False (leq k m) -> Leq k n -> Leq k (maxN n m)
-{ maxAbove k m n p q = case leq n m 
+{ maxAbove k m n p q = case leq n m
   { true  -> contradiction (leq k m) (transitive k n m q triv) p (Leq k (maxN n m))
   ; false -> q
   }
@@ -108,7 +108,7 @@ fun maxAbove : (k, m, n : Nat) -> False (leq k m) -> Leq k n -> Leq k (maxN n m)
 -}
 
 fun maxAbove : (k, m, n : Nat) -> Leq k n -> Leq k (maxN n m)
-{ maxAbove k m n p = case leq n m 
+{ maxAbove k m n p = case leq n m
   { true  -> transitive k n m p triv
   ; false -> p
   }
@@ -121,7 +121,7 @@ fun maxAbove : (k, m, n : Nat) -> Leq k n -> Leq k (maxN n m)
 --   n = bound of list l
 fun insert : (m : Nat) -> [n : Nat] -> SList n -> SList (maxN n m)
 { insert m n snil = scons {- (maxN n m) -} m (rLeqMax n m) snil
-; insert m n (scons k p l) = case leq k m 
+; insert m n (scons k p l) = case leq k m
   { true  -> scons {- (maxN n m) -} m (rLeqMax n m) (scons k triv l)
   ; false -> -- leq k m == false, p : leq k n == true, need k <= maxN n m
              scons {- (maxN n m) -} k (maxAbove k m n p)
@@ -131,12 +131,12 @@ fun insert : (m : Nat) -> [n : Nat] -> SList n -> SList (maxN n m)
 
 -- termination check fails, need different reduction strategy with case
 fail fun insert' : (m : Nat) -> [n : Nat] -> SList n -> SList (maxN n m)
-{ insert' m n l = 
+{ insert' m n l =
   let [nm     : Nat     ] = maxN    n m in
   let [mLeqnm : Leq m nm] = rLeqMax n m in
-  case l 
+  case l
   { (snil) -> scons m mLeqnm snil
-  ; (scons k p l) -> case leq k m 
+  ; (scons k p l) -> case leq k m
     { true    -> scons m mLeqnm (scons m k triv l)
     ; false   -> -- leq k m == false, p : leq k n == true, need k <= maxN n m
                  scons k (maxAbove k m n p) (insert' m k l)

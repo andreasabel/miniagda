@@ -12,19 +12,19 @@ fields fst, snd
 data Eq (i : Size)(A : Set i)(a : A) : A -> Set i
 { refl : Eq i A a a }
 
--- if I put trustme here, it says it ignored an error, but 
+-- if I put trustme here, it says it ignored an error, but
 -- without trustme there is no error !?
-fun D : [A : Set] -> (p1, p2 : Prod A A) -> 
+fun D : [A : Set] -> (p1, p2 : Prod A A) ->
         Eq 0 A (fst p1) (fst p2) -> Set 1
-{ D A (pair x y) (pair .x y') (refl) = Set 
+{ D A (pair x y) (pair .x y') (refl) = Set
 }  -- miniagda has problem typechecking this !?
 
-fun prf : [A : Set] -> (p : Prod A A) -> 
+fun prf : [A : Set] -> (p : Prod A A) ->
           Eq 2 (Set 1) (D A p p (refl {- 0 A (fst A A p) -})) Set
 { prf A p = refl -- 2 (Set 1) Set
 }
 
-{- 
+{-
 
 * At the moment I remove dot patterns inside record patterns. This seems
  like a bad idea. Consider the following example:

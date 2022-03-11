@@ -18,4 +18,4 @@ data Exp : Set -> Set 1
 { nat  : Nat  -> Exp Nat
 ; bool : Bool -> Exp Bool
 ; tup  : (A, B : Set) -> Pair A B -> Exp (Pair A B)
-} 
+}

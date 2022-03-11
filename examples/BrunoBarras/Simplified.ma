@@ -9,7 +9,7 @@ trustme data Wrap [A : Set] : Set
 }
 fields unwrap
 
-let wrap_ : [A : Set] -> A -> Wrap A 
+let wrap_ : [A : Set] -> A -> Wrap A
   = \ A a -> wrap a
 
 let foo : Wrap False = wrap_ True trivial

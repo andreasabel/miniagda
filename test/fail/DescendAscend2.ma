@@ -8,7 +8,7 @@ fun plus : Nat -> Nat -> Nat {}
 mutual {
 
   fun f : Nat -> Nat -> Nat
-  { 
+  {
     f (succ n) m = f n (succ m) ; -- ADDING THIS LINE leads to success??
     f (succ (succ (succ n))) m = plus (m) (g n n)
   }

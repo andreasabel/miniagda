@@ -3,8 +3,8 @@
    M below) does not allow to express the precise sizes in a deep
    match involving a limit ordinal (see L below).  From this I could
    construct a non-looping term in MiniAgda.
- 
-   2010-03-09  
+
+   2010-03-09
    This file tests whether the loop is still accepted after the fix.
  -}
 
@@ -42,22 +42,22 @@ let pre : [i : Size] -> (Nat -> O ($ ($ i))) -> Nat -> O ($ i)
     ; (S .($ i) x) -> x
     ; (L .($ i) g) -> g n
     ; (M .($ i) a b) -> a
-    } 
+    }
 
 fun deep : [i : Size] -> O i -> Nat -> Nat
-{ deep i4 
-   (M (i4 > i3) 
-        (L (i3 > j2) f) 
-        (S (i3 > i2)  
-             (S (i2 > i1) 
+{ deep i4
+   (M (i4 > i3)
+        (L (i3 > j2) f)
+        (S (i3 > i2)
+             (S (i2 > i1)
                   (S (i1 > i) x)))) n                        -- illtyped! vv
   = deep (max ($$$ i) ($$ j2)) (M (max ($$ i) ($ j2)) (L ($ i) (pre ($$ i) f)) (S j2 (f n))) (succ (succ (succ n)))
       --   8          9        10        11       12
-; deep i x n = n   
+; deep i x n = n
 }
 
 
-let four : Nat 
+let four : Nat
   = succ (succ (succ (succ zero)))
 
 eval let loop : Nat = deep # (M # (L # emb) (emb four)) four

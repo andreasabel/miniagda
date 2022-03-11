@@ -1,7 +1,7 @@
 
 data Nat : Set {
   zero : Nat;
-  succ : Nat -> Nat 
+  succ : Nat -> Nat
 }
 
 fun add : Nat -> Nat -> Nat {
@@ -12,7 +12,7 @@ fun add : Nat -> Nat -> Nat {
 sized codata Stream (+ A : Set) : Size -> Set {
   cons : (i : Size) -> A -> Stream A i -> Stream A ($ i)
 }
- 
+
 fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 {
   tail A i (cons .i x xs) = xs
@@ -20,10 +20,10 @@ fun tail : (A : Set) -> (i : Size) -> Stream A ($ i) -> Stream A i
 
 cofun zipWith : (A : Set) -> (B : Set) -> (C : Set) ->
                 (A -> B -> C) -> (i : Size) ->
-		Stream A i -> Stream B i -> Stream C i 
+                Stream A i -> Stream B i -> Stream C i
 {
-  zipWith A B C f ($ i) (cons .i a as) (cons .i b bs) = 
-	cons i (f a b)  (zipWith A B C f i as bs) 
+  zipWith A B C f ($ i) (cons .i a as) (cons .i b bs) =
+        cons i (f a b)  (zipWith A B C f i as bs)
 }
 
 let n0 : Nat = zero

@@ -9,7 +9,7 @@ data Nat : Set
 }
 
 data List : Set
-{ nil  : List 
+{ nil  : List
 ; cons : Nat -> List -> List
 }
 
@@ -24,6 +24,6 @@ mutual {
   }
   fun merge_aux : Nat -> List -> List -> Nat -> List -> List -> Bool -> List
   { merge_aux x xs xxs y ys yys true  = cons x (merge xs yys)
-  ; merge_aux x xs xxs y ys yys false = cons y (merge xxs ys) 
+  ; merge_aux x xs xxs y ys yys false = cons y (merge xxs ys)
   }
 }

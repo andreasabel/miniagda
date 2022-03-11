@@ -11,9 +11,9 @@ fun everyOther : [A : Set] -> List A -> List A
 ; everyOther A (cons a (cons a' as)) = cons a (everyOther A as)
 }
 
-fun zeroOneMany : [A : Set] -> List A -> [C : Set] -> 
+fun zeroOneMany : [A : Set] -> List A -> [C : Set] ->
   C ->                       -- zero
-  (A -> C) ->                -- one 
+  (A -> C) ->                -- one
   (A -> A -> List A -> C) -> -- many
   C
 { zeroOneMany A nil                   C zero one many = zero
@@ -23,8 +23,8 @@ fun zeroOneMany : [A : Set] -> List A -> [C : Set] ->
 
 fail -- termination check fails
 fun everyOther : [A : Set] -> List A -> List A
-{ everyOther A l = zeroOneMany A l (List A) 
+{ everyOther A l = zeroOneMany A l (List A)
     nil
     (\ a       -> nil)
-    (\ a a' as -> cons a (everyOther A as)) 
+    (\ a a' as -> cons a (everyOther A as))
 }

@@ -15,14 +15,14 @@ Variable App : forall [A] [B], Pi A B -> forall (x:A), B x.
 -}
 
 {-
-fun Pi  : [i : Size] -> [A : Set i] -> (A -> Set i) -> Set i 
+fun Pi  : [i : Size] -> [A : Set i] -> (A -> Set i) -> Set i
 {}
-fun Lam : [i : Size] -> [A : Set i] -> [B : A -> Set i] -> 
-          ((x : A) -> B x) -> Pi i A B 
+fun Lam : [i : Size] -> [A : Set i] -> [B : A -> Set i] ->
+          ((x : A) -> B x) -> Pi i A B
 {}
-fun App : [i : Size] -> [A : Set i] -> [B : A -> Set i] -> 
+fun App : [i : Size] -> [A : Set i] -> [B : A -> Set i] ->
           Pi i A B -> (x : A) -> B x
-{}           
+{}
 -}
 
 -- this declaration fails, A cannot appear in constructor if its marked erased
@@ -33,14 +33,14 @@ fail data Pi [A : Set](B : A -> Set) : Set
 
 -- but let's assume we could have it
 
-fun Pi  : [A : Set] -> (A -> Set) -> Set 
+fun Pi  : [A : Set] -> (A -> Set) -> Set
 {}
-fun Lam : [A : Set] -> [B : A -> Set] -> 
-          ((x : A) -> B x) -> Pi A B 
+fun Lam : [A : Set] -> [B : A -> Set] ->
+          ((x : A) -> B x) -> Pi A B
 {}
-fun App : [A : Set] -> [B : A -> Set] -> 
+fun App : [A : Set] -> [B : A -> Set] ->
           Pi A B -> (x : A) -> B x
-{}           
+{}
 
 {-
 (* F is a predicate False on domain A (implicit) *)
@@ -94,6 +94,6 @@ Inductive F [A:Type] (P:A->Prop) : Prop := f : (forall (x:A), P x) -> F A P.
 
 -- MiniAgda allows "E"
 
-data Id [A : Set](a : A) : A -> Set 
+data Id [A : Set](a : A) : A -> Set
 { refl : Id A a a
 }
