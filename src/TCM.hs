@@ -431,15 +431,6 @@ cxtApplyDec :: Dec -> SemCxt -> SemCxt
 cxtApplyDec dec delta = delta { upperDecs = Map.map (compDec dec) (upperDecs delta) }
 -- cxtApplyDec dec delta =  delta { decs = Map.map (fmap $ invCompDec dec) (decs delta) }
 
-{- RETIRED, use cxtApplyDec instead
--- clear all "erased" flags (see Pfenning, LICS 2001)
--- UPDATE: resurrection sets "target" status to erased
---         (as opposed to setting "source" status to non-erased)
-cxtResurrect :: SemCxt -> SemCxt
-cxtResurrect delta = delta { upperDecs = Map.map (\ dec -> dec { erased = True}) (upperDecs delta) }
--- cxtResurrect delta = delta { decs = Map.map (fmap resurrectDec) (decs delta) }
--}
-
 -- manipulating the context ------------------------------------------
 
 {-

@@ -33,7 +33,6 @@ import Value
 import TCM
 import Eval
 import Extract
--- import SPos (nocc) -- RETIRED
 -- import CallStack
 import PrettyTCM
 import TraceError
@@ -712,21 +711,6 @@ checkTarget d dv tel tg = do
         leqVals' N mixed (One dv) (take (size tel) vs) telvs
       return ()
     _ -> throwErrorMsg $ "constructor should produce something in data type " ++ show d
-
-{- RETIRED (syntactic check)
-checkTarget :: Name -> Telescope -> Type -> TypeCheck ()
-checkTarget d tel tg =
-    case spineView tg of
-      (Def (DefId Dat n), args) | n == d -> checkParams tel (take (length tel) args)
-      _ -> throwErrorMsg $ "target mismatch"  ++ show tg
-
-    where checkParams :: Telescope -> [Expr] -> TypeCheck ()
-          checkParams [] [] = return ()
-          checkParams (tb : tl) ((Var n') : el) | boundName tb == n'
-            = checkParams tl el
-          checkParams tl al = throwErrorMsg $ "target param mismatch " ++
-            d ++ " " ++ show tel ++ " != " ++ show tg ++ "\ncheckParams " ++ show tl ++ " " ++ show al ++ " failed"
--}
 
 -- check that params are types
 -- check that arguments are stypes
@@ -2151,22 +2135,6 @@ Only a size variable matches a size arguments
   yield  x : Nat, xs : List j, cons j x xs : List ($ j)
   check  List ($ j) <= List i
  -}
-
-{- RETIRED
--- checkDot does not need to extract
-checkDot :: Substitution -> DotFlex -> TypeCheck ()
-checkDot subst (i,(e,it)) = enter ("dot pattern " ++ show e) $
-  case (lookup i subst) of
-    Nothing -> throwErrorMsg $ "not instantiated"
-    Just v -> do
-      tv <- substitute subst (typ it)
-      ask >>= \ ce -> traceCheckM ("checking dot pattern " ++ show ce ++ " |- " ++ show e ++ " : " ++ show (decor it) ++ " " ++ show tv)
-      applyDec (decor it) $ do
-        checkExpr e tv
-        v' <-  whnf' e -- TODO: has subst erased terms?
-        enter ("inferred value " ++ show v ++ " does not match given dot pattern value " ++ show v') $
-          eqVal Pos tv v v'
--}
 
 -- checkDot does not need to extract
 -- 2012-01-25 now we do since "extraction" turns also con.terms into records

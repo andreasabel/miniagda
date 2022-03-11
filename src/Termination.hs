@@ -711,11 +711,6 @@ groupCalls [] _ = []
 groupCalls (n:nl) cl = (n, [ c | c <- cl , (source c == n) ]) : groupCalls nl cl
 -}
 
-{-
-ccFunDecl :: [ ( TypeSig,[Clause]) ] -> [Call]
-ccFunDecl funs = complete $ collectCGFunDecl funs
--}
-
 collectCGFunDecl :: (?cutoff :: Int) => [(Name,Arity)] -> [Fun] -> [Call]
 collectCGFunDecl names funs =
       concatMap (collectClauses names) funs
@@ -728,18 +723,6 @@ collectCGFunDecl names funs =
               traceTerm ("collecting calls in " ++ show rhs) $
                 (collectCallsExpr names n pl rhs) ++ (collectClause names n rest)
             collectClause names n [] = []
-
-{- RETIRED
-arity :: [Clause] -> Int
-arity [] = 0
-arity (Clause pl e:l) = length pl
--}
-
-{- RETIRED (map)
-collectNames :: [Fun] -> [(Name,Arity)]
-collectNames [] = []
-collectNames (Fun (TypeSig n _) ar cls : rest) = (n,ar) : (collectNames rest)
--}
 
 -- | harvest i > j  from  case i { $ j -> ...}
 tsoCase :: TSO Name -> Expr -> [Clause] -> TSO Name
