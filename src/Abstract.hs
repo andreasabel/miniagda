@@ -1837,7 +1837,7 @@ instance InjectiveVars Expr where
     (Var name            , []) -> Set.singleton name
     (Def (DefId DatK{} _), es) -> injectiveVars es
     (Def (DefId ConK{} _), es) -> injectiveVars es
-    (Record ri rs        , []) -> Set.unions $ List.map (injectiveVars . snd) rs
+    (Record _ri rs       , []) -> Set.unions $ List.map (injectiveVars . snd) rs
     (Succ e              , []) -> injectiveVars e
     (Lam _ x e           , []) -> Set.delete x (injectiveVars e)
     (Quant _ ta b , []) -> injectiveVars ta `Set.union` (injectiveVars b Set.\\ boundVars ta)
@@ -1849,7 +1849,7 @@ instance InjectiveVars Expr where
     _                         -> Set.empty
 
 classifyFields :: Co -> Name -> Type -> [FieldInfo]
-classifyFields co dataName ty = List.map (classifyField fvs) $ telescope tele
+classifyFields _co _19dataName ty = List.map (classifyField fvs) $ telescope tele
   where (tele, core) = typeToTele ty
         fvs = freeVars core
         ivs = injectiveVars core
@@ -1966,7 +1966,7 @@ reassembleConstructorType :: ConstructorInfo -> Type
 reassembleConstructorType ci = buildPi (cFields ci) where
   buildPi [] = cTyCore ci
   buildPi (f:fs) = pi (TBind (fName f) $ Domain (fType f) defaultKind (decor (fDec f) (fClass f))) $ buildPi fs
-    where decor dec Index = irrelevantDec -- DONE: SWITCH ON!
+    where decor _   Index = irrelevantDec -- DONE: SWITCH ON!
           decor dec _     = dec
 
 -- Pattern inductive families ----------------------------------------
@@ -1988,7 +1988,7 @@ isPatIndFam numPars= mapM (\ tysig ->
 --   Gamma -> D ps
 -- and returns the list ps of patterns if it is the case
 isPatIndFamC :: Expr -> Writer All [Pattern]
-isPatIndFamC (Def id) = return []
+isPatIndFamC (Def _) = return []
 isPatIndFamC (App f e) = do
   ps <- isPatIndFamC f
   p  <- exprToDotPat' e
@@ -2006,30 +2006,30 @@ isPatIndFamC _ = tell (All False) >> return []
 -- TreeShapedOrder
 tsoFromPatterns :: [Pattern] -> TSO Name
 tsoFromPatterns ps = TSO.fromList $ List.concat $ List.map loop ps where
-  loop (SizeP (Var father) son) = [(son,(1,father))]
+  loop (SizeP (Var father) son)        = [(son,(1,father))]
   loop (SizeP (Succ (Var father)) son) = [(son,(0,father))]
-  loop (SizeP e      son) = []
-  loop (ConP _ _ ps)      = List.concat $ List.map loop ps
-  loop (PairP p p')       = loop p ++ loop p'
-  loop (SuccP   p)        = loop p
-  loop (ErasedP p)        = loop p
-  loop ProjP{}            = []
-  loop VarP{}             = []
-  loop DotP{}             = []
-  loop UnusableP{}        = []
+  loop (SizeP{})                       = []
+  loop (ConP _ _ ps)                   = List.concat $ List.map loop ps
+  loop (PairP p p')                    = loop p ++ loop p'
+  loop (SuccP   p)                     = loop p
+  loop (ErasedP p)                     = loop p
+  loop ProjP{}                         = []
+  loop VarP{}                          = []
+  loop DotP{}                          = []
+  loop UnusableP{}                     = []
 
 -- for non-dot patterns, patterns overlap if one matches against the other
 -- infinity size is represented as (DotP Infty)
 -- I reprogram it here, since it does not need a monad
 overlap :: Pattern -> Pattern -> Bool
-overlap (VarP _) p' = True
-overlap p (VarP _)  = True
+overlap (VarP _) _ = True
+overlap _ (VarP _) = True
 overlap (ConP _ c ps) (ConP _ c' ps') = c == c' && overlaps ps ps' -- only source of non-overlap
 overlap (PairP p1 p2) (PairP p1' p2') = overlaps [p1,p2] [p1',p2']
 overlap (ProjP n) (ProjP n') = n == n' -- another source of non-overlap
 -- size patterns always overlap
-overlap (SuccP p) _ = True
-overlap _ (SuccP p) = True
+overlap (SuccP _) _ = True
+overlap _ (SuccP _) = True
 overlap SizeP{} _   = True
 overlap _ SizeP{}   = True
 -- dot patterns always overlap (safe approximation)
@@ -2094,7 +2094,7 @@ exprToDotPat' e = do
 
 patternToExpr :: Pattern -> Expr
 patternToExpr (VarP n)       = Var n
-patternToExpr (SizeP m n)    = Var n
+patternToExpr (SizeP _m n)   = Var n
 patternToExpr (ConP pi n ps) = List.foldl App (con (coPat pi) n) (List.map patternToExpr ps)
 -- patternToExpr (ConP co n ps) = Con co n `App` (List.map patternToExpr ps)
 patternToExpr (PairP p p')   = Pair (patternToExpr p) (patternToExpr p')
@@ -2137,7 +2137,7 @@ isSuccessorPattern _ = False
 
 isSuccessor :: Expr -> Bool
 isSuccessor (Ann e)  = isSuccessor (unTag e)
-isSuccessor (Succ e) = True
+isSuccessor (Succ _) = True
 isSuccessor _        = False
 
 shallowSuccP :: Pattern -> Bool
@@ -2177,7 +2177,7 @@ typeToTele' k t = mapFst Telescope $ ttt k t []
       ttt :: Int -> Type -> [TBind] -> ([TBind], Type)
 --      ttt k (Quant Pi htel tb t2) tel | k /= 0 = ttt (k-1) t2 (telescope htel ++ tb : tel)
       ttt k (Quant Pi tb t2) tel | k /= 0 = ttt (k-1) t2 (tb : tel)
-      ttt k t tel = (reverse tel, t)
+      ttt _ t tel = (reverse tel, t)
 
 ---- modification
 

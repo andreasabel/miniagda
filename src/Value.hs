@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 
 module Value where
@@ -76,7 +77,7 @@ isFun VLam{}                         = True
 isFun VAbs{}                         = True
 isFun VConst{}                       = True
 isFun (VUp _ VQuant{ vqPiSig = Pi }) = True
-isFun v                              = False
+isFun _                              = False
 
 absName :: FVal -> Name
 absName fv =
@@ -142,11 +143,11 @@ vTopSort :: Val
 vTopSort = VSort $ Set VInfty
 
 mkClos :: Env -> Expr -> Val
-mkClos rho Infty       = VInfty
-mkClos rho Zero        = VZero
+mkClos _   Infty       = VInfty
+mkClos _   Zero        = VZero
 -- mkClos rho (Succ e)    = VSucc (mkClos rho e)  -- violates an invariant!! succeed/crazys
 mkClos rho (Below ltle e) = VBelow ltle (mkClos rho e)
-mkClos rho (Proj fx n) = VProj fx n
+mkClos _   (Proj fx n) = VProj fx n
 mkClos rho (Var x) = lookupPure rho x
 mkClos rho (Ann e) = mkClos rho $ unTag e
 mkClos rho e = VClos rho e
@@ -154,7 +155,7 @@ mkClos rho e = VClos rho e
   -- VClos (rho { envMap = filterEnv (freeVars e) (envMap rho)}) e
 
 filterEnv :: Set Name -> EnvMap -> EnvMap
-filterEnv ns [] = []
+filterEnv _  [] = []
 filterEnv ns ((x,v) : rho) =
   if Set.member x ns then (x,v) : filterEnv (Set.delete x ns) rho
    else filterEnv ns rho
@@ -227,8 +228,8 @@ vSucc = succSize
 plusSize :: Val -> Val -> Val
 plusSize VZero v = v
 plusSize v VZero = v
-plusSize VInfty v = VInfty
-plusSize v VInfty = VInfty
+plusSize VInfty _ = VInfty
+plusSize _ VInfty = VInfty
 plusSize (VMax vs) v = maxSize $ map (plusSize v) vs
 plusSize v (VMax vs) = maxSize $ map (plusSize v) vs
 plusSize (VSucc v) v' = succSize $ plusSize v v'
@@ -295,7 +296,7 @@ isFunType _                      = False
 
 isDataType :: TVal -> Bool
 isDataType (VApp (VDef (DefId DatK _)) _) = True
-isDataType (VSing v tv) = isDataType tv
+isDataType (VSing _ tv) = isDataType tv
 isDataType _ = False
 
 -- * ugly printing -----------------------------------------------------
@@ -335,7 +336,7 @@ instance Show Val where
   show (VGuard beta tv) = parens $ show beta ++ " -> " ++ show tv
   show (VBelow ltle v) = show ltle ++ " " ++ show v
 
-  show (VQuant pisig x (Domain (VBelow ltle v) ki dec) bv)
+  show (VQuant pisig x (Domain (VBelow ltle v) _ki dec) bv)
        | (ltle,v) /= (Le,VInfty) =
        parens $ (\ p -> if p==defaultPol then "" else show p) (polarity dec) ++
                 (if erased dec then brackets binding else parens binding)
@@ -359,12 +360,11 @@ instance Show Val where
   show (VUp v vt) = "(" ++ show v ++ " Up " ++ show vt ++ ")"
 
 showSkipLambda :: Val -> String
-showSkipLambda v =
-  case v of
-    (VLam x env e)    -> show e ++ showEnv env
-    (VConst v)        -> show v
-    (VAbs x i v valu) -> show v ++ showValuation valu
-    v                 -> show v
+showSkipLambda = \case
+    (VLam _x env e)     -> show e ++ showEnv env
+    (VConst v)          -> show v
+    (VAbs _x _i v valu) -> show v ++ showValuation valu
+    v                   -> show v
 
 showVals :: [Val] -> String
 showVals [] = ""
