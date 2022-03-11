@@ -1,16 +1,18 @@
 # MiniAgda
 
-[![Cabal build](https://github.com/andreasabel/MiniAgda/workflows/Haskell-CI/badge.svg)](https://github.com/andreasabel/MiniAgda/actions)
+[![Cabal build][ci-badge]][ci-action]
 [![Hackage][hackage-badge]][hackage]
 
+ [ci-action]:     <https://github.com/andreasabel/MiniAgda/actions>
+ [ci-badge]:      <https://github.com/andreasabel/MiniAgda/workflows/Haskell-CI/badge.svg>
  [hackage]:       <https://hackage.haskell.org/package/MiniAgda>
- [hackage-badge]: <https://img.shields.io/hackage/v/MiniAgda.svg>
+ [hackage-badge]: <https://img.shields.io/hackage/v/MiniAgda.svg?color=informational>
 
 A prototypical dependently typed languages with sized types and variances.
 
 ## Installation
 
-Requires GHC and cabal, for instance via the Haskell Platform.
+Requires `ghc` and `cabal`, for instance via the Haskell Platform or via `ghcup`.
 In a shell, type
 ```
   cabal update

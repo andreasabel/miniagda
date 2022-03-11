@@ -1,6 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "stream.ma" ---
---- scope checking ---
-scope check error: Stream
-/// cons
-/// Identifier Nat undefined

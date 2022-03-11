@@ -1,5 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "MeasureInValue.ma" ---
---- scope checking ---
-scope check error: f
-/// measure not allowed in expression (|i| -> CoSet 0)

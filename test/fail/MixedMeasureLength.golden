@@ -1,4 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "MixedMeasureLength.ma" ---
---- scope checking ---
-scope check error: in a mutual function block, either all functions must be without measure or have a measure of the same length

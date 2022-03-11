@@ -1,8 +1,8 @@
+cabal-version:   2.4
 name:            MiniAgda
-version:         0.2020.4.14
+version:         0.2022.3.11
 build-type:      Simple
-cabal-version:   1.24
-license:         OtherLicense
+license:         MIT
 license-file:    LICENSE
 author:          Andreas Abel and Karl Mehltretter
 maintainer:      Andreas Abel <andreas.abel@cse.gu.se>
@@ -35,71 +35,74 @@ tested-with:
   GHC == 7.8.4
   GHC == 7.6.3
 
-extra-source-files: Makefile
-                    CHANGELOG
-                    README.md
+extra-source-files:
+  CHANGELOG
+  README.md
+  Makefile
+  src/Makefile
 
-data-files:         test/succeed/Makefile
-                    test/succeed/*.ma
-                    test/fail/Makefile
-                    test/fail/*.ma
-                    test/fail/*.err
-                    test/fail/adm/*.ma
-                    test/fail/adm/*.err
-                    lib/*.ma
+data-files:
+  test/fail/Makefile
+  test/succeed/Makefile
+  test/**/*.ma
+  test/*.goldplate
+  test/**/*.golden
+  test/**/*.err
+  lib/*.ma
+
 source-repository head
   type:     git
   location: https://github.com/andreasabel/miniagda
 
 executable miniagda
-  hs-source-dirs:   src
-  build-depends:    array             >= 0.3    && < 0.6
-                  , base              >= 4.6    && < 5
-                  , containers        >= 0.3    && < 0.7
-                  , haskell-src-exts  >= 1.21   && < 1.22
-                  , mtl               >= 2.2.2  && < 2.4
-                  , pretty            >= 1.0    && < 1.2
-                  , transformers
-  -- haskell-src-exts is a nervous package with incompatibilities
-  -- in every new version, thus, we need tight bounds.
-  build-tools:      happy             >= 1.15   && < 2
-                  , alex              >= 3.0    && < 4
-  default-language: Haskell98
-  default-extensions: CPP
-                    MultiParamTypeClasses
-                    TypeSynonymInstances
-                    FlexibleInstances
-                    FlexibleContexts
-                    GeneralizedNewtypeDeriving
-                    NoMonomorphismRestriction
-                    PatternGuards
-                    TupleSections
-                    NamedFieldPuns
-                    LambdaCase
-  main-is:          Main.hs
-  other-modules:    Abstract
-                    Collection
-                    Concrete
-                    Eval
-                    Extract
-                    HsSyntax
-                    Lexer
-                    Parser
-                    Polarity
-                    PrettyTCM
-                    ScopeChecker
-                    Semiring
-                    SparseMatrix
-                    TCM
-                    Termination
-                    ToHaskell
-                    Tokens
-                    TraceError
-                    TreeShapedOrder
-                    TypeChecker
-                    Util
-                    Value
-                    Warshall
+  hs-source-dirs:       src
+  build-depends:        array             >= 0.3    && < 0.6
+                      , base              >= 4.6    && < 5
+                      , containers        >= 0.3    && < 0.7
+                      , haskell-src-exts  >= 1.21   && < 1.22
+                          -- haskell-src-exts is a nervous package with incompatibilities
+                          -- in every new version, thus, we need tight bounds.
+                      , mtl               >= 2.2.2  && < 2.4
+                      , pretty            >= 1.0    && < 1.2
+                      , transformers
+  build-tool-depends:   happy:happy       >= 1.15   && < 2
+                      , alex:alex         >= 3.0    && < 4
+  default-language:     Haskell98
+  default-extensions:   CPP
+                        MultiParamTypeClasses
+                        TypeSynonymInstances
+                        FlexibleInstances
+                        FlexibleContexts
+                        GeneralizedNewtypeDeriving
+                        NoMonomorphismRestriction
+                        PatternGuards
+                        TupleSections
+                        NamedFieldPuns
+                        LambdaCase
+  main-is:              Main.hs
+  other-modules:        Abstract
+                        Collection
+                        Concrete
+                        Eval
+                        Extract
+                        HsSyntax
+                        Lexer
+                        Parser
+                        Polarity
+                        PrettyTCM
+                        ScopeChecker
+                        Semiring
+                        SparseMatrix
+                        TCM
+                        Termination
+                        ToHaskell
+                        Tokens
+                        TraceError
+                        TreeShapedOrder
+                        TypeChecker
+                        Util
+                        Value
+                        Warshall
 
   -- TODO: Warning-free
   -- ghc-options:      -Wall
@@ -111,20 +114,20 @@ executable miniagda
   --                   -fno-warn-incomplete-patterns
 
   if impl(ghc >= 8.0)
-    ghc-options:    -Wcompat
+    ghc-options:        -Wcompat
   if impl(ghc >= 9.2)
-    ghc-options:    -Wno-incomplete-uni-patterns
+    ghc-options:        -Wno-incomplete-uni-patterns
 
 test-suite test
-  type:               exitcode-stdio-1.0
-  hs-source-dirs:     test
-  main-is:            GoldplateTests.hs
-  default-language:   Haskell2010
-  ghc-options:        -threaded
-  build-depends:      base >= 4.11
-                        -- goldplate requires ghc >= 8.4
-                    , process
-  build-tool-depends: goldplate:goldplate >= 0.2
-                        -- goldplate-0.2.0 adds "working_directory"
-                    , MiniAgda:miniagda
-                        -- We also need to depend on ourselves since goldplate calls us.
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test
+  main-is:              GoldplateTests.hs
+  default-language:     Haskell2010
+  ghc-options:          -threaded
+  build-depends:        base >= 4.11
+                          -- goldplate requires ghc >= 8.4
+                      , process
+  build-tool-depends:   goldplate:goldplate >= 0.2
+                         -- goldplate-0.2.0 adds "working_directory"
+                      , MiniAgda:miniagda
+                         -- We also need to depend on ourselves since goldplate calls us.

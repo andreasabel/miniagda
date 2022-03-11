@@ -4,6 +4,6 @@
 , "arguments"         : [ "${GOLDPLATE_INPUT_FILE}" ]
 , "asserts"           :
     [ { "exit_code"   : 1 }
-    , { "stdout"      : "${GOLDPLATE_INPUT_NAME}.golden" }
+    , { "stdout"      : "${GOLDPLATE_INPUT_NAME}.err" }
     ]
 }

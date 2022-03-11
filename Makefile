@@ -1,4 +1,10 @@
 install :
-	cabal v1-install
+	cabal install
+
+build :
+	cabal build
+
+test :
+	cabal test
 
 # EOF

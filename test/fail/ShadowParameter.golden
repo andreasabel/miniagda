@@ -1,6 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "ShadowParameter.ma" ---
---- scope checking ---
-scope check error: Sg
-/// sg
-/// TBind {boundDec = Dec {thePolarity = ^}, boundNames = [n], boundType = Nat}: Identifier n already in context

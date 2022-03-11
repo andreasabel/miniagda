@@ -1,6 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "IllegalParameter.ma" ---
---- scope checking ---
-scope check error: D
-/// c
-/// expression (\A -> A) is not valid in a parameter

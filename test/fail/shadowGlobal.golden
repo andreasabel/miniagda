@@ -1,4 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "shadowGlobal.ma" ---
---- scope checking ---
-scope check error: "shadowing of global definitions forbidden": Identifier bla already in signature

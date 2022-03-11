@@ -1,5 +1,0 @@
-MiniAgda by Andreas Abel and Karl Mehltretter
---- opening "hang.ma" ---
---- scope checking ---
-scope check error: f
-/// Identifier F undefined

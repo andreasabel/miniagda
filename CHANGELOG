@@ -1,6 +1,8 @@
 CHANGELOG for MiniAgda
 
-0.2020.04.14  Tested compilation with ghc 8.10.1
+0.2022.3.11   Fixed compilation with mtl-2.3-rc3, tested with ghc 9.2.2, added cabal test.
+
+0.2020.4.14   Tested compilation with ghc 8.10.1.
 
 0.2019.12.13  Tested compilation with ghc 8.8.1.
 
