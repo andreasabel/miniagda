@@ -10,12 +10,15 @@ module ScopeChecker (scopeCheck) where
 import Prelude hiding (mapM, null)
 
 import Control.Applicative
-import Control.Monad.Identity hiding (mapM)
-import Control.Monad.Reader hiding (mapM)
-import Control.Monad.State hiding (mapM)
-import Control.Monad.Except hiding (mapM)
+import Control.Monad          hiding (mapM)
+import Control.Monad.Identity (Identity, runIdentity)
+import Control.Monad.Reader   (ReaderT, runReaderT, MonadReader, ask, asks, local)
+import Control.Monad.State    (StateT, execStateT, runStateT, get, gets, modify, put)
+import Control.Monad.Except   (ExceptT, runExceptT, MonadError, catchError)
+import Control.Monad.Trans    (lift)
 
-import Data.List as List hiding (null)
+import Data.List (sort, (\\))
+import qualified Data.List as List
 import Data.Maybe
 import Data.Traversable (mapM)
 

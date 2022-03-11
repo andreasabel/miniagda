@@ -63,6 +63,7 @@ data Pol
   | PVar PVarId -- flexible polarity variable
          deriving (Eq,Ord)
 
+mixed, defaultPol :: Pol
 mixed = Rec
 defaultPol = Rec
 {-
@@ -87,19 +88,21 @@ instance Show Pol where
   show Default = "{default polarity}"
   show (PVar i) = showPVar i
 
+showPVar :: Show a => a -> String
 showPVar i = "?p" ++ show i
 
+isPVar :: Pol -> Bool
 isPVar (PVar{}) = True
 isPVar _ = False
 
 -- information ordering
 leqPol :: Pol -> Pol -> Bool
-leqPol x Const  = True   -- Const is top
-leqPol Const x  = False
-leqPol Rec y    = True   -- Rec is bottom
-leqPol x Rec    = False
-leqPol Param y  = True   -- Param is second bottom
-leqPol x Param  = False
+leqPol _ Const  = True   -- Const is top
+leqPol Const _  = False
+leqPol Rec _    = True   -- Rec is bottom
+leqPol _ Rec    = False
+leqPol Param _  = True   -- Param is second bottom
+leqPol _ Param  = False
 leqPol Pos SPos = True
 leqPol x   y    = x == y
 
@@ -127,21 +130,23 @@ polNeg Pos   = Neg
 polNeg Neg   = Pos
 polNeg Param = Param
 polNeg Rec   = Rec
+polNeg _ = undefined
 
 -- polarity composition
 -- used in Eval.hs leqVals'
 polComp :: Pol -> Pol -> Pol
-polComp Const  x  = Const   -- most dominant
-polComp x Const   = Const
-polComp Rec x     = Rec  -- dominant except for Const
-polComp x Rec     = Rec
-polComp Param x   = Param  -- dominant except for Const, Rec
-polComp x Param   = Param
+polComp Const  _  = Const   -- most dominant
+polComp _ Const   = Const
+polComp Rec _     = Rec  -- dominant except for Const
+polComp _ Rec     = Rec
+polComp Param _   = Param  -- dominant except for Const, Rec
+polComp _ Param   = Param
 polComp SPos  x   = x      -- neutral
 polComp x SPos    = x
 polComp Pos  x    = x      -- neutral except for SPos
 polComp x Pos     = x
 polComp Neg Neg   = Pos    -- order 2
+polComp _ _ = undefined
 {- pol.comp. is ass., comm., with neutral ++, and infinity Const
    cancellation does not hold, since composition with anything by ++ is
    information loss:
@@ -153,14 +158,15 @@ polComp Neg Neg   = Pos    -- order 2
 -- used in TCM.hs cxtApplyDec
 invComp :: Pol -> Pol -> Pol
 invComp Rec   Rec   = Rec       -- in rec. arg. keep only rec. vars
-invComp Rec   x     = Const     -- all others are declared unusable
+invComp Rec   _     = Const     -- all others are declared unusable
 invComp Param Param = Param     -- in parametric mixed arg, keep only mixed vars
-invComp Param x     = Const
-invComp Const x     = Param     -- a constant function can take any argument
+invComp Param _     = Const
+invComp Const _     = Param     -- a constant function can take any argument
 invComp SPos  x     = x         -- SPos is the identity
-invComp p     SPos  = Const     -- SPos preserved only under SPos
+invComp _     SPos  = Const     -- SPos preserved only under SPos
 invComp Pos   x     = x         -- x not SPos
 invComp Neg   x     = polNeg x  -- x not SPos
+invComp _ _ = undefined
 
 {- UNUSED
 invCompExpr :: Pol -> PExpr -> PExpr
@@ -173,8 +179,8 @@ invCompExpr q (PExpr q' i) = PExpr (polComp q q') i
 polAnd :: Pol -> Pol -> Pol
 polAnd Const x = x      -- most information
 polAnd x Const = x
-polAnd Rec   x = Rec   -- least information
-polAnd x   Rec = Rec
+polAnd Rec   _ = Rec   -- least information
+polAnd _   Rec = Rec
 {-
 polAnd Param x  = Param   -- 2nd least information
 polAnd x Param  = Param
@@ -196,20 +202,22 @@ instance SemiRing Pol where
 
 -- computing a relation from <=
 relPol :: Pol -> (a -> a -> Bool) -> (a -> a -> Bool)
-relPol Const r a b = True
+relPol Const _ _ _ = True
 relPol Rec   r a b = r a b && r b a
 relPol Param r a b = r a b && r b a
 relPol Neg   r a b = r b a
 relPol Pos   r a b = r a b
 relPol SPos  r a b = r a b
+relPol _ _ _ _ = undefined
 
 relPolM :: (Monad m) => Pol -> (a -> a -> m ()) -> (a -> a -> m ())
-relPolM Const r a b = return ()
+relPolM Const _ _ _ = return ()
 relPolM Rec   r a b = r a b >> r b a
 relPolM Param r a b = r a b >> r b a
 relPolM Neg   r a b = r b a
 relPolM Pos   r a b = r a b
 relPolM SPos  r a b = r a b
+relPolM _ _ _ _ = undefined
 
 -- polarity product (composition of polarities) ----------------------
 
@@ -235,6 +243,7 @@ showMults mults =
              f (k, PTwo) = [k,k]
   in Util.showList "." showPVar l
 
+multsEmpty :: VarMults
 multsEmpty = Map.empty
 
 multsSingle :: Int -> VarMults

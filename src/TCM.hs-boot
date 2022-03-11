@@ -3,10 +3,9 @@ module TCM where
 -- import CallStack
 import TraceError
 
-import Control.Monad.Identity
-import Control.Monad.State
-import Control.Monad.Except
-import Control.Monad.Reader
+import Control.Monad.State  (StateT)
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Reader (ReaderT)
 
 data OneOrTwo a = One a | Two a a
 

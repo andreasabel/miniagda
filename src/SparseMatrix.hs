@@ -4,6 +4,13 @@ We assume the matrices to be very sparse, so we just implement them as
 sorted association lists.
 
  -}
+{-# LANGUAGE CPP #-}
+
+#if __GLASGOW_HASKELL_ >= 800
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+#else
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}  
+#endif
 
 module SparseMatrix
   ( -- * Basic data types
@@ -37,11 +44,11 @@ module SparseMatrix
 
 import Data.Array
 import qualified Data.List as List
-import Data.Monoid
+-- import Data.Monoid
 
 -- import Test.QuickCheck
 
-import Semiring (HasZero(..), SemiRing, Semiring)
+import Semiring (HasZero(..), Semiring)
 import qualified Semiring as Semiring
 
 
@@ -118,7 +125,7 @@ instance Functor (Matrix i) where
   fmap f (M sz m) = M sz (map (\ (i,a) -> (i, f a)) m)
 
 matrixInvariant :: (Num i, Ix i) => Matrix i b -> Bool
-matrixInvariant m = List.all (\ (MIx i j, b) -> 1 <= i && i <= rows sz
+matrixInvariant m = List.all (\ (MIx i j, _) -> 1 <= i && i <= rows sz
                                              && 1 <= j && j <= cols sz) (unM m)
   && strictlySorted (MIx 0 0) (unM m)
   && sizeInvariant sz
@@ -128,8 +135,8 @@ matrixInvariant m = List.all (\ (MIx i j, b) -> 1 <= i && i <= rows sz
 -- Ord MIx should be the lexicographic one already (Haskell report)
 
 strictlySorted :: (Ord i) => i -> [(i, b)] -> Bool
-strictlySorted i [] = True
-strictlySorted i ((i', b) : l) = i < i' && strictlySorted i' l
+strictlySorted _ [] = True
+strictlySorted i ((i', _) : l) = i < i' && strictlySorted i' l
 {-
 strictlySorted (MIx i j) [] = True
 strictlySorted (MIx i j) ((MIx i' j', b) : l) =
@@ -193,7 +200,7 @@ prop_matrix sz = forAll (matrix sz :: Gen TM) $ \m ->
 -- normalize = filter (\ (i,b) -> b /= zeroElement)
 
 fromIndexList :: (Ord i, HasZero b) => Size i -> [(MIx i, b)] -> Matrix i b
-fromIndexList sz = M sz . List.sortBy (\ (i,_) (j,_) -> compare i j) . filter (\ (i,b) -> b /= zeroElement)
+fromIndexList sz = M sz . List.sortBy (\ (i,_) (j,_) -> compare i j) . filter (\ (_,b) -> b /= zeroElement)
 
 prop_fromIndexList :: TM -> Bool
 prop_fromIndexList m = matrixInvariant m' && m' == m
@@ -212,8 +219,8 @@ fromLists sz bs = fromIndexList sz $
 -- | Converts a sparse matrix to a sparse list of rows
 
 toSparseRows :: (Num i, Enum i, Eq i) => Matrix i b -> [(i,[(i,b)])]
-toSparseRows m = aux 1 [] (unM m)
-  where aux i' [] []  = []
+toSparseRows m0 = aux 1 [] (unM m0)
+  where aux _  [] []  = []
         aux i' row [] = [(i', reverse row)]
         aux i' row ((MIx i j, b) : m)
             | i' == i   = aux i' ((j,b):row) m
@@ -221,7 +228,7 @@ toSparseRows m = aux 1 [] (unM m)
 
 -- sparse vectors cannot have two entries in one column
 blowUpSparseVec :: (Eq i, Ord i, Num i, Enum i, Show i) => b -> i -> [(i,b)] -> [b]
-blowUpSparseVec zero n l = aux 1 l
+blowUpSparseVec zero n = aux 1
   where aux i [] | i > n = []
                  | otherwise = zero : aux (i+1) []
         aux i ((j,b):l) | i <= n && j == i = b : aux (succ i) l
@@ -279,20 +286,24 @@ isSingleton m = if (rows sz == 1 || cols sz == 1) then
     case unM m of
       [(_,b)] -> Just b
       []      -> Just zeroElement
+      _       -> undefined
   else Nothing
   where sz = size m
 
 -- | Transposition
+transposeSize :: Size i -> Size i
 transposeSize (Size { rows = n, cols = m }) = Size { rows = m, cols = n }
+
+transpose :: Ord i => Matrix i b -> Matrix i b
 transpose m = M { size = transposeSize (size m)
-                , unM  = List.sortBy (\ (i,a) (j,b) -> compare i j) $
+                , unM  = List.sortBy (\ (i,_) (j,_) -> compare i j) $
                            map (\(MIx i j, b) -> (MIx j i, b)) $ unM m }
 
 all :: (a -> Bool) -> Matrix i a -> Bool
-all p m = List.all (\ (i,a) -> p a) (unM m)
+all p m = List.all (\ (_,a) -> p a) (unM m)
 
 any :: (a -> Bool) -> Matrix i a -> Bool
-any p m = List.any (\ (i,a) -> p a) (unM m)
+any p m = List.any (\ (_,a) -> p a) (unM m)
 
 -- | @'zip' m1 m2@ zips @m1@ and @m2@.
 --
@@ -316,8 +327,8 @@ add plus m1 m2 = M (size m1) $ mergeAssocWith plus (unM m1) (unM m2)
 
 -- | assoc list union
 mergeAssocWith :: (Ord i) => (a -> a -> a) -> [(i,a)] -> [(i,a)] -> [(i,a)]
-mergeAssocWith f [] m = m
-mergeAssocWith f l [] = l
+mergeAssocWith _ [] m = m
+mergeAssocWith _ l [] = l
 mergeAssocWith f l@((i,a):l') m@((j,b):m')
     | i < j = (i,a) : mergeAssocWith f l' m
     | i > j = (j,b) : mergeAssocWith f l m'
@@ -333,8 +344,8 @@ intersectWith f m1 m2 = M (size m1) $ interAssocWith f (unM m1) (unM m2)
 
 -- | assoc list intersection
 interAssocWith :: (Ord i) => (a -> a -> a) -> [(i,a)] -> [(i,a)] -> [(i,a)]
-interAssocWith f [] m = []
-interAssocWith f l [] = []
+interAssocWith _ [] _ = []
+interAssocWith _ _ [] = []
 interAssocWith f l@((i,a):l') m@((j,b):m')
     | i < j = interAssocWith f l' m
     | i > j = interAssocWith f l m'
@@ -366,7 +377,7 @@ prop_add sz =
 mul :: (Enum i, Num i, Ix i, Eq a)
     => Semiring a -> Matrix i a -> Matrix i a -> Matrix i a
 mul semiring m1 m2 = M (Size { rows = rows (size m1), cols = cols (size m2) }) $
-  filter (\ (i,b) -> b /= Semiring.zero semiring) $
+  filter (\ (_,b) -> b /= Semiring.zero semiring) $
   [ (MIx i j, foldl (Semiring.add semiring) (Semiring.zero semiring) $
                 map snd $ interAssocWith (Semiring.mul semiring) v w)
     | (i,v) <- toSparseRows m1
@@ -392,7 +403,7 @@ prop_mul sz =
 
 diagonal :: (Enum i, Num i, Ix i, Show i, HasZero b) => Matrix i b -> [b]
 diagonal m = blowUpSparseVec zeroElement (rows sz) $
-  map (\ ((MIx i j),b) -> (i,b)) $ filter (\ ((MIx i j),b) -> i==j) (unM m)
+  map (\ ((MIx i _),b) -> (i,b)) $ filter (\ ((MIx i j),_) -> i==j) (unM m)
   where sz = size m
 
 {-
@@ -417,8 +428,9 @@ prop_diagonal =
 -- set to @x@.
 
 addColumn :: (Num i, HasZero b) => b -> Matrix i b -> Matrix i b
-addColumn x m | x == zeroElement = m { size = (size m) { cols = cols (size m) + 1 }}
---              | otherwise = __IMPOSSIBLE__
+addColumn x m 
+  | x == zeroElement = m { size = (size m) { cols = cols (size m) + 1 }}
+  | otherwise = undefined
 
 {-
 prop_addColumn :: TM -> Bool
@@ -435,7 +447,7 @@ prop_addColumn m =
 
 addRow :: (Num i, HasZero b) => b -> Matrix i b -> Matrix i b
 addRow x m | x == zeroElement = m { size = (size m) { rows = rows (size m) + 1 }}
---           | otherwise = __IMPOSSIBLE__
+           | otherwise = undefined
 
 prop_addRow :: TM -> Bool
 prop_addRow m =

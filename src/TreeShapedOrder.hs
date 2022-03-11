@@ -25,7 +25,7 @@ each link a non-negative number.
 module TreeShapedOrder where
 
 import Prelude hiding (null)
-import Data.List hiding (insert, null) -- groupBy
+import Data.List (groupBy, sort)
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -66,9 +66,9 @@ parent a t = headMaybe $ parents a t
 -- | @isAncestor a b o = Just n@ if there are n steps up from a to b.
 isAncestor :: (Ord a, Eq a) => a -> a -> TSO a -> Maybe Int
 isAncestor a b o = loop 0 ((0,a) : parents a o)
-   where loop acc [] = Nothing
-         loop acc ((n,a) : ps) | a == b    = Just (acc + n)
-                               | otherwise = loop (acc + n) ps
+   where loop _   [] = Nothing
+         loop acc ((n,a') : ps) | a' == b   = Just (acc + n)
+                                | otherwise = loop (acc + n) ps
 
 -- | @diff a b o = Just k@ if there are k steps up from a to b
 -- or (-k) steps down from b to a.
@@ -78,16 +78,16 @@ diff a b o = maybe (fmap (\ k -> -k) $ isAncestor b a o) Just $ isAncestor a b o
 -- | create a map from parents to list of sons, leaves have an empty list
 invert :: (Ord a, Eq a) => TSO a -> Map a [(Int,a)]
 invert (TSO o) = Map.foldrWithKey step Map.empty o where
-  step son (dist, parent) m = Map.insertWith (++) son [] $
-    Map.insertWith (++) parent [(dist, son)] m
+  step son (dist, father) m = Map.insertWith (++) son [] $
+    Map.insertWith (++) father [(dist, son)] m
 
 -- | @height a t = Just k@ if $k$ is the length of the
 --   longest path from @a@ to a leaf. @Nothing@ if @a@ not in @t@.
 height :: (Ord a, Eq a) => a -> TSO a -> Maybe Int
 height a t = do
   let m = invert t
-  let loop parent = do
-        sons <- Map.lookup parent m
+  let loop father = do
+        sons <- Map.lookup father m
         return $ if null sons then 0 else
                   maximum $ map (\ (n,son) -> maybe 0 (n +) $ loop son) sons
   loop a
@@ -96,11 +96,11 @@ height a t = do
 --   the insertion of a with parent b will destroy an existing
 --   minimal valuation of @t@
 increasesHeight :: (Ord a, Eq a) => a -> (Int, a) -> TSO a -> Bool
-increasesHeight a (n,b) t = n > maybe 0 id (height b t)
+increasesHeight _ (n,b) t = n > maybe 0 id (height b t)
 
 -- | get the leaves of the TSO forest
 leaves :: (Ord a, Eq a) => TSO a -> [a]
-leaves o = map fst $ filter (\ (parent,sons) -> null sons) $ Map.toList (invert o)
+leaves o = map fst $ filter (\ (_parent, sons) -> null sons) $ Map.toList (invert o)
 
 {- FLAWED BOTTOM-UP-ATTEMPT, DOES NOT WORK
 {- How to invert a TSO?
@@ -153,10 +153,12 @@ draw o = Tree.drawForest $ map (fmap show) $ toForest o
 -}
 
 -- test
-
+l1 :: [(String, (Int, String))]
 l1 = map (\ (k,l) -> ("i" ++ show k, (1, "i" ++ show l))) [(0,1),(1,2),(2,3),(3,4)]
      ++ [("j2",(1,"i3"))]
+o1 :: TSO String
 o1 = fromList l1
+t1, t2, t3, t4, t5 :: Maybe Int
 t1 = diff "i2" "i1" o1
 t2 = diff "i2" "j2" o1
 t3 = height "i2" o1

@@ -1,6 +1,9 @@
 
 {
 
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+
 module Lexer where
 
 }

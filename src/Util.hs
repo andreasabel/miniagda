@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TupleSections, NoMonomorphismRestriction,
       FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
@@ -6,20 +7,23 @@ module Util where
 
 import Prelude hiding (showList, null, (<>))
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative hiding (empty)
+#endif
 import Control.Monad
-import Control.Monad.Writer (Writer, runWriter, All, getAll)
+import Control.Monad.Writer (Writer, runWriter)
 
 import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Monoid (All, getAll)
 import Debug.Trace
 
 import Text.PrettyPrint as PP
 
 (+?+) :: String -> String -> String
-(+?+) xs "[]" = []
-(+?+) xs ys = xs ++ ys
+(+?+) _ "[]" = []
+(+?+) xs ys  = xs ++ ys
 
 implies :: Bool -> Bool -> Bool
 implies a b = if a then b else True
@@ -40,15 +44,15 @@ angleBrackets d = text "<" <+> d <+> text ">"
 -- | Apply when condition is @True@.
 fwhen :: Bool -> (a -> a) -> a -> a
 fwhen True  f a = f a
-fwhen False f a = a
+fwhen False _ a = a
 
 parensIf :: Bool -> Doc -> Doc
 parensIf b = fwhen b PP.parens
 
 hsepBy :: Doc -> [Doc] -> Doc
-hsepBy sep [] = empty
-hsepBy sep [d] = d
-hsepBy sep (d:ds) = d <> sep <> hsepBy sep ds
+hsepBy _separator []     = empty
+hsepBy _separator [d]    = d
+hsepBy  separator (d:ds) = d <> separator <> hsepBy separator ds
 
 pwords :: String -> [Doc]
 pwords = map text . words
@@ -80,11 +84,11 @@ whenJustM mm k = mm >>= (`whenJust` k)
 
 whenJust :: (Monad m) => Maybe a -> (a -> m ()) -> m ()
 whenJust (Just a) k = k a
-whenJust Nothing  k = return ()
+whenJust Nothing  _ = return ()
 
 whenNothing :: (Monad m) => Maybe a -> m () -> m ()
 whenNothing Nothing m = m
-whenNothing Just{}  m = return ()
+whenNothing Just{}  _ = return ()
 
 ifNothingM :: (Monad m) => m (Maybe a) -> m b -> (a -> m b) -> m b
 ifNothingM mma mb f = maybe mb f =<< mma
@@ -117,7 +121,7 @@ andM []     = return True
 andM (m:ms) = m `andLazy` andM ms
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
-findM p []       = return Nothing
+findM _ []       = return Nothing
 findM p (x : xs) = do b <- p x
                       if b then return (Just x) else findM p xs
 
@@ -136,15 +140,15 @@ bracketsIf False s = s
 bracketsIf True  s = "[" ++ s ++ "]"
 
 separate :: String -> String -> String -> String
-separate sep "" y = y
-separate sep x "" = x
-separate sep x y  = x ++ sep ++ y
+separate _separator "" y = y
+separate _separator x "" = x
+separate  separator x y  = x ++ separator ++ y
 
 showList :: String -> (a -> String) -> [a] -> String
-showList sep f [] = ""
-showList sep f [e] = f e
-showList sep f (e:es) = f e ++ sep ++ showList sep f es
--- OR: showList sep f es = foldl separate "" $ map f es
+showList _separator _ [] = ""
+showList _separator f [e] = f e
+showList  separator f (e:es) = f e ++ separator ++ showList separator f es
+-- OR: showList separator f es = foldl separate "" $ map f es
 
 hasDuplicate :: (Eq a) => [a] -> Bool
 hasDuplicate [] = False
@@ -167,7 +171,7 @@ zipPair f g (a,d) (b,e) = (f a b, g d e)
 
 headMaybe :: [a] -> Maybe a
 headMaybe [] = Nothing
-headMaybe (a:as) = Just a
+headMaybe (a:_) = Just a
 
 firstJust :: [Maybe a] -> Maybe a
 firstJust = headMaybe . compressMaybes
@@ -180,7 +184,7 @@ firstJustM (mm : mms) = do
     Nothing -> firstJustM mms
     Just{}  -> return m
 
-mapOver :: (Functor f) => f a -> (a -> b) -> f b
+for, mapOver :: (Functor f) => f a -> (a -> b) -> f b
 mapOver = flip fmap
 
 for = mapOver
@@ -204,6 +208,7 @@ instance Push a [a] where
 
 instance Push a [[a]] where
   push a (b:bs) = (a : b) : bs
+  push _ []     = undefined
 
 -- TOO HARD for ghc:
 -- instance Push a b => Push a [b] where

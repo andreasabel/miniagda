@@ -22,16 +22,18 @@ description:
   Recent features include bounded size quantification and destructor
   patterns for a more general handling of coinduction.
 
-tested-with:        GHC == 7.6.3
-                    GHC == 7.8.4
-                    GHC == 7.10.3
-                    GHC == 8.0.2
-                    GHC == 8.2.2
-                    GHC == 8.4.4
-                    GHC == 8.6.5
-                    GHC == 8.8.4
-                    GHC == 8.10.4
-                    GHC == 9.0.1
+tested-with:
+  GHC == 9.2.2
+  GHC == 9.0.2
+  GHC == 8.10.7
+  GHC == 8.8.4
+  GHC == 8.6.5
+  GHC == 8.4.4
+  GHC == 8.2.2
+  GHC == 8.0.2
+  GHC == 7.10.3
+  GHC == 7.8.4
+  GHC == 7.6.3
 
 extra-source-files: Makefile
                     CHANGELOG
@@ -51,16 +53,17 @@ source-repository head
 
 executable miniagda
   hs-source-dirs:   src
-  build-depends:    array >= 0.3 && < 0.6,
-                    base >= 4.6 && < 5,
-                    containers >= 0.3 && < 0.7,
-                    haskell-src-exts >= 1.21 && < 1.22,
-                    mtl >= 2.2.2 && < 2.3,
-                    pretty >= 1.0 && < 1.2
+  build-depends:    array             >= 0.3    && < 0.6
+                  , base              >= 4.6    && < 5
+                  , containers        >= 0.3    && < 0.7
+                  , haskell-src-exts  >= 1.21   && < 1.22
+                  , mtl               >= 2.2.2  && < 2.4
+                  , pretty            >= 1.0    && < 1.2
+                  , transformers
   -- haskell-src-exts is a nervous package with incompatibilities
   -- in every new version, thus, we need tight bounds.
-  build-tools:      happy >= 1.15 && < 2,
-                    alex >= 3.0 && < 4
+  build-tools:      happy             >= 1.15   && < 2
+                  , alex              >= 3.0    && < 4
   default-language: Haskell98
   default-extensions: CPP
                     MultiParamTypeClasses
@@ -72,6 +75,7 @@ executable miniagda
                     PatternGuards
                     TupleSections
                     NamedFieldPuns
+                    LambdaCase
   main-is:          Main.hs
   other-modules:    Abstract
                     Collection
@@ -96,3 +100,17 @@ executable miniagda
                     Util
                     Value
                     Warshall
+
+  -- TODO: Warning-free
+  -- ghc-options:      -Wall
+  --                   -fno-warn-type-defaults
+  --                   -fno-warn-dodgy-imports
+  --                   -fno-warn-unused-binds
+  --                   -fno-warn-unused-matches
+  --                   -fno-warn-name-shadowing
+  --                   -fno-warn-incomplete-patterns
+
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+  if impl(ghc >= 9.2)
+    ghc-options:    -Wno-incomplete-uni-patterns

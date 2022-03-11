@@ -5,10 +5,9 @@ module TCM where
 import Prelude hiding (null)
 
 import Control.Monad
-import Control.Monad.Identity
-import Control.Monad.State
-import Control.Monad.Except
-import Control.Monad.Reader
+import Control.Monad.State  (StateT, get, gets, put)
+import Control.Monad.Except (ExceptT, MonadError)
+import Control.Monad.Reader (ReaderT, ask, asks, local)
 
 import Control.Applicative
 import Data.Foldable (Foldable)
@@ -1317,7 +1316,7 @@ instance MonadSig TypeCheck where
   lookupSymbQ n@Qual{}  = lookupSymbInSig n
 
   -- addSig :: Name -> SigDef -> TypeCheck ()
-  addSigQ n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $do
+  addSigQ n def = traceSig ("addSig: " ++ show n ++ " is bound to " ++ show def) $ do
     st <- get
     put $ st { signature = Map.insert n def $ signature st }
 

@@ -4,10 +4,11 @@ module Termination where
 
 import Prelude hiding (null)
 
-import Data.Monoid
-import Control.Monad.Writer -- (Writer, runWriter, tell, listen, Any(..), ...)
+import Control.Monad
+import Control.Monad.Writer (Writer, runWriter, mapWriter, tell, listen)
 
-import Data.List as List hiding (null)
+import qualified Data.List as List
+import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Foldable (Foldable, foldMap)

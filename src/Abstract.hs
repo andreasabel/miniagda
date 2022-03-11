@@ -5,20 +5,25 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeSynonymInstances,
   GeneralizedNewtypeDeriving, DeriveFunctor, DeriveFoldable, DeriveTraversable,
   NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Abstract where
 
 import Prelude hiding (showList, map, concat, foldl, pi, null, (<>))
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative hiding (empty)
-import Control.Monad.Writer (Writer, tell, All(..))
+#endif
+import Control.Monad.Writer (Writer, tell)
 import Control.Monad.Trans
 
+import Control.Arrow (first)
 import Data.Monoid hiding ((<>))
+#if !MIN_VERSION_base(4,8,0)
 import Data.Foldable (Foldable, foldMap)
-import qualified Data.Foldable as Foldable
-import Data.Traversable as Traversable
+import Data.Traversable (Traversable)
+#endif
 import Data.Unique
 
 import Data.List (map)
@@ -28,7 +33,7 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Debug.Trace
+-- import Debug.Trace
 import Data.IORef
 import System.IO.Unsafe
 
@@ -66,7 +71,7 @@ instance Ord Name where
   compare x x' = compare (uid x) (uid x')
 
 instance Show Name where
-  show (Name n _ u) = n -- n ++ "`" ++ show (hashUnique u `mod` 13)
+  show (Name n _ _u) = n -- n ++ "`" ++ show (hashUnique u `mod` 13)
 
 -- | @fresh s@ generates a new name with 'suggestion' @s@.
 --
@@ -112,6 +117,7 @@ mkExtName n = Name (suggestion n) EtaAliasName $ unsafePerformIO newUnique
 -- mkExtName n = "_" ++ n
 {-# NOINLINE mkExtName #-}
 
+mkExtRef :: Name -> Expr
 mkExtRef  n = letdef (mkExtName n)
 
 isEtaAlias :: Name -> Bool
@@ -124,6 +130,7 @@ internal n = freshen n
 -- internal names are prefixed by a double underscore (not legal concrete syntax)
 
 -- | Convert a dot pattern into an identifier which should not look too confusing.
+spaceToUnderscore :: String -> String
 spaceToUnderscore = List.map (\ c -> if c==' ' then '_' else c)
 {-
 exprToName e = spaceToUnderscore $ show e
@@ -141,10 +148,12 @@ instance Show QName where
   show (QName n)  = show n
 
 -- | An unqualified name is an instance of a qualified name.
+nameInstanceOf :: QName -> QName -> Bool
 nameInstanceOf (QName n) (Qual _ n') = n == n'
 nameInstanceOf n         n'          = n == n'
 
 -- | Fails if qualified name.
+unqual :: QName -> Name
 unqual (QName n) = n
 unqual n         = error $ "Abstract.unqual: " ++ show n
 
@@ -200,16 +209,18 @@ class LensPol a where
 
 instance LensPol Dec where
   getPol = polarity
-  setPol p Hidden = Hidden
+  setPol _ Hidden = Hidden
   setPol p dec    = dec { thePolarity = p }
 
 udec :: Dec -> UDec
 udec = fmap pprod
 
+irrelevantDec, paramDec, defaultDec, neutralDec :: Decoration Pol
 irrelevantDec = Dec Pol.Const
 paramDec = Dec Param
 defaultDec = Dec defaultPol
 -- defaultDec = paramDec -- TODO: Dec { polarity = Rec }
+defaultUpperDec :: Decoration PProd
 defaultUpperDec = Dec $ pprod SPos
   -- a variable may not be erased and its polarity must be below SPos
 -- notErased = Dec False
@@ -228,7 +239,7 @@ coDomainDec dec
 -- composition of decoration, used when type checking arguments
 -- of functions decorated with dec
 compDec :: Dec -> UDec -> UDec
-compDec dec udec = compose (fmap pprod dec) udec
+compDec dec dec' = compose (fmap pprod dec) dec'
 
 {-
 instance Show pos => Show (Decoration pos) where
@@ -290,14 +301,14 @@ sizeSuccE e     = Succ e
 minSizeE :: Expr -> Expr -> Expr
 minSizeE Infty e2 = e2
 minSizeE e1 Infty = e1
-minSizeE Zero  e2 = Zero
-minSizeE e1 Zero  = Zero
+minSizeE Zero  _  = Zero
+minSizeE _  Zero  = Zero
 minSizeE (Succ e1) (Succ e2) = Succ (minSizeE e1 e2)
 minSizeE e1 e2 = error $ "minSizeE " ++ (Util.parens $ show e1) ++ " " ++ (Util.parens $ show e2)
 
 maxSizeE :: Expr -> Expr -> Expr
-maxSizeE Infty e2 = Infty
-maxSizeE e1 Infty = Infty
+maxSizeE Infty _  = Infty
+maxSizeE _  Infty = Infty
 maxSizeE Zero  e2 = e2
 maxSizeE e1 Zero  = e1
 maxSizeE (Succ e1) (Succ e2) = Succ (maxSizeE e1 e2)
@@ -305,7 +316,7 @@ maxSizeE e1 e2 = Max [e1, e2]
 -- maxSizeE e1 e2 = error $ "maxSizeE " ++ (Util.parens $ show e1) ++ " " ++ (Util.parens $ show e2)
 
 flattenMax :: Expr -> [Expr] -> [Expr]
-flattenMax Infty          acc = [Infty]
+flattenMax Infty          _   = [Infty]
 flattenMax Zero           acc = acc
 flattenMax (Max [])       acc = acc
 flattenMax (Max (e : es)) acc = flattenMax e $ flattenMax (Max es) acc
@@ -321,11 +332,11 @@ sizeVarsToInfty (Succ e) = sizeSuccE (sizeVarsToInfty e)
 sizeVarsToInfty _ = Infty
 
 leqSizeE :: Expr -> Expr -> Bool
-leqSizeE Zero e  = True
-leqSizeE e Zero  = False
-leqSizeE e Infty = True
+leqSizeE Zero _  = True
+leqSizeE _ Zero  = False
+leqSizeE _ Infty = True
 leqSizeE (Succ e) (Succ e') = leqSizeE e e'
-leqSizeE Infty e = False
+leqSizeE Infty _ = False
 
 -- plus :: Expr -> Expr -> Expr
 
@@ -381,7 +392,7 @@ isSize _                   = False
 
 predSort :: Sort Expr -> Sort Expr
 predSort (SortC  c)     = SortC (predClass c)
-predSort (CoSet  e)     = SortC Tm
+predSort (CoSet  _)     = SortC Tm
 predSort (Set Zero)     = SortC Tm
 predSort (Set (Succ e)) = Set e
 predSort (Set Infty)    = Set Infty
@@ -396,8 +407,8 @@ succSort (SortC Tm)   = Set Zero
 succSort (Set e)      = Set (sizeSuccE e)
 
 minSort :: Sort Expr -> Sort Expr -> Sort Expr
-minSort (SortC Tm) (Set e) = SortC Tm
-minSort (Set e) (SortC Tm) = SortC Tm
+minSort (SortC Tm) (Set _) = SortC Tm
+minSort (Set _) (SortC Tm) = SortC Tm
 minSort (Set e) (Set e') = Set (minSizeE e e')
 -- minSort (SortC c) (SortC c') | c == c' = SortC c
 minSort (SortC c) (SortC c') = SortC $ minClass c c'
@@ -405,10 +416,10 @@ minSort s s' = error $ "minSort (" ++ show s ++ ") (" ++ show s' ++ ") not imple
 
 -- 2012-01-21: that should not be necessary, but to move on...
 minClass :: Class -> Class -> Class
-minClass Tm c = Tm
-minClass c Tm = Tm
-minClass Size c = Size
-minClass c Size = Size
+minClass Tm _ = Tm
+minClass _ Tm = Tm
+minClass Size _ = Size
+minClass _ Size = Size
 minClass TSize TSize = TSize
 maxClass :: Class -> Class -> Class
 
@@ -455,14 +466,17 @@ data Kind
   | AnyKind  -- not yet classified, neutral wrt. intersection
     deriving (Eq, Ord)
 
+defaultKind, kSize, kTSize, kTerm, kType :: Kind
 --defaultKind = Kind (SortC Tm) topSort -- no classification, could be anything
 defaultKind = AnyKind
 
+preciseKind :: Sort Expr -> Kind
 preciseKind s = Kind s s
 kSize   = preciseKind (SortC Size)
 kTSize  = preciseKind (SortC TSize)
 kTerm   = preciseKind (SortC Tm)
 kType   = preciseKind (Set Zero)
+kUniv :: Expr -> Kind
 kUniv e = preciseKind (Set (Succ (sizeVarsToInfty e))) -- used in TypeChecker
 
 instance Show Kind where
@@ -483,7 +497,7 @@ prettyKind k | k == kType               = "type"
 prettyKind (Kind (Set (Succ Zero)) _)   = "univ"
 prettyKind (Kind (Set Zero) _)          = "ty-u"
 prettyKind (Kind (SortC Tm) (Set Zero)) = "tmty"
-prettyKind k                            = "mixk"
+prettyKind _                            = "mixk"
 
 -- if D : T and T has kind ki, then D has kind dataKind ki
 dataKind :: Kind -> Kind
@@ -505,7 +519,7 @@ predKind (Kind _ (SortC TSize)) = kSize
 -- proper types are only inhabited by terms
 predKind (Kind _ (Set Zero)) = kTerm
 -- proper universes are inhabited by types and universes
-predKind (Kind (Set (Succ e)) s) = Kind (Set Zero) (predSort s)
+predKind (Kind (Set (Succ _)) s) = Kind (Set Zero) (predSort s)
 -- something which is a type or a universe can be inhabited by a term
 predKind (Kind _ s) = Kind (SortC Tm) (predSort s)
 
@@ -529,8 +543,8 @@ unionKind ki1 ki2 = -- trace (show ki1 ++ " `unionKind` " ++ show ki2) $
   case (ki1,ki2) of
     (NoKind, ki) -> ki
     (ki, NoKind) -> ki
-    (AnyKind, ki) -> AnyKind
-    (ki, AnyKind) -> AnyKind
+    (AnyKind, _) -> AnyKind
+    (_, AnyKind) -> AnyKind
     (Kind x1 x2, Kind y1 y2) ->
       Kind (minSort x1 y1) (maxSort x2 y2)
 
@@ -560,8 +574,13 @@ data Dom a = Domain { typ :: a, kind :: Kind, decor :: Dec }
 instance Show a => Show (Dom a) where
     show (Domain ty ki dec) = show dec ++ show ty ++ "::" ++ show ki
 
+defaultDomain :: a -> Dom a
 defaultDomain a = Domain a defaultKind defaultDec
+
+domFromKinded :: Kinded a -> Dom a
 domFromKinded (Kinded ki t) = Domain t ki defaultDec
+
+defaultIrrDom :: a -> Dom a
 defaultIrrDom a = Domain a defaultKind irrelevantDec
 
 sizeDomain :: Dec -> Dom Expr
@@ -616,9 +635,11 @@ instance Show IdKind where
     show FunK   = "fun"
     show LetK   = "let"
 
+conKind :: IdKind -> Bool
 conKind (ConK _) = True
 conKind _        = False
 
+coToConK :: Co -> ConK
 coToConK Ind = Cons
 coToConK CoInd = CoCons
 
@@ -652,11 +673,11 @@ boundType = typ . boundDom
 instance LensDec (TBinding a) where
   getDec = getDec . boundDom
   mapDec f (TBind x dom) = TBind x (dom { decor = f (decor dom) })
-  mapDec f tb = tb
+  mapDec _ tb = tb
 
 mapDecM :: (Applicative m) => (Dec -> m Dec) -> TBind -> m TBind
 mapDecM f tb@TBind{} = flip setDec tb <$> f (getDec tb)
-mapDecM f tb         = pure tb
+mapDecM _ tb         = pure tb
 
 -- measures ----------------------------------------------------------
 
@@ -667,7 +688,7 @@ instance Show a => Show (Measure a) where
     show (Measure l) = "|" ++ showList "," show l ++ "|"
 
 succMeasure :: (a -> a) -> Measure a -> Measure a
-succMeasure succ mu = maybe (error "cannot take successor of empty measure") id $ applyLastM (Just . succ) mu
+succMeasure suc mu = maybe (error "cannot take successor of empty measure") id $ applyLastM (Just . suc) mu
 
 {-
 succMeasure succ (Measure mu) = Measure (succMeas mu)
@@ -714,6 +735,7 @@ type Tags = [Tag]
 inTags :: Tag -> Tags -> Bool
 inTags = elem
 
+noTags :: Tags
 noTags = []
 
 data Tagged a = Tagged { tags :: Tags , unTag :: a }
@@ -736,9 +758,11 @@ instance Pretty a => Pretty (Tagged a) where
       prettyCast (Cast `inTags` tags) $
         pretty a
 
+prettyErased :: Bool -> Doc -> Doc
 prettyErased True  doc = brackets doc
 prettyErased False doc = doc
 
+prettyCast :: Bool -> Doc -> Doc
 prettyCast True  doc = text "'cast" <> PP.parens doc
 prettyCast False doc = doc
 
@@ -801,8 +825,8 @@ data RecInfo
 
 newtype Dotted = Dotted { dottedRef :: IORef Bool }
 
-instance Eq   Dotted where x == y = True
-instance Ord  Dotted where x <= y = True
+instance Eq   Dotted where _ == _ = True
+instance Ord  Dotted where _ <= _ = True
 instance Show Dotted where show d = fwhen (isDotted d) ("un" ++) "confirmed"
 
 -- A bit of imperative programming
@@ -862,13 +886,15 @@ proj e Pre n  = App (Proj Pre n) e
 proj e Post n = App e (Proj Post n)
 
 -- | Non-dependent function type.
+funType :: Dom Type -> Expr -> Expr
 funType a b = Quant Pi (noBind a) b
 
+erasedExpr, castExpr :: Expr -> Expr
 erasedExpr e = Ann (Tagged [Erased] e)
 castExpr   e = Ann (Tagged [Cast]   e)
 
 succView :: Expr -> (Int, Expr)
-succView (Succ e) = inc (succView e) where inc (n, e) = (n+1, e)
+succView (Succ e) = first (+1) (succView e)
 succView e = (0, e)
 
 -- Clauses and patterns ----------------------------------------------
@@ -879,6 +905,7 @@ data Clause = Clause
   , clExpr     :: Maybe Expr   -- Nothing if absurd clause
   } deriving (Eq,Ord,Show)
 
+clause :: [Pattern] -> Maybe Expr -> Clause
 -- clause = Clause (error "internal error: no telescope in clause before typechecking!")
 clause = Clause [] -- empty clTele
 
@@ -937,10 +964,15 @@ type Case = (Pattern,Expr)
 
 type Subst = Map MVar Expr
 
+con :: ConK -> QName -> Expr
 con co n = Def $ DefId (ConK co) n
 -- con co n = Con co n []
+
+fun, dat :: QName -> Expr
 fun n    = Def $ DefId FunK n
 dat n    = Def $ DefId DatK n
+
+letdef :: Name -> Expr
 letdef n = Def $ DefId LetK $ QName n
 
 type SpineView = (Expr, [Expr])
@@ -951,6 +983,7 @@ spineView = aux []
   where aux sp (App f e) = aux (e:sp) f
         aux sp e = (e, sp)
 
+test_spineView :: SpineView
 test_spineView = spineView ((Var x `App` Var y) `App` Var z)
   where x = fresh "x"
         y = fresh "y"
@@ -1015,6 +1048,7 @@ type ParamPats = Maybe (Telescope, [Pattern])
 newtype Telescope = Telescope { telescope :: [TBind] }
   deriving (Eq, Ord, Show, Size, Null)
 
+emptyTel :: Telescope
 emptyTel = Telescope []
 
 data Arity = Arity
@@ -1070,7 +1104,7 @@ inferable Infty{} = True
 -- 2012-01-22 constructors are no longer inferable, since parameters are missing
 inferable (Def (DefId { idKind = ConK{} }))  = False
 inferable Def{} = True
-inferable (App f e) = inferable f
+inferable (App f _) = inferable f
 -- inferable (Pair f e) = inferable f && inferable e  -- pairs are not inferable due to irrelevant sigma!
 -- inferable Sing{}  = True  -- not with universes
 inferable _       = False
@@ -1092,16 +1126,16 @@ instance (BoundVars a, BoundVars b, BoundVars c) => BoundVars (a, b, c) where
   boundVars (a, b, c) = mconcat [boundVars a, boundVars b, boundVars c]
 
 instance BoundVars (TBinding a) where
-  boundVars (TBind x a)  = Coll.singleton x
-  boundVars (TMeasure m) = mempty
-  boundVars (TBound b)   = mempty
+  boundVars (TBind x _)  = Coll.singleton x
+  boundVars (TMeasure _) = mempty
+  boundVars (TBound _)   = mempty
 
 instance BoundVars Telescope where
   boundVars = boundVars . telescope
 
 instance BoundVars (Pat e) where
   boundVars (VarP name)   = Coll.singleton name
-  boundVars (SizeP x y)   = Coll.singleton y
+  boundVars (SizeP _ y)   = Coll.singleton y
   boundVars (SuccP p)     = boundVars p
   boundVars (ConP _ _ ps) = boundVars ps
   boundVars (PairP p p')  = boundVars (p, p')
@@ -1109,7 +1143,7 @@ instance BoundVars (Pat e) where
   boundVars (DotP _)      = mempty
   boundVars (ErasedP p)   = boundVars p
   boundVars (AbsurdP)     = mempty
-  boundVars (UnusableP p) = mempty
+  boundVars (UnusableP _) = mempty
 
 
 
@@ -1145,7 +1179,7 @@ instance (FreeVars a, FreeVars b, FreeVars c) => FreeVars (a, b, c) where
   freeVars (a, b, c) = mconcat [freeVars a, freeVars b, freeVars c]
 
 instance FreeVars a => FreeVars (TBinding a) where
-  freeVars (TBind x a)  = freeVars a  -- Note: x is bound in the stuff to come, not in a.
+  freeVars (TBind _x a) = freeVars a  -- Note: x is bound in the stuff to come, not in a.
   freeVars (TMeasure m) = freeVars m
   freeVars (TBound b)   = freeVars b
 
@@ -1172,7 +1206,7 @@ instance FreeVars Expr where
       Max  es   -> freeVars es
       Plus es   -> freeVars es
       Lam _ x e -> Set.delete x (freeVars e)
-      Quant pisig ta b -> freeVars ta `Set.union` (freeVars b Set.\\ boundVars ta)
+      Quant _pisig ta b -> freeVars ta `Set.union` (freeVars b Set.\\ boundVars ta)
 {-
       Quant pisig tel ta b
                 -> freeVars tel' `Set.union` (freeVars b Set.\\ boundVars tel')
@@ -1185,7 +1219,7 @@ instance FreeVars Expr where
       e         -> error $ "freeVars " ++ show e ++ " not implemented"
 
 instance FreeVars Clause where
-  freeVars (Clause _ ps Nothing)  = mempty  -- absurd clause
+  freeVars (Clause _ _  Nothing)  = mempty  -- absurd clause
   freeVars (Clause _ ps (Just e)) = freeVars e Set.\\ boundVars ps
 
 patternVars :: Pattern -> [Name]
@@ -1245,20 +1279,20 @@ instance UsedDefs Telescope where
   usedDefs = usedDefs . telescope
 
 instance UsedDefs DefId where
-  usedDefs id
-    | idKind id `elem` [FunK, DatK] = [unqual $ idName id]
+  usedDefs x
+    | idKind x `elem` [FunK, DatK] = [unqual $ idName x]
     | otherwise                     = []
 
 instance UsedDefs Clause where
   usedDefs = usedDefs . clExpr
 
 instance UsedDefs Expr where
-  usedDefs (Def id)           = usedDefs id
+  usedDefs (Def x)            = usedDefs x
   usedDefs (Pair f e)         = usedDefs (f, e)
   usedDefs (App f e)          = usedDefs (f, e)
   usedDefs (Max es)           = usedDefs es
   usedDefs (Plus es)          = usedDefs es
-  usedDefs (Lam _ x e)        = usedDefs e
+  usedDefs (Lam _ _ e)        = usedDefs e
   usedDefs (Sing a b)         = usedDefs (a, b)
   usedDefs (Below _ b)        = usedDefs b
 --  usedDefs (Quant _ tel tb b) = usedDefs (tel, tb, b)
@@ -1273,14 +1307,15 @@ instance UsedDefs Expr where
   usedDefs Meta{}             = []
   usedDefs Var{}              = []
   usedDefs Proj{}             = []
-  usedDefs (Record ri rs)     = foldMap (usedDefs . snd) rs
+  usedDefs (Record _ri rs)    = foldMap (usedDefs . snd) rs
   usedDefs e                  = error $ "usedDefs " ++ show e ++ " not implemented"
 
 rhsDefs :: [Clause] -> [Name]
-rhsDefs cls = List.foldl (\ ns (Clause _ ps e) -> maybe [] usedDefs e ++ ns) [] cls
+rhsDefs cls = List.foldl (\ ns (Clause _ _ e) -> maybe [] usedDefs e ++ ns) [] cls
 
 -- pretty printing expressions ---------------------------------------
 
+precArrL, precAppL, precAppR :: Int
 [precArrL, precAppL, precAppR] = [1..3]
 
 instance Pretty Name where
@@ -1303,30 +1338,30 @@ instance Pretty Expr where
   prettyPrec _ (Meta i)    = text $ "?" ++ show i
   prettyPrec _ (Var n)     = pretty n
 --  prettyPrec _ (Con _ n)   = text n
-  prettyPrec _ (Def id)    = pretty id
+  prettyPrec _ (Def x)     = pretty x
 --  prettyPrec _ (Let n)     = text n
   prettyPrec _ (Sing e t)  = angleBrackets $ pretty e <+> colon <+> pretty t
-  prettyPrec k e@Succ{}    =
+  prettyPrec _ e@Succ{}    =
     case succView e of
       (n, Zero) -> text $ show n
-      (n, e)    -> text (replicate n '$') <> prettyPrec precAppR e
+      (n, e')   -> text (replicate n '$') <> prettyPrec precAppR e'
 --  prettyPrec k (Succ e)    = text "$" <> prettyPrec precAppR e
 {-  prettyPrec k (Succ e)    = parensIf (precAppR <= k) $
                               text "$" <+> prettyPrec precAppR e   -}
   prettyPrec k (Max es)  = parensIf (precAppR <= k) $
     List.foldl (\ d e -> d <+> prettyPrec precAppR e) (text "max") es
   prettyPrec k (Plus (e:es))  = parensIf (1 < k) $
-    List.foldl (\ d e -> d <+> text "+" <+> prettyPrec 1 e) (prettyPrec 1 e) es
-  prettyPrec k (Proj Pre n)   = pretty n
-  prettyPrec k (Proj Post n)  = text "." <> pretty n
-  prettyPrec k (Record AnonRec []) = text "record" <+> braces empty
-  prettyPrec k (Record AnonRec rs) = text "record" <+> prettyRecFields rs
-  prettyPrec k (Record (NamedRec _ n _ dotted) []) = dotIf dotted $ pretty n
-  prettyPrec k (Record (NamedRec _ n True dotted) rs) = dotIf dotted $ pretty n <+> prettyRecFields rs
+    List.foldl (\ d e' -> d <+> text "+" <+> prettyPrec 1 e') (prettyPrec 1 e) es
+  prettyPrec _ (Proj Pre n)   = pretty n
+  prettyPrec _ (Proj Post n)  = text "." <> pretty n
+  prettyPrec _ (Record AnonRec []) = text "record" <+> braces empty
+  prettyPrec _ (Record AnonRec rs) = text "record" <+> prettyRecFields rs
+  prettyPrec _ (Record (NamedRec _ n _ dotted) []) = dotIf dotted $ pretty n
+  prettyPrec _ (Record (NamedRec _ n True dotted) rs) = dotIf dotted $ pretty n <+> prettyRecFields rs
   prettyPrec k (Record (NamedRec _ n False dotted) rs) =
    parensIf (not (null rs) && precAppR <= k) $ dotIf dotted $
      pretty n <+> hsep (List.map (prettyPrec precAppR . snd) rs)
-  prettyPrec k (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
+  prettyPrec _ (Pair e1 e2) = parens $ pretty e1 <+> comma <+> pretty e2
   prettyPrec k (App f e)  = parensIf (precAppR <= k) $
     prettyPrec precAppL f <+> prettyPrec precAppR e
 --   prettyPrec k (App e [])  = prettyPrec k e
@@ -1337,20 +1372,20 @@ instance Pretty Expr where
   prettyPrec k (Lam dec x e) = parensIf (0 < k) $
     (if erased dec then brackets else id) (text "\\" <+> pretty x <+> text "->")
       <+> pretty e
-  prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) | null tel = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain mt _ki dec)) tel e1 e2) | null tel = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
        pretty n <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
                            <> (if erased dec then rbrack else PP.empty)
                        , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
-  prettyPrec k (LLet (TBind n (Domain mt ki dec)) tel e1 e2) = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain mt _ki dec)) tel e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then brackets else id) $ pretty n)
                 <+> pretty tel
                 <+> vcat [ maybe empty (\ t -> colon <+> pretty t) mt
                          , equals <+> pretty e1 ])
     $$ (text "in" <+> pretty e2)
 {-
-  prettyPrec k (LLet (TBind n (Domain Nothing ki dec)) e1 e2) = parensIf (0 < k) $
+  prettyPrec k (LLet (TBind n (Domain Nothing _ki dec)) e1 e2) = parensIf (0 < k) $
     (text "let" <+> ((if erased dec then lbrack else PP.empty) <>
        pretty n <+> vcat [ if erased dec then rbrack else PP.empty
                          , equals <+> pretty e1 ]))
@@ -1362,28 +1397,28 @@ instance Pretty Expr where
   prettyPrec k (Quant Pi (TBound beta) t2) = parensIf (precArrL <= k) $
     (pretty beta <+> text "->" <+> pretty t2)
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) | null (suggestion x) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig (TBind x (Domain t1 _ki dec)) t2) | null (suggestion x) = parensIf (precArrL <= k) $
     ((if erased dec then ppol <> brackets (pretty t1)
        else ppol <+> prettyPrec precArrL t1)
       <+> pretty pisig <+> pretty t2)
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain (Below ltle t1) ki dec)) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig (TBind x (Domain (Below ltle t1) _ki dec)) t2) = parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> pretty ltle <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Quant pisig (TBind x (Domain t1 ki dec)) t2) = parensIf (precArrL <= k) $
+  prettyPrec k (Quant pisig (TBind x (Domain t1 _ki dec)) t2) = parensIf (precArrL <= k) $
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> colon <+> pretty t1) <+> pretty pisig <+> pretty t2
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (Ann e) = pretty e
+  prettyPrec _ (Ann e) = pretty e
 
 class DotIf a where
   dotIf :: a -> Doc -> Doc
@@ -1396,17 +1431,17 @@ instance DotIf Dotted where
   dotIf c = dotIf (isDotted c)
 
 instance Pretty TBind where
-  prettyPrec k (TMeasure mu) = pretty mu
-  prettyPrec k (TBound beta) = pretty beta
+  prettyPrec _ (TMeasure mu) = pretty mu
+  prettyPrec _ (TBound beta) = pretty beta
 
-  prettyPrec k (TBind x (Domain (Below ltle t1) ki dec)) =
+  prettyPrec _ (TBind x (Domain (Below ltle t1) _ki dec)) =
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> pretty ltle <+> pretty t1)
     where pol = polarity dec
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
-  prettyPrec k (TBind x (Domain t1 ki dec)) =
+  prettyPrec _ (TBind x (Domain t1 _ki dec)) =
     ppol <>
     ((if erased dec then brackets else parens) $
       pretty x <+> colon <+> pretty t1)
@@ -1414,12 +1449,14 @@ instance Pretty TBind where
           ppol = if pol==defaultPol then PP.empty else text $ show pol
 
 instance Pretty Telescope where
-  prettyPrec k tel = sep $ map pretty $ telescope tel
+  prettyPrec _ tel = sep $ map pretty $ telescope tel
 
+prettyRecFields :: (Pretty a, Pretty b) => [(a,b)] -> Doc
 prettyRecFields rs =
     let l:ls = List.map (\ (n, e) -> pretty n <+> equals <+> prettyPrec 0 e) rs
     in  cat $ (lbrace <+> l) : List.map (semi <+>) ls ++ [empty <+> rbrace]
 
+prettyCase :: Clause -> Doc
 prettyCase (Clause _ [p] Nothing)  = pretty p
 prettyCase (Clause _ [p] (Just e)) = pretty p <+> text "->" <+> pretty e
 
@@ -1450,26 +1487,26 @@ instance Pretty (Bound Expr) where
 
 
 instance Pretty (Sort Expr) where
-  prettyPrec k (SortC c)  = text $ show c
-  prettyPrec k (Set Zero) = text "Set" -- print as Set for backwards compat.
+  prettyPrec _ (SortC c)  = text $ show c
+  prettyPrec _ (Set Zero) = text "Set" -- print as Set for backwards compat.
   prettyPrec k (Set e) =  parensIf (precAppR <= k) $
     text "Set" <+> prettyPrec precAppR e
   prettyPrec k (CoSet e) = parensIf (precAppR <= k) $
     text "CoSet" <+> prettyPrec precAppR e
 
 instance Pretty Pattern where
-  prettyPrec k (VarP x)       = pretty x
+  prettyPrec _ (VarP x)       = pretty x
   prettyPrec k (ConP co c ps) = parensIf (not (null ps) && precAppR <= k) $
     -- (if dottedPat co then text "." else empty) <>
     dotIf (dottedPat co) $ pretty c <+> hsep (List.map (prettyPrec precAppR) ps)
   prettyPrec k (SuccP p)      = text "$" <> prettyPrec k p
   prettyPrec k (SizeP x y)    = parensIf (precAppR <= k) $ pretty y <+> text "<" <+> pretty x
-  prettyPrec k (PairP p p')   = parens $ pretty p <> comma <+> pretty p'
+  prettyPrec _ (PairP p p')   = parens $ pretty p <> comma <+> pretty p'
   prettyPrec k (UnusableP p)  = prettyPrec k p
-  prettyPrec k (ProjP x)      = text "." <> pretty x
-  prettyPrec k (DotP p)       = text "." <> prettyPrec precAppR p
-  prettyPrec k (AbsurdP)      = text "()"
-  prettyPrec k (ErasedP p)    = brackets $ prettyPrec 0 p
+  prettyPrec _ (ProjP x)      = text "." <> pretty x
+  prettyPrec _ (DotP p)       = text "." <> prettyPrec precAppR p
+  prettyPrec _ (AbsurdP)      = text "()"
+  prettyPrec _ (ErasedP p)    = brackets $ prettyPrec 0 p
 
 
 instance Show Expr where
@@ -1479,8 +1516,11 @@ instance Show Expr where
 instance Show Pattern where
   show = render . pretty
 
+showCase :: Clause -> String
 showCase (Clause _ [p] Nothing) = render (prettyPrec precAppR p)
 showCase (Clause _ [p] (Just e)) = render (prettyPrec precAppR p) ++ " -> " ++ show e
+
+showCases :: [Clause] -> String
 showCases = showList "; " showCase
 
 
@@ -1506,7 +1546,7 @@ patSubst phi p =
     SuccP p      -> SuccP $ patSubst phi p
     SizeP e y    -> SizeP (parSubst phi' e) y
     PairP p1 p2  -> PairP (patSubst phi p1) (patSubst phi p2)
-    ProjP x      -> p
+    ProjP _      -> p
     DotP e       -> DotP $ parSubst phi' e
     AbsurdP      -> p
     ErasedP p    -> ErasedP $ patSubst phi p
@@ -1545,7 +1585,7 @@ instance ParSubst a => ParSubst (TBinding a) where
 instance ParSubst a => ParSubst (Sort a) where
   parSubst phi (CoSet e) = CoSet $ parSubst phi e
   parSubst phi (Set e)   = Set   $ parSubst phi e
-  parSubst phi s         = s
+  parSubst _   s         = s
 
 instance ParSubst Telescope where
   parSubst phi = Telescope . parSubst phi . telescope
@@ -1555,14 +1595,14 @@ instance ParSubst Clause where
 
 -- TODO: Refactor!
 instance ParSubst Expr where
-  parSubst phi (Sort s)              =  Sort $ parSubst phi s
+  parSubst phi (Sort s)              = Sort $ parSubst phi s
   parSubst phi (Succ e)              = Succ (parSubst phi e)
-  parSubst phi e@Zero                = e
-  parSubst phi e@Infty               = e
-  parSubst phi e@Meta{}              = e
-  parSubst phi e@Proj{}              = e
+  parSubst _   e@Zero                = e
+  parSubst _   e@Infty               = e
+  parSubst _   e@Meta{}              = e
+  parSubst _   e@Proj{}              = e
   parSubst phi (Var x)               = phi x
-  parSubst phi e@Def{}               = e
+  parSubst _   e@Def{}               = e
   parSubst phi (Case e mt cls)       = Case (parSubst phi e) (parSubst phi mt) (parSubst phi cls)
   parSubst phi (LLet ta tel b c)     = LLet (parSubst phi ta) (parSubst phi tel) (parSubst phi b) (parSubst phi c)
   parSubst phi (Pair f e)            = Pair (parSubst phi f) (parSubst phi e)
@@ -1576,7 +1616,7 @@ instance ParSubst Expr where
 --  parSubst phi (Quant pisig tel a b) = Quant pisig (parSubst phi tel) (parSubst phi a) (parSubst phi b)
   parSubst phi (Sing a b)            = Sing (parSubst phi a) (parSubst phi b)
   parSubst phi (Ann e)               = Ann $ parSubst phi e
-  parSubst phi e                     = error $ "Abstract.parSubst phi (" ++ show e ++ ") undefined"
+  parSubst _   e                     = error $ "Abstract.parSubst phi (" ++ show e ++ ") undefined"
   {- NOT NEEDED
   sgSubst :: Name -> Expr -> Expr -> Expr
   sgSubst x t u = parSubst (\ y -> if x == y then t else Var y) u
@@ -1614,7 +1654,7 @@ instance Substitute a => Substitute (TBinding a) where
 instance Substitute a => Substitute (Sort a) where
   subst phi (CoSet e) = CoSet $ subst phi e
   subst phi (Set e)   = Set   $ subst phi e
-  subst phi s         = s
+  subst _   s         = s
 
 instance Substitute Telescope where
   subst phi = Telescope . subst phi . telescope
@@ -1625,12 +1665,12 @@ instance Substitute Clause where
 instance Substitute Expr where
   subst phi (Sort s)              = Sort $ subst phi s
   subst phi (Succ e)              = Succ (subst phi e)
-  subst phi e@Zero                = e
-  subst phi e@Infty               = e
+  subst _   e@Zero                = e
+  subst _   e@Infty               = e
   subst phi e@(Meta i)            = Map.findWithDefault e i phi
-  subst phi e@Var{}               = e
-  subst phi e@Def{}               = e
-  subst phi e@Proj{}              = e
+  subst _   e@Var{}               = e
+  subst _   e@Def{}               = e
+  subst _   e@Proj{}              = e
   subst phi (Case e mt cls)       = Case (subst phi e) (subst phi mt) (subst phi cls)
   subst phi (LLet ta tel b c)     = LLet (subst phi ta) (subst phi tel) (subst phi b) (subst phi c)
   subst phi (Pair f e)            = Pair (subst phi f) (subst phi e)
@@ -1644,7 +1684,7 @@ instance Substitute Expr where
 --  subst phi (Quant pisig tel a b) = Quant pisig (subst phi tel) (subst phi a) (subst phi b)
   subst phi (Sing a b)            = Sing (subst phi a) (subst phi b)
   subst phi (Ann e)               = Ann $ subst phi e
-  subst phi e                     = error $ "Abstract.subst phi (" ++ show e ++ ") undefined"
+  subst _   e                     = error $ "Abstract.subst phi (" ++ show e ++ ") undefined"
 
 -- Printing declarations ---------------------------------------------
 
@@ -1660,6 +1700,7 @@ instance Pretty Declaration
 prettyFun :: Name -> [Clause] -> Doc
 prettyFun f cls = vlist $ List.map (prettyClause f) cls
 
+prettyClause :: Pretty a => a -> Clause -> Doc
 prettyClause f (Clause _ ps Nothing) = pretty f <+> hsep (List.map (prettyPrec precAppR) ps)
 prettyClause f (Clause _ ps (Just e)) = pretty f
   <+> hsep (List.map (prettyPrec precAppR) ps)
@@ -1790,7 +1831,7 @@ instance (InjectiveVars a, InjectiveVars b, InjectiveVars c) => InjectiveVars (a
   injectiveVars (a, b, c) = mconcat [injectiveVars a, injectiveVars b, injectiveVars c]
 
 instance InjectiveVars a => InjectiveVars (TBinding a) where
-  injectiveVars (TBind x a)  = injectiveVars a
+  injectiveVars (TBind _ a)  = injectiveVars a
   injectiveVars (TMeasure m) = injectiveVars m
   injectiveVars (TBound b)   = injectiveVars b
 
@@ -1821,7 +1862,7 @@ classifyFields co dataName ty = List.map (classifyField fvs) $ telescope tele
   where (tele, core) = typeToTele ty
         fvs = freeVars core
         ivs = injectiveVars core
-        classifyField fvs (TBind name (Domain ty ki dec)) = FieldInfo
+        classifyField fvs (TBind name (Domain ty _ki dec)) = FieldInfo
           { fDec = dec
           , fName  = name
           , fType  = ty
@@ -2109,7 +2150,7 @@ isSuccessor (Succ e) = True
 isSuccessor _        = False
 
 shallowSuccP :: Pattern -> Bool
-shallowSuccP p = case p of
+shallowSuccP = \case
      (SuccP p)   -> isVarP p
      (ErasedP p) -> shallowSuccP p
      (DotP e)    -> shallowSuccE e

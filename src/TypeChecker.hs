@@ -7,10 +7,11 @@ import Prelude hiding (null)
 
 import Control.Applicative hiding (Const) -- ((<$>))
 import Control.Monad
-import Control.Monad.Identity
-import Control.Monad.State
-import Control.Monad.Except
-import Control.Monad.Reader
+import Control.Monad.IO.Class (MonadIO(..))
+import Control.Monad.State    (runStateT, get, gets, put)
+import Control.Monad.Except   (runExceptT, catchError)
+import Control.Monad.Reader   (runReaderT, ask, asks, local)
+import Control.Monad.Trans    (lift)
 
 import qualified Data.List as List
 import Data.Map (Map)

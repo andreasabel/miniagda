@@ -1,4 +1,4 @@
--- {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 
 -- | Semirings.  Original: Agda.Terminatio.Semiring
 
@@ -10,8 +10,9 @@ module Semiring
   , boolSemiring
   ) where
 
-import Data.Monoid
-
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid)
+#endif    
 
 {- | SemiRing type class.  Additive monoid with multiplication operation.
 Inherit addition and zero from Monoid. -}

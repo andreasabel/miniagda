@@ -3,6 +3,7 @@
 module TraceError where
 
 import Control.Monad.Except
+import Control.Monad.IO.Class (MonadIO(..))
 import Debug.Trace
 
 import Util
@@ -18,16 +19,22 @@ instance Show TraceError where
     show (Err str) = str
     show (TrErr str err) = str ++ "\n/// " ++ show err
 
-throwErrorMsg m = throwError (Err m)
+throwErrorMsg :: MonadError TraceError m => String -> m a
+throwErrorMsg = throwError . Err
 
--- newErrorMsg :: (MonadError TraceError m) => m a -> String -> m a
+newErrorMsg :: (MonadError TraceError m) => m a -> String -> m a
 newErrorMsg c s = c `catchError` (\ _ -> throwErrorMsg s)
 -- addErrorMsg c s = c `catchError` (\ s' -> throwErrorMsg (s' ++ "\n" ++ s))
 
 -- extend the current error message by n
+throwTrace :: MonadError TraceError m => m a -> String -> m a
 throwTrace x n = x `catchError` ( \e -> throwError $ TrErr n e)
+
+enter, enterTrace :: MonadError TraceError m => String -> m a -> m a
 enter n x = throwTrace x n
 enterTrace n x = trace n $ throwTrace x n
+
+enterShow :: (MonadError TraceError m, Show a) => a -> m b -> m b
 enterShow n = enter (show n)
 
 enterDoc :: (MonadError TraceError m, Pretty d) => m d -> m a -> m a
@@ -48,11 +55,11 @@ errorToBool :: (MonadError e m) => m () -> m Bool
 errorToBool m = (m >> return True) `catchError` (\ _ -> return False)
 
 boolToErrorDoc :: (MonadError TraceError m) => m Doc -> Bool -> m ()
-boolToErrorDoc d True  = return ()
+boolToErrorDoc _ True  = return ()
 boolToErrorDoc d False = failDoc d
 
 boolToError :: (MonadError TraceError m) => String -> Bool -> m ()
-boolToError msg True  = return ()
+boolToError _   True  = return ()
 boolToError msg False = throwErrorMsg msg
 
 -- defined in Control.Monad.Error.Class in mtl-2.2.2
@@ -70,8 +77,8 @@ data AssertionHandling = Failure | Warning | Ignore
                        deriving (Eq,Ord,Show)
 
 assert' :: (MonadError TraceError m, MonadIO m) => AssertionHandling -> Bool -> String -> m ()
-assert' Ignore b s      = return ()
-assert' h True s        = return ()
+assert' Ignore _      _ = return ()
+assert' _       True  _ = return ()
 assert' Warning False s = liftIO $ putStrLn $ "warning: ignoring error: " ++ s
 assert' Failure False s = throwErrorMsg s
 

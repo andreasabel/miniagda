@@ -1,9 +1,12 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 module Collection where
 
-import Data.List as List
-import Data.Monoid
+import qualified Data.List as List
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid)
+#endif
 
 import Data.Set (Set)
 import qualified Data.Set as Set

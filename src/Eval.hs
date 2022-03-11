@@ -10,15 +10,16 @@ module Eval where
 import Prelude hiding (mapM, null, pi)
 
 import Control.Applicative
-import Control.Monad.Identity hiding (mapM)
-import Control.Monad.State hiding (mapM)
-import Control.Monad.Except hiding (mapM)
-import Control.Monad.Reader hiding (mapM)
+import Control.Monad          hiding (mapM)
+import Control.Monad.State    (StateT, execStateT, get, gets, put)
+import Control.Monad.Except   (runExcept, MonadError)
+import Control.Monad.Reader   (asks, local)
 
 import qualified Data.Array as Array
 import Data.Maybe -- fromMaybe
 import Data.Monoid hiding ((<>))
-import Data.List as List hiding (null) -- find
+import Data.List (find)
+import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Foldable (foldMap)
