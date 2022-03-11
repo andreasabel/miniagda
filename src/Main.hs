@@ -16,7 +16,6 @@ import qualified Concrete as C
 import qualified Abstract as A
 import Abstract (Name)
 import ScopeChecker
-import Value
 import TCM
 import TypeChecker
 import Extract

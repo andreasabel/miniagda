@@ -1,16 +1,19 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 
 module Value where
 
 import Prelude hiding (null)
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
-import Control.Monad.Except
+#endif
+import Control.Monad.Except (MonadError)
 
 import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Debug.Trace
+-- import Debug.Trace
 
 import Abstract
 import Polarity
@@ -92,7 +95,10 @@ type Domain = Dom TVal
 newtype Valuation = Valuation { valuation :: [(Int,Val)] }
   deriving (Eq,Ord)
 
+emptyVal :: Valuation
 emptyVal  = Valuation []
+
+sgVal :: Int -> Val -> Valuation
 sgVal i v = Valuation [(i,v)]
 
 valuateGen :: Int -> Valuation -> Val
@@ -104,15 +110,10 @@ data Environ a = Environ
   { envMap   :: [(Name,a)]          -- the actual map from names to values
   , envBound :: Maybe (Measure Val) -- optionally the current termination measure
   }
-               deriving (Eq,Ord,Show)
+  deriving (Eq, Ord, Show)
 
 type EnvMap = [(Name,Val)]
 type Env = Environ Val
-
-{-
-data MeasVal = MeasVal [Val]  -- lexicographic termination measure
-               deriving (Eq,Ord,Show)
--}
 
 -- smart constructors ------------------------------------------------
 
@@ -121,6 +122,7 @@ vSize :: Val
 vSize = VBelow Le VInfty -- 2012-01-28 non-termination bug I have not found
 -- vSize = VSort $ SortC Size
 
+vFinSize :: Val
 vFinSize = VBelow Lt VInfty
 
 -- | Ensure we construct the correct value representing Size.
@@ -133,6 +135,7 @@ isVSize (VSort (SortC Size)) = True
 isVSize (VBelow Le VInfty)   = True
 isVSize _                    = False
 
+vTSize :: Val
 vTSize = VSort $ SortC TSize
 
 vTopSort :: Val
@@ -156,17 +159,18 @@ filterEnv ns ((x,v) : rho) =
   if Set.member x ns then (x,v) : filterEnv (Set.delete x ns) rho
    else filterEnv ns rho
 
-vDef id   = VDef id `VApp` []
+vDef :: DefId -> Val
+vDef x = VDef x `VApp` []
+
+vCon :: ConK -> QName -> Val
 vCon co n = vDef $ DefId (ConK co) n
 -- vCon co n = vDef $ DefId (ConK (coToConK co)) n
-vFun n    = vDef $ DefId FunK $ QName n
-vDat n    = vDef $ DefId DatK n
 
-{- POSSIBLY BREAKS INVARIANT!
-vApp :: Val -> [Val] -> Val
-vApp f [] = f
-vApp f vs = VApp f vs
--}
+vFun :: Name -> Val
+vFun n = vDef $ DefId FunK $ QName n
+
+vDat :: QName -> Val
+vDat n = vDef $ DefId DatK n
 
 vAbs :: Name -> Int -> Val -> FVal
 vAbs x i v = VAbs x i v emptyVal
@@ -175,6 +179,7 @@ arrow , prod :: TVal -> TVal -> TVal
 arrow = quant Pi
 prod  = quant Sigma
 
+quant :: PiSigma -> TVal -> Val -> Val
 quant piSig a b = VQuant piSig x (defaultDomain a) (VConst b)
   where x   = fresh ""
 -- quant piSig a b = VQuant piSig x (defaultDomain a) (Environ [(bla,b)] Nothing) (Var bla)
@@ -214,6 +219,8 @@ succSize v = case v of
             VMax vs -> maxSize $ map succSize vs
             VMeta i rho n -> VMeta i rho (n + 1)  -- TODO: integrate + and mvar
             _ -> VSucc v
+
+vSucc :: Val -> Val
 vSucc = succSize
 
 -- "multiplication" of sizes
@@ -351,6 +358,7 @@ instance Show Val where
   show (VAbs x i v valu) = "(\\" ++ show x ++ "@" ++ show i ++ show v ++ showValuation valu ++ ")"
   show (VUp v vt) = "(" ++ show v ++ " Up " ++ show vt ++ ")"
 
+showSkipLambda :: Val -> String
 showSkipLambda v =
   case v of
     (VLam x env e)    -> show e ++ showEnv env

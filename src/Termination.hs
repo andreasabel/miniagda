@@ -9,11 +9,9 @@ import Control.Monad.Writer (Writer, runWriter, mapWriter, tell, listen)
 
 import qualified Data.List as List
 import Data.Monoid
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Foldable (Foldable, foldMap)
-import qualified Data.Foldable as Foldable
-
+#if !MIN_VERSION_base(4,8,0)
+import Data.Foldable (foldMap)
+#endif
 import Debug.Trace
 
 --import System
@@ -28,7 +26,10 @@ import qualified SparseMatrix as M
 import TreeShapedOrder (TSO)
 import qualified TreeShapedOrder as TSO
 
+traceTerm :: String -> a -> a
 traceTerm msg a = a -- trace msg a
+
+traceTermM :: Monad m => String -> m ()
 traceTermM msg = return () -- traceM msg
 {-
 traceTerm msg a = trace msg a
@@ -36,7 +37,10 @@ traceTermM msg = traceM msg
 -}
 
 
+traceProg :: String -> a -> a
 traceProg msg a =  a
+
+traceProgM :: Monad m => String -> m ()
 traceProgM msg = return ()
 {-
 traceProg msg a = trace msg a
@@ -336,6 +340,7 @@ compareExpr' tso e p =
       ((Proj Post n1,[]), ProjP n2) | n1 == n2 -> Decr 0
       _ -> Un
 
+conView :: (Expr, [Expr]) -> (Expr, [Expr])
 conView (Record (NamedRec co n _ _) rs, es) = (Def (DefId (ConK co) n), map snd rs ++ es)
 conView p = p
 
@@ -495,11 +500,11 @@ cmRing = Semiring { add = unionCMSet , mul = mulCMSet , zero = [] } -- one = und
 type Progress = Writer Any
 type ProgressH = Writer (Any, Any)
 
+firstHalf :: (Any, Any)
 firstHalf = (Any True, Any False)
-secondHalf = (Any False, Any True)
 
--- fullProgress = Sum 2
--- halfProgress = Sum 1
+secondHalf :: (Any, Any)
+secondHalf = (Any False, Any True)
 
 -- we keep CMSets always in normal form
 -- progress reported if m is "better" than one of ms
@@ -766,8 +771,8 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
              (loop tso e1) ++ -- type won't get evaluated
              (loop tso e2)
           (Quant _ tb@(TBind x dom) e2) -> (loop tso (typ dom)) ++ (loop (tsoBind tso tb) e2)
-          (Quant _ (TMeasure mu) e2) -> Foldable.foldMap (loop tso) mu ++ (loop tso e2)
-          (Quant _ (TBound beta) e2) -> Foldable.foldMap (loop tso) beta ++ (loop tso e2)
+          (Quant _ (TMeasure mu) e2) -> foldMap (loop tso) mu ++ (loop tso e2)
+          (Quant _ (TBound beta) e2) -> foldMap (loop tso) beta ++ (loop tso e2)
           (Below ltle e) -> loop tso e
           (Sing e1 e2) -> (loop tso e1) ++ (loop tso e2)
           (Pair e1 e2) -> (loop tso e1) ++ (loop tso e2)
@@ -783,7 +788,7 @@ collectCallsExpr nl f pl e = traceTerm ("collectCallsExpr " ++ show e) $
           Def{}   -> []
           Irr{}   -> []
           Proj{}   -> []
-          Record ri rs -> Foldable.foldMap (loop tso . snd) rs
+          Record ri rs -> foldMap (loop tso . snd) rs
           Ann e1 -> loop tso (unTag e1)
 --          Con{}   -> []
 --          Let{}   -> []

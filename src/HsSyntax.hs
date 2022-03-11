@@ -1,5 +1,7 @@
 {- 2010-09-17 haskell syntax tools -}
 
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module HsSyntax where
 
 import Abstract (PiSigma(..))

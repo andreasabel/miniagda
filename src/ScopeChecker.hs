@@ -5,11 +5,15 @@
       FlexibleContexts, FlexibleInstances, UndecidableInstances,
       MultiParamTypeClasses #-}
 
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module ScopeChecker (scopeCheck) where
 
 import Prelude hiding (mapM, null)
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
+#endif
 import Control.Monad          hiding (mapM)
 import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.Reader   (ReaderT, runReaderT, MonadReader, ask, asks, local)
@@ -22,11 +26,14 @@ import qualified Data.List as List
 import Data.Maybe
 import Data.Traversable (mapM)
 
-import Debug.Trace
+-- import Debug.Trace
 
 import Polarity(Pol(..))
 import qualified Polarity as A
-import Abstract (Sized,mkExtRef,Co,ConK(..),PrePost(..),MVar,Decoration(..),Override(..),Measure(..),adjustTopDecsM,Arity,polarity,LensPol(..))
+import Abstract
+  ( Sized, Co, ConK(..), PrePost(..), MVar, Override(..), Measure(..), adjustTopDecsM
+  , Arity, polarity, LensPol(..)
+  )
 import qualified Abstract as A
 import qualified Concrete as C
 
@@ -540,7 +547,7 @@ scopeCheckField delta n =
 addFields :: IKind -> Context -> [C.Name] -> ScopeCheck [A.Name]
 addFields kind delta cfields = do
     afields <- mapM (scopeCheckField delta) cfields
-    mapM (uncurry $ addANameU kind) $ zip cfields afields
+    mapM_ (uncurry $ addANameU kind) $ zip cfields afields
     return afields
 
 scopeCheckDataDecl :: C.Declaration -> ScopeCheck A.Declaration
@@ -609,12 +616,12 @@ scopeCheckFunDecls co l = do
   --let addFuns b = mapM (uncurry $ addAName $ FunK b) nxs
 --  let addFuns b = mapM (\ (n,x) -> addAName (FunK b) n x) nxs
   -- addFuns False
-  mapM (uncurry $ addANameU $ FunK False) nxs
+  mapM_ (uncurry $ addANameU $ FunK False) nxs
   arcll' <- mapM (setDefaultPolarity A.Rec . scopeCheckFunClauses) l
   -- add names as external ids
   --addFuns True
   let nxs' = map (mapPair id A.mkExtName) nxs
-  mapM (uncurry $ addANameU (LetK)) nxs'
+  mapM_ (uncurry $ addANameU (LetK)) nxs'
 --  mapM (uncurry $ addAName (FunK True)) nxs'
   return $ A.MutualFunDecl (isJust ml) co $
     zipWith3 (\ ts (_, x') (ar, cls) -> A.Fun ts x' ar cls) tsl' nxs' arcll'

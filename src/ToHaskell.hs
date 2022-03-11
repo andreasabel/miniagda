@@ -43,19 +43,17 @@ import Prelude hiding (null)
 
 import Data.Char
 
-import Control.Applicative
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>))
+#endif
 import Control.Monad
-import Control.Monad.Except
-import Control.Monad.Reader
-import Control.Monad.Writer
-import Control.Monad.State
+import Control.Monad.Except (ExceptT, runExceptT)
+import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.State  (StateT, evalStateT)
 
-import Data.Map (Map)
-import qualified Data.Map as Map
 import qualified Data.Traversable as Trav
 
 import qualified Language.Haskell.Exts.Syntax as Hs
-import Text.PrettyPrint
 
 import Polarity
 import Abstract

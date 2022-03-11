@@ -2,7 +2,7 @@
 
 module TraceError where
 
-import Control.Monad.Except
+import Control.Monad.Except   (MonadError, throwError, catchError)
 import Control.Monad.IO.Class (MonadIO(..))
 import Debug.Trace
 

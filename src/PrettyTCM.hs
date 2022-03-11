@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module PrettyTCM where
 
 import Prelude hiding (sequence, mapM, (<>))
@@ -11,7 +13,9 @@ import {-# SOURCE #-} TCM
 import qualified Util
 import Value
 
-import Control.Applicative hiding (empty)
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>))
+#endif
 import Control.Monad ((<=<))
 import Data.Traversable
 

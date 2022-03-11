@@ -5,13 +5,13 @@ module Concrete where
 import Prelude hiding (null)
 
 import Util
-import Abstract (Co,Sized,PiSigma(..),Decoration(..),Dec,Override(..),Measure(..),Bound(..),HasPred(..),LtLe(..),polarity)
-import qualified Abstract as A
+import Abstract
+  (Co, Sized, PiSigma(..), Dec, Override(..), Measure(..), Bound(..), HasPred(..), LtLe(..), polarity)
 import Polarity
 
 -- | Concrete names.
 data Name = Name { theName :: String }
-  deriving (Eq,Ord)
+  deriving (Eq, Ord)
 
 instance Show Name where
   show (Name n) = n
@@ -20,15 +20,19 @@ instance Show Name where
 data QName
   = Qual  { qual :: Name, name :: Name }  -- ^ @X.x@ e.g. qualified constructor.
   | QName { name :: Name }                -- ^ @x@.
-  deriving (Eq,Ord)
+  deriving (Eq, Ord)
 
+unqual :: QName -> Name
 unqual (QName n) = n
 
 instance Show QName where
   show (Qual m n) = show m ++ "." ++ show n
   show (QName n)  = show n
 
+set0 :: Expr
 set0 = Set Zero
+
+ident :: Name -> Expr
 ident n = Ident (QName n)
 
 -- | Concrete expressions syntax.
@@ -236,6 +240,7 @@ prettyDecId dec x
 prettyTel :: Bool -> Telescope -> String
 prettyTel inPi = Util.showList " " (prettyTBind inPi)
 
+prettyMaybeType :: Maybe Expr -> String
 prettyMaybeType = maybe "" $ \ t -> " : " ++ prettyExpr t
 
 prettyExpr :: Expr -> String
@@ -269,8 +274,10 @@ prettyExpr e =
       Quant pisig tel t2 -> parens $ prettyTel True tel
                                   ++ " " ++ show pisig ++ " " ++ prettyExpr t2
 
+prettyRecordLine :: ([Name], Expr) -> String
 prettyRecordLine (xs, e) = Util.showList " " show xs ++ " = " ++ prettyExpr e
 
+prettyCase :: Clause -> String
 prettyCase (Clause Nothing [p] Nothing)  = prettyPattern p
 prettyCase (Clause Nothing [p] (Just e)) = prettyPattern p ++ " -> " ++ prettyExpr e
 
@@ -287,6 +294,7 @@ prettyPattern (AbsurdP)   = parens ""
 prettyExprs :: [Expr] -> String
 prettyExprs = Util.showList " " prettyExpr
 
+prettyDecl :: Declaration -> String
 prettyDecl (PatternDecl n ns p) = "pattern " ++ (Util.showList " " show (n:ns)) ++ " = " ++ prettyPattern p
 
 teleToType :: Telescope -> Type -> Type

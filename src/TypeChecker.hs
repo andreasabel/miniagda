@@ -5,27 +5,26 @@ module TypeChecker where
 
 import Prelude hiding (null)
 
-import Control.Applicative hiding (Const) -- ((<$>))
-import Control.Monad
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>))
+#endif
+import Control.Monad          (foldM, forM, forM_, liftM, unless, when, zipWithM, zipWithM_)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.State    (runStateT, get, gets, put)
 import Control.Monad.Except   (runExceptT, catchError)
 import Control.Monad.Reader   (runReaderT, ask, asks, local)
-import Control.Monad.Trans    (lift)
 
 import qualified Data.List as List
 import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Foldable as Foldable
 import qualified Data.Traversable as Traversable
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
 import qualified Text.PrettyPrint as PP
 
 import Util
-import qualified Util as Util
 
 import Abstract hiding (Substitute)
 import Polarity as Pol
@@ -37,11 +36,12 @@ import Extract
 import PrettyTCM
 import TraceError
 
-import Warshall hiding (Flex) -- size constraint checking
-
 import Termination
 
 -- import Completness
+
+traceCheck, traceSing, traceAdm :: String -> a -> a
+traceCheckM, traceSingM, traceAdmM :: Monad m => String -> m ()
 
 
 traceCheck msg a = a -- trace msg a
@@ -70,16 +70,20 @@ runWhnf :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
 runWhnf sig tc = (runExceptT (runStateT tc  sig))
 -}
 
+doNf :: Signature -> Expr -> IO (Either TraceError (Expr, TCState))
 doNf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) emptyContext)
+
+doWhnf :: Signature -> Expr -> IO (Either TraceError (Val, TCState))
 doWhnf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) emptyContext)
 
 
 -- top-level functions -------------------------------------------
 
-runTypeCheck :: TCState -> TypeCheck a -> IO (Either TraceError (a,TCState))
+runTypeCheck :: TCState -> TypeCheck a -> IO (Either TraceError (a, TCState))
 runTypeCheck st tc = runExceptT (runReaderT (runStateT tc st) emptyContext)
 -- runTypeCheck st tc = runCallStackT (runReaderT (runStateT tc st) emptyContext) []
 
+typeCheck :: [Declaration] -> IO (Either TraceError ([EDeclaration], TCState))
 typeCheck dl = runTypeCheck initSt (typeCheckDecls dl)
 
 -- checking top-level declarations -------------------------------
@@ -87,6 +91,7 @@ typeCheck dl = runTypeCheck initSt (typeCheckDecls dl)
 echo :: MonadIO m => String -> m ()
 echo = liftIO . putStrLn
 
+echoR :: MonadIO m => String -> m ()
 echoR = echo
 -- echoR s = echo $ "R> " ++ s
 
@@ -99,6 +104,7 @@ echoKindedTySig ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " : " ++ show
 echoKindedDef :: (Show n, MonadIO m) => Kind -> n -> Expr -> m ()
 echoKindedDef ki n t = echo $ prettyKind ki ++ "  " ++ show n ++ " = " ++ show t
 
+echoEPrefix :: String
 echoEPrefix = "E> "
 
 echoTySigE :: (Show n, MonadIO m) => n -> Expr -> m ()
@@ -121,7 +127,7 @@ typeCheckDecls (d:ds) = do
 typeCheckDeclaration :: Declaration -> TypeCheck [EDeclaration]
 typeCheckDeclaration (OverrideDecl Check ds) = do
   st <- get
-  typeCheckDecls ds
+  _ <- typeCheckDecls ds
   put st             -- forget the effect of these decls
   return []
 typeCheckDeclaration (OverrideDecl Fail ds) = do
@@ -549,7 +555,7 @@ typeCheckMeasuredFuns co funs0 = do
         echoR $ (PP.render $ prettyFun n cls))
       funse
     -- replace in signature by erased clauses
-    zipWithM (enableSig co) (zipWith intersectKind kis $ map kindOf kfse) funse
+    zipWithM_ (enableSig co) (zipWith intersectKind kis $ map kindOf kfse) funse
     return $ funse
 
   where
@@ -592,7 +598,7 @@ typeCheckFuns co funs0 = do
     kfse <- mapM typeCheckFunSig funs0
     let kfuns = zipWith (\ (Kinded ki ts) (Fun ts0 n' ar cls) -> Kinded ki (Fun ts n' ar cls)) kfse funs0
     -- zipWithM (addFunSig co) (map kindOf kfse) funs
-    mapM (addFunSig co) kfuns
+    mapM_ (addFunSig co) kfuns
     let funs = map valueOf kfuns
     -- type check and solve size constraints
     -- return clauses with meta vars resolved
@@ -618,7 +624,7 @@ typeCheckFuns co funs0 = do
       funse
     terminationCheck funse
     -- replace in signature by erased clauses
-    zipWithM enableSig kis funse
+    zipWithM_ enableSig kis funse
     return $ funse
 
 addFunSig :: Co -> Kinded Fun -> TypeCheck ()
@@ -707,7 +713,7 @@ checkTarget d dv tel tg = do
   case tv of
     VApp (VDef (DefId DatK (QName n))) vs | n == d -> do
       telvs <- mapM (\ tb -> whnf' (Var (boundName tb))) $ telescope tel
-      enter ("checking datatype parameters in constructor target") $
+      _ <- enter ("checking datatype parameters in constructor target") $
         leqVals' N mixed (One dv) (take (size tel) vs) telvs
       return ()
     _ -> throwErrorMsg $ "constructor should produce something in data type " ++ show d
@@ -1196,6 +1202,7 @@ checkSpine (e : es) tv = do
   (knes, tv) <- checkSpine es tv
   return (kne : knes, tv)
 
+maybeErase :: Polarity pol => pol -> Expr -> Expr
 maybeErase dec = if erased dec then erasedExpr else id
 
 -- | checking e against (x : A) -> B returns (x,e) and B[e/x]
@@ -1607,7 +1614,7 @@ checkCase i v tv cl@(Clause _ [p] mrhs) = enter ("case " ++ show i) $
       -- clearDots -- NOT NEEDED
       (flex,ins,cxt,vt,pe,pv,absp) <- checkPattern neutral [] emptySub tv p
       local (\ _ -> cxt) $ do
-        mapM (checkGoal ins) flex
+        mapM_ (checkGoal ins) flex
         tel <- getContextTele -- TODO!
         case (absp,mrhs) of
            (True,Nothing) -> return $ Kinded NoKind (Clause tel [pe] Nothing)
@@ -1657,7 +1664,7 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
     -- Note that cofuns need not be SN, so the strict consistency may be
     -- not necessary.
     local (\ _ -> cxt { consistencyCheck = (mutualCo cxt == Ind) }) $ do
-      mapM (checkGoal ins) flex
+      mapM_ (checkGoal ins) flex
 {-
       dots <- openDots
       unless (null dots) $
@@ -1680,8 +1687,13 @@ checkClause i tv cl@(Clause _ pl mrhs) = enter ("clause " ++ show i) $ do
 
 type Substitution = Valuation -- [(Int,Val)]
 
-emptySub    = emptyVal
-sgSub       = sgVal
+emptySub :: Substitution
+emptySub = emptyVal
+
+sgSub :: Int -> Val -> Substitution
+sgSub = sgVal
+
+lookupSub :: Int -> Substitution -> Maybe Val
 lookupSub i = lookup i . valuation
 
 type DotFlex = (Int,(Expr,Domain))
@@ -2722,6 +2734,7 @@ So if G is upper semi-continuous, so is F.
 lowerSemiCont :: Int -> TVal -> TypeCheck Bool
 lowerSemiCont i tv = errorToBool $ lowerSemiContinuous i tv
 
+docNotLowerSemi :: Int -> TVal -> TypeCheck Doc
 docNotLowerSemi i av = text "type " <+> prettyTCM av <+>
   text " not lower semi continuous in " <+> prettyTCM (VGen i)
 
@@ -2981,6 +2994,7 @@ admPattern p tv = traceAdm ("admPattern " ++ show p ++ " type: " ++ show tv) $
 
       _ -> throwErrorMsg "admPattern: IMPOSSIBLE: pattern for a non-function type"
 
+cannotMatchDeep :: Pattern -> TVal -> TypeCheck ()
 cannotMatchDeep p tv = recoverFailDoc $
   text "cannot match against deep successor pattern"
     <+> text (show p) <+> text "at type" <+> prettyTCM tv

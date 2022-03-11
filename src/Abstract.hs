@@ -13,14 +13,15 @@ module Abstract where
 import Prelude hiding (showList, map, concat, foldl, pi, null, (<>))
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative hiding (empty)
+import Control.Applicative (Applicative, pure, (<*>), (<$>))
 #endif
 import Control.Monad.Writer (Writer, tell)
 import Control.Monad.Trans
 
 import Control.Arrow (first)
-import Data.Monoid hiding ((<>))
+import Data.Monoid (All(..))
 #if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (mempty, mconcat)
 import Data.Foldable (Foldable, foldMap)
 import Data.Traversable (Traversable)
 #endif

@@ -2,6 +2,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE CPP #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 -- Activate this flag if i < $i should only hold for i < #.
 -- #define STRICTINFTY
 
@@ -9,24 +11,25 @@ module Eval where
 
 import Prelude hiding (mapM, null, pi)
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
+#endif
 import Control.Monad          hiding (mapM)
 import Control.Monad.State    (StateT, execStateT, get, gets, put)
 import Control.Monad.Except   (runExcept, MonadError)
 import Control.Monad.Reader   (asks, local)
 
 import qualified Data.Array as Array
-import Data.Maybe -- fromMaybe
-import Data.Monoid hiding ((<>))
-import Data.List (find)
 import qualified Data.List as List
-import Data.Map (Map)
 import qualified Data.Map as Map
+#if !MIN_VERSION_base(4,8,0)
 import Data.Foldable (foldMap)
-import Data.Traversable (Traversable, mapM, traverse)
-import qualified Data.Traversable as Traversable
+import Data.Monoid
+import Data.Traversable (traverse)
+#endif
+import Data.Traversable (mapM)
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
 import Abstract
 import Polarity as Pol
@@ -39,6 +42,8 @@ import Warshall  -- positivity checking
 import TraceError
 import Util
 
+traceEta, traceRecord, traceMatch, traceLoop, traceSize :: String -> a -> a
+traceEtaM, traceRecordM, traceMatchM, traceLoopM, traceSizeM :: Monad m => String -> m ()
 
 traceEta msg a = a -- trace msg a
 traceEtaM msg = return () -- traceM msg
@@ -114,7 +119,7 @@ class Reval a where
   reval = reval' emptyVal
 
 instance Reval a => Reval (Maybe a) where
-  reval' valu ma = Traversable.traverse (reval' valu) ma
+  reval' valu ma = traverse (reval' valu) ma
 
 instance Reval b => Reval (a,b) where
   reval' valu (x,v) = (x,) <$> reval' valu v
@@ -134,10 +139,10 @@ instance Reval Valuation where
     reval' valu valu'
 
 instance Reval a => Reval (Measure a) where
-  reval' valu beta = Traversable.traverse (reval' valu) beta
+  reval' valu beta = traverse (reval' valu) beta
 
 instance Reval a => Reval (Bound a) where
-  reval' valu beta = Traversable.traverse (reval' valu) beta
+  reval' valu beta = traverse (reval' valu) beta
 
 instance Reval Val where
   reval' valu u = traceLoop ("reval " ++ show u) $ do
@@ -177,11 +182,11 @@ instance Reval Val where
       VGuard beta v         -> VGuard <$> reval beta <*> reval v
       VQuant pisig x dom fv ->
         VQuant pisig x
-          <$> Traversable.mapM reval dom
+          <$> mapM reval dom
           <*> reFun fv
     {-
       VQuant pisig x dom env b -> do
-        dom' <- Traversable.mapM reval dom
+        dom' <- mapM reval dom
         env' <- reEnv env
         return $ VQuant pisig x dom' env' b
     -}
@@ -284,6 +289,7 @@ equals' [] []             = return True
 equals' (w1:vs1) (w2:vs2) = (equal' w1 w2) `andLazy` (equals' vs1 vs2)
 equals' vl1 vl2           = return False
 
+equal' :: Val -> Val -> TypeCheck Bool
 equal' w1 w2 = whnfClos w1 >>= \ v1 -> equal v1 =<< whnfClos w2
 
 {- LEADS TO NON-TERMINATION
@@ -317,7 +323,7 @@ reify' m v0 = do
     (VSort s)            -> return $ Sort $ vSortToSort s
     (VBelow ltle v)      -> Below ltle <$> reify v
     (VQuant pisig x dom fv) -> do
-          dom' <- Traversable.mapM reify dom
+          dom' <- mapM reify dom
           underAbs_ x dom fv $ \ k xv vb -> do
             let x' = unsafeName (suggestion x ++ "~" ++ show k)
             piSig pisig (TBind x' dom') <$> reify vb
@@ -538,7 +544,7 @@ whnf env e = enter ("whnf " ++ show e) $
     Lam dec x e1 -> return $ vLam x env e1
     Below ltle e -> VBelow ltle <$> whnf env e
     Quant pisig (TBind x dom) b -> do
-      dom' <- Traversable.mapM (whnf env) dom  -- Pi is strict in its first argument
+      dom' <- mapM (whnf env) dom  -- Pi is strict in its first argument
       return $ VQuant pisig x dom' $ vLam x env b
 
     -- a measured type evaluates to
@@ -690,6 +696,7 @@ piApps tv [] = return tv
 piApps tv (v:vs) = do tv' <- piApp tv v
                       piApps tv' vs
 
+updateValu :: Valuation -> Int -> Val -> TypeCheck Valuation
 updateValu valu i v = reval' (sgVal i v) valu
 
 -- in app u v, u might be a VDef (e.g. when coming from reval)
@@ -1239,7 +1246,7 @@ nonLinMatch undot symm st p v0 tv = traceMatch ("matching pattern " ++ show (p,v
     -- Here, we need the type!
     matchVarP x v = do
       let env = fst st
-      case find ((x ==) . fst) $ envMap $ fst st of
+      case List.find ((x ==) . fst) $ envMap $ fst st of
         Nothing     -> return $ Just $ mapFst (\ env -> update env x v) st
         Just (y,v') -> ifM (eqValBool tv v v') (return $ Just st) (return Nothing)
 
@@ -1446,6 +1453,7 @@ data SortShape
   | ShCoSet (OneOrTwo Val)     -- CoSet i and CoSet j
     deriving (Eq, Ord)
 
+shSize :: TypeShape
 shSize = ShSort (ShSortC Size)
 
 -- typeView does not normalize!
@@ -1497,10 +1505,10 @@ sortView12 (Two s1 s2) =
     _ -> throwErrorMsg $ "sort " ++ show s1 ++ " has different shape than " ++ show s2
 
 whnf12 :: OneOrTwo Env -> OneOrTwo Expr -> TypeCheck (OneOrTwo Val)
-whnf12 env12 e12 = Traversable.traverse id $ zipWith12 whnf env12 e12
+whnf12 env12 e12 = traverse id $ zipWith12 whnf env12 e12
 
 app12 ::  OneOrTwo Val -> OneOrTwo Val -> TypeCheck (OneOrTwo Val)
-app12 fv12 v12 = Traversable.traverse id $ zipWith12 app fv12 v12
+app12 fv12 v12 = traverse id $ zipWith12 app fv12 v12
 
 -- if m12 = Nothing, we are checking subtyping, otherwise we are
 -- comparing objects or higher-kinded types
@@ -1604,8 +1612,8 @@ leqVal' f p mt12 u1' u2' = local (\ cxt -> cxt { consistencyCheck = False }) $ d
                  case mt12 of
                    Nothing -> recoverFail $ "leqVal': cannot compare constructor terms without type"
                    Just tv12 -> do
-                     ct12 <- Traversable.mapM (conType n1) tv12
-                     leqVals' f p ct12 vl1 vl2
+                     ct12 <- mapM (conType n1) tv12
+                     _ <- leqVals' f p ct12 vl1 vl2
                      return ()
 {-
        leqStructural u1 u2 where
@@ -1910,7 +1918,7 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
 
       (VGen k1, VGen k2) | k1 == k2 -> do
         tv12 <- (fmap typ . domain) <$> lookupGen k1
-        leqVals' f pol tv12 w1 w2
+        _ <- leqVals' f pol tv12 w1 w2
         return ()
 {-
       (VGen k1, VGen k2) ->
@@ -1934,7 +1942,7 @@ leqApp f pol v1 w1 v2 w2 = {- trace ("leqApp: " -- ++ show delta ++ " |- "
 
       (VDef n, VDef m) | n == m ->  do
         tv <- lookupSymbTypQ (idName n)
-        leqVals' f pol (One tv) w1 w2
+        _ <- leqVals' f pol (One tv) w1 w2
         return ()
 
       -- check for least or greatest type
@@ -2290,8 +2298,8 @@ entailsGuard pol beta1@(Bound ltle1 (Measure mu1) (Measure mu1')) beta2@(Bound l
   case pol of
     _ | pol == mixed -> do
       assert (ltle1 == ltle2) $ "unequal bound types"
-      zipWithM (leqSize mixed) mu1  mu2
-      zipWithM (leqSize mixed) mu1' mu2'
+      zipWithM_ (leqSize mixed) mu1  mu2
+      zipWithM_ (leqSize mixed) mu1' mu2'
       return ()
     Pos | ltle1 == Lt || ltle2 == Le  -> do
       lexSizes Le mu2  mu1  -- not strictly smaller

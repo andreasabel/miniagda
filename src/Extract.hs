@@ -150,18 +150,15 @@ Inferring application:
 
 import Prelude hiding (pi, null)
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Except
-import Control.Monad.Reader
-import Control.Monad.Writer
-import Control.Monad.State
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>), (<*>))
+#endif
+import Control.Monad.Except (runExceptT)
+import Control.Monad.Reader (runReaderT)
+import Control.Monad.State  (runStateT)
 
-import Data.Char
-import Data.Traversable (Traversable)
+-- import Data.Char
 import qualified Data.Traversable as Traversable
-import Data.Map (Map)
-import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 
 import Text.PrettyPrint
@@ -174,8 +171,10 @@ import TCM
 import TraceError
 import Util
 
+traceExtrM :: Monad m => String -> m ()
 traceExtrM s = return ()
 
+runExtract :: Signature -> TypeCheck a -> IO (Either TraceError (a, TCState))
 runExtract sig k = runExceptT (runReaderT (runStateT k (initWithSig sig)) emptyContext)
 
 -- extraction

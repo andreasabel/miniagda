@@ -9,18 +9,18 @@ import Control.Monad.State  (StateT, get, gets, put)
 import Control.Monad.Except (ExceptT, MonadError)
 import Control.Monad.Reader (ReaderT, ask, asks, local)
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 import Data.Foldable (Foldable)
-import qualified Data.Foldable as Foldable
 import Data.Traversable (Traversable)
+#endif
 import qualified Data.Traversable as Traversable
-import Data.Monoid
 
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 
-import Debug.Trace
+-- import Debug.Trace
 
 import Abstract
 import Polarity
@@ -38,10 +38,14 @@ import Util
 
 import Warshall
 
+traceSig :: String -> a -> a
 -- traceSig msg a = trace msg a
 traceSig msg a = a
 
+traceRew :: String -> a -> a
 traceRew msg a = a -- trace msg a
+
+traceRewM :: Monad m => String -> m ()
 traceRewM msg = return () -- traceM msg
 {-
 traceRew msg a = trace msg a
@@ -50,7 +54,10 @@ traceRewM msg = traceM msg
 
 -- metavariables and constraints
 
+traceMeta :: String -> a -> a
 traceMeta msg a = a -- trace msg a
+
+traceMetaM :: Monad m => String -> m ()
 traceMetaM msg = return () -- traceM msg
 {-
 traceMeta msg a = trace msg a
@@ -179,6 +186,7 @@ data TCContext = TCContext
 instance Show TCContext where
     show ce = show (environ ce) ++ "; " ++ show (context ce)
 
+emptyContext :: TCContext
 emptyContext = TCContext
   { context  = cxtEmpty
   , renaming = Map.empty
@@ -211,6 +219,8 @@ data TCState = TCState
   }
 
 type MetaVars = Map MVar MetaVar
+
+emptyMetaVars :: MetaVars
 emptyMetaVars = Map.empty
 
 type MScope = [Name] -- ^ names of size variables which are in scope of mvar
@@ -221,6 +231,8 @@ data MetaVar = MetaVar
 
 type PosConstrnt = Constrnt PPoly DefId ()
 type PositivityGraph = [PosConstrnt]
+
+emptyPosGraph :: PositivityGraph
 emptyPosGraph = []
 
 -- type TypeCheck = StateT TCState (ReaderT TCContext (CallStackT String IO))
@@ -276,6 +288,7 @@ openDots = map snd . filter (isDotted . fst) <$> gets dots
 data Rewrite  = Rewrite { lhs :: Val,  rhs :: Val }
 type Rewrites = [Rewrite]
 
+emptyRewrites :: Rewrites
 emptyRewrites = []
 
 instance Show Rewrite where
@@ -349,6 +362,8 @@ instance Show SemCxt where
       (Map.elems (decs delta))
     ) (Map.elems (upperDecs delta))
 -}
+
+cxtEmpty :: SemCxt
 cxtEmpty = SemCxt
   { len = 0
   , cxt = Map.empty
@@ -524,6 +539,7 @@ class Monad m => MonadCxt m where
   goImpredicative :: m a -> m a
   checkingMutual :: Maybe DefId -> m a -> m a
 
+dontCare :: a
 dontCare = error "Internal error: tried to retrieve unassigned type of variable"
 
 instance MonadCxt TypeCheck where
@@ -889,6 +905,7 @@ underAbs x dom fv cont = newWithGen x dom $ \ i xv -> cont i xv =<< app fv xv
 underAbs_  :: Name -> Domain -> FVal -> (Int -> Val -> Val -> TypeCheck a) -> TypeCheck a
 underAbs_ x dom fv cont = noConsistencyChecking $ underAbs x dom fv cont
 
+noConsistencyChecking :: TypeCheck a -> TypeCheck a
 noConsistencyChecking = local $ \ cxt -> cxt { consistencyCheck = False }
 
 -- | No eta, no hypotheses.  First returned val is a @VGen i@.
@@ -1095,6 +1112,7 @@ symbKind d         = symbolKind d   -- else: lookup
 symbKind DataSig{} = kType          -- data types are never universes
 -}
 
+emptySig :: Signature
 emptySig = Map.empty
 
 -- Handling constructor types  ------------------------------------------
@@ -1374,12 +1392,12 @@ instance MonadMeta TypeCheck where
     if any id bs then return Nothing else
      throwErrorMsg $ "cannot handle constraint " ++ show v ++ " <= " ++ show (VMax vs)
   mkConstraint w@(VMax vs) v = throwErrorMsg $ "cannot handle constraint " ++ show w ++ " <= " ++ show v
-  mkConstraint (VMeta i rho n) (VMeta j rho' m) = retret $ arc (Flex i) (m-n) (Flex j)
-  mkConstraint (VMeta i rho n) VInfty      = retret $ arc (Flex i) 0 (Rigid (RConst Infinite))
-  mkConstraint (VMeta i rho n) v           = retret $ arc (Flex i) (m-n) (Rigid (RVar j))
+  mkConstraint (VMeta i rho n) (VMeta j rho' m) = return $ Just $ arc (Flex i) (m-n) (Flex j)
+  mkConstraint (VMeta i rho n) VInfty      = return $ Just $ arc (Flex i) 0 (Rigid (RConst Infinite))
+  mkConstraint (VMeta i rho n) v           = return $ Just $ arc (Flex i) (m-n) (Rigid (RVar j))
     where (j,m) = vGenSuccs v 0
-  mkConstraint VInfty (VMeta i rho n)      = retret $ arc (Rigid (RConst Infinite)) 0 (Flex i)
-  mkConstraint v (VMeta j rho m)           = retret $ arc (Rigid (RVar i)) (m-n) (Flex j)
+  mkConstraint VInfty (VMeta i rho n)      = return $ Just $ arc (Rigid (RConst Infinite)) 0 (Flex i)
+  mkConstraint v (VMeta j rho m)           = return $ Just $ arc (Rigid (RVar i)) (m-n) (Flex j)
     where (i,n) = vGenSuccs v 0
   mkConstraint v1 v2 = throwErrorMsg $ "mkConstraint undefined for " ++ show (v1,v2)
 
@@ -1419,11 +1437,10 @@ nameOf [] j = Nothing
 nameOf ((x,VGen i):rho) j | i == j = Just x
 nameOf (_:rho) j = nameOf rho j
 
+vGenSuccs :: Val -> Int -> (Int, Int)
 vGenSuccs (VGen k)  m = (k,m)
 vGenSuccs (VSucc v) m = vGenSuccs v (m+1)
 vGenSuccs v m = error $ "vGenSuccs fails on " ++ Util.parens (show v) ++ " " ++ show m
-
-retret = return . return
 
 sizeExprToExpr :: Env -> SizeExpr -> Expr
 sizeExprToExpr rho (SizeConst Infinite) = Infty

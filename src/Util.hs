@@ -8,7 +8,7 @@ module Util where
 import Prelude hiding (showList, null, (<>))
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative hiding (empty)
+import Control.Applicative (Applicative, (<$>))
 #endif
 import Control.Monad
 import Control.Monad.Writer (Writer, runWriter)
