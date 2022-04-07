@@ -1,8 +1,9 @@
 module Main where
 
-import Prelude hiding (null)
+import Prelude hiding (null, mapM_)
 
-import System.Environment
+import Data.Foldable (mapM_)
+
 import System.Exit
 import System.IO (stdout, hSetBuffering, BufferMode(..))
 
@@ -11,6 +12,7 @@ import qualified Language.Haskell.Exts.Pretty as H
 
 import Lexer
 import Parser
+import Options
 
 import qualified Concrete as C
 import qualified Abstract as A
@@ -26,9 +28,9 @@ import Util
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  putStrLn "MiniAgda by Andreas Abel and Karl Mehltretter"
-  args <- getArgs
-  mapM_ mainFile args
+  -- putStrLn "MiniAgda by Andreas Abel and Karl Mehltretter"
+  opts <- options
+  mapM_ mainFile $ optInputs opts
 
 mainFile :: String -> IO ()
 mainFile fileName = do

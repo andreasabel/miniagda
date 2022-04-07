@@ -3,7 +3,10 @@
 {-# LANGUAGE TupleSections, NoMonomorphismRestriction,
       FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 
-module Util where
+module Util (module Util, module X) where
+
+-- reexports:
+import Data.List as X (intercalate)
 
 import Prelude hiding (showList, null, (<>))
 
@@ -13,6 +16,7 @@ import Control.Applicative (Applicative, (<$>))
 import Control.Monad
 import Control.Monad.Writer (Writer, runWriter)
 
+import qualified Data.List.NonEmpty as List1
 import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -20,6 +24,8 @@ import Data.Monoid (All, getAll)
 import Debug.Trace
 
 import Text.PrettyPrint as PP
+
+type List1 = List1.NonEmpty
 
 (+?+) :: String -> String -> String
 (+?+) _ "[]" = []

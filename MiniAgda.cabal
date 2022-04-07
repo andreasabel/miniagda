@@ -1,6 +1,6 @@
 cabal-version:   2.4
 name:            MiniAgda
-version:         0.2022.3.11
+version:         0.2022.4.6
 build-type:      Simple
 license:         MIT
 license-file:    LICENSE
@@ -63,8 +63,17 @@ executable miniagda
                           -- haskell-src-exts is a nervous package with incompatibilities
                           -- in every new version, thus, we need tight bounds.
                       , mtl               >= 2.2.2  && < 2.4
+                      , optparse-applicative
+                                          >= 0.16.0.0 && < 1
+                          -- optparse-applicative-0.16.0.0 adds some1
                       , pretty            >= 1.0    && < 1.2
+                      , string-qq
                       , transformers
+
+  if impl(ghc < 8)
+    build-depends:      semigroups        >= 0.5    && < 1
+                          -- semigroups-0.5 adds Data.List.NonEmpty
+
   build-tool-depends:   happy:happy       >= 1.15   && < 2
                       , alex:alex         >= 3.0    && < 4
   default-language:     Haskell98
@@ -87,6 +96,8 @@ executable miniagda
                         Extract
                         HsSyntax
                         Lexer
+                        License
+                        Options
                         Parser
                         Polarity
                         PrettyTCM
@@ -102,7 +113,10 @@ executable miniagda
                         TypeChecker
                         Util
                         Value
+                        Version
                         Warshall
+                        Paths_MiniAgda
+  autogen-modules:      Paths_MiniAgda
 
   ghc-options:          -Wall
                         -fno-warn-type-defaults
