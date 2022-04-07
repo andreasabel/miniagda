@@ -1,0 +1,3 @@
+:set -i. -isrc
+
+:set -package string-qq
