@@ -108,7 +108,6 @@ executable miniagda
                         TCM
                         Termination
                         ToHaskell
-                        Tokens
                         TraceError
                         TreeShapedOrder
                         TypeChecker
