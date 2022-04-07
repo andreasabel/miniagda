@@ -37,6 +37,14 @@ license = [s|" > $@
 	cat $< >> $@
 	echo "\n|]" >> $@
 
+# Generate emacs tags
+#####################
+
+.PHONY: TAGS
+
+TAGS :
+	hasktags -e *.hs
+
 # Building
 ##########
 
