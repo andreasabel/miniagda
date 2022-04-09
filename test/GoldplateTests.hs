@@ -1,5 +1,6 @@
-import System.Exit     ( exitWith  )
-import System.Process  ( system    )
+import System.Environment ( getArgs  )
+import System.Exit        ( exitWith  )
+import System.Process     ( rawSystem )
 
 main :: IO ()
-main = exitWith =<< system ("goldplate test")
+main = exitWith =<< rawSystem "goldplate" . ("test" :) =<< getArgs
