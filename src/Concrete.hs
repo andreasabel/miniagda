@@ -50,6 +50,7 @@ data Expr
   | Lam Name Expr                   -- ^ @\ x -> e@.
   | Case Expr (Maybe Type) [Clause] -- ^ @case e : A { cls }@.
   | LLet LetDef Expr                -- ^ @let x = e in e'@ local let.
+  | Unfold Unfolds Expr             -- ^ @unfold f1, ..., fn in e@.
   | Quant PiSigma Telescope Expr    -- ^ @(x : A) -> B@, @[x : A] -> B@, @(x : A) & B@.
   | Pair Expr Expr                  -- ^ @e , e'@.
   | Record [([Name],Expr)]          -- ^ @record { x = e, x' y = e' }@.
@@ -61,11 +62,14 @@ data Expr
   deriving (Eq)
 
 data LetDef = LetDef
-  { letDefDec :: Dec
-  , letDefName :: Name
-  , letDefTel  ::  Telescope
-  , letDefType :: (Maybe Type)
-  , letDefExpr :: Expr
+  { letDefDec     :: Dec
+  , letDefName    :: Name
+  , letDefTel     :: Telescope
+  , letDefType    :: Maybe Type
+  , letDefUnfolds :: Unfolds
+      -- ^ Definitions that may be unfolded to type check the body.
+      --   Must be empty in local lets.
+  , letDefExpr    :: Expr
   } deriving (Eq, Show)
 
 instance Show Expr where
@@ -80,13 +84,15 @@ data Declaration
       [Name] -- list of field names
   | RecordDecl Name Telescope Type Constructor
       [Name] -- list of field names
-  | FunDecl Co TypeSig [Clause]
+  | FunDecl Co TypeSig Unfolds [Clause]
   | LetDecl Bool LetDef -- True = if eval
---  | LetDecl Bool Name Telescope (Maybe Type) Expr -- True = if eval
   | PatternDecl Name [Name] Pattern
   | MutualDecl [Declaration]
   | OverrideDecl Override [Declaration] -- fail etc.
     deriving (Eq,Show)
+
+-- | Definitions that can be unfolded.
+type Unfolds = [Name]
 
 data TypeSig = TypeSig Name Type
              deriving (Eq)
@@ -225,10 +231,14 @@ prettyLetAssign :: String -> Expr -> String
 prettyLetAssign s e = "let " ++ s ++ " = " ++ prettyExpr e
 
 prettyLetDef :: LetDef -> String
-prettyLetDef (LetDef dec n [] mt e) = prettyLetAssign (prettyLBind tb) e
+prettyLetDef (LetDef dec n [] mt unfolds e) = prettyLetAssign (prettyLBind tb ++ prettyUnfolds unfolds) e
   where tb = TBind dec [n] mt
-prettyLetDef (LetDef dec n tel mt e) = prettyLetAssign s e
-  where s = prettyDecId dec n ++ " " ++ prettyTel False tel ++ prettyMaybeType mt
+prettyLetDef (LetDef dec n tel mt unfolds e) = prettyLetAssign s e
+  where s = prettyDecId dec n ++ " " ++ prettyTel False tel ++ prettyMaybeType mt ++ prettyUnfolds unfolds
+
+prettyUnfolds :: Unfolds -> String
+prettyUnfolds [] = ""
+prettyUnfolds ns = unwords [ " unfold", intercalate ", " (map show ns) ]
 
 prettyDecId :: Dec -> Name -> String
 prettyDecId dec x
@@ -262,6 +272,8 @@ prettyExpr e =
       Case e Nothing cs -> "case " ++ prettyExpr e ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       Case e (Just t) cs -> "case " ++ prettyExpr e ++ " : " ++ prettyExpr t ++ " { " ++ Util.showList "; " prettyCase cs ++ " } "
       LLet letdef e -> prettyLetBody (prettyLetDef letdef) e
+      Unfold unfolds e -> unwords
+        [ "unfold", intercalate ", " (map show unfolds), "in", prettyExpr e ]
 {-
       LLet tb e1 e2 -> "(let " ++ prettyLBind tb ++ " = " ++ prettyExpr e1 ++ " in " ++ prettyExpr e2 ++ ")"
 -}

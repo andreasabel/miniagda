@@ -1,0 +1,24 @@
+--- opening "unblocked-type.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  TYPE : (i : Size) -> Set $i
+{ TYPE i = Set i
+}
+ty-u  TPolyId : (i : Size) -> Set $i
+{ TPolyId i = (A : TYPE i) -> A -> A
+}
+mixk  polyId : (i : Size) -> TPolyId i
+{ polyId i A x = x
+}
+ty-u  SET : Set 1
+{ SET = Set
+}
+ty-u  TId0 : Set 1
+{ TId0 = .[A : SET] -> A -> A
+}
+univ  SET0 : Set 1
+univ  SET0 = Set
+type  TId : Set 1
+type  TId = .[A : SET0] -> A -> A
+--- evaluating ---
+--- closing "unblocked-type.ma" ---

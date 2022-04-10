@@ -674,7 +674,7 @@ terminationCheck funs = do
 
 terminationCheckFuns :: (?cutoff :: Int) => [Fun] -> [(Name,Bool)]
 terminationCheckFuns funs =
-   let namar = map (\ (Fun (TypeSig n _) _ ar _) -> (n, ar)) funs
+   let namar = map (\ (Fun (TypeSig n _) _ ar _ _) -> (n, ar)) funs
                -- collectNames funs
        names = map fst namar
        cg0 = collectCGFunDecl namar funs
@@ -721,7 +721,7 @@ collectCGFunDecl names funs =
       concatMap (collectClauses names) funs
           where
             collectClauses :: [(Name,Arity)] -> Fun -> [Call]
-            collectClauses names (Fun (TypeSig n _) _ ar cll) = collectClause names n cll
+            collectClauses names (Fun (TypeSig n _) _ ar _ cll) = collectClause names n cll
             collectClause :: [(Name,Arity)] -> Name -> [Clause] -> [Call]
             collectClause names n ((Clause _ pl Nothing):rest) = collectClause names n rest
             collectClause names n ((Clause _ pl (Just rhs)):rest) =

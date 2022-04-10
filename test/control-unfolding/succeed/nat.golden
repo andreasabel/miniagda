@@ -1,0 +1,48 @@
+--- opening "nat.ma" ---
+--- scope checking ---
+--- type checking ---
+type  Id : ^(A : Set) -> ^(a : A) -> ^ A -> Set
+term  Id.refl : .[A : Set] -> .[a : A] -> < Id.refl : Id A a a >
+term  cong : .[A : Set] -> .[B : Set] -> (f : A -> B) -> .[x : A] -> .[y : A] -> (eq : Id A x y) -> Id B (f x) (f y)
+{ cong [A] [B] f [x] [.x] Id.refl = Id.refl
+}
+term  subst : .[A : Set] -> .[P : A -> Set] -> .[x : A] -> .[y : A] -> (eq : Id A x y) -> P x -> P y
+{ subst [A] [P] [x] [.x] Id.refl p = p
+}
+type  Nat : Set
+term  Nat.zero : < Nat.zero : Nat >
+term  Nat.suc : ^(n : Nat) -> < Nat.suc n : Nat >
+term  plus : (n : Nat) -> (m : Nat) -> Nat
+{ plus Nat.zero m = m
+; plus (Nat.suc n) m = Nat.suc (plus n m)
+}
+term  plus_zero : (n : Nat) -> Id Nat (plus n Nat.zero) n
+{ plus_zero Nat.zero = Id.refl
+; plus_zero (Nat.suc n) = cong [Nat] [Nat] (\ y -> Nat.suc y) [plus n Nat.zero] [n] (plus_zero n)
+}
+term  plus_suc : (n : Nat) -> (m : Nat) -> Id Nat (plus n (Nat.suc m)) (Nat.suc (plus n m))
+{ plus_suc Nat.zero m = Id.refl
+; plus_suc (Nat.suc n) m = cong [Nat] [Nat] (\ y -> Nat.suc y) [plus n (Nat.suc m)] [Nat.suc (plus n m)] (plus_suc n m)
+}
+term  plus_assoc : (n : Nat) -> (m : Nat) -> (l : Nat) -> Id Nat (plus (plus n m) l) (plus n (plus m l))
+{ plus_assoc Nat.zero m l = Id.refl
+; plus_assoc (Nat.suc n) m l = cong [Nat] [Nat] (\ y -> Nat.suc y) [plus (plus n m) l] [plus n (plus m l)] (plus_assoc n m l)
+}
+type  Vec : ^(A : Set) -> ^ Nat -> Set
+term  Vec.nil : .[A : Set] -> < Vec.nil : Vec A Nat.zero >
+term  Vec.cons : .[A : Set] -> .[m : Nat] -> ^(x : A) -> ^(xs : Vec A m) -> < Vec.cons m x xs : Vec A (Nat.suc m) >
+term  x : .[A : Set] -> ^(m : Nat) -> (cons : Vec A (Nat.suc m)) -> A
+{ x [A] m (Vec.cons [.m] #x #xs) = #x
+}
+term  xs : .[A : Set] -> ^(m : Nat) -> (cons : Vec A (Nat.suc m)) -> Vec A m
+{ xs [A] m (Vec.cons [.m] #x #xs) = #xs
+}
+term  append : .[A : Set] -> .[n : Nat] -> .[m : Nat] -> (xs : Vec A n) -> (ys : Vec A m) -> Vec A (plus n m)
+{ append [A] [.Nat.zero] [m] Vec.nil ys = ys
+; append [A] [.(suc n)] [m] (Vec.cons [n] x xs) ys = Vec.cons [plus n m] x (append [A] [n] [m] xs ys)
+}
+term  append_nil : .[A : Set] -> .[n : Nat] -> (xs : Vec A n) -> Id (Vec A n) (subst [Nat] [Vec A] [plus n Nat.zero] [n] (plus_zero n) (append [A] [n] [Nat.zero] xs Vec.nil)) xs
+{ append_nil [A] [.Nat.zero] Vec.nil = Id.refl
+}
+--- evaluating ---
+--- closing "nat.ma" ---

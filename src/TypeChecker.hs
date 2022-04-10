@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, TypeSynonymInstances,
       PatternGuards, TupleSections, NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module TypeChecker where
 
@@ -70,21 +71,37 @@ runWhnf :: Signature -> TypeCheck a -> IO (Either TraceError (a,Signature))
 runWhnf sig tc = (runExceptT (runStateT tc  sig))
 -}
 
+-- | Entry point for normalization without controlling unfolding.
 doNf :: Signature -> Expr -> IO (Either TraceError (Expr, TCState))
-doNf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) emptyContext)
+doNf sig e = runExceptT $
+  runReaderT (runStateT (whnf emptyEnv e >>= reify) (initWithSig sig)) $
+    emptyContext False
 
+-- | Entry point for weak head evaluation without controlling unfolding.
 doWhnf :: Signature -> Expr -> IO (Either TraceError (Val, TCState))
-doWhnf sig e = runExceptT (runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) emptyContext)
+doWhnf sig e = runExceptT $
+  runReaderT (runStateT (whnf emptyEnv e >>= whnfClos) (initWithSig sig)) $
+    emptyContext False
 
 
 -- top-level functions -------------------------------------------
 
-runTypeCheck :: TCState -> TypeCheck a -> IO (Either TraceError (a, TCState))
-runTypeCheck st tc = runExceptT (runReaderT (runStateT tc st) emptyContext)
--- runTypeCheck st tc = runCallStackT (runReaderT (runStateT tc st) emptyContext) []
+-- | Type-checker entrypoint.
+typeCheck
+  :: Bool           -- ^ Control unfolding of definitions?
+  -> [Declaration]  -- ^ Scope-checked declarations to type check.
+  -> IO (Either TraceError ([EDeclaration], TCState))
+typeCheck controlUnfolding dl =
+  runTypeCheck controlUnfolding initSt $ typeCheckDecls dl
 
-typeCheck :: [Declaration] -> IO (Either TraceError ([EDeclaration], TCState))
-typeCheck dl = runTypeCheck initSt (typeCheckDecls dl)
+-- | Running a 'TypeCheck' computation in the empty context.
+runTypeCheck
+  :: Bool          -- ^ Control unfolding of definitions?
+  -> TCState       -- ^ Initial type checker state.
+  -> TypeCheck a   -- ^ Computation.
+  -> IO (Either TraceError (a, TCState))
+runTypeCheck controlUnfolding st tc =
+  runExceptT (runReaderT (runStateT tc st) $ emptyContext controlUnfolding)
 
 -- checking top-level declarations -------------------------------
 
@@ -159,27 +176,27 @@ typeCheckDeclaration (DataDecl n sz co pos0 tel t0 cs fields) =
     checkPositivityGraph
     return result
 
-typeCheckDeclaration (LetDecl eval n tel mt e) = enter (show n) $ do
+typeCheckDeclaration (LetDecl eval n tel mt unf e) = enter (show n) $ do
 {- MOVED to checkLetDef
   (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer neutralDec e mt
   te <- return $ teleToType tel te
   ee <- return $ teleLam tel ee
   vt <- whnf' te
 -}
-  (vt, te, Kinded ki ee) <- checkLetDef neutralDec tel mt e
+  (vt, te, Kinded ki ee) <- checkLetDef neutralDec tel mt unf e
   rho <- getEnv -- is emptyEnv
   -- TODO: solve size constraints
   -- does not work with emptyEnv
   -- [te, ee] <- solveAndModify [te, ee] rho  -- solve size constraints
   let v = mkClos rho ee -- delay whnf computation
   -- v  <- whnf' ee -- WAS: whnf' e'
-  addSig n (LetSig vt ki v $ undefinedFType $ QName n)    -- late (var -> expr) binding, but ok since no shadowing
+  addSig n (LetSig vt ki v unf $ undefinedFType $ QName n)    -- late (var -> expr) binding, but ok since no shadowing
 --  addSig n (LetSig vt e')    -- late (var -> expr) binding, but ok since no shadowing
   echoKindedTySig ki n te
 --  echoTySigE n te
 --  echoDefE   n ee
   echoKindedDef ki n ee
-  return [LetDecl eval n emptyTel (Just te) ee]
+  return [LetDecl eval n emptyTel (Just te) unf ee]
 
 typeCheckDeclaration d@(PatternDecl x xs p) = do
 {- WHY DOES THIS NOT TYPECHECK?
@@ -236,12 +253,12 @@ typeCheckSignature (TypeSig n t) = do
   return $ Kinded (predKind ki) $ TypeSig n tv
 
 typeCheckMutualSig :: Declaration -> TypeCheck (Kinded (TySig TVal))
-typeCheckMutualSig (LetDecl ev n tel (Just t) e) =
+typeCheckMutualSig (LetDecl ev n tel (Just t) _unfolds e) =
   typeCheckSignature $ TypeSig n $ teleToType tel t
 typeCheckMutualSig (DataDecl n sz co pos tel t cs fields) = do
   Kinded ki ts <- typeCheckSignature (TypeSig n (teleToType tel t))
   return $ Kinded ki ts
-typeCheckMutualSig (FunDecl co (Fun ts n' ar cls)) =
+typeCheckMutualSig (FunDecl _co (Fun ts _n _ar _unfolds _cls)) =
   typeCheckSignature ts
 typeCheckMutualSig (OverrideDecl TrustMe [d]) =
   newAssertionHandling Warning $ typeCheckMutualSig d
@@ -256,7 +273,7 @@ typeCheckMutualBody measured _ (DataDecl n sz co pos tel t cs fields) = do
   checkingMutual (Just $ DefId DatK $ QName n) $
     --
     typeCheckDataDecl n sz co pos tel t cs fields
-typeCheckMutualBody measured@False ki (FunDecl co fun@(Fun ts@(TypeSig n t) n' ar cls)) = do
+typeCheckMutualBody measured@False ki (FunDecl co fun@(Fun ts@(TypeSig n t) _n _ar _unfolds _cls)) = do
   checkingMutual (Just $ DefId FunK $ QName n) $ do
     fun' <- typeCheckFunBody co ki fun
     return $ [FunDecl co fun']
@@ -360,12 +377,12 @@ typeCheckDataDecl n sz co pos0 tel0 t0 cs0 fields = enter (show n) $
                let n' = fName fi
                    n  = internal n'
                in
-               [MutualFunDecl False Ind [Fun (TypeSig n ty) n' arity [cl]]]
+               [MutualFunDecl False Ind [Fun (TypeSig n ty) n' arity [] [cl]]]
              _ -> []
 
      when (not (null decls)) $
         traceCheckM $ "generated destructors: " ++ show decls
-     declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) n' ar cls]) -> do
+     declse <- mapM (\ d@(MutualFunDecl False co [Fun (TypeSig n t) _n' _ar _unfolds cls]) -> do
                        -- echo $ "G> " ++ showFun co ++ " " ++ show n ++ " : " ++ show t
                        -- echo $ "G> " ++ PP.render (prettyFun n cls)
                        checkingMutual Nothing $ typeCheckDeclaration d)
@@ -544,13 +561,14 @@ typeCheckMeasuredFuns co funs0 = do
     let funs' = zipWith (\(tysig,(ar,cls)) cls' -> (tysig,(ar,cls'))) funs clss
 -}
     -- get the list of mutually defined function names
-    let funse = List.zipWith4 Fun
+    let funse = List.zipWith5 Fun
                   (map (fmap eraseMeasure . valueOf) kfse)
                   (map funExtName funs)
                   (map funArity funs)
+                  (map funUnfolds funs)
                   clse
     -- print reconstructed clauses
-    mapM_ (\ (Fun (TypeSig n t) n' ar cls) -> do
+    mapM_ (\ (Fun (TypeSig n t) _n' _ar _unfolds cls) -> do
         -- echoR $ n ++ " : " ++ show t
         echoR $ (PP.render $ prettyFun n cls))
       funse
@@ -560,24 +578,24 @@ typeCheckMeasuredFuns co funs0 = do
 
   where
     enableSig :: Co -> Kind -> Fun -> TypeCheck ()
-    enableSig co ki (Fun (TypeSig n t) n' ar' cl') = do
+    enableSig co ki (Fun (TypeSig n t) n' ar unfolds cl) = do
       vt <- whnf' t
-      addSig n (FunSig co vt ki ar' cl' True $ undefinedFType $ QName n)
+      addSig n (FunSig co vt ki ar unfolds cl True $ undefinedFType $ QName n)
       -- add a let binding for external use
       v <- up False (vFun n) vt
-      addSig n' (LetSig vt ki v $ undefinedFType $ QName n')
+      addSig n' (LetSig vt ki v [n] $ undefinedFType $ QName n')
 
 
 
 -- type check the body of one function in a mutual block
 -- type signature is already checked and added to local context
 typeCheckFunBody :: Co -> Kind -> Fun -> TypeCheck EFun
-typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do
+typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar unfolds cls0) = do
     -- echo $ show fun
     addFunSig co $ Kinded ki0 fun
     -- type check and solve size constraints
     -- return clauses with meta vars resolved
-    Kinded ki clse <- setCo co $ typeCheckFunClauses fun
+    Kinded ki clse <- setCo co $ addUnfolds unfolds $ typeCheckFunClauses fun
 
     -- check new clauses for admissibility, inserting "unusuable" flags in the patterns where necessary
     -- TODO: proper cleanup, proper removal of admissibility check!
@@ -587,7 +605,7 @@ typeCheckFunBody co ki0 fun@(Fun ts@(TypeSig n t) n' ar cls0) = do
     -- echoR $ n ++ " : " ++ show t
     echoR $ (PP.render $ prettyFun n clse)
     -- replace in signature by erased clauses
-    let fune = Fun ts n' ar clse
+    let fune = Fun ts n' ar unfolds clse
     enableSig ki fune
     return fune
 
@@ -596,7 +614,7 @@ typeCheckFuns :: Co -> [Fun] -> TypeCheck [EFun]
 typeCheckFuns co funs0 = do
     -- echo $ show funs
     kfse <- mapM typeCheckFunSig funs0
-    let kfuns = zipWith (\ (Kinded ki ts) (Fun ts0 n' ar cls) -> Kinded ki (Fun ts n' ar cls)) kfse funs0
+    let kfuns = zipWith (\ (Kinded ki ts) (Fun ts0 n' ar unfolds cls) -> Kinded ki (Fun ts n' ar unfolds cls)) kfse funs0
     -- zipWithM (addFunSig co) (map kindOf kfse) funs
     mapM_ (addFunSig co) kfuns
     let funs = map valueOf kfuns
@@ -606,19 +624,20 @@ typeCheckFuns co funs0 = do
     let kis = map kindOf kce
     let clse = map valueOf kce
     -- get the list of mutually defined function names
-    let names   = map (\ (Fun (TypeSig n t) n' ar cls) -> n) funs
+    let names   = map (\ (Fun (TypeSig n _t) _n _ar _unfolds _cls) -> n) funs
     -- check new clauses for admissibility, inserting "unusuable" flags in the patterns where necessary
     -- TODO: proper cleanup, proper removal of admissibility check!
-    clse <- zipWithM (\ (Fun tysig _ _ _) cls' -> admCheckFunSig co names tysig cls') funs clse
+    clse <- zipWithM (\ (Fun tysig _ _ _ _) cls' -> admCheckFunSig co names tysig cls') funs clse
     -- replace old clauses by new ones in funs
-    let funse = List.zipWith4 Fun
+    let funse = List.zipWith5 Fun
                   (map valueOf kfse)
                   (map funExtName funs)
                   (map funArity funs)
+                  (map funUnfolds funs)
                   clse
 --    let funse = zipWith (\(tysig,(ar,cls)) cls' -> (tysig,(ar,cls'))) funs clse
     -- print reconstructed clauses
-    mapM_ (\ (Fun (TypeSig n t) n' ar cls) -> do
+    mapM_ (\ (Fun (TypeSig n t) _n' _ar _unfolds cls) -> do
         -- echoR $ n ++ " : " ++ show t
         echoR $ (PP.render $ prettyFun n cls))
       funse
@@ -628,10 +647,10 @@ typeCheckFuns co funs0 = do
     return $ funse
 
 addFunSig :: Co -> Kinded Fun -> TypeCheck ()
-addFunSig co (Kinded ki (Fun (TypeSig n t) n' ar cl)) = do
+addFunSig co (Kinded ki (Fun (TypeSig n t) n' ar unfolds cl)) = do
     sig <- gets signature
     vt <- whnf' t -- TODO: PROBLEM for internal extraction (would need te here)
-    addSig n (FunSig co vt ki ar cl False $ undefinedFType $ QName n) --not yet type checked / termination checked
+    addSig n (FunSig co vt ki ar unfolds cl False $ undefinedFType $ QName n) --not yet type checked / termination checked
 
 -- ADMCHECK FOR COFUN is not taking place in checking the lhs
 -- TODO: proper analysis for size patterns!
@@ -655,17 +674,17 @@ admCheckFunSig co@Ind mutualNames (TypeSig n t) cls = traceAdm ("admCheckFunSig:
 
 
 enableSig :: Kind -> Fun -> TypeCheck ()
-enableSig ki (Fun (TypeSig n _) n' ar' cl') = do
-  (FunSig co vt ki0 ar cl _ ftyp) <- lookupSymb n
-  addSig n (FunSig co vt (intersectKind ki ki0) ar cl' True ftyp)
+enableSig ki (Fun (TypeSig n _) n' ar' unfolds' cl') = do
+  (FunSig co vt ki0 ar unfolds cl _ ftyp) <- lookupSymb n
+  addSig n (FunSig co vt (intersectKind ki ki0) ar unfolds cl' True ftyp)
   -- add a let binding for external use
   v <- up False (vFun n) vt
-  addSig n' (LetSig vt ki v ftyp)
+  addSig n' (LetSig vt ki v [n] ftyp)
 
 
 -- typeCheckFunSig (TypeSig thisName thisType, clauses)
 typeCheckFunSig :: Fun -> TypeCheck (Kinded ETypeSig)
-typeCheckFunSig (Fun (TypeSig n t) n' ar cls) = enter ("type of " ++ show n) $ do
+typeCheckFunSig (Fun (TypeSig n t) _n _ar _unfolds _cls) = enter ("type of " ++ show n) $ do
   echoTySig n t
   Kinded ki0 te <- checkType t
   -- let te = eraseMeasure te0
@@ -675,8 +694,8 @@ typeCheckFunSig (Fun (TypeSig n t) n' ar cls) = enter ("type of " ++ show n) $ d
   return $ Kinded ki $ TypeSig n te
 
 typeCheckFunClauses :: Fun -> TypeCheck (Kinded [EClause])
-typeCheckFunClauses (Fun (TypeSig n t) n' ar cl) = enter (show n) $
-   do result@(Kinded _ cle) <- checkFun t cl
+typeCheckFunClauses (Fun (TypeSig n t) _n' _ar unfolds cl) = enter (show n) $
+   do result@(Kinded _ cle) <- addUnfolds unfolds $ checkFun t cl
       -- traceCheck (show (TypeSig n t)) $
        -- traceCheck (show cl') $
       -- echo $ PP.render $ prettyFun n cle
@@ -723,8 +742,9 @@ checkTarget d dv tel tg = do
 -- check that target is set
 checkDataType :: Int -> Expr -> TypeCheck (Kinded (Sort Expr, Extr))
 checkDataType p e = do
-  traceCheckM ("checkDataType " ++ show e ++ " p=" ++ show p)
+  traceCheck ("checkDataType " ++ show e ++ " p=" ++ show p) $ do
   case e of
+     Unfold ns e -> addUnfolds ns $ checkDataType p e
      Quant Pi tb@(TBind x (Domain t1 _ dec)) t2 -> do
        k <- getLen
        traceCheckM ("length of context = " ++ show k)
@@ -927,6 +947,9 @@ checkExpr e v = do
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkExpr e bv
 
+      (e, VUnfold xs v) ->
+        addUnfolds xs $ checkExpr e v
+
       (e,v) | inferable e -> do
           (v2, Kinded ki1 ee) <- inferExpr e
           checkSubtype ee v2 v
@@ -939,18 +962,18 @@ checkExpr e v = do
 -- | checkLet @let .x tel : t = e1 in e2@
 checkLet :: Dec -> Name -> Telescope -> Maybe Type -> Expr -> Expr -> TVal -> TypeCheck (Kinded Extr)
 checkLet dec x tel mt1 e1 e2 v = do
-  (v_t1, t1e, Kinded ki1 e1e) <- checkLetDef dec tel mt1 e1
+  (v_t1, t1e, Kinded ki1 e1e) <- checkLetDef dec tel mt1 [] e1
 --  (v_t1, t1e, Kinded ki1 e1e) <- checkOrInfer dec e1 mt1
   checkLetBody x t1e v_t1 ki1 dec e1e e2 v
 
 -- | checkLetDef @.x tel : t = e@ becomes @.x : tel -> t = \ tel -> e@
-checkLetDef :: Dec -> Telescope -> Maybe Type -> Expr -> TypeCheck (TVal, EType, Kinded Extr)
-checkLetDef dec tel mt e = local (\ cxt -> cxt {consistencyCheck = True}) $ do
+checkLetDef :: Dec -> Telescope -> Maybe Type -> Unfolds -> Expr -> TypeCheck (TVal, EType, Kinded Extr)
+checkLetDef dec tel mt unf e = local (\ cxt -> cxt {consistencyCheck = True}) $ do
   -- 2013-04-01
   -- since a let telescope is treated like a lambda abstraction
   -- and the let-defined symbol reduces by itself, we need to
   -- do the context consistency check at each introduction.
-  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ checkOrInfer dec e mt
+  (tel, (vt, te, Kinded ki ee)) <- checkTele tel $ addUnfolds unf $ checkOrInfer dec e mt
   te <- return $ teleToType tel te
   ee <- return $ teleLam tel ee
   vt <- whnf' te
@@ -1024,6 +1047,12 @@ checkForced e v = do
 -}
       (_, VGuard beta bv) ->
         addBoundHyp beta $ checkForced e bv
+
+      (e, VUnfold xs v) ->
+        addUnfolds xs $ checkForced e v
+
+      (Unfold xs e, v) ->
+        addUnfolds xs $ checkForced e v
 
       (Pair e1 e2, VQuant Sigma y dom@(Domain av ki dec) fv) ->
         checkPair e1 e2 y dom fv
@@ -1298,9 +1327,14 @@ checkOrInfer dec e (Just t) = do
 inferType :: Expr -> TypeCheck (Sort Val, Kinded Extr)
 inferType t = do
   (sv, te) <- inferExpr t
+  -- force sv >>= \case
   case sv of
     VSort s | not (s `elem` map SortC [Tm,Size]) -> return (s,te)
-    _ -> throwErrorMsg $ "inferExpr: expected " ++ show t ++ " to be a type!"
+    sv' -> failDoc $ vcat
+      [ hsep [ "inferExpr: expected", prettyTCM t, "to be a type,"
+             , "but got:", prettyTCM sv' ]
+      , maybe PrettyTCM.empty (\ unf -> hsep [ "We can unfold:", prettyTCM unf ]) =<< askUnfoldables
+      ]
 
 -- inferExpr e = (tv, s, ee)
 -- input : expr e | inferable e
@@ -1352,6 +1386,12 @@ inferExpr' e = enter ("inferExpr' " ++ show e) $
         return (tv', Kinded ki ee)
   in
     (case e of
+
+      -- Γ, [xs] ⊢ e ⇒ t
+      -- ----------------------
+      -- Γ ⊢ unfold xs in e ⇒ t
+
+      Unfold xs e -> addUnfolds xs $ inferExpr' e
 
       Var x -> do
         traceCheckM ("infer variable " ++ show x)

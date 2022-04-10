@@ -1,0 +1,9 @@
+--- opening "blocked-data-sort.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  SET : Set 1
+{ SET = Set
+}
+error during typechecking:
+Empty
+/// doesn't target Set or CoSet

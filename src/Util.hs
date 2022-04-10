@@ -7,6 +7,7 @@ module Util (module Util, module X) where
 
 -- reexports:
 import Data.List as X (intercalate)
+import Debug.Trace as X (trace)
 
 import Prelude hiding (showList, null, (<>))
 
@@ -110,6 +111,9 @@ mapMapM f = Map.foldrWithKey step (return $ Map.empty)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM c d e = do { b <- c ; if b then d else e }
+
+ifNotM :: Monad m => m Bool -> m a -> m a -> m a
+ifNotM c = flip $ ifM c
 
 {- Control.Monad.IfElse
 whenM :: Monad m => m Bool -> m () -> m ()

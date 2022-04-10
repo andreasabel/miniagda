@@ -24,12 +24,13 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 #if !MIN_VERSION_base(4,8,0)
 import Data.Foldable (foldMap)
-import Data.Monoid
+import Data.Monoid (Monoid(..))
 import Data.Traversable (traverse)
 #endif
 import Data.Traversable (mapM)
-
--- import Debug.Trace (trace)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 
 import Abstract
 import Polarity as Pol
@@ -58,10 +59,9 @@ traceRecordM msg = return ()
 
 traceMatch msg a = a -- trace msg a
 traceMatchM msg = return () -- traceM msg
-{-
-traceMatch msg a = trace msg a
-traceMatchM msg = traceM msg
--}
+-- traceMatch msg a = trace msg a
+-- traceMatchM msg = traceM msg
+
 
 traceLoop msg a = a -- trace msg a
 traceLoopM msg = return () -- traceM msg
@@ -628,6 +628,9 @@ whnf env e = enter ("whnf " ++ show e) $
     Var y -> lookupEnv env y >>= whnfClos
     Ann e -> whnf env (unTag e) -- return VIrr -- NEED TO KEEP because of eta-exp!
     Irr -> return VIrr
+
+    Unfold xs e -> vUnfold xs <$> do addUnfolds xs $ whnf env e
+
     e   -> throwErrorMsg $ "NYI whnf " ++ show e
 
 whnfMeasure :: Env -> Measure Expr -> TypeCheck (Measure Val)
@@ -707,9 +710,10 @@ app = app' True
 app' :: Bool -> Val -> Clos -> TypeCheck Val
 app' expandDefs u v = do
          let app = app' expandDefs
-             appDef' True  f vs = appDef f vs
-             appDef' False f vs = return $ VDef (DefId FunK f) `VApp` vs
-             appDef_ = appDef' expandDefs
+             mkApp f vs = return $ VDef (DefId FunK f) `VApp` vs
+             appDef_ f vs
+               | expandDefs = ifM (canUnfold $ unqual f) {-then-} (appDef f vs) {-else-} (mkApp f vs)
+               | otherwise = mkApp f vs
          case u of
             VProj Pre n -> flip (app' expandDefs) (VProj Post n) =<< whnfClos v
             VRecord ri rho -> do
@@ -788,6 +792,7 @@ force' b (VClos rho e) = do
   v <- whnf rho e
   force' b v
 force' b v@(VDef (DefId FunK n)) = failValInv v
+  -- TODO: this can happen if unfolding of n is not enabled!
 {-
  --trace ("force " ++ show v) $
     do sig <- gets signature
@@ -799,16 +804,19 @@ force' b v@(VDef (DefId FunK n)) = failValInv v
          _ -> return v
 -}
 force' b v@(VApp (VDef (DefId FunK n)) vl) = enterDoc (text "force" <+> prettyTCM v) $
+  ifNotM (canUnfold $ unqual n) fallback {-else-} $
     do sig <- gets signature
        case Map.lookup n sig of
-         Just (FunSig isCo t ki ar cl True _) -> traceMatch ("forcing " ++ show v) $
+         Just (FunSig isCo t ki ar _unfolds cl True _) -> traceMatch ("forcing " ++ show v) $
             do m <- matchClauses emptyEnv cl vl
                case m of
                  Just v' -> traceMatch ("forcing " ++ show n ++ " succeeded") $
                    force' True v'
                  Nothing -> traceMatch ("forcing " ++ show n ++ " failed") $
-                   return (b, v)
-         _ -> return (b, v)
+                   fallback
+         _ -> fallback
+  where
+  fallback = return (b, v)
 force' b v = return (b, v)
 
 force :: Val -> TypeCheck Val
@@ -820,6 +828,7 @@ force v = -- trace ("forcing " ++ show v) $
 -- this is because a coinductive type needs to be destructed by pattern matching
 appDef :: QName -> [Val] -> TypeCheck Val
 appDef n vl = --trace ("appDef " ++ n) $
+  ifNotM (canUnfold $ unqual n) fallback {-else-} $
     do
       -- identifier might not be in signature yet, e.g. ind.-rec.def.
       sig <- gets signature
@@ -828,9 +837,11 @@ appDef n vl = --trace ("appDef " ++ n) $
          | length vl >= fullArity ar -> do
            m <- matchClauses emptyEnv cl vl
            case m of
-              Nothing -> return $ VApp (VDef (DefId FunK n)) vl
+              Nothing -> fallback
               Just v2 -> return v2
-        _ -> return $ VApp (VDef (DefId FunK n)) vl
+        _ -> fallback
+  where
+    fallback = return $ VApp (VDef (DefId FunK n)) vl
 
 -- reflection and reification  ---------------------------------------
 
@@ -1283,11 +1294,6 @@ expandDefPat p = return p
 -- * Unification
 ---------------------------------------------------------------------------
 
-
-#if MIN_VERSION_base(4,11,0)
-
--- From ghc 8.4, Semigroup superinstace of Monoid instance is mandatory.
-
 instance Semigroup (TypeCheck Bool) where
   (<>) = andLazy
 
@@ -1295,15 +1301,6 @@ instance Monoid (TypeCheck Bool) where
   mempty  = return True
   mappend = (<>)
   mconcat = andM
-
-#else
-
-instance Monoid (TypeCheck Bool) where
-  mempty  = return True
-  mappend = andLazy
-  mconcat = andM
-
-#endif
 
 -- | Occurrence check @nocc ks v@ (used by 'SPos' and 'TypeCheck').
 --   Checks that generic values @ks@ does not occur in value @v@.

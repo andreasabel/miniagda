@@ -34,6 +34,7 @@ case                            { tok (\p s -> Case p) }
 def                             { tok (\p s -> Def p) }
 let                             { tok (\p s -> Let p) }
 in                              { tok (\p s -> In p) }
+unfold                          { tok (\p s -> Unfold p) }
 eval                            { tok (\p s -> Eval p)}
 fail                            { tok (\p s -> Fail p)}
 check                           { tok (\p s -> Check p)}
@@ -98,6 +99,7 @@ data Token
   | Def AlexPosn
   | Let AlexPosn
   | In AlexPosn
+  | Unfold AlexPosn
   | Type AlexPosn
   | Set AlexPosn
   | CoSet AlexPosn
@@ -163,6 +165,7 @@ prettyTok c = "\"" ++ tk ++ "\" at " ++ (prettyAlexPosn pos) where
     Def p -> ("def",p)
     Let p -> ("let",p)
     In p -> ("in",p)
+    Unfold p -> ("unfold",p)
     Eval p -> ("eval",p)
     Fail p -> ("fail",p)
     Check p -> ("check",p)

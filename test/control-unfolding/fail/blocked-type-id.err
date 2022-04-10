@@ -1,0 +1,15 @@
+--- opening "blocked-type-id.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  SET : Set 1
+{ SET = Set
+}
+ty-u  TId : Set 1
+{ TId = .[A : SET] -> A -> A
+}
+term  id : TId
+error during typechecking:
+id
+/// clause 1
+/// pattern A
+/// checkPattern: expected function type, found TId

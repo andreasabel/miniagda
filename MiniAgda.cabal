@@ -72,12 +72,14 @@ library
   if impl(ghc < 8)
     build-depends:      semigroups        >= 0.5    && < 1
                           -- semigroups-0.5 adds Data.List.NonEmpty
+                      , fail
 
   build-tool-depends:   happy:happy       >= 1.15   && < 2
                       , alex:alex         >= 3.0    && < 4
 
   default-language:     Haskell98
   default-extensions:   CPP
+                        NondecreasingIndentation
                         MultiParamTypeClasses
                         TypeSynonymInstances
                         FlexibleInstances

@@ -4,6 +4,7 @@
 {-# LANGUAGE TupleSections, DeriveFunctor, GeneralizedNewtypeDeriving,
       FlexibleContexts, FlexibleInstances, UndecidableInstances,
       MultiParamTypeClasses #-}
+{-# LANGUAGE NondecreasingIndentation #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
@@ -20,6 +21,9 @@ import Control.Monad.Reader   (ReaderT, runReaderT, MonadReader, ask, asks, loca
 import Control.Monad.State    (StateT, execStateT, runStateT, get, gets, modify, put)
 import Control.Monad.Except   (ExceptT, runExceptT, MonadError, catchError)
 import Control.Monad.Trans    (lift)
+#if !MIN_VERSION_base(4,13,0)
+import Control.Monad.Fail
+#endif
 
 import Data.List (sort, (\\))
 import qualified Data.List as List
@@ -166,6 +170,9 @@ newtype ScopeCheck a = ScopeCheck { unScopeCheck ::
   ReaderT SCCxt (StateT SCState (ExceptT TraceError Identity)) a }
   deriving (Functor, Applicative, Monad,
     MonadReader SCCxt, MonadError TraceError)
+
+instance MonadFail ScopeCheck where
+  fail msg = throwErrorMsg $ unwords [ "internal error:", msg ]
 
 runScopeCheck
   :: SCCxt          -- ^ Local variable mapping.
@@ -361,17 +368,17 @@ scopeCheckDeclaration (C.RecordDecl n tel t c fields) =
   scopeCheckRecordDecl n tel t c fields
 
 scopeCheckDeclaration d@(C.DataDecl{}) =
-  scopeCheckDataDecl d -- >>= return . (:[])
+  scopeCheckDataDecl d
 
-scopeCheckDeclaration d@(C.FunDecl co _ _) =
-  scopeCheckFunDecls co [d] -- >>= return . (:[])
+scopeCheckDeclaration d@(C.FunDecl co _ _ _) =
+  scopeCheckFunDecls co [d]
 
 scopeCheckDeclaration (C.LetDecl eval letdef@C.LetDef{ C.letDefDec = dec, C.letDefName = n }) = do
   unless (dec == A.defaultDec) $
     throwErrorMsg $ "polarity annotation not supported in global let definition of " ++ show n
-  (tel, mt, e) <- scopeCheckLetDef letdef
+  (tel, mt, unfolds, e) <- scopeCheckLetDef letdef
   x <- addName LetK n
-  return $ A.LetDecl eval x tel mt e
+  return $ A.LetDecl eval x tel mt unfolds e
 
 scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
   let errorHead = "invalid pattern declaration\n" ++ C.prettyDecl d ++ "\n"
@@ -399,19 +406,20 @@ scopeCheckDeclaration d@(C.PatternDecl n ns p) = do
 -- - mutual (co)data
 
 scopeCheckDeclaration (C.MutualDecl []) = throwErrorMsg "empty mutual block"
-scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl{}:xl)) =
+scopeCheckDeclaration (C.MutualDecl l@(C.DataDecl{} : _)) =
   scopeCheckMutual l
-scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl  co _ _:xl)) =
-  scopeCheckFunDecls co l  -- >>= return . (:[])
+scopeCheckDeclaration (C.MutualDecl l@(C.FunDecl co _ _ _ : _)) =
+  scopeCheckFunDecls co l
 scopeCheckDeclaration (C.MutualDecl _) = throwErrorMsg "mutual combination not supported"
 
-scopeCheckLetDef :: C.LetDef -> ScopeCheck (A.Telescope, Maybe (A.Type), A.Expr)
-scopeCheckLetDef (C.LetDef dec n tel mt e) =  setDefaultPolarity A.Rec $ do
+scopeCheckLetDef :: C.LetDef -> ScopeCheck (A.Telescope, Maybe (A.Type), A.Unfolds, A.Expr)
+scopeCheckLetDef (C.LetDef dec n tel mt unfolds e) =  setDefaultPolarity A.Rec $ do
   tel <- generalizeTel tel
   (tel, (mt, e)) <- scopeCheckTele tel $ do
      (,) <$> mapM scopeCheckExprN mt  -- allow shadowing after : in type
          <*> scopeCheckExprN e        -- allow shadowing after =
-  return (tel, mt, e)
+  unfolds <- mapM checkUnfold unfolds
+  return (tel, mt, unfolds, e)
 
 {- scopeCheck Mutual block
 first check signatures
@@ -428,7 +436,7 @@ scopeCheckMutual ds0 = do
   -- check that all functions are unmeasured or have a same length measure
   let (ns, mll) = unzip $ compressMaybes mmm
   let measured = null mll || isJust (head mll)
-  let ok = null mll || all ((head mll)==) (tail mll)
+  let ok = null mll || all (head mll ==) (tail mll)
   when (not ok) $ throwErrorMsg $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
 {-
   -- switch to internal fun ids
@@ -443,8 +451,8 @@ scopeCheckMutual ds0 = do
   -- check bodies of declarations
   ds' <- mapM (setDefaultPolarity A.Rec . checkBody) (zip tsigs' ds)
   -- switch back to external fun ids
-  let funNames = [ x | A.FunDecl _ (A.Fun _ x _ _) <- ds' ] -- external fun names
-  zipWithM_ (addANameU (LetK)) ns funNames
+  let funNames = [ x | A.FunDecl _ (A.Fun _ x _ _ _) <- ds' ] -- external fun names
+  zipWithM_ (addANameU LetK) ns funNames
 --  zipWithM_ (addAName (FunK True)) ns funNames
   return $ A.MutualDecl measured ds'
 
@@ -483,10 +491,21 @@ scopeCheckTBind tb cont = do
 checkBody :: (A.TypeSig, C.Declaration) -> ScopeCheck A.Declaration
 checkBody (A.TypeSig x tt, C.DataDecl n sz co tel _ cs fields) =
   checkDataBody tt n x sz co tel cs fields
-checkBody (ts@(A.TypeSig n t), d@(C.FunDecl co tsig cls)) = do
-  (ar,cls') <- scopeCheckFunClauses d
+checkBody (ts@(A.TypeSig n t), d@(C.FunDecl co tsig unfolds cls)) = do
+  (ar, unfolds, cls') <- scopeCheckFunClauses d
   let n' = A.mkExtName n
-  return $ A.FunDecl co $ A.Fun ts n' ar cls'
+  return $ A.FunDecl co $ A.Fun ts n' ar unfolds cls'
+
+-- | Check whether a name listed under @unfold@ is actually a name
+--   of something that can be unfolded ('FunK', 'LetK')
+checkUnfold :: C.Name -> ScopeCheck A.Name
+checkUnfold n = do
+  lookupGlobal (C.QName n) >>= \case
+    Just (DefI k x) -> case k of
+      LetK   -> return $ A.unqual x
+      FunK _ -> return $ A.unqual x
+      _ -> errorIdentifierNotUnfoldable n
+    Nothing -> errorIdentifierUndefined n
 
 mutualFlattenDecls :: [C.Declaration] -> ScopeCheck [C.Declaration]
 mutualFlattenDecls ds = mapM mutualFlattenDecl ds >>= return . concat
@@ -504,11 +523,11 @@ mutualFlattenDecl d = return $ [d]
 mutualGetTypeSig :: C.Declaration -> (IKind, C.TypeSig)
 mutualGetTypeSig (C.DataDecl n sz co tel t cs fields) =
   (DataK, C.TypeSig n (C.teleToType tel t))
-mutualGetTypeSig (C.FunDecl co tsig cls) =
+mutualGetTypeSig (C.FunDecl co tsig _unfolds cls) =
   (FunK False, tsig) -- fun id for use inside defining body
-mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel Nothing e)) =
+mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel Nothing _unfolds e)) =
   error $ "let declaration of " ++ show n ++ ": type required in mutual block"
-mutualGetTypeSig (C.LetDecl ev (C.LetDef dec n tel (Just t) e)) =
+mutualGetTypeSig (C.LetDecl _ev (C.LetDef _dec n tel (Just t) _unfolds _e)) =
   (LetK, C.TypeSig n (C.teleToType tel t))
 {- mutualGetTypeSig (C.LetDecl ev tsig e) =
   (LetK, tsig) -}
@@ -599,7 +618,7 @@ checkDataBody tt' n x sz co tel cs fields = do
 -- check whether all declarations in mutual block are (co)funs
 checkFunMutual :: Co -> [C.Declaration] -> ScopeCheck ()
 checkFunMutual co [] = return ()
-checkFunMutual co (C.FunDecl co' _ _:xl) | co == co' = checkFunMutual co xl
+checkFunMutual co (C.FunDecl co' _ _ _ : xl) | co == co' = checkFunMutual co xl
 checkFunMutual _ _ = throwErrorMsg "mutual combination not supported"
 
 scopeCheckFunDecls :: Co -> [C.Declaration] -> ScopeCheck A.Declaration
@@ -607,24 +626,21 @@ scopeCheckFunDecls co l = do
   -- check for uniformity of mutual block (all funs/all cofuns)
   checkFunMutual co l
   -- check signatures and look for measures
-  r <- mapM (\ (C.FunDecl _ tysig _) -> scopeCheckFunSig tysig) l
+  r <- mapM (\ (C.FunDecl _ tysig _unfolds _) -> scopeCheckFunSig tysig) l
   let (ml:mll, tsl') = unzip r
   let ok = all (ml==) mll
   when (not ok) $ throwErrorMsg $ "in a mutual function block, either all functions must be without measure or have a measure of the same length"
+
   -- add names as internal ids and check bodies
-  let nxs = zipWith (\ (C.FunDecl _ (C.TypeSig n _) _) (A.TypeSig x _) -> (n,x)) l tsl'
-  --let addFuns b = mapM (uncurry $ addAName $ FunK b) nxs
---  let addFuns b = mapM (\ (n,x) -> addAName (FunK b) n x) nxs
-  -- addFuns False
+  let nxs = zipWith (\ (C.FunDecl _ (C.TypeSig n _) _ _) (A.TypeSig x _) -> (n,x)) l tsl'
   mapM_ (uncurry $ addANameU $ FunK False) nxs
   arcll' <- mapM (setDefaultPolarity A.Rec . scopeCheckFunClauses) l
+
   -- add names as external ids
-  --addFuns True
   let nxs' = map (mapPair id A.mkExtName) nxs
   mapM_ (uncurry $ addANameU (LetK)) nxs'
---  mapM (uncurry $ addAName (FunK True)) nxs'
   return $ A.MutualFunDecl (isJust ml) co $
-    zipWith3 (\ ts (_, x') (ar, cls) -> A.Fun ts x' ar cls) tsl' nxs' arcll'
+    zipWith3 (\ ts (_, x') (ar, unfolds, cls) -> A.Fun ts x' ar unfolds cls) tsl' nxs' arcll'
 
 -- | Does not add name to signature.
 scopeCheckFunSig :: C.TypeSig -> ScopeCheck (Maybe Int, A.TypeSig)
@@ -682,12 +698,13 @@ checkInSig d n k = enterShow n $ do
 -- checkInSigU :: Show d => d -> C.Name -> (A.Name -> ScopeCheck a) -> ScopeCheck a
 -- checkInSigU d n k = checkInSig d (C.QName n) (k . A.unqual)
 
-scopeCheckFunClauses :: C.Declaration -> ScopeCheck (Arity, [A.Clause])
-scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) cl) = enterShow n $ do
+scopeCheckFunClauses :: C.Declaration -> ScopeCheck (Arity, A.Unfolds, [A.Clause])
+scopeCheckFunClauses (C.FunDecl _ (C.TypeSig n _) unfolds cl) = enterShow n $ do
+  unfolds <- mapM checkUnfold unfolds
   cl <- mapM (scopeCheckClause (Just n)) cl
   let m = if null cl then 0 else
        List.foldl1 min $ map (length . A.clPatterns) cl
-  return (A.Arity m Nothing, cl)
+  return (A.Arity m Nothing, unfolds, cl)
 {-
        let b = checkPatternLength cl
        case b of
@@ -865,9 +882,13 @@ scopeCheckExpr' e =
 
       C.LLet letdef e2 -> do
         let dec = C.letDefDec letdef
-        (tel, mt, e1) <- scopeCheckLetDef letdef
+        (tel, mt, [], e1) <- scopeCheckLetDef letdef
         (x, e2) <- addBind e (C.letDefName letdef) $ scopeCheckExpr e2
         return $ A.LLet (A.TBind x $ A.Domain mt A.defaultKind dec) tel e1 e2
+
+      C.Unfold ns e -> do
+        xs <- mapM checkUnfold ns
+        A.Unfold xs <$> scopeCheckExpr e
 
       C.Record rs -> do
         let fields = map fst rs
@@ -1113,6 +1134,9 @@ errorDuplicateField r = throwErrorMsg $ show r ++ " assigns a field twice"
 errorProjectionUsedAsExpression n = throwErrorMsg $ "projection " ++ show n ++ " used as expression"
 
 errorIdentifierUndefined n = throwErrorMsg $ "Identifier " ++ show n ++ " undefined"
+
+errorIdentifierNotUnfoldable n = throwErrorMsg $ unwords
+  [ "Identifier", show n, "does not refer to a definition that can be unfolded" ]
 
 errorPatternNotLinear n = throwErrorMsg $ "pattern not linear: " ++ show n
 

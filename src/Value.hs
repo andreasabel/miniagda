@@ -44,6 +44,7 @@ data Val
     , vqFun   :: FVal
     }
   | VSing Val TVal               -- Singleton type (TVal not Pi)
+  | VUnfold Unfolds TVal         -- ^ @unfold fs in V@
   -- functions
   | VLam Name Env Expr
   | VAbs Name Int Val Valuation  -- abstract free variable
@@ -159,6 +160,11 @@ filterEnv _  [] = []
 filterEnv ns ((x,v) : rho) =
   if Set.member x ns then (x,v) : filterEnv (Set.delete x ns) rho
    else filterEnv ns rho
+
+-- | Smart constructor for 'VUnfold'.
+vUnfold :: Unfolds -> Val -> Val
+vUnfold [] = id
+vUnfold xs = VUnfold xs
 
 vDef :: DefId -> Val
 vDef x = VDef x `VApp` []

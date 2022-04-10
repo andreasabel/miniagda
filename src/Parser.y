@@ -34,6 +34,7 @@ case    { T.Case _ }
 def     { T.Def _ }
 let     { T.Let _ }
 in      { T.In _ }
+unfold  { T.Unfold _ }
 eval    { T.Eval _ }
 fail    { T.Fail _ }
 check   { T.Check _ }
@@ -158,10 +159,19 @@ DataDef1 : Id DataTelescope ':' Expr '{' Constructor '}' OptFields
             { ($1, $2, C.set0, $4, $6)}
 
 Fun :: { C.Declaration }
-Fun : fun TypeSig '{' Clauses '}' { C.FunDecl A.Ind $2 $4 }
+Fun
+  : fun TypeSig UnfoldOpt '{' Clauses '}'
+      { C.FunDecl A.Ind $2 $3 $5 }
 
 CoFun :: { C.Declaration }
-CoFun : cofun TypeSig '{' Clauses '}' { C.FunDecl A.CoInd $2 $4  }
+CoFun
+  : cofun TypeSig UnfoldOpt '{' Clauses '}'
+      { C.FunDecl A.CoInd $2 $3 $5  }
+
+UnfoldOpt :: { C.Unfolds }
+UnfoldOpt
+  : {- nothing -} { [] }
+  | unfold Ids    { $2 }
 
 Mutual :: { C.Declaration }
 Mutual : mutual '{' Declarations '}' { C.MutualDecl (reverse $3) }
@@ -175,7 +185,7 @@ Let : Eval let Id Telescope TypeOpt '=' ExprT { C.LetDecl $1 $3 $4 $5 $7 }
 -}
 
 LetDef :: { C.LetDef }
-LetDef : PolId Telescope TypeOpt '=' ExprT { let (dec,n) = $1 in C.LetDef dec n $2 $3 $5 }
+LetDef : PolId Telescope TypeOpt UnfoldOpt '=' ExprT { let (dec,n) = $1 in C.LetDef dec n $2 $3 $4 $6 }
 
 Eval :: { Bool }
 Eval : {- nothing -}  { False }
@@ -285,8 +295,8 @@ PolId : Id              {  (A.defaultDec   , $1) }
 LLetDef :: { C.LetDef }
 LLetDef : LetDef        { $1 }
 -- legacy forms
-        |  '[' Id ':' Expr ']' '=' Expr     { C.LetDef A.irrelevantDec $2 [] (Just $4) $7 }  -- erased binding
-        |  Pol '(' Id ':' Expr ')' '=' Expr { C.LetDef (Dec $1) $3 [] (Just $5) $8 } -- ordinary binding
+        |  '[' Id ':' Expr ']' '=' Expr     { C.LetDef A.irrelevantDec $2 [] (Just $4) [] $7 }  -- erased binding
+        |  Pol '(' Id ':' Expr ')' '=' Expr { C.LetDef (Dec $1) $3 [] (Just $5) [] $8 } -- ordinary binding
 
 {-
 -- let binding
@@ -324,6 +334,7 @@ Expr :: { C.Expr }
 Expr : Domain '->' Expr                 { C.Quant A.Pi $1 $3 }
      | '\\' SpcIds '->' ExprT           { foldr C.Lam $4 $2 }
      | let LLetDef in ExprT             { C.LLet $2 $4 }
+     | unfold Ids in ExprT              { C.Unfold $2 $4 }
      | case ExprT TypeOpt '{' Cases '}' { C.Case $2 $3 $5 }
      | Expr0                            { $1 }                -- Sigma type
      | Expr1 '+' Expr                   { C.Plus $1 $3 }

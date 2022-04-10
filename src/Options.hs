@@ -19,7 +19,9 @@ import Version                      ( version )
 
 -- | Options given to @MiniAgda@.
 data Options = Options
-  { optInputs :: List1 FilePath
+  { optControlUnfolding :: Bool
+      -- ^ Control unfolding of constants?
+  , optInputs :: List1 FilePath
       -- ^ The source files to type check, from first to last.
   }
 
@@ -32,10 +34,11 @@ options = handleParseResult =<< do parseOptions <$> getArgs
 
 -- | Pure parser for command line given by a list of strings.
 parseOptions :: [String] -> ParserResult Options
-parseOptions = execParserPure defaultPrefs $ info parser description
+parseOptions = execParserPure style $ info parser description
   where
   parser = theOptions <**>
     (versionOption <*> numericVersionOption <*> licenseOption <*> helper)
+  style  = prefs $ multiSuffix "..."
 
   description = header top <> footer bot
   top = unwords
@@ -44,7 +47,7 @@ parseOptions = execParserPure defaultPrefs $ info parser description
     ]
   bot = unwords
     [ "Checks the given MiniAgda files in first-to-last order."
-    , "Later files can refer to definitions made in earlier files."
+    -- , "Later files can refer to definitions made in earlier files."
     ]
 
   versionOption =
@@ -73,11 +76,19 @@ parseOptions = execParserPure defaultPrefs $ info parser description
       <> hidden
 
   theOptions = Options
-    <$> oInputs
+    <$> oControlUnfolding
+    <*> oInputs
+
+  oControlUnfolding :: Parser Bool
+  oControlUnfolding =
+    switch
+      $  long "control-unfolding"
+      <> help "Enable user-controlled unfolding of definitions."
 
   oInputs :: Parser (List1 FilePath)
   oInputs = some1 $
     strArgument
-      $  metavar "FILES"
+      $  metavar "FILE"
       <> action "file"
-      <> help "Files to check (in first-to-last order)."
+      <> help "MiniAgda file to check."
+      -- <> help "Files to check (in first-to-last order)."

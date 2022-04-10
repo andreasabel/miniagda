@@ -18,7 +18,7 @@ failure
 /// checkExpr 3 |- i -> B : Size
 /// checkForced fromList [(i,1),(F,0),(B,2)] |- i -> B : Size
 /// inferExpr' i -> B
-/// inferExpr: expected i to be a type!
+/// inferExpr: expected i to be a type, but got: Size
 size  success : .[F : Size -> Set] -> .[i : Size] -> .[B : Set] -> (x : B -> F i) -> Size
 size  success = [\ F ->] [\ i ->] [\ B ->] \ x -> 0
 term  one : .[A : Set] -> (f : A -> A) -> A -> A

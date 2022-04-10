@@ -1,0 +1,18 @@
+--- opening "blocked-sort-id.ma" ---
+--- scope checking ---
+--- type checking ---
+ty-u  SET : Set 1
+{ SET = Set
+}
+ty-u  TId : Set 1
+error during typechecking:
+TId
+/// clause 1
+/// right hand side
+/// checkExpr 0 |- (A : SET) -> A -> A : Set 1
+/// checkForced fromList [] |- (A : SET) -> A -> A : Set 1
+/// inferExpr' (A : SET) -> A -> A
+/// new A : SET
+/// inferExpr' A -> A
+/// inferExpr: expected A to be a type, but got: SET
+We can unfold:

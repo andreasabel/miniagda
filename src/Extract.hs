@@ -175,7 +175,7 @@ traceExtrM :: Monad m => String -> m ()
 traceExtrM s = return ()
 
 runExtract :: Signature -> TypeCheck a -> IO (Either TraceError (a, TCState))
-runExtract sig k = runExceptT (runReaderT (runStateT k (initWithSig sig)) emptyContext)
+runExtract sig k = runExceptT (runReaderT (runStateT k (initWithSig sig)) $ emptyContext False)
 
 -- extraction
 
@@ -200,7 +200,7 @@ extractDecl d =
     OverrideDecl{} -> throwErrorMsg $ "extractDecls internal error: overrides impossible"
     MutualFunDecl _ co funs -> extractFuns co funs
     FunDecl co fun -> extractFun co fun
-    LetDecl evl x tel (Just t) e | null tel -> extractLet evl x t e
+    LetDecl evl x tel (Just t) _unfolds e | null tel -> extractLet evl x t e
     PatternDecl{}    -> return []
     DataDecl n _ co _ tel ty cs fields -> extractDataDecl n co tel ty cs
 
@@ -210,10 +210,10 @@ extractFuns co funs = do
   concat <$> mapM (extractFun co) funs
 
 extractFun :: Co -> Fun -> TypeCheck [FDeclaration]
-extractFun co (Fun (TypeSig n t) n' ar cls) = do
+extractFun co (Fun (TypeSig n t) n' ar unfolds cls) = do
   tv <- whnf' t
   cls <- concat <$> mapM (extractClause n tv) cls
-  return [ FunDecl co $ Fun (TypeSig n t) n' ar cls
+  return [ FunDecl co $ Fun (TypeSig n t) n' ar unfolds cls
          -- , LetDecl False (TypeSig n' t) (Var n)  -- no longer needed, since n and n' print the same
          ]
 
@@ -238,16 +238,16 @@ extractFunTypeSigs = mapM extractFunTypeSig
 
 -- only extract type sigs
 extractFunTypeSig :: Fun -> TypeCheck [Fun]
-extractFunTypeSig (Fun ts@(TypeSig n t) n' ar cls) = extractIfTerm n $ do
+extractFunTypeSig (Fun ts@(TypeSig n t) n' ar unfolds cls) = extractIfTerm n $ do
   ts@(TypeSig n t) <- extractTypeSig ts
   setExtrTyp n' t
-  return [Fun ts n' ar cls]
+  return [Fun ts n' ar unfolds cls]
 
 extractLet :: Bool -> Name -> Type -> Expr -> TypeCheck [FDeclaration]
 extractLet evl n t e = extractIfTerm n $ do
   TypeSig n t <- extractTypeSig (TypeSig n t)
   e <- extractCheck e =<< whnf' t
-  return [LetDecl evl n emptyTel (Just t) e]
+  return [LetDecl evl n emptyTel (Just t) [] e]
 
 extractTypeSig :: TypeSig -> TypeCheck FTypeSig
 extractTypeSig (TypeSig n t) = do

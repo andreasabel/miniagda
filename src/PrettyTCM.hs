@@ -1,11 +1,14 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module PrettyTCM where
 
 import Prelude hiding (sequence, mapM, (<>))
+import Data.String (IsString(..))
 
 import Abstract
 import {-# SOURCE #-} Eval
@@ -18,6 +21,9 @@ import Control.Applicative ((<$>), (<*>))
 #endif
 import Control.Monad ((<=<))
 import Data.Traversable
+
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 import qualified Text.PrettyPrint as P
 
@@ -55,6 +61,9 @@ punctuate d ds = zipWith (<>) ds (replicate n d ++ [empty])
     where
         n = length ds - 1
 
+instance Monad m => IsString (m Doc) where
+  fromString = text
+
 -- monadic pretty printing
 
 class ToExpr a where
@@ -72,6 +81,12 @@ class PrettyTCM a where
 
 instance PrettyTCM Name where
   prettyTCM = pretty
+
+instance PrettyTCM [Name] where
+  prettyTCM = sep . map pretty
+
+instance PrettyTCM a => PrettyTCM (Set a) where
+  prettyTCM = sep . map prettyTCM . Set.toList
 
 instance PrettyTCM Pattern where
   prettyTCM = pretty

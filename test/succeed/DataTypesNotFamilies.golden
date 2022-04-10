@@ -21,6 +21,6 @@ Id
 /// constructor Id.refl
 /// new Id : (^(a : Bool::Tm) -> ^ Bool -> Set)
 /// new a : Bool
-/// inferExpr: expected Id a to be a type!
+/// inferExpr: expected Id a to be a type, but got: ^ Bool -> Set
 --- evaluating ---
 --- closing "DataTypesNotFamilies.ma" ---

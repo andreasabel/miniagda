@@ -72,7 +72,7 @@ instance Ord Name where
   compare x x' = compare (uid x) (uid x')
 
 instance Show Name where
-  show (Name n _ _u) = n -- n ++ "`" ++ show (hashUnique u `mod` 13)
+  show (Name n _ u) = n -- n ++ "`" ++ show (hashUnique u `mod` 13)
 
 -- | @fresh s@ generates a new name with 'suggestion' @s@.
 --
@@ -785,6 +785,8 @@ data Expr
   | LLet LBind Telescope Expr Expr
     -- ^ @let [x : A] = t in u@, @let [x] tel = t in u@
     --   after t.c. @Telescope@ is empty (fused into @LBind@)
+  | Unfold Unfolds Expr
+      -- ^ @unfold xs in e@
   | App Expr Expr
   | Lam Dec Name Expr
   | Quant PiSigma TBind Expr
@@ -1007,7 +1009,7 @@ data Declaration
   | RecordDecl Name Telescope Type Constructor [Name] -- record
   | MutualFunDecl Bool Co [Fun]     -- mutual fun block / mutual cofun block, bool for measured
   | FunDecl Co Fun  -- fun, possibly inside MutualDecl
-  | LetDecl Bool Name Telescope (Maybe Type) Expr
+  | LetDecl Bool Name Telescope (Maybe Type) Unfolds Expr
       -- ^ Bool for eval.  After t.c., tel. is empty and type is Just.
   | PatternDecl Name [Name] Pattern
   | MutualDecl Bool [Declaration]  -- mutual data/fun block, bool for measured
@@ -1051,8 +1053,12 @@ data Fun = Fun
   { funTypeSig :: TypeSig      -- ^ internal name and type
   , funExtName :: Name         -- ^ external name (for associated eta-expanded fun)
   , funArity   :: Arity
+  , funUnfolds :: Unfolds      -- ^ The names that may be unfolded to check the clauses.
   , funClauses :: [Clause]
   } deriving (Eq, Ord, Show)
+
+-- | The names that may be unfolded to check the clauses.
+type Unfolds = [Name]
 
 {-
 letToFun :: TypeSig -> Expr -> Fun
@@ -1082,6 +1088,7 @@ eraseMeasure (Quant Pi (TMeasure{}) b) = b -- there can only be one measure!
 eraseMeasure (Quant Pi a@(TBind{}) b)  = Quant Pi a $ eraseMeasure b
 eraseMeasure (Quant Pi a@(TBound{}) b) = Quant Pi a $ eraseMeasure b
 eraseMeasure (LLet a tel e b) = LLet a tel e $ eraseMeasure b
+eraseMeasure (Unfold ns b) = Unfold ns $ eraseMeasure b
 eraseMeasure t = t
 
 -- inferable term = True/False
@@ -1180,8 +1187,7 @@ instance FreeVars Telescope where
                           (freeVars (Telescope tel) Set.\\ boundVars tb)
 
 instance FreeVars Expr where
-  freeVars e0 =
-    case e0 of
+  freeVars = \case
       Sort s    -> freeVars s
       Zero      -> mempty
       Succ e    -> freeVars e
@@ -1192,6 +1198,7 @@ instance FreeVars Expr where
                 -> freeVars (e, mt, cls)
       LLet (TBind x dom) tel t u | null tel
                 -> freeVars (dom, t) `Set.union` Set.delete x (freeVars u)
+      Unfold _ns e -> freeVars e
       Pair f e  -> freeVars (f, e)
       App  f e  -> freeVars (f, e)
       Max  es   -> freeVars es
@@ -1289,6 +1296,7 @@ instance UsedDefs Expr where
 --  usedDefs (Quant _ tel tb b) = usedDefs (tel, tb, b)
   usedDefs (Quant _ tb b)     = usedDefs (tb, b)
   usedDefs (LLet tb tel e1 e2)= usedDefs (tb, tel, e1, e2)
+  usedDefs (Unfold _ns e)     = usedDefs e
   usedDefs (Succ e)           = usedDefs e
   usedDefs (Case e mt cls)    = usedDefs (e, mt, cls)
   usedDefs (Ann e)            = usedDefs e
@@ -1382,6 +1390,9 @@ instance Pretty Expr where
                          , equals <+> pretty e1 ]))
     $$ (text "in" <+> pretty e2)
 -}
+  prettyPrec k (Unfold ns e) = hsep
+    [ text "unfold", hsep (punctuate comma $ map pretty ns)
+    , text "in", prettyPrec k e ]
   prettyPrec k (Below ltle e) = pretty ltle <+> prettyPrec k e
   prettyPrec k (Quant Pi (TMeasure mu) t2) = parensIf (precArrL <= k) $
     (pretty mu <+> text "->" <+> pretty t2)

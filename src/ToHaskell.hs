@@ -102,14 +102,14 @@ translateDecl d =
     OverrideDecl{} -> throwErrorMsg $ "translateDecls internal error: overrides impossible"
     MutualFunDecl _ _ funs -> translateFuns funs
     FunDecl _ fun -> translateFun fun
-    LetDecl _ x tel (Just t) e | null tel -> translateLet x t e
+    LetDecl _ x tel (Just t) _unfolds e | null tel -> translateLet x t e
     DataDecl n _ _ _ tel fkind cs _ -> translateDataDecl n tel fkind cs
 
 translateFuns :: [Fun] -> Translate [H.Decl]
 translateFuns funs = concat <$> mapM translateFun funs
 
 translateFun :: Fun -> Translate [H.Decl]
-translateFun (Fun ts@(TypeSig n t) n' ar cls) = do
+translateFun (Fun ts _n _ar _unfolds cls) = do
   ts@(Hs.TypeSig _ [n] t) <- translateTypeSig ts
   cls <- concat <$> mapM (translateClause n) cls
   return [ts, H.hFunBind cls]

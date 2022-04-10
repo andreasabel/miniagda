@@ -30,10 +30,13 @@ main = do
   hSetBuffering stdout NoBuffering
   -- putStrLn "MiniAgda by Andreas Abel and Karl Mehltretter"
   opts <- options
-  mapM_ mainFile $ optInputs opts
+  mapM_ (mainFile $ optControlUnfolding opts) $ optInputs opts
 
-mainFile :: String -> IO ()
-mainFile fileName = do
+mainFile
+  :: Bool      -- ^ Option @--control-unfolding@ on?
+  -> FilePath  -- ^ File to check.
+  -> IO ()
+mainFile controlUnfolding fileName = do
   putStrLn $ "--- opening " ++ show fileName ++ " ---"
   file <- readFile fileName
   let t = alexScanTokens file
@@ -44,7 +47,7 @@ mainFile fileName = do
   adecls <- doScopeCheck cdecls
   -- mapM (putStrLn . show) adecls
   putStrLn "--- type checking ---"
-  (edecls, sig) <- doTypeCheck adecls
+  (edecls, sig) <- doTypeCheck controlUnfolding adecls
   putStrLn "--- evaluating ---"
   showAll sig adecls
 {-
@@ -80,7 +83,7 @@ allLet :: Signature -> [A.Declaration] -> [(Name,A.Expr)]
 allLet sig [] = []
 allLet sig (decl:xs) =
     case decl of
-      (A.LetDecl True n tel _ e) | null tel ->
+      (A.LetDecl True n tel _ _ e) | null tel ->
           (n,e):(allLet sig xs)
       _ -> allLet sig xs
 
@@ -121,10 +124,12 @@ doTranslate decls = do
     Right hs ->
       return hs
 
-doTypeCheck :: [A.Declaration] -> IO ([A.EDeclaration], Signature)
-doTypeCheck decls = do
-  k <- typeCheck decls
-  case k of
+doTypeCheck
+  :: Bool             -- ^ Control unfolding of definitions?
+  -> [A.Declaration]  -- ^ Scope-checked declarations to type check.
+  -> IO ([A.EDeclaration], Signature)
+doTypeCheck controlUnfolding decls = do
+  typeCheck controlUnfolding decls >>= \case
     Left err -> do
       putStrLn $ "error during typechecking:\n" ++ show err
       exitFailure
@@ -132,7 +137,10 @@ doTypeCheck decls = do
       return (edecls, signature st)
 
 doScopeCheck :: [C.Declaration] -> IO [A.Declaration]
-doScopeCheck decl = case scopeCheck decl of
-     Left err -> do putStrLn $ "scope check error: " ++ show err
-                    exitFailure
-     Right (decl',_) -> return $ decl'
+doScopeCheck decl =
+  case scopeCheck decl of
+    Left err -> do
+      putStrLn $ "scope check error: " ++ show err
+      exitFailure
+    Right (decl',_) -> do
+      return decl'

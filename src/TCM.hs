@@ -1,4 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, PatternGuards, FlexibleContexts, NamedFieldPuns, DeriveFunctor, DeriveFoldable, DeriveTraversable, TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NondecreasingIndentation #-}
 
 module TCM where
 
@@ -19,6 +21,8 @@ import qualified Data.Traversable as Traversable
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 -- import Debug.Trace
 
@@ -181,13 +185,22 @@ data TCContext = TCContext
   , mutualNames :: [Name] -- ^ The defined names of the current mutual block (and parents).
   , checkingMutualName :: Maybe DefId -- which body of a mutual block am I checking?
   , callStack :: [QName] -- ^ Used to avoid looping when going into recursive data definitions.
+  , unfoldables :: Maybe Unfoldables
+      -- ^ The definitions that can be unfolded currently.
+      --   Like the typing context, this set can only grow as we descend into the abstract syntax tree.
+      --   If @Nothing@, we unfold everything.
   }
+
+type Unfoldables = Set Name
 
 instance Show TCContext where
     show ce = show (environ ce) ++ "; " ++ show (context ce)
 
-emptyContext :: TCContext
-emptyContext = TCContext
+-- | Set up an initial type checking context.
+emptyContext
+  :: Bool       -- ^ Control unfolding of definitions?
+  -> TCContext
+emptyContext controlUnfolding = TCContext
   { context  = cxtEmpty
   , renaming = Map.empty
   , naming   = Map.empty
@@ -206,6 +219,7 @@ emptyContext = TCContext
   , mutualNames = []
   , checkingMutualName = Nothing
   , callStack = []
+  , unfoldables = if controlUnfolding then Just Set.empty else Nothing
   }
 
 -- state monad for global signature
@@ -238,19 +252,15 @@ emptyPosGraph = []
 -- type TypeCheck = StateT TCState (ReaderT TCContext (CallStackT String IO))
 type TypeCheck = StateT TCState (ReaderT TCContext (ExceptT TraceError IO))
 
+-- TODO: make TypeCheck a newtype to support custoom MonadFail
+-- instance MonadFail TypeCheck where
+--   fail msg = throwErrorMsg $ unwords [ "internal error:", msg ]
+
 instance MonadAssert TypeCheck where
   assert b s = do
     h <- asks assertionHandling
     assert' h b s
   newAssertionHandling h = local ( \ ce -> ce { assertionHandling = h })
-
-{- mtl-2 provides these instances
--- TypeCheck is applicative since every monad is.
--- I do not know why this ain't in the libraries...
-instance Applicative TypeCheck where
-  pure      = return
-  mf <*> ma = mf >>= \ f -> ma >>= \ a -> pure (f a)
--}
 
 {- NOT NEEDED
 
@@ -455,7 +465,7 @@ data LamPi
   | PiBind  -- ^ add a pi binding to the context
 -}
 
-class Monad m => MonadCxt m where
+class (Functor m, Monad m) => MonadCxt m where
 --  bind     :: Name -> Domain -> Val -> m a -> m a
 --  new performs eta-expansion "up" of new gen
   -- adding types (Two t1 t2) returns values (Two (Up t1 vi) (Up t2 vi))
@@ -538,6 +548,12 @@ class Monad m => MonadCxt m where
   activateFuns :: m a -> m a -- create instance of mutually recursive functions bounded by measure
   goImpredicative :: m a -> m a
   checkingMutual :: Maybe DefId -> m a -> m a
+
+  -- | Is the given name unfoldable
+  canUnfold :: Name -> m Bool
+  canUnfold x = maybe True (x `Set.member`) <$> askUnfoldables
+  askUnfoldables :: m (Maybe Unfoldables)
+  modifyUnfoldablesM :: (Unfoldables -> m Unfoldables) -> m a -> m a
 
 dontCare :: a
 dontCare = error "Internal error: tried to retrieve unassigned type of variable"
@@ -854,7 +870,7 @@ instance MonadCxt TypeCheck where
   -- install functions for checking function clauses
   -- ==> use internal names
   installFuns co kfuns k = do
-    let funt = foldl (\ m fun@(Kinded _ (Fun (TypeSig n _) n' _ _)) -> Map.insert n fun m)
+    let funt = foldl (\ m fun@(Kinded _ (Fun (TypeSig n _) n' _ _unfolds _)) -> Map.insert n fun m)
                      Map.empty
                      kfuns
     local (\ cxt -> cxt { mutualCo = co, funsTemplate = funt }) k
@@ -875,9 +891,10 @@ instance MonadCxt TypeCheck where
              { mutualFuns =
                  Map.map (boundFun rho (mutualCo cxt)) (funsTemplate cxt)
              }) k
-    where boundFun :: Env -> Co -> Kinded Fun -> SigDef
-          boundFun rho co (Kinded ki (Fun (TypeSig n t) n' ar cls)) =
-            FunSig co (VClos rho t) ki ar cls False undefined
+    where
+      boundFun :: Env -> Co -> Kinded Fun -> SigDef
+      boundFun rho co (Kinded ki (Fun (TypeSig n t) n' ar unfolds cls)) =
+        FunSig co (VClos rho t) ki ar unfolds cls False undefined
 
 {-
   activateFuns mu k = do
@@ -896,6 +913,12 @@ instance MonadCxt TypeCheck where
   goImpredicative = local (\ cxt -> cxt { impredicative = True })
 
   checkingMutual mn = local (\ cxt -> cxt { checkingMutualName = mn })
+
+  askUnfoldables = asks unfoldables
+
+  modifyUnfoldablesM f cont = do
+    unf <- traverse f =<< askUnfoldables
+    local (\ cxt -> cxt{ unfoldables = unf }) cont
 
 -- | Go into the codomain of a Pi-type or open an abstraction.
 underAbs  :: Name -> Domain -> FVal -> (Int -> Val -> Val -> TypeCheck a) -> TypeCheck a
@@ -1024,6 +1047,8 @@ data SigDef
             , symbTyp       :: TVal
             , symbolKind    :: Kind
             , arity         :: Arity
+            , unfolds       :: Unfolds
+                -- ^ Definitions that may have been unfolded when checking the clauses.
             , clauses       :: [Clause]
             , isTypeChecked :: Bool
             , extrTyp       :: Expr   -- ^ Fomega type.
@@ -1031,6 +1056,7 @@ data SigDef
   | LetSig  { symbTyp       :: TVal
             , symbolKind    :: Kind
             , definingVal   :: Val
+            , unfolds       :: Unfolds
 --            , definingExpr  :: Expr
             , extrTyp       :: Expr   -- ^ Fomega type.
             }
@@ -1083,6 +1109,11 @@ type ConPars = Maybe ([Name], [Pattern])
 
 -- | LHS type plus name of size index.
 type LHSType = Maybe (Name, TVal)
+
+-- |
+unfoldsOfDef :: SigDef -> Unfolds
+unfoldsOfDef = unfolds
+  -- TODO:
 
 isEmptyData :: QName -> TypeCheck Bool
 isEmptyData n = do
@@ -1298,6 +1329,29 @@ class MonadCxt m => MonadSig m where
 
   setExtrTyp     :: Name -> Expr -> m ()
   setExtrTyp     = setExtrTypQ . QName
+
+  -- | Register symbols that can be unfolded, plus their dependencies (transitively).
+  addUnfolds     :: Unfolds -> m a -> m a
+  addUnfolds     = modifyUnfoldablesM . loop
+    where
+    loop :: Unfolds -> Unfoldables -> m Unfoldables
+    loop []     acc = return acc
+    loop (n:ns) acc
+        | n `Set.member` acc
+                    = loop ns acc
+        | otherwise = do
+            ns' <- unfolds <$> lookupSymb n
+            loop (ns' ++ ns) (n `Set.insert` acc)
+  -- addUnfolds unf = modifyUnfoldablesM $ \ acc -> loop acc [unf]
+  --   where
+  --   loop acc = \case
+  --     []          -> return acc
+  --     [] : ls     -> loop acc ls
+  --     (n:ns) : ls
+  --       | n `Set.member` acc -> loop acc (ns : ls)
+  --       | otherwise -> do
+  --           ns' <- unfolds <$> lookupSymb n
+  --           loop (n `Set.insert` acc) (ns' : ns : ls)
 
 -- Signature implementation ------------------------------------------
 
