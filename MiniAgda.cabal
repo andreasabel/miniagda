@@ -1,4 +1,5 @@
 cabal-version:   2.4
+  -- 2.4 introduces the ** glob patterns used in data-files
 name:            MiniAgda
 version:         0.2022.4.6
 build-type:      Simple
@@ -62,7 +63,7 @@ executable miniagda
                       , haskell-src-exts  >= 1.21   && < 1.22
                           -- haskell-src-exts is a nervous package with incompatibilities
                           -- in every new version, thus, we need tight bounds.
-                      , mtl               >= 2.2.2  && < 2.4
+                      , mtl               >= 2.2.1  && < 2.4
                       , optparse-applicative
                                           >= 0.16.0.0 && < 1
                           -- optparse-applicative-0.16.0.0 adds some1

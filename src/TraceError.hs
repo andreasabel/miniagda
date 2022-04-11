@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleContexts #-}
 
 module TraceError where
@@ -63,10 +64,12 @@ boolToError _   True  = return ()
 boolToError msg False = throwErrorMsg msg
 
 -- defined in Control.Monad.Error.Class in mtl-2.2.2
--- instance MonadError () Maybe where
---   catchError Nothing k = k ()
---   catchError (Just a) k = Just a
---   throwError () = Nothing
+#if !MIN_VERSION_mtl(2,2,2)
+instance MonadError () Maybe where
+  catchError Nothing k = k ()
+  catchError (Just a) k = Just a
+  throwError () = Nothing
+#endif
 
 orM :: (MonadError e m) => m a -> m a -> m a
 orM m1 m2 = m1 `catchError` (const m2)
