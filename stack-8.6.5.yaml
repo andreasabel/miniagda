@@ -1,1 +1,38 @@
 resolver: lts-14.27
+
+drop-packages:
+- Cabal
+
+extra-deps:
+- haskell-src-exts-1.21.1
+- optparse-applicative-0.16.0.0
+- goldplate-0.2.0
+
+# for goldplate
+- regex-pcre-builtin-0.95.2.3.8.44
+- regex-base-0.94.0.2
+
+
+# cabal copy fails, this seems to be ignored, see
+# https://github.com/commercialhaskell/stack/issues/5707
+# - Cabal-3.2.1.0
+- Cabal-2.4.1.0
+
+
+# MiniAgda> copy/register
+# .stack-work/install/x86_64-osx/e79d5eb24f56f477e1b25641c474f9963ad0294f5955eb6d1dcbe2e5755c299e/8.6.5/share/x86_64-osx-ghc-8.6.5/MiniAgda-0.2022.4.6/test/should-fail: copyFile: does not exist (No such file or directory)
+# 'cabal copy' failed.  Error message:
+
+# --  While building package MiniAgda-0.2022.4.6 (scroll up to its section to see the error) using:
+#       /Users/abel/.stack/setup-exe-cache/x86_64-osx/Cabal-simple_mPHDZzAJ_2.4.0.1_ghc-8.6.5 --builddir=.stack-work/dist/x86_64-osx/Cabal-2.4.0.1 copy
+#     Process exited with code: ExitFailure 1
+
+# $ l .stack-work/install/x86_64-osx/e79d5eb24f56f477e1b25641c474f9963ad0294f5955eb6d1dcbe2e5755c299e/8.6.5/share/x86_64-osx-ghc-8.6.5/MiniAgda-0.2022.4.6/test
+# total 0
+# drwxr-xr-x  2 abel  staff   64 Apr 11 09:00 **
+# drwxr-xr-x  5 abel  staff  160 Apr 11 09:00 .
+# drwxr-xr-x  3 abel  staff   96 Apr 11 09:00 ..
+# drwxr-xr-x  3 abel  staff   96 Apr 11 09:11 fail
+# drwxr-xr-x  3 abel  staff   96 Apr 11 09:11 succeed
+
+# Note the directory `**`!

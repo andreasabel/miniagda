@@ -1,0 +1,6 @@
+resolver: lts-16.31
+
+extra-deps:
+- haskell-src-exts-1.21.1
+- optparse-applicative-0.16.0.0
+- goldplate-0.2.0
