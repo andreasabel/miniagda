@@ -1,4 +1,4 @@
-module Main where
+module MainLib where
 
 import Prelude hiding (null, mapM_)
 
