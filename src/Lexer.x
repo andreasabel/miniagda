@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 
-module Lexer where
+module Lexer (AlexPosn, Token(..), alexScanTokens, prettyTok) where
 
 }
 

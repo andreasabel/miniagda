@@ -1,6 +1,6 @@
 {
 {-# LANGUAGE BangPatterns #-}
-module Parser where
+module Parser (parse) where
 
 import qualified Lexer as T
 import qualified Concrete as C
