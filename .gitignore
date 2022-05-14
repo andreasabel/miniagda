@@ -5,7 +5,7 @@
 *.o
 *.o-boot
 *.tix
-/stack-*.yaml.lock
+# /stack-*.yaml.lock
 
 /dist/
 /dist-newstyle/
