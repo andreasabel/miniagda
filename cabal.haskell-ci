@@ -1,3 +1,7 @@
 installed: +all -mtl -transformers
 tests: >= 8.4
   -- goldplate only compiles with GHC-8.4 and up
+
+haddock: >= 9.0
+  -- On GHC 7.x and 8.x, the haddock parsing fails here:
+  -- https://github.com/andreasabel/miniagda/blob/67f9ad914f8bbda153d679a517da98b01e482d4e/src/Abstract.hs#L938

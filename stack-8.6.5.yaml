@@ -1,5 +1,19 @@
 resolver: lts-14.27
 
+# 2022-05-14, see https://github.com/commercialhaskell/stack/issues/5706
+# The glob patterns used in MiniAgda.cabal are legal from
+#   cabal-version: 2.4
+# but the implementation in Cabal-2.4.0.0 is buggy.
+# One could work around that by making a custom setup with
+#   setup-depends: Cabal >= 3
+# and then add
+#   extra-deps: Cabal-...
+# here.
+# However, cabal does not deal well with custom setups, see
+# https://github.com/haskell/cabal/issues/7577#issuecomment-906790525
+# so, this isn't a solution worth pursuing.
+# Resolution: do not support stack build with GHC < 8.8.
+
 drop-packages:
 - Cabal
 
