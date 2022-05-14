@@ -1,0 +1,38 @@
+# 2022-05-14, https://github.com/freckle/stack-action
+
+name: Stack
+
+on:
+  push:
+    branches: [ master, ci-* ]
+    tags:     [ v* ]
+  pull_request:
+    types: [ opened, synchronize ]
+
+jobs:
+  build:
+    name: GHC ${{ matrix.ghc }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:  [ubuntu-latest]
+        ghc: [9.2.2, 9.0.2, 8.10.7, 8.8.4]
+        include:
+          - os:  macOS-latest
+            ghc: 9.2.2
+          - os:  windows-latest
+            ghc: 9.2.2
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: freckle/stack-cache-action@v2
+        with:
+          stack-yaml: stack-${{ matrix.ghc }}.yaml
+          prefix: stack-
+
+      - uses: freckle/stack-action@v3
+        with:
+          stack-yaml: stack-${{ matrix.ghc }}.yaml
