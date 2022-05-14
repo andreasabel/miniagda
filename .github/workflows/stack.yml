@@ -36,3 +36,6 @@ jobs:
       - uses: freckle/stack-action@v3
         with:
           stack-yaml: stack-${{ matrix.ghc }}.yaml
+          pedantic: false
+            # no --pendantic flag (meaning -Wall -Werror)
+            # does not respect our -fno-warn- ghc options
