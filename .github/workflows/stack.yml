@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: andreasabel/fix-whitespace-action@master
+      # - uses: andreasabel/fix-whitespace-action@master
 
       - uses: freckle/stack-cache-action@v2
         with:
