@@ -1,0 +1,4 @@
+resolver: nightly-2022-11-20
+
+extra-deps:
+- haskell-src-exts-1.21.1
