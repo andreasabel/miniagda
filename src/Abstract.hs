@@ -934,7 +934,7 @@ checking. -}
   The whole pattern is not irrefutable, but still you want the pair destructed
   lazily by projections.
 -}
---  | IrrP -- pattern which got erased
+-- --  | IrrP -- pattern which got erased
                deriving (Eq,Ord)
 
 {-
