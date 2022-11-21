@@ -2,3 +2,6 @@ resolver: nightly-2022-11-20
 
 extra-deps:
 - haskell-src-exts-1.21.1
+# temporarily use patched goldplate that uses "/" as path separator also under Windows
+- git: https://github.com/fugue/goldplate.git
+  commit: a671a1dc38d0e73f1598cee5a874d02e520ede71
