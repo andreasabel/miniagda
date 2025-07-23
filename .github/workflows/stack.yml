@@ -1,10 +1,11 @@
 # 2022-05-14, https://github.com/freckle/stack-action
+# 2025-07-23 updated to @v5
 
 name: Stack
 
 on:
   push:
-    branches: [ master, ci-* ]
+    branches: [ master ]
     tags:     [ v* ]
   pull_request:
     types: [ opened, synchronize ]
@@ -18,26 +19,22 @@ jobs:
       fail-fast: false
       matrix:
         os:  [ubuntu-22.04]
-        ghc: [9.4.3, 9.2.5, 9.0.2, 8.10.7]
+        ghc: ['9.12', '9.10', '9.8', '9.6']
         include:
           - os:  macOS-latest
-            ghc: 9.4.3
+            ghc: '9.12'
           - os:  windows-latest
-            ghc: 9.4.3
+            ghc: '9.12'
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       # - uses: andreasabel/fix-whitespace-action@master
 
-      - uses: freckle/stack-cache-action@v2
+      - uses: freckle/stack-action@v5
         with:
           stack-yaml: stack-${{ matrix.ghc }}.yaml
-          prefix: stack-
-
-      - uses: freckle/stack-action@v3
-        with:
-          stack-yaml: stack-${{ matrix.ghc }}.yaml
-          pedantic: false
-            # no --pendantic flag (meaning -Wall -Werror)
-            # does not respect our -fno-warn- ghc options
+          stack-build-arguments: --fast
+            # Set stack-build-arguments to clear the --pendantic flag (meaning -Wall -Werror).
+            # It does not respect our -Wno- ghc options.
+          cache-save-always: true

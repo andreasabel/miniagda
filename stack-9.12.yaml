@@ -1,0 +1,5 @@
+resolver: nightly-2025-07-23
+
+extra-deps:
+- haskell-src-exts-1.21.1
+- goldplate-0.2.2.1@rev:2
