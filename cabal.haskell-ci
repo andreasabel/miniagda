@@ -1,4 +1,5 @@
-installed: +all -mtl -transformers
+branches: master
+installed: +all
 tests: >= 8.4
   -- goldplate only compiles with GHC-8.4 and up
 
