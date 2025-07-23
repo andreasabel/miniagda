@@ -56,11 +56,11 @@ You can install with `stack` from source though, see next section.
      stack build --stack-yaml=stack-$GHCVER.yaml
      stack test  --stack-yaml=stack-$GHCVER.yaml
      ```
-     At the time of writing (2022-05-14), `GHCVER` can be any of `8.8.4`, `8.10.7`, `9.0.2`, or `9.2.2`.
+     At the time of writing (2025-07-23), `GHCVER` can be any of `9.12`, `9.10`, `9.8`, `9.6`, and some older ones.
 
      After building, you can run MiniAgda locally, e.g.:
      ```
-     stack run --stack-yaml=stack-9.2.2.yaml -- examples/Gcd/gcd.ma
+     stack run --stack-yaml=stack-9.12.yaml -- examples/Gcd/gcd.ma
      ```
      You can copy `stack-$GHCVER.yaml` for your choice of `GHCVER` into `stack.yaml` and drop the `--stack-yaml` argument from `stack` invocation.
 
@@ -74,7 +74,6 @@ You can install with `stack` from source though, see next section.
      ```
      stack install --stack-yaml=stack-$GHCVER.yaml
      ```
-     At the time of writing (2022-05-14), `GHCVER` can be any of `8.8.4`, `8.10.7`, `9.0.2`, or `9.2.2`.
 
    Note that the respective installation directory should be on your PATH.
 

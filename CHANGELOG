@@ -1,6 +1,6 @@
 CHANGELOG for MiniAgda
 
-unreleased    Drop support for GHC 7.6 and 7.8
+0.2025.7.23   Drop support for GHC 7, tested with GHC 8.0 - 9.12.2.
 
 0.2022.3.11   Fixed compilation with mtl-2.3-rc3, tested with ghc 9.2.2, added cabal test.
 

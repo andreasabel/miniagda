@@ -1,7 +1,7 @@
 cabal-version:   2.4
   -- 2.4 introduces the ** glob patterns used in data-files
 name:            MiniAgda
-version:         0.2022.4.6
+version:         0.2025.7.23
 build-type:      Simple
 license:         MIT
 license-file:    LICENSE
@@ -45,6 +45,10 @@ extra-doc-files:
 extra-source-files:
   Makefile
   src/Makefile
+  stack-9.12.yaml
+  stack-9.10.yaml
+  stack-9.8.yaml
+  stack-9.6.yaml
   stack-9.4.3.yaml
   stack-9.2.5.yaml
   stack-9.0.2.yaml
@@ -67,7 +71,7 @@ library
   hs-source-dirs:       src
   build-depends:        array             >= 0.3    && < 0.6
                       , base              >= 4.9    && < 5
-                      , containers        >= 0.3    && < 0.8
+                      , containers        >= 0.3    && < 1
                       , haskell-src-exts  >= 1.21   && < 1.22
                           -- haskell-src-exts is a nervous package with incompatibilities
                           -- in every new version, thus, we need tight bounds.
